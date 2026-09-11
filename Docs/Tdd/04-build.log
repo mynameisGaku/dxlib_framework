@@ -1,0 +1,8 @@
+[0/1] Re-running CMake...
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /mnt/data/build-dxf-debug
+[1/5] Building CXX object CMakeFiles/dxlib_framework.dir/Source/Runtime/Private/Application.cpp.o
+[2/5] Linking CXX static library libdxlib_framework.a
+[3/5] Building CXX object CMakeFiles/dxf_tests.dir/Tests/ApplicationTests.cpp.o
+[4/5] Linking CXX executable dxf_tests

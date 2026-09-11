@@ -1,0 +1,73 @@
+[PASS] Result holds a move-only value
+[PASS] Result preserves error and void success
+[PASS] RTTI supports safe derived checks
+[PASS] SlotMap invalidates removed handles and increments generation
+[PASS] Handles do not resolve against a different owner
+[PASS] Handle outlives storage without dangling pointer
+[PASS] Typed handle rejects incorrect dynamic type
+[PASS] SlotMap snapshot permits removal without iterator invalidation
+[PASS] FrameClock clamps simulation delta but retains real delta
+[PASS] FrameClock rejects negative and nonfinite elapsed inputs
+[PASS] SceneClock pause and scale preserve unscaled time
+[PASS] Input edges are stable during a frame
+[PASS] Focus loss releases keys and mouse buttons
+[PASS] Gamepad disconnection emits release and clears axes
+[PASS] InputMap action is held until all bound keys release
+[PASS] Texture cache shares normalized paths
+[PASS] Texture load options participate in cache identity
+[PASS] Texture is freed once when last reference expires
+[PASS] Asset shutdown invalidates externally retained references
+[PASS] Failed load is not cached and can be retried
+[PASS] Invalid successful native handle is rejected
+[PASS] Loading after asset shutdown is rejected
+[PASS] Invalid render target dimensions fail before backend call
+[PASS] Font cache separates sizes and invalidates references
+[PASS] Render queue sorts layer and order while preserving equal-key insertion
+[PASS] Sprite opacity does not leak to following commands
+[PASS] Render commands keep textures alive until execution
+[PASS] Native barrier flushes earlier commands and restores state after exception
+[PASS] Drawing render target into itself is rejected
+[PASS] Invalidated texture fails submission and never reaches backend
+[PASS] Invalidation between queue and flush is detected
+[PASS] Nonfinite sprite values are rejected
+[PASS] Render flush prevents reentrant native calls
+[PASS] Each memory sound playback owns a distinct native handle
+[PASS] Stream playback reloads instead of duplicating unsupported sound data
+[PASS] Failed playback frees the newly created voice
+[PASS] Audio scopes stop scene sound without stopping persistent music
+[PASS] Finished voices are reclaimed by Tick
+[PASS] Audio player rejects another player's handle and invalid volume
+[PASS] Session ends exactly once on success and does not end an uninitialized backend
+[PASS] Native state restoration failure aborts the frame
+[PASS] Spawn remains pending until boundary and initializes exactly once
+[PASS] GameObject override cannot bypass automatic component dispatch
+[PASS] Spawn during tick is initialized only at the next boundary
+[PASS] Destroying a later sibling suppresses its remaining callbacks immediately
+[PASS] Self destruction in tick skips owned components and later draw
+[PASS] Destroy before initialization never calls user initialization or shutdown hooks
+[PASS] Initialization failure rolls back the object and invalidates the handle
+[PASS] Component initialization failure rolls back its parent transaction
+[PASS] Shutdown is idempotent and stops components before their owner
+[PASS] Mutations submitted from shutdown wait for the next boundary
+[PASS] Children added to an existing object during another initializer wait for a new boundary
+[PASS] Update ordering is deterministic after slot reuse
+[PASS] Pause skips normal objects but honors tick-when-paused components
+[PASS] Scene override cannot bypass object dispatch
+[PASS] Scene switch preserves the active scene until commit
+[PASS] Failed scene preparation leaves current scene active
+[PASS] A request made inside OnEnter survives for the next scene boundary
+[PASS] Multiple pending scene requests use last-request-wins without initializing discarded scenes
+[PASS] Handles from a destroyed scene cannot resolve into the next scene
+[PASS] GameObject initialization exception is converted into an error and cleaned up
+[PASS] Application frame polls input once, dispatches and presents
+[PASS] Application rolls back failed platform initialization without double shutdown
+[PASS] Application rolls back failed initial scene and ends session
+[PASS] Application retains current scene after a later failed transition
+[PASS] Application defers shutdown until the user callback has returned
+[PASS] Application rejects recursive Step without ending the outer frame
+[PASS] Application converts user tick exceptions and releases all services
+[PASS] Application stops cleanly when event pumping reports quit
+[PASS] Application rejects backwards frame time before executing another frame
+[PASS] Application invalidates surviving asset references before ending DxLib
+[PASS] AppRunner executes until a scene requests quit
+72/72 passed
