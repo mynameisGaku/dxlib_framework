@@ -1,0 +1,23 @@
+[1/23] Building CXX object CMakeFiles/dxlib_framework.dir/Source/DxLibSupport/Private/Render.cpp.o
+[2/23] Building CXX object CMakeFiles/dxlib_framework.dir/Source/DxLibSupport/Private/Audio.cpp.o
+[3/23] Building CXX object CMakeFiles/dxlib_framework.dir/Source/Runtime/Private/LifecycleObject.cpp.o
+[4/23] Building CXX object CMakeFiles/dxlib_framework.dir/Source/Runtime/Private/Application.cpp.o
+[5/23] Building CXX object CMakeFiles/dxlib_framework.dir/Source/Runtime/Private/SceneNavigator.cpp.o
+[6/23] Building CXX object CMakeFiles/dxf_tests.dir/Tests/FoundationTests.cpp.o
+[7/23] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Tests/TestMain.cpp.o
+[8/23] Building CXX object CMakeFiles/dxlib_framework.dir/Source/DxLibSupport/Private/Assets.cpp.o
+[9/23] Linking CXX static library libdxlib_framework.a
+[10/23] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibPlatform.cpp.o
+[11/23] Building CXX object CMakeFiles/dxf_tests.dir/Tests/ApplicationTests.cpp.o
+[12/23] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibTextureBackend.cpp.o
+[13/23] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibInputSource.cpp.o
+[14/23] Building CXX object CMakeFiles/dxf_tests.dir/Tests/SupportTests.cpp.o
+[15/23] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibSoundBackend.cpp.o
+[16/23] Building CXX object CMakeFiles/dxf_tests.dir/Tests/SandboxTests.cpp.o
+[17/23] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibFontBackend.cpp.o
+[18/23] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Tests/NativeTests.cpp.o
+[19/23] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibRenderBackend.cpp.o
+[20/23] Linking CXX executable dxf_native_contract_tests
+[21/23] Building CXX object CMakeFiles/dxf_tests.dir/Tests/GameplayTests.cpp.o
+[22/23] Building CXX object CMakeFiles/dxf_tests.dir/Examples/Sandbox/SandboxGame.cpp.o
+[23/23] Linking CXX executable dxf_tests

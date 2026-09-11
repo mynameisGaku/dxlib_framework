@@ -25,44 +25,44 @@ class [[nodiscard]] TResult
 public:
 	static TResult Success(T Value)
 	{
-		return TResult(std::move(Value));
+		return TResult(std::in_place_index<0>, std::move(Value));
 	}
 	static TResult Failure(EErrorCode Code, std::string Message)
 	{
-		return TResult(FError{Code, std::move(Message)});
+		return TResult(std::in_place_index<1>, FError{Code, std::move(Message)});
 	}
 	static TResult Failure(FError Error)
 	{
-		return TResult(std::move(Error));
+		return TResult(std::in_place_index<1>, std::move(Error));
 	}
 	explicit operator bool() const noexcept
 	{
-		return std::holds_alternative<T>(m_Data);
+		return Data.index() == 0;
 	}
 	T& Value() &
 	{
-		return std::get<T>(m_Data);
+		return std::get<0>(Data);
 	}
 	const T& Value() const&
 	{
-		return std::get<T>(m_Data);
+		return std::get<0>(Data);
 	}
 	T&& Value() &&
 	{
-		return std::get<T>(std::move(m_Data));
+		return std::get<0>(std::move(Data));
 	}
 	const FError& Error() const
 	{
-		return std::get<FError>(m_Data);
+		return std::get<1>(Data);
 	}
 private:
-	explicit TResult(T Value) : m_Data(std::in_place_index<0>, std::move(Value))
+	explicit TResult(std::in_place_index_t<0>, T Value) : Data(std::in_place_index<0>, std::move(Value))
 	{
 	}
-	explicit TResult(FError Error) : m_Data(std::in_place_index<1>, std::move(Error))
+	explicit TResult(std::in_place_index_t<1>, FError Error) : Data(std::in_place_index<1>, std::move(Error))
 	{
 	}
-	std::variant<T, FError> m_Data;
+	std::variant<T, FError> Data;
 };
 template <>
 class [[nodiscard]] TResult<void>
@@ -80,18 +80,18 @@ public:
 	static TResult Failure(FError Error)
 	{
 		TResult Result;
-		Result.m_Data = std::move(Error);
+		Result.Data = std::move(Error);
 		return Result;
 	}
 	explicit operator bool() const noexcept
 	{
-		return std::holds_alternative<std::monostate>(m_Data);
+		return std::holds_alternative<std::monostate>(Data);
 	}
 	const FError& Error() const
 	{
-		return std::get<FError>(m_Data);
+		return std::get<FError>(Data);
 	}
 private:
-	std::variant<std::monostate, FError> m_Data;
+	std::variant<std::monostate, FError> Data;
 };
 }
