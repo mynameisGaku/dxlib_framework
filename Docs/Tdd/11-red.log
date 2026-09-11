@@ -1,0 +1,37 @@
+[1/2] Building CXX object CMakeFiles/dxf_tests.dir/Tests/SupportTests.cpp.o
+FAILED: CMakeFiles/dxf_tests.dir/Tests/SupportTests.cpp.o 
+/usr/bin/c++  -I/mnt/data/dxlib_framework/Tests -I/mnt/data/dxlib_framework/Examples/Sandbox -I/mnt/data/dxlib_framework/Source/Foundation/Public -I/mnt/data/dxlib_framework/Source/DxLibSupport/Public -I/mnt/data/dxlib_framework/Source/Runtime/Public -I/mnt/data/dxlib_framework/Source/Gameplay/Public -g -std=gnu++20 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -MD -MT CMakeFiles/dxf_tests.dir/Tests/SupportTests.cpp.o -MF CMakeFiles/dxf_tests.dir/Tests/SupportTests.cpp.o.d -o CMakeFiles/dxf_tests.dir/Tests/SupportTests.cpp.o -c /mnt/data/dxlib_framework/Tests/SupportTests.cpp
+In file included from /mnt/data/dxlib_framework/Tests/SupportTests.cpp:1:
+/mnt/data/dxlib_framework/Tests/SupportTests.cpp: In function 'void Test_Internal_372()':
+/mnt/data/dxlib_framework/Tests/SupportTests.cpp:380:21: error: 'class Dxf::FRenderContext' has no member named 'SetRenderTarget'
+  380 |     REQUIRE(Context.SetRenderTarget(Target));
+      |                     ^~~~~~~~~~~~~~~
+/mnt/data/dxlib_framework/Tests/Support/Test.h:40:64: note: in definition of macro 'REQUIRE'
+   40 | #define REQUIRE(...) Test::Require_Internal(static_cast<bool>((__VA_ARGS__)), #__VA_ARGS__, __LINE__)
+      |                                                                ^~~~~~~~~~~
+/mnt/data/dxlib_framework/Tests/SupportTests.cpp:382:21: error: 'class Dxf::FRenderContext' has no member named 'Native'
+  382 |     REQUIRE(Context.Native([&]()
+      |                     ^~~~~~
+/mnt/data/dxlib_framework/Tests/Support/Test.h:40:64: note: in definition of macro 'REQUIRE'
+   40 | #define REQUIRE(...) Test::Require_Internal(static_cast<bool>((__VA_ARGS__)), #__VA_ARGS__, __LINE__)
+      |                                                                ^~~~~~~~~~~
+/mnt/data/dxlib_framework/Tests/SupportTests.cpp:387:21: error: 'class Dxf::FRenderContext' has no member named 'SetBackBuffer'
+  387 |     REQUIRE(Context.SetBackBuffer());
+      |                     ^~~~~~~~~~~~~
+/mnt/data/dxlib_framework/Tests/Support/Test.h:40:64: note: in definition of macro 'REQUIRE'
+   40 | #define REQUIRE(...) Test::Require_Internal(static_cast<bool>((__VA_ARGS__)), #__VA_ARGS__, __LINE__)
+      |                                                                ^~~~~~~~~~~
+/mnt/data/dxlib_framework/Tests/SupportTests.cpp: In function 'void Test_Internal_391()':
+/mnt/data/dxlib_framework/Tests/SupportTests.cpp:395:22: error: 'class Dxf::FRenderContext' has no member named 'SetBackBuffer'
+  395 |     REQUIRE(!Context.SetBackBuffer());
+      |                      ^~~~~~~~~~~~~
+/mnt/data/dxlib_framework/Tests/Support/Test.h:40:64: note: in definition of macro 'REQUIRE'
+   40 | #define REQUIRE(...) Test::Require_Internal(static_cast<bool>((__VA_ARGS__)), #__VA_ARGS__, __LINE__)
+      |                                                                ^~~~~~~~~~~
+/mnt/data/dxlib_framework/Tests/SupportTests.cpp:396:22: error: 'class Dxf::FRenderContext' has no member named 'Native'
+  396 |     REQUIRE(!Context.Native([]() { return TResult<void>{}; }));
+      |                      ^~~~~~
+/mnt/data/dxlib_framework/Tests/Support/Test.h:40:64: note: in definition of macro 'REQUIRE'
+   40 | #define REQUIRE(...) Test::Require_Internal(static_cast<bool>((__VA_ARGS__)), #__VA_ARGS__, __LINE__)
+      |                                                                ^~~~~~~~~~~
+ninja: build stopped: subcommand failed.

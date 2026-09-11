@@ -369,3 +369,29 @@ TEST("Native handle adoption is allocation-free, noexcept and releases once acro
 	}
 	REQUIRE(Releases == 2);
 }
+TEST("Scene-facing render context exposes ordered target and native barriers without Application access")
+{
+    FFakeBackend Backend;
+    FAssetService Assets(Backend, Backend, Backend);
+    FRenderSystem2D Renderer(Backend);
+    auto Target = Assets.CreateRenderTarget(64, 64, false).Value();
+    REQUIRE(Renderer.BeginFrame(640, 480));
+    auto& Context = Renderer.GetContext();
+    REQUIRE(Context.SetRenderTarget(Target));
+    REQUIRE(Context.FillRectangle({0, 0, 32, 32}));
+    REQUIRE(Context.Native([&]()
+    {
+        REQUIRE(Backend.GetTrace().CurrentTarget == Target.AsTexture().GetNativeHandle_Internal());
+        return TResult<void>{};
+    }));
+    REQUIRE(Context.SetBackBuffer());
+    REQUIRE(Context.Draw(Target.AsTexture(), {0, 0}));
+    REQUIRE(Renderer.EndFrame());
+}
+TEST("Queue-only render contexts reject unsupported immediate control explicitly")
+{
+    FRenderQueue2D Queue;
+    FRenderContext Context(Queue);
+    REQUIRE(!Context.SetBackBuffer());
+    REQUIRE(!Context.Native([]() { return TResult<void>{}; }));
+}
