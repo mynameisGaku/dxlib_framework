@@ -196,3 +196,23 @@ TEST("Native state restoration failure aborts the frame")
     REQUIRE(Backend.GetTrace().Presentations == 0);
     REQUIRE(Renderer.BeginFrame(640, 480)); REQUIRE(Renderer.EndFrame());
 }
+TEST("Native handle adoption is allocation-free, noexcept and releases once across moves")
+{
+    int Releases = 0;
+    const auto Release = +[](void* Context, int Handle) noexcept
+    {
+        if (Handle >= 0) { ++*static_cast<int*>(Context); }
+    };
+    static_assert(noexcept(FNativeHandle(1, &Releases, Release)));
+    {
+        FNativeHandle First(1, &Releases, Release);
+        FNativeHandle Second(std::move(First));
+        FNativeHandle Third(2, &Releases, Release);
+        Third = std::move(Second);
+        REQUIRE(Releases == 1);
+        Third.Reset(); Third.Reset();
+        REQUIRE(Releases == 2);
+        FNativeHandle Invalid(-1, &Releases, Release);
+    }
+    REQUIRE(Releases == 2);
+}

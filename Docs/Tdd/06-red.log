@@ -1,0 +1,71 @@
+[1/2] Building CXX object CMakeFiles/dxf_tests.dir/Tests/SupportTests.cpp.o
+FAILED: CMakeFiles/dxf_tests.dir/Tests/SupportTests.cpp.o 
+/usr/bin/c++  -I/mnt/data/dxlib_framework/Tests -I/mnt/data/dxlib_framework/Source/Foundation/Public -I/mnt/data/dxlib_framework/Source/DxLibSupport/Public -I/mnt/data/dxlib_framework/Source/Runtime/Public -I/mnt/data/dxlib_framework/Source/Gameplay/Public -g -std=gnu++20 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -MD -MT CMakeFiles/dxf_tests.dir/Tests/SupportTests.cpp.o -MF CMakeFiles/dxf_tests.dir/Tests/SupportTests.cpp.o.d -o CMakeFiles/dxf_tests.dir/Tests/SupportTests.cpp.o -c /mnt/data/dxlib_framework/Tests/SupportTests.cpp
+/mnt/data/dxlib_framework/Tests/SupportTests.cpp: In function 'void Test_Internal_199()':
+/mnt/data/dxlib_framework/Tests/SupportTests.cpp:206:63: error: no matching function for call to 'Dxf::FNativeHandle::FNativeHandle(int, int*, void (* const&)(void*, int) noexcept)'
+  206 |     static_assert(noexcept(FNativeHandle(1, &Releases, Release)));
+      |                                                               ^
+In file included from /mnt/data/dxlib_framework/Source/DxLibSupport/Public/Dxf/ResourceRegistry.h:2,
+                 from /mnt/data/dxlib_framework/Source/DxLibSupport/Public/Dxf/Texture.h:2,
+                 from /mnt/data/dxlib_framework/Source/DxLibSupport/Public/Dxf/RenderCommands.h:2,
+                 from /mnt/data/dxlib_framework/Source/DxLibSupport/Public/Dxf/RenderBackend.h:2,
+                 from /mnt/data/dxlib_framework/Tests/Support/FakeBackend.h:3,
+                 from /mnt/data/dxlib_framework/Tests/SupportTests.cpp:2:
+/mnt/data/dxlib_framework/Source/DxLibSupport/Public/Dxf/NativeHandle.h:15:5: note: candidate: 'Dxf::FNativeHandle::FNativeHandle(Dxf::FNativeHandle&&)'
+   15 |     FNativeHandle(FNativeHandle&& Other) noexcept
+      |     ^~~~~~~~~~~~~
+/mnt/data/dxlib_framework/Source/DxLibSupport/Public/Dxf/NativeHandle.h:15:5: note:   candidate expects 1 argument, 3 provided
+/mnt/data/dxlib_framework/Source/DxLibSupport/Public/Dxf/NativeHandle.h:11:5: note: candidate: 'Dxf::FNativeHandle::FNativeHandle(int, std::function<void(int)>)'
+   11 |     FNativeHandle(int Handle, std::function<void(int)> Deleter) : m_Handle(Handle), m_Deleter(std::move(Deleter)) {}
+      |     ^~~~~~~~~~~~~
+/mnt/data/dxlib_framework/Source/DxLibSupport/Public/Dxf/NativeHandle.h:11:5: note:   candidate expects 2 arguments, 3 provided
+/mnt/data/dxlib_framework/Source/DxLibSupport/Public/Dxf/NativeHandle.h:10:5: note: candidate: 'Dxf::FNativeHandle::FNativeHandle()'
+   10 |     FNativeHandle() = default;
+      |     ^~~~~~~~~~~~~
+/mnt/data/dxlib_framework/Source/DxLibSupport/Public/Dxf/NativeHandle.h:10:5: note:   candidate expects 0 arguments, 3 provided
+/mnt/data/dxlib_framework/Tests/SupportTests.cpp:208:50: error: no matching function for call to 'Dxf::FNativeHandle::FNativeHandle(int, int*, void (* const&)(void*, int) noexcept)'
+  208 |         FNativeHandle First(1, &Releases, Release);
+      |                                                  ^
+/mnt/data/dxlib_framework/Source/DxLibSupport/Public/Dxf/NativeHandle.h:15:5: note: candidate: 'Dxf::FNativeHandle::FNativeHandle(Dxf::FNativeHandle&&)'
+   15 |     FNativeHandle(FNativeHandle&& Other) noexcept
+      |     ^~~~~~~~~~~~~
+/mnt/data/dxlib_framework/Source/DxLibSupport/Public/Dxf/NativeHandle.h:15:5: note:   candidate expects 1 argument, 3 provided
+/mnt/data/dxlib_framework/Source/DxLibSupport/Public/Dxf/NativeHandle.h:11:5: note: candidate: 'Dxf::FNativeHandle::FNativeHandle(int, std::function<void(int)>)'
+   11 |     FNativeHandle(int Handle, std::function<void(int)> Deleter) : m_Handle(Handle), m_Deleter(std::move(Deleter)) {}
+      |     ^~~~~~~~~~~~~
+/mnt/data/dxlib_framework/Source/DxLibSupport/Public/Dxf/NativeHandle.h:11:5: note:   candidate expects 2 arguments, 3 provided
+/mnt/data/dxlib_framework/Source/DxLibSupport/Public/Dxf/NativeHandle.h:10:5: note: candidate: 'Dxf::FNativeHandle::FNativeHandle()'
+   10 |     FNativeHandle() = default;
+      |     ^~~~~~~~~~~~~
+/mnt/data/dxlib_framework/Source/DxLibSupport/Public/Dxf/NativeHandle.h:10:5: note:   candidate expects 0 arguments, 3 provided
+/mnt/data/dxlib_framework/Tests/SupportTests.cpp:210:50: error: no matching function for call to 'Dxf::FNativeHandle::FNativeHandle(int, int*, void (* const&)(void*, int) noexcept)'
+  210 |         FNativeHandle Third(2, &Releases, Release);
+      |                                                  ^
+/mnt/data/dxlib_framework/Source/DxLibSupport/Public/Dxf/NativeHandle.h:15:5: note: candidate: 'Dxf::FNativeHandle::FNativeHandle(Dxf::FNativeHandle&&)'
+   15 |     FNativeHandle(FNativeHandle&& Other) noexcept
+      |     ^~~~~~~~~~~~~
+/mnt/data/dxlib_framework/Source/DxLibSupport/Public/Dxf/NativeHandle.h:15:5: note:   candidate expects 1 argument, 3 provided
+/mnt/data/dxlib_framework/Source/DxLibSupport/Public/Dxf/NativeHandle.h:11:5: note: candidate: 'Dxf::FNativeHandle::FNativeHandle(int, std::function<void(int)>)'
+   11 |     FNativeHandle(int Handle, std::function<void(int)> Deleter) : m_Handle(Handle), m_Deleter(std::move(Deleter)) {}
+      |     ^~~~~~~~~~~~~
+/mnt/data/dxlib_framework/Source/DxLibSupport/Public/Dxf/NativeHandle.h:11:5: note:   candidate expects 2 arguments, 3 provided
+/mnt/data/dxlib_framework/Source/DxLibSupport/Public/Dxf/NativeHandle.h:10:5: note: candidate: 'Dxf::FNativeHandle::FNativeHandle()'
+   10 |     FNativeHandle() = default;
+      |     ^~~~~~~~~~~~~
+/mnt/data/dxlib_framework/Source/DxLibSupport/Public/Dxf/NativeHandle.h:10:5: note:   candidate expects 0 arguments, 3 provided
+/mnt/data/dxlib_framework/Tests/SupportTests.cpp:215:53: error: no matching function for call to 'Dxf::FNativeHandle::FNativeHandle(int, int*, void (* const&)(void*, int) noexcept)'
+  215 |         FNativeHandle Invalid(-1, &Releases, Release);
+      |                                                     ^
+/mnt/data/dxlib_framework/Source/DxLibSupport/Public/Dxf/NativeHandle.h:15:5: note: candidate: 'Dxf::FNativeHandle::FNativeHandle(Dxf::FNativeHandle&&)'
+   15 |     FNativeHandle(FNativeHandle&& Other) noexcept
+      |     ^~~~~~~~~~~~~
+/mnt/data/dxlib_framework/Source/DxLibSupport/Public/Dxf/NativeHandle.h:15:5: note:   candidate expects 1 argument, 3 provided
+/mnt/data/dxlib_framework/Source/DxLibSupport/Public/Dxf/NativeHandle.h:11:5: note: candidate: 'Dxf::FNativeHandle::FNativeHandle(int, std::function<void(int)>)'
+   11 |     FNativeHandle(int Handle, std::function<void(int)> Deleter) : m_Handle(Handle), m_Deleter(std::move(Deleter)) {}
+      |     ^~~~~~~~~~~~~
+/mnt/data/dxlib_framework/Source/DxLibSupport/Public/Dxf/NativeHandle.h:11:5: note:   candidate expects 2 arguments, 3 provided
+/mnt/data/dxlib_framework/Source/DxLibSupport/Public/Dxf/NativeHandle.h:10:5: note: candidate: 'Dxf::FNativeHandle::FNativeHandle()'
+   10 |     FNativeHandle() = default;
+      |     ^~~~~~~~~~~~~
+/mnt/data/dxlib_framework/Source/DxLibSupport/Public/Dxf/NativeHandle.h:10:5: note:   candidate expects 0 arguments, 3 provided
+ninja: build stopped: subcommand failed.
