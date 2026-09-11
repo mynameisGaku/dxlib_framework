@@ -129,13 +129,13 @@ TEST("Input edges are stable during a frame")
 	FRawInput State;
 	State.Keys[static_cast<std::size_t>(EKey::Space)] = true;
 	Tracker.Advance(State);
-	REQUIRE(Tracker.GetSnapshot().Pressed(EKey::Space));
-	REQUIRE(Tracker.GetSnapshot().Pressed(EKey::Space));
+	REQUIRE(Tracker.GetSnapshot().WasPressed(EKey::Space));
+	REQUIRE(Tracker.GetSnapshot().WasPressed(EKey::Space));
 	Tracker.Advance(State);
-	REQUIRE(Tracker.GetSnapshot().Down(EKey::Space));
-	REQUIRE(!Tracker.GetSnapshot().Pressed(EKey::Space));
+	REQUIRE(Tracker.GetSnapshot().IsDown(EKey::Space));
+	REQUIRE(!Tracker.GetSnapshot().WasPressed(EKey::Space));
 	Tracker.Advance({});
-	REQUIRE(Tracker.GetSnapshot().Released(EKey::Space));
+	REQUIRE(Tracker.GetSnapshot().WasReleased(EKey::Space));
 }
 TEST("Focus loss releases keys and mouse buttons")
 {
@@ -146,9 +146,9 @@ TEST("Focus loss releases keys and mouse buttons")
 	Tracker.Advance(State);
 	State.bFocused = false;
 	Tracker.Advance(State);
-	REQUIRE(!Tracker.GetSnapshot().Down(EKey::A));
-	REQUIRE(Tracker.GetSnapshot().Released(EKey::A));
-	REQUIRE(Tracker.GetSnapshot().MouseReleased(EMouseButton::Left));
+	REQUIRE(!Tracker.GetSnapshot().IsDown(EKey::A));
+	REQUIRE(Tracker.GetSnapshot().WasReleased(EKey::A));
+	REQUIRE(Tracker.GetSnapshot().WasMouseReleased(EMouseButton::Left));
 }
 TEST("Gamepad disconnection emits release and clears axes")
 {
@@ -158,10 +158,10 @@ TEST("Gamepad disconnection emits release and clears axes")
 	State.Pads[0].Buttons[0] = true;
 	State.Pads[0].LeftX = 0.8f;
 	Tracker.Advance(State);
-	REQUIRE(Tracker.GetSnapshot().PadPressed(0, 0));
+	REQUIRE(Tracker.GetSnapshot().WasPadPressed(0, 0));
 	State.Pads[0].bConnected = false;
 	Tracker.Advance(State);
-	REQUIRE(Tracker.GetSnapshot().PadReleased(0, 0));
+	REQUIRE(Tracker.GetSnapshot().WasPadReleased(0, 0));
 	REQUIRE(Tracker.GetSnapshot().GetRaw().Pads[0].LeftX == 0.0f);
 }
 TEST("InputMap action is held until all bound keys release")
@@ -174,19 +174,19 @@ TEST("InputMap action is held until all bound keys release")
 	Raw.Keys[static_cast<std::size_t>(EKey::Space)] = true;
 	Tracker.Advance(Raw);
 	Map.Update(Tracker.GetSnapshot());
-	REQUIRE(Map.Pressed("Jump"));
+	REQUIRE(Map.WasPressed("Jump"));
 	Raw.Keys[static_cast<std::size_t>(EKey::W)] = true;
 	Tracker.Advance(Raw);
 	Map.Update(Tracker.GetSnapshot());
-	REQUIRE(!Map.Pressed("Jump"));
+	REQUIRE(!Map.WasPressed("Jump"));
 	Raw.Keys[static_cast<std::size_t>(EKey::Space)] = false;
 	Tracker.Advance(Raw);
 	Map.Update(Tracker.GetSnapshot());
-	REQUIRE(Map.Down("Jump"));
-	REQUIRE(!Map.Released("Jump"));
+	REQUIRE(Map.IsDown("Jump"));
+	REQUIRE(!Map.WasReleased("Jump"));
 	Tracker.Advance({});
 	Map.Update(Tracker.GetSnapshot());
-	REQUIRE(Map.Released("Jump"));
+	REQUIRE(Map.WasReleased("Jump"));
 }
 TEST("Result can carry an error object as successful data without confusing the failure branch")
 {

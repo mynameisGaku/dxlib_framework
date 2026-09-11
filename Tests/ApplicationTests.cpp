@@ -41,7 +41,7 @@ protected:
 	void OnTick(const FTickContext& Context) override
 	{
 		++m_pObservation->Ticks;
-		m_pObservation->bInputPressed = Context.Input.Pressed(EKey::Space);
+		m_pObservation->bInputPressed = Context.Input.WasPressed(EKey::Space);
 		m_pObservation->bInsideCallback = true;
 		if (m_pObservation->Tick)
 		{

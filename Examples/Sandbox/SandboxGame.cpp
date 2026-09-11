@@ -49,8 +49,8 @@ TResult<void> DPlayer::OnInitialize(const FInitContext&)
 }
 void DPlayer::OnTick(const FTickContext& Context)
 {
-	float X = static_cast<float>(Context.Input.Down(EKey::D)) - static_cast<float>(Context.Input.Down(EKey::A));
-	float Y = static_cast<float>(Context.Input.Down(EKey::S)) - static_cast<float>(Context.Input.Down(EKey::W));
+	float X = static_cast<float>(Context.Input.IsDown(EKey::D)) - static_cast<float>(Context.Input.IsDown(EKey::A));
+	float Y = static_cast<float>(Context.Input.IsDown(EKey::S)) - static_cast<float>(Context.Input.IsDown(EKey::W));
 	const float Length = std::sqrt(X * X + Y * Y);
 	if (Length > 0)
 	{
@@ -102,20 +102,20 @@ void DSandboxScene::OnEnter(const FSceneActivationContext& Context) noexcept
 }
 void DSandboxScene::OnTick(const FTickContext& Context)
 {
-	if (Context.Input.Pressed(EKey::Escape) && Context.Scenes)
+	if (Context.Input.WasPressed(EKey::Escape) && Context.Scenes)
 	{
 		Context.Scenes->RequestQuit();
 		return;
 	}
-	if (Context.Input.Pressed(EKey::P))
+	if (Context.Input.WasPressed(EKey::P))
 	{
 		GetClock().SetPaused(!GetClock().IsPaused());
 	}
-	if (Context.Input.Pressed(EKey::Enter) && Context.Scenes)
+	if (Context.Input.WasPressed(EKey::Enter) && Context.Scenes)
 	{
 		RequireSuccess_Internal(Context.Scenes->RequestChange<DSandboxScene>(m_AssetRoot, !m_bAlternate));
 	}
-	if (Context.Input.Pressed(EKey::Space) && Context.Audio)
+	if (Context.Input.WasPressed(EKey::Space) && Context.Audio)
 	{
 		FPlaybackOptions Options;
 		Options.Volume = 0.35f;

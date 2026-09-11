@@ -6,41 +6,41 @@ namespace Dxf
 class FInputSnapshot
 {
 public:
-	bool Down(EKey Key) const noexcept
+	bool IsDown(EKey Key) const noexcept
 	{
 		return Read_Internal(m_Current.Keys, static_cast<std::size_t>(Key));
 	}
-	bool Pressed(EKey Key) const noexcept
+	bool WasPressed(EKey Key) const noexcept
 	{
-		return Down(Key) && !Read_Internal(m_Previous.Keys, static_cast<std::size_t>(Key));
+		return IsDown(Key) && !Read_Internal(m_Previous.Keys, static_cast<std::size_t>(Key));
 	}
-	bool Released(EKey Key) const noexcept
+	bool WasReleased(EKey Key) const noexcept
 	{
-		return !Down(Key) && Read_Internal(m_Previous.Keys, static_cast<std::size_t>(Key));
+		return !IsDown(Key) && Read_Internal(m_Previous.Keys, static_cast<std::size_t>(Key));
 	}
-	bool MouseDown(EMouseButton Button) const noexcept
+	bool IsMouseDown(EMouseButton Button) const noexcept
 	{
 		return Read_Internal(m_Current.MouseButtons, static_cast<std::size_t>(Button));
 	}
-	bool MousePressed(EMouseButton Button) const noexcept
+	bool WasMousePressed(EMouseButton Button) const noexcept
 	{
-		return MouseDown(Button) && !Read_Internal(m_Previous.MouseButtons, static_cast<std::size_t>(Button));
+		return IsMouseDown(Button) && !Read_Internal(m_Previous.MouseButtons, static_cast<std::size_t>(Button));
 	}
-	bool MouseReleased(EMouseButton Button) const noexcept
+	bool WasMouseReleased(EMouseButton Button) const noexcept
 	{
-		return !MouseDown(Button) && Read_Internal(m_Previous.MouseButtons, static_cast<std::size_t>(Button));
+		return !IsMouseDown(Button) && Read_Internal(m_Previous.MouseButtons, static_cast<std::size_t>(Button));
 	}
-	bool PadDown(std::size_t Pad, std::size_t Button) const noexcept
+	bool IsPadDown(std::size_t Pad, std::size_t Button) const noexcept
 	{
 		return PadRead_Internal(m_Current, Pad, Button);
 	}
-	bool PadPressed(std::size_t Pad, std::size_t Button) const noexcept
+	bool WasPadPressed(std::size_t Pad, std::size_t Button) const noexcept
 	{
-		return PadDown(Pad, Button) && !PadRead_Internal(m_Previous, Pad, Button);
+		return IsPadDown(Pad, Button) && !PadRead_Internal(m_Previous, Pad, Button);
 	}
-	bool PadReleased(std::size_t Pad, std::size_t Button) const noexcept
+	bool WasPadReleased(std::size_t Pad, std::size_t Button) const noexcept
 	{
-		return !PadDown(Pad, Button) && PadRead_Internal(m_Previous, Pad, Button);
+		return !IsPadDown(Pad, Button) && PadRead_Internal(m_Previous, Pad, Button);
 	}
 	const FRawInput& GetRaw() const noexcept
 	{

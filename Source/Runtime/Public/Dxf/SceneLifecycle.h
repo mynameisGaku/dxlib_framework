@@ -9,15 +9,15 @@ public:
 	explicit FSceneLifecycle(FAudioPlayer& Audio) : m_pAudio(&Audio)
 	{
 	}
-	TResult<void> Prepare(DScene& Scene, const FInitContext& Context)
+	TResult<void> Prepare_Internal(DScene& Scene, const FInitContext& Context)
 	{
 		return Scene.Initialize_Internal(Context);
 	}
-	void Activate(DScene& Scene, const FSceneActivationContext& Context) noexcept
+	void Activate_Internal(DScene& Scene, const FSceneActivationContext& Context) noexcept
 	{
 		Scene.Enter_Internal(Context);
 	}
-	void Stop(DScene& Scene) noexcept
+	void Stop_Internal(DScene& Scene) noexcept
 	{
 		Scene.Exit_Internal();
 		Scene.Shutdown_Internal();

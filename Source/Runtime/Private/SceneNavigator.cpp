@@ -31,7 +31,7 @@ TResult<bool> FSceneNavigator::Commit_Internal()
 	{
 		return TResult<bool>::Success(false);
 	}
-	auto Prepared = m_Lifecycle.Prepare(*Next, {*m_pAssets});
+	auto Prepared = m_Lifecycle.Prepare_Internal(*Next, {*m_pAssets});
 	if (!Prepared)
 	{
 		m_LastTransitionError = Prepared.Error();
@@ -39,11 +39,11 @@ TResult<bool> FSceneNavigator::Commit_Internal()
 	}
 	if (auto* Current = m_Storage.GetCurrent())
 	{
-		m_Lifecycle.Stop(*Current);
+		m_Lifecycle.Stop_Internal(*Current);
 	}
 	m_Storage.SetCurrent_Internal(std::move(Next));
 	m_LastTransitionError.reset();
-	m_Lifecycle.Activate(*m_Storage.GetCurrent(), {*m_pAudio, *this, m_pGame, AllocateDomain_Internal()});
+	m_Lifecycle.Activate_Internal(*m_Storage.GetCurrent(), {*m_pAudio, *this, m_pGame, AllocateDomain_Internal()});
 	return TResult<bool>::Success(true);
 }
 TResult<bool> FSceneNavigator::Commit()
@@ -140,7 +140,7 @@ void FSceneNavigator::Shutdown() noexcept
 	TGuardValue Guard(m_bBusy, true);
 	if (auto* Current = GetCurrent())
 	{
-		m_Lifecycle.Stop(*Current);
+		m_Lifecycle.Stop_Internal(*Current);
 	}
 	m_Storage.Clear_Internal();
 }

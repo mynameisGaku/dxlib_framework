@@ -23,21 +23,21 @@ public:
 			Action.bCurrent = false;
 			for (EKey Key : Action.Keys)
 			{
-				Action.bCurrent = Action.bCurrent || Input.Down(Key);
+				Action.bCurrent = Action.bCurrent || Input.IsDown(Key);
 			}
 		}
 	}
-	bool Down(const std::string& Action) const
+	bool IsDown(const std::string& Action) const
 	{
 		const auto* State = Find_Internal(Action);
 		return State && State->bCurrent;
 	}
-	bool Pressed(const std::string& Action) const
+	bool WasPressed(const std::string& Action) const
 	{
 		const auto* State = Find_Internal(Action);
 		return State && State->bCurrent && !State->bPrevious;
 	}
-	bool Released(const std::string& Action) const
+	bool WasReleased(const std::string& Action) const
 	{
 		const auto* State = Find_Internal(Action);
 		return State && !State->bCurrent && State->bPrevious;
