@@ -8,7 +8,9 @@ set(DXLIB_ROOT "" CACHE PATH "Directory containing DxLib.h and the matching libr
 add_library(dxlib_framework STATIC Source/Foundation/Private/Foundation.cpp
     Source/DxLibSupport/Private/Assets.cpp
     Source/DxLibSupport/Private/Render.cpp
-    Source/DxLibSupport/Private/Audio.cpp)
+    Source/DxLibSupport/Private/Audio.cpp
+    Source/Runtime/Private/LifecycleObject.cpp
+    Source/Runtime/Private/SceneNavigator.cpp)
 add_library(dxf::framework ALIAS dxlib_framework)
 target_compile_features(dxlib_framework PUBLIC cxx_std_20)
 foreach(Layer Foundation DxLibSupport Runtime Gameplay)

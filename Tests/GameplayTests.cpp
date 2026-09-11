@@ -1,6 +1,7 @@
 #include "Support/Test.h"
 #include "Support/FakeBackend.h"
 #include "Dxf/GameScene.h"
+#include "Dxf/AssetService.h"
 #include "Dxf/GameObject.h"
 #include "Dxf/GameObjectComponent.h"
 #include "Dxf/GameObjectCollection.h"
@@ -212,7 +213,7 @@ TEST("Scene override cannot bypass object dispatch")
     auto Scene = std::make_unique<DCountingScene>(SceneCounts); REQUIRE(Scene->Spawn<DCountingObject>(ObjectCounts));
     REQUIRE(World.GetScenes().RequestChange(std::move(Scene))); REQUIRE(World.GetScenes().Commit());
     REQUIRE(World.GetScenes().Tick(World.GetTick().Time, World.GetInput()));
-    REQUIRE(SceneCounts.Tick == 1 && ObjectCounts.Tick == 1);
+    REQUIRE(SceneCounts.Tick == 1 && ObjectCounts.Tick == 1); World.GetScenes().Shutdown();
 }
 TEST("Scene switch preserves the active scene until commit")
 {
