@@ -142,15 +142,15 @@ namespace
 class DQuitAfterOneTickScene final : public DScene
 {
 protected:
-    void OnTick(const FTickContext& Context) override
-    {
-        Context.Scenes->RequestQuit();
-    }
+	void OnTick(const FTickContext& Context) override
+	{
+		Context.Scenes->RequestQuit();
+	}
 };
 }
 TEST("Native convenience Run owns the session and exits on a scene quit request")
 {
-    DxLib::Trace = {};
-    REQUIRE(Run<DQuitAfterOneTickScene>({}));
-    REQUIRE(DxLib::Trace.Ends == 1);
+	DxLib::Trace = {};
+	REQUIRE(Run<DQuitAfterOneTickScene>({}));
+	REQUIRE(DxLib::Trace.Ends == 1);
 }
