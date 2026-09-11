@@ -1,0 +1,8 @@
+[1/2] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Tests/NativeTests.cpp.o
+FAILED: CMakeFiles/dxf_native_contract_tests.dir/Tests/NativeTests.cpp.o 
+/usr/bin/c++  -I/mnt/data/dxlib_framework/Tests -I/mnt/data/dxlib_framework/Tests/FakeDxLib -I/mnt/data/dxlib_framework/Source/Native/Public -I/mnt/data/dxlib_framework/Source/Foundation/Public -I/mnt/data/dxlib_framework/Source/DxLibSupport/Public -I/mnt/data/dxlib_framework/Source/Runtime/Public -I/mnt/data/dxlib_framework/Source/Gameplay/Public -g -std=gnu++20 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -MD -MT CMakeFiles/dxf_native_contract_tests.dir/Tests/NativeTests.cpp.o -MF CMakeFiles/dxf_native_contract_tests.dir/Tests/NativeTests.cpp.o.d -o CMakeFiles/dxf_native_contract_tests.dir/Tests/NativeTests.cpp.o -c /mnt/data/dxlib_framework/Tests/NativeTests.cpp
+/mnt/data/dxlib_framework/Tests/NativeTests.cpp:139:10: fatal error: Dxf/NativeRun.h: No such file or directory
+  139 | #include "Dxf/NativeRun.h"
+      |          ^~~~~~~~~~~~~~~~~
+compilation terminated.
+ninja: build stopped: subcommand failed.

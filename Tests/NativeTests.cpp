@@ -136,3 +136,21 @@ TEST("Native clear does not silently claim arbitrary alpha clear support")
 	REQUIRE(!Backend.Clear({1, 2, 3, 64}));
 	REQUIRE(Backend.Clear({1, 2, 3, 255}));
 }
+#include "Dxf/NativeRun.h"
+namespace
+{
+class DQuitAfterOneTickScene final : public DScene
+{
+protected:
+    void OnTick(const FTickContext& Context) override
+    {
+        Context.Scenes->RequestQuit();
+    }
+};
+}
+TEST("Native convenience Run owns the session and exits on a scene quit request")
+{
+    DxLib::Trace = {};
+    REQUIRE(Run<DQuitAfterOneTickScene>({}));
+    REQUIRE(DxLib::Trace.Ends == 1);
+}
