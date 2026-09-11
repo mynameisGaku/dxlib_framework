@@ -9,10 +9,14 @@ if(MSVC AND DXF_BUILD_NATIVE)
     # Match the official VC package: /MTd in Debug, /MT otherwise.
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
-add_library(dxlib_framework STATIC Source/Foundation/Private/Foundation.cpp
-    Source/DxLibSupport/Private/Assets.cpp
-    Source/DxLibSupport/Private/Render.cpp
-    Source/DxLibSupport/Private/Audio.cpp
+add_library(dxlib_framework STATIC
+    Source/DxLibSupport/Private/AssetService.cpp
+    Source/DxLibSupport/Private/TextureLoader.cpp
+    Source/DxLibSupport/Private/SoundLoader.cpp
+    Source/DxLibSupport/Private/FontLoader.cpp
+    Source/DxLibSupport/Private/RenderSystem2D.cpp
+    Source/DxLibSupport/Private/RenderQueue2D.cpp
+    Source/DxLibSupport/Private/AudioPlayer.cpp
     Source/Runtime/Private/LifecycleObject.cpp
     Source/Runtime/Private/SceneNavigator.cpp
     Source/Runtime/Private/Application.cpp)

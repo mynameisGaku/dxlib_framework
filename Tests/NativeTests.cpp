@@ -1,5 +1,6 @@
 #include "Support/Test.h"
 #include "Dxf/NativeBackends.h"
+#include "Dxf/NativeRun.h"
 #include "Dxf/AssetService.h"
 #include "Dxf/RenderSystem2D.h"
 #include "Dxf/AudioPlayer.h"
@@ -136,7 +137,6 @@ TEST("Native clear does not silently claim arbitrary alpha clear support")
 	REQUIRE(!Backend.Clear({1, 2, 3, 64}));
 	REQUIRE(Backend.Clear({1, 2, 3, 255}));
 }
-#include "Dxf/NativeRun.h"
 namespace
 {
 class DQuitAfterOneTickScene final : public DScene
