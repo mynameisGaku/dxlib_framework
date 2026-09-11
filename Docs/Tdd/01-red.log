@@ -1,0 +1,11 @@
+[1/5] Building CXX object CMakeFiles/dxlib_framework.dir/Source/Foundation/Private/Foundation.cpp.o
+[2/5] Linking CXX static library libdxlib_framework.a
+[3/5] Building CXX object CMakeFiles/dxf_tests.dir/Tests/FoundationTests.cpp.o
+FAILED: CMakeFiles/dxf_tests.dir/Tests/FoundationTests.cpp.o 
+/usr/bin/c++  -I/mnt/data/dxlib_framework/Tests -I/mnt/data/dxlib_framework/Source/Foundation/Public -I/mnt/data/dxlib_framework/Source/DxLibSupport/Public -I/mnt/data/dxlib_framework/Source/Runtime/Public -I/mnt/data/dxlib_framework/Source/Gameplay/Public -g -std=gnu++20 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -MD -MT CMakeFiles/dxf_tests.dir/Tests/FoundationTests.cpp.o -MF CMakeFiles/dxf_tests.dir/Tests/FoundationTests.cpp.o.d -o CMakeFiles/dxf_tests.dir/Tests/FoundationTests.cpp.o -c /mnt/data/dxlib_framework/Tests/FoundationTests.cpp
+/mnt/data/dxlib_framework/Tests/FoundationTests.cpp:2:10: fatal error: Dxf/Result.h: No such file or directory
+    2 | #include "Dxf/Result.h"
+      |          ^~~~~~~~~~~~~~
+compilation terminated.
+[4/5] Building CXX object CMakeFiles/dxf_tests.dir/Tests/TestMain.cpp.o
+ninja: build stopped: subcommand failed.
