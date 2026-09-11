@@ -1,0 +1,42 @@
+[PASS] Result holds a move-only value
+[PASS] Result preserves error and void success
+[PASS] RTTI supports safe derived checks
+[PASS] SlotMap invalidates removed handles and increments generation
+[PASS] Handles do not resolve against a different owner
+[PASS] Handle outlives storage without dangling pointer
+[PASS] Typed handle rejects incorrect dynamic type
+[PASS] SlotMap snapshot permits removal without iterator invalidation
+[PASS] FrameClock clamps simulation delta but retains real delta
+[PASS] FrameClock rejects negative and nonfinite elapsed inputs
+[PASS] SceneClock pause and scale preserve unscaled time
+[PASS] Input edges are stable during a frame
+[PASS] Focus loss releases keys and mouse buttons
+[PASS] Gamepad disconnection emits release and clears axes
+[PASS] InputMap action is held until all bound keys release
+[PASS] Texture cache shares normalized paths
+[PASS] Texture load options participate in cache identity
+[PASS] Texture is freed once when last reference expires
+[PASS] Asset shutdown invalidates externally retained references
+[PASS] Failed load is not cached and can be retried
+[PASS] Invalid successful native handle is rejected
+[PASS] Loading after asset shutdown is rejected
+[PASS] Invalid render target dimensions fail before backend call
+[PASS] Font cache separates sizes and invalidates references
+[PASS] Render queue sorts layer and order while preserving equal-key insertion
+[PASS] Sprite opacity does not leak to following commands
+[PASS] Render commands keep textures alive until execution
+[PASS] Native barrier flushes earlier commands and restores state after exception
+[PASS] Drawing render target into itself is rejected
+[PASS] Invalidated texture fails submission and never reaches backend
+[PASS] Invalidation between queue and flush is detected
+[PASS] Nonfinite sprite values are rejected
+[PASS] Render flush prevents reentrant native calls
+[PASS] Each memory sound playback owns a distinct native handle
+[PASS] Stream playback reloads instead of duplicating unsupported sound data
+[PASS] Failed playback frees the newly created voice
+[PASS] Audio scopes stop scene sound without stopping persistent music
+[PASS] Finished voices are reclaimed by Tick
+[PASS] Audio player rejects another player's handle and invalid volume
+[PASS] Session ends exactly once on success and does not end an uninitialized backend
+[FAIL] Native state restoration failure aborts the frame: !Renderer.EndFrame() at line 195
+40/41 passed

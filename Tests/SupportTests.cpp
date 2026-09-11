@@ -186,3 +186,13 @@ TEST("Session ends exactly once on success and does not end an uninitialized bac
     { FDxLibSession Session(Failed); REQUIRE(!Session.Initialize({})); }
     REQUIRE(Failed.GetTrace().Events == std::vector<std::string>({"init"}));
 }
+TEST("Native state restoration failure aborts the frame")
+{
+    FFakeBackend Backend; FRenderSystem2D Renderer(Backend);
+    REQUIRE(Renderer.BeginFrame(640, 480));
+    REQUIRE(!Renderer.Native([&]() -> TResult<void> { Backend.GetTrace().bFailTarget = true; return {}; }));
+    Backend.GetTrace().bFailTarget = false;
+    REQUIRE(!Renderer.EndFrame());
+    REQUIRE(Backend.GetTrace().Presentations == 0);
+    REQUIRE(Renderer.BeginFrame(640, 480)); REQUIRE(Renderer.EndFrame());
+}
