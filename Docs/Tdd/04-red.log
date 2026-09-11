@@ -1,0 +1,12 @@
+[0/1] Re-running CMake...
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /mnt/data/build-dxf-debug
+[1/3] Building CXX object CMakeFiles/dxf_tests.dir/Tests/ApplicationTests.cpp.o
+FAILED: CMakeFiles/dxf_tests.dir/Tests/ApplicationTests.cpp.o 
+/usr/bin/c++  -I/mnt/data/dxlib_framework/Tests -I/mnt/data/dxlib_framework/Source/Foundation/Public -I/mnt/data/dxlib_framework/Source/DxLibSupport/Public -I/mnt/data/dxlib_framework/Source/Runtime/Public -I/mnt/data/dxlib_framework/Source/Gameplay/Public -g -std=gnu++20 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -MD -MT CMakeFiles/dxf_tests.dir/Tests/ApplicationTests.cpp.o -MF CMakeFiles/dxf_tests.dir/Tests/ApplicationTests.cpp.o.d -o CMakeFiles/dxf_tests.dir/Tests/ApplicationTests.cpp.o -c /mnt/data/dxlib_framework/Tests/ApplicationTests.cpp
+/mnt/data/dxlib_framework/Tests/ApplicationTests.cpp:3:10: fatal error: Dxf/Application.h: No such file or directory
+    3 | #include "Dxf/Application.h"
+      |          ^~~~~~~~~~~~~~~~~~~
+compilation terminated.
+ninja: build stopped: subcommand failed.
