@@ -188,3 +188,10 @@ TEST("InputMap action is held until all bound keys release")
 	Map.Update(Tracker.GetSnapshot());
 	REQUIRE(Map.Released("Jump"));
 }
+TEST("Result can carry an error object as successful data without confusing the failure branch")
+{
+    auto Success = TResult<FError>::Success({EErrorCode::NotFound, "successful data"});
+    REQUIRE(Success && Success.Value().Message == "successful data");
+    auto Failure = TResult<FError>::Failure(EErrorCode::BackendFailure, "actual failure");
+    REQUIRE(!Failure && Failure.Error().Message == "actual failure");
+}

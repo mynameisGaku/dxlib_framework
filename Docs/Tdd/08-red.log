@@ -1,0 +1,28 @@
+[1/25] Building CXX object CMakeFiles/dxlib_framework.dir/Source/Foundation/Private/Foundation.cpp.o
+[2/25] Building CXX object CMakeFiles/dxf_tests.dir/Tests/TestMain.cpp.o
+[3/25] Building CXX object CMakeFiles/dxlib_framework.dir/Source/DxLibSupport/Private/Audio.cpp.o
+[4/25] Building CXX object CMakeFiles/dxlib_framework.dir/Source/Runtime/Private/SceneNavigator.cpp.o
+[5/25] Building CXX object CMakeFiles/dxlib_framework.dir/Source/DxLibSupport/Private/Render.cpp.o
+[6/25] Building CXX object CMakeFiles/dxlib_framework.dir/Source/Runtime/Private/LifecycleObject.cpp.o
+[7/25] Building CXX object CMakeFiles/dxlib_framework.dir/Source/Runtime/Private/Application.cpp.o
+[8/25] Building CXX object CMakeFiles/dxf_tests.dir/Tests/FoundationTests.cpp.o
+FAILED: CMakeFiles/dxf_tests.dir/Tests/FoundationTests.cpp.o 
+/usr/bin/c++  -I/mnt/data/dxlib_framework/Tests -I/mnt/data/dxlib_framework/Examples/Sandbox -I/mnt/data/dxlib_framework/Source/Foundation/Public -I/mnt/data/dxlib_framework/Source/DxLibSupport/Public -I/mnt/data/dxlib_framework/Source/Runtime/Public -I/mnt/data/dxlib_framework/Source/Gameplay/Public -g -std=gnu++20 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -MD -MT CMakeFiles/dxf_tests.dir/Tests/FoundationTests.cpp.o -MF CMakeFiles/dxf_tests.dir/Tests/FoundationTests.cpp.o.d -o CMakeFiles/dxf_tests.dir/Tests/FoundationTests.cpp.o -c /mnt/data/dxlib_framework/Tests/FoundationTests.cpp
+In file included from /mnt/data/dxlib_framework/Tests/FoundationTests.cpp:2:
+/mnt/data/dxlib_framework/Source/Foundation/Public/Dxf/Result.h: In instantiation of 'class Dxf::TResult<Dxf::FError>':
+/mnt/data/dxlib_framework/Tests/FoundationTests.cpp:193:35:   required from here
+  193 |     auto Success = TResult<FError>::Success({EErrorCode::NotFound, "successful data"});
+      |                                   ^~
+/mnt/data/dxlib_framework/Source/Foundation/Public/Dxf/Result.h:62:18: error: 'Dxf::TResult<T>::TResult(Dxf::FError) [with T = Dxf::FError]' cannot be overloaded with 'Dxf::TResult<T>::TResult(T) [with T = Dxf::FError]'
+   62 |         explicit TResult(FError Error) : m_Data(std::in_place_index<1>, std::move(Error))
+      |                  ^~~~~~~
+/mnt/data/dxlib_framework/Source/Foundation/Public/Dxf/Result.h:59:18: note: previous declaration 'Dxf::TResult<T>::TResult(T) [with T = Dxf::FError]'
+   59 |         explicit TResult(T Value) : m_Data(std::in_place_index<0>, std::move(Value))
+      |                  ^~~~~~~
+[9/25] Building CXX object CMakeFiles/dxlib_framework.dir/Source/DxLibSupport/Private/Assets.cpp.o
+[10/25] Building CXX object CMakeFiles/dxf_tests.dir/Tests/SupportTests.cpp.o
+[11/25] Building CXX object CMakeFiles/dxf_tests.dir/Examples/Sandbox/SandboxGame.cpp.o
+[12/25] Building CXX object CMakeFiles/dxf_tests.dir/Tests/SandboxTests.cpp.o
+[13/25] Building CXX object CMakeFiles/dxf_tests.dir/Tests/GameplayTests.cpp.o
+[14/25] Building CXX object CMakeFiles/dxf_tests.dir/Tests/ApplicationTests.cpp.o
+ninja: build stopped: subcommand failed.
