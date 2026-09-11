@@ -1,0 +1,13 @@
+[0/1] Re-running CMake...
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /mnt/data/build-dxf-debug
+[1/4] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Tests/NativeTests.cpp.o
+FAILED: CMakeFiles/dxf_native_contract_tests.dir/Tests/NativeTests.cpp.o 
+/usr/bin/c++  -I/mnt/data/dxlib_framework/Tests -I/mnt/data/dxlib_framework/Tests/FakeDxLib -I/mnt/data/dxlib_framework/Source/Native/Public -I/mnt/data/dxlib_framework/Source/Foundation/Public -I/mnt/data/dxlib_framework/Source/DxLibSupport/Public -I/mnt/data/dxlib_framework/Source/Runtime/Public -I/mnt/data/dxlib_framework/Source/Gameplay/Public -g -std=gnu++20 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -MD -MT CMakeFiles/dxf_native_contract_tests.dir/Tests/NativeTests.cpp.o -MF CMakeFiles/dxf_native_contract_tests.dir/Tests/NativeTests.cpp.o.d -o CMakeFiles/dxf_native_contract_tests.dir/Tests/NativeTests.cpp.o -c /mnt/data/dxlib_framework/Tests/NativeTests.cpp
+/mnt/data/dxlib_framework/Tests/NativeTests.cpp:2:10: fatal error: Dxf/NativeBackends.h: No such file or directory
+    2 | #include "Dxf/NativeBackends.h"
+      |          ^~~~~~~~~~~~~~~~~~~~~~
+compilation terminated.
+[2/4] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Tests/TestMain.cpp.o
+ninja: build stopped: subcommand failed.
