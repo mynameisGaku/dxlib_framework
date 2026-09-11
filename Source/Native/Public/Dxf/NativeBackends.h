@@ -12,16 +12,16 @@ namespace Dxf
 class FDxLibBackends
 {
 public:
-    FBackendServices GetServices() noexcept
-    {
-        return {m_Platform, m_Input, m_Textures, m_Sounds, m_Fonts, m_Renderer};
-    }
+	FBackendServices GetServices() noexcept
+	{
+		return {m_Platform, m_Input, m_Textures, m_Sounds, m_Fonts, m_Renderer};
+	}
 private:
-    FDxLibPlatform m_Platform;
-    FDxLibInputSource m_Input;
-    FDxLibTextureBackend m_Textures;
-    FDxLibSoundBackend m_Sounds;
-    FDxLibFontBackend m_Fonts;
-    FDxLibRenderBackend m_Renderer;
+	FDxLibPlatform m_Platform;
+	FDxLibInputSource m_Input;
+	FDxLibTextureBackend m_Textures;
+	FDxLibSoundBackend m_Sounds;
+	FDxLibFontBackend m_Fonts;
+	FDxLibRenderBackend m_Renderer;
 };
 }

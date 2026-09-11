@@ -3,5 +3,7 @@
 namespace Dxf
 {
 /** Game-specific state that survives scene transitions. It owns no platform services. */
-class DGameInstance : public DLifecycleObject {};
+class DGameInstance : public DLifecycleObject
+{
+};
 }

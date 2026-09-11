@@ -9,6 +9,6 @@ namespace Dxf::Detail
 {
 inline TResult<void> CheckNative_Internal(int Code, const char* Operation)
 {
-    return Code < 0 ? TResult<void>::Failure(EErrorCode::BackendFailure, Operation) : TResult<void>{};
+	return Code < 0 ? TResult<void>::Failure(EErrorCode::BackendFailure, Operation) : TResult<void>{};
 }
 }

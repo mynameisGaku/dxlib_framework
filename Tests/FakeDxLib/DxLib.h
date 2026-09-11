@@ -104,63 +104,224 @@ namespace DxLib
 {
 struct FNativeTrace
 {
-    int NextHandle = 1, Ends = 0, CharCode = 0, DeletedGraphs = 0, SoundType = 0, LoadedSoundType = 0;
-    int Volume = 0, PadCount = 0, PadButtons = 0, PadX = 0, PadY = 0, LastPad = 0, MouseButtons = 0;
-    int Alpha = 255, Presentations = 0, Target = DX_SCREEN_BACK;
-    bool bFailInit = false, bFailSize = false, bFailKeys = false, bFailDraw = false, bActive = true;
-    std::string Path, Text;
-    std::array<int, 3> Brightness{255, 255, 255};
-    std::array<float, 8> Vertices{};
-    std::array<char, 256> Keys{};
+	int NextHandle = 1, Ends = 0, CharCode = 0, DeletedGraphs = 0, SoundType = 0, LoadedSoundType = 0;
+	int Volume = 0, PadCount = 0, PadButtons = 0, PadX = 0, PadY = 0, LastPad = 0, MouseButtons = 0;
+	int Alpha = 255, Presentations = 0, Target = DX_SCREEN_BACK;
+	bool bFailInit = false, bFailSize = false, bFailKeys = false, bFailDraw = false, bActive = true;
+	std::string Path, Text;
+	std::array<int, 3> Brightness{255, 255, 255};
+	std::array<float, 8> Vertices{};
+	std::array<char, 256> Keys{};
 };
 inline FNativeTrace Trace;
-inline int SetUseCharCodeFormat(int Value) { Trace.CharCode = Value; return 0; }
-inline int SetMainWindowText(const char*) { return 0; }
-inline int ChangeWindowMode(int) { return 0; }
-inline int SetGraphMode(int, int, int) { return 0; }
-inline int SetWaitVSyncFlag(int) { return 0; }
-inline int SetAlwaysRunFlag(int) { return 0; }
-inline int DxLib_Init() { return Trace.bFailInit ? -1 : 0; }
-inline int DxLib_End() { ++Trace.Ends; return 0; }
-inline int ProcessMessage() { return 0; }
-inline int GetWindowActiveFlag() { return Trace.bActive ? TRUE : FALSE; }
-inline int GetHitKeyStateAll(char* Keys) { std::copy(Trace.Keys.begin(), Trace.Keys.end(), Keys); return Trace.bFailKeys ? -1 : 0; }
-inline int GetMousePoint(int* X, int* Y) { *X = 0; *Y = 0; return 0; }
-inline int GetMouseInput() { return Trace.MouseButtons; }
-inline int GetMouseWheelRotVol() { return 0; }
-inline int GetJoypadNum() { return Trace.PadCount; }
-inline int GetJoypadInputState(int Pad) { Trace.LastPad = Pad; return Trace.PadButtons; }
-inline int GetJoypadAnalogInput(int* X, int* Y, int Pad) { Trace.LastPad = Pad; *X = Trace.PadX; *Y = Trace.PadY; return 0; }
-inline int LoadGraph(const char* Path, int) { Trace.Path = Path; return Trace.NextHandle++; }
-inline int GetGraphSize(int, int* X, int* Y) { *X = 64; *Y = 64; return Trace.bFailSize ? -1 : 0; }
-inline int DeleteGraph(int) { ++Trace.DeletedGraphs; return 0; }
-inline int MakeScreen(int, int, int) { return Trace.NextHandle++; }
-inline int SetCreateSoundDataType(int Type) { Trace.SoundType = Type; return 0; }
-inline int LoadSoundMem(const char*) { Trace.LoadedSoundType = Trace.SoundType; return Trace.NextHandle++; }
-inline int DuplicateSoundMem(int) { return Trace.NextHandle++; }
-inline int PlaySoundMem(int, int, int) { return 0; }
-inline int StopSoundMem(int) { return 0; }
-inline int DeleteSoundMem(int) { return 0; }
-inline int ChangeVolumeSoundMem(int Volume, int) { Trace.Volume = Volume; return 0; }
-inline int CheckSoundMem(int) { return 0; }
-inline int CreateFontToHandle(const char*, int, int, int) { return Trace.NextHandle++; }
-inline int DeleteFontToHandle(int) { return 0; }
-inline int SetDrawScreen(int Handle) { Trace.Target = Handle; return 0; }
-inline int SetDrawArea(int, int, int, int) { return 0; }
-inline int SetDrawBlendMode(int, int Alpha) { Trace.Alpha = Alpha; return 0; }
-inline int SetDrawBright(int R, int G, int B) { Trace.Brightness = {R, G, B}; return 0; }
-inline int SetDrawMode(int) { return 0; }
-inline int SetUseZBufferFlag(int) { return 0; }
-inline int SetWriteZBufferFlag(int) { return 0; }
-inline int SetUseVertexShader(int) { return 0; }
-inline int SetUsePixelShader(int) { return 0; }
-inline int SetBackgroundColor(int, int, int) { return 0; }
-inline int ClearDrawScreen() { return 0; }
-inline unsigned int GetColor(int R, int G, int B) { return (static_cast<unsigned int>(R) << 16) | (static_cast<unsigned int>(G) << 8) | static_cast<unsigned int>(B); }
+inline int SetUseCharCodeFormat(int Value)
+{
+	Trace.CharCode = Value;
+	return 0;
+}
+inline int SetMainWindowText(const char*)
+{
+	return 0;
+}
+inline int ChangeWindowMode(int)
+{
+	return 0;
+}
+inline int SetGraphMode(int, int, int)
+{
+	return 0;
+}
+inline int SetWaitVSyncFlag(int)
+{
+	return 0;
+}
+inline int SetAlwaysRunFlag(int)
+{
+	return 0;
+}
+inline int DxLib_Init()
+{
+	return Trace.bFailInit ? -1 : 0;
+}
+inline int DxLib_End()
+{
+	++Trace.Ends;
+	return 0;
+}
+inline int ProcessMessage()
+{
+	return 0;
+}
+inline int GetWindowActiveFlag()
+{
+	return Trace.bActive ? TRUE : FALSE;
+}
+inline int GetHitKeyStateAll(char* Keys)
+{
+	std::copy(Trace.Keys.begin(), Trace.Keys.end(), Keys);
+	return Trace.bFailKeys ? -1 : 0;
+}
+inline int GetMousePoint(int* X, int* Y)
+{
+	*X = 0;
+	*Y = 0;
+	return 0;
+}
+inline int GetMouseInput()
+{
+	return Trace.MouseButtons;
+}
+inline int GetMouseWheelRotVol()
+{
+	return 0;
+}
+inline int GetJoypadNum()
+{
+	return Trace.PadCount;
+}
+inline int GetJoypadInputState(int Pad)
+{
+	Trace.LastPad = Pad;
+	return Trace.PadButtons;
+}
+inline int GetJoypadAnalogInput(int* X, int* Y, int Pad)
+{
+	Trace.LastPad = Pad;
+	*X = Trace.PadX;
+	*Y = Trace.PadY;
+	return 0;
+}
+inline int LoadGraph(const char* Path, int)
+{
+	Trace.Path = Path;
+	return Trace.NextHandle++;
+}
+inline int GetGraphSize(int, int* X, int* Y)
+{
+	*X = 64;
+	*Y = 64;
+	return Trace.bFailSize ? -1 : 0;
+}
+inline int DeleteGraph(int)
+{
+	++Trace.DeletedGraphs;
+	return 0;
+}
+inline int MakeScreen(int, int, int)
+{
+	return Trace.NextHandle++;
+}
+inline int SetCreateSoundDataType(int Type)
+{
+	Trace.SoundType = Type;
+	return 0;
+}
+inline int LoadSoundMem(const char*)
+{
+	Trace.LoadedSoundType = Trace.SoundType;
+	return Trace.NextHandle++;
+}
+inline int DuplicateSoundMem(int)
+{
+	return Trace.NextHandle++;
+}
+inline int PlaySoundMem(int, int, int)
+{
+	return 0;
+}
+inline int StopSoundMem(int)
+{
+	return 0;
+}
+inline int DeleteSoundMem(int)
+{
+	return 0;
+}
+inline int ChangeVolumeSoundMem(int Volume, int)
+{
+	Trace.Volume = Volume;
+	return 0;
+}
+inline int CheckSoundMem(int)
+{
+	return 0;
+}
+inline int CreateFontToHandle(const char*, int, int, int)
+{
+	return Trace.NextHandle++;
+}
+inline int DeleteFontToHandle(int)
+{
+	return 0;
+}
+inline int SetDrawScreen(int Handle)
+{
+	Trace.Target = Handle;
+	return 0;
+}
+inline int SetDrawArea(int, int, int, int)
+{
+	return 0;
+}
+inline int SetDrawBlendMode(int, int Alpha)
+{
+	Trace.Alpha = Alpha;
+	return 0;
+}
+inline int SetDrawBright(int R, int G, int B)
+{
+	Trace.Brightness = {R, G, B};
+	return 0;
+}
+inline int SetDrawMode(int)
+{
+	return 0;
+}
+inline int SetUseZBufferFlag(int)
+{
+	return 0;
+}
+inline int SetWriteZBufferFlag(int)
+{
+	return 0;
+}
+inline int SetUseVertexShader(int)
+{
+	return 0;
+}
+inline int SetUsePixelShader(int)
+{
+	return 0;
+}
+inline int SetBackgroundColor(int, int, int)
+{
+	return 0;
+}
+inline int ClearDrawScreen()
+{
+	return 0;
+}
+inline unsigned int GetColor(int R, int G, int B)
+{
+	return (static_cast<unsigned int>(R) << 16) | (static_cast<unsigned int>(G) << 8) | static_cast<unsigned int>(B);
+}
 inline int DrawModiGraphF(float X1, float Y1, float X2, float Y2, float X3, float Y3, float X4, float Y4, int, int)
-{ Trace.Vertices = {X1, Y1, X2, Y2, X3, Y3, X4, Y4}; return Trace.bFailDraw ? -1 : 0; }
+{
+	Trace.Vertices = {X1, Y1, X2, Y2, X3, Y3, X4, Y4};
+	return Trace.bFailDraw ? -1 : 0;
+}
 inline int DrawStringFToHandle(float, float, const char* Text, unsigned int, int)
-{ Trace.Text = Text; return Trace.bFailDraw ? -1 : 0; }
-inline int DrawBox(int, int, int, int, unsigned int, int) { return Trace.bFailDraw ? -1 : 0; }
-inline int ScreenFlip() { ++Trace.Presentations; return 0; }
+{
+	Trace.Text = Text;
+	return Trace.bFailDraw ? -1 : 0;
+}
+inline int DrawBox(int, int, int, int, unsigned int, int)
+{
+	return Trace.bFailDraw ? -1 : 0;
+}
+inline int ScreenFlip()
+{
+	++Trace.Presentations;
+	return 0;
+}
 }

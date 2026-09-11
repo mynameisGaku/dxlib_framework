@@ -7,22 +7,28 @@ namespace Test
 {
 struct FCase
 {
-    const char* Name;
-    void (*Run)();
+	const char* Name;
+	void (*Run)();
 };
 inline std::vector<FCase>& Cases_Internal()
 {
-    static std::vector<FCase> Cases;
-    return Cases;
+	static std::vector<FCase> Cases;
+	return Cases;
 }
 class FRegistration
 {
 public:
-    FRegistration(const char* Name, void (*Run)()) { Cases_Internal().push_back({Name, Run}); }
+	FRegistration(const char* Name, void (*Run)())
+	{
+		Cases_Internal().push_back({Name, Run});
+	}
 };
 inline void Require_Internal(bool bValue, const char* Text, int Line)
 {
-    if (!bValue) { throw std::runtime_error(std::string(Text) + " at line " + std::to_string(Line)); }
+	if (!bValue)
+	{
+		throw std::runtime_error(std::string(Text) + " at line " + std::to_string(Line));
+	}
 }
 }
 #define DXF_JOIN_IMPL(A, B) A##B

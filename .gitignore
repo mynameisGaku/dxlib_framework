@@ -1,0 +1,8 @@
+/Build/
+/.vs/
+/out/
+CMakeUserPresets.json
+*.user
+Log.txt
+/ThirdParty/
+__pycache__/

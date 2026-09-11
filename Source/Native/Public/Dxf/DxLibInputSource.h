@@ -5,6 +5,6 @@ namespace Dxf
 class FDxLibInputSource final : public IInputSource
 {
 public:
-    TResult<FRawInput> Poll() override;
+	TResult<FRawInput> Poll() override;
 };
 }

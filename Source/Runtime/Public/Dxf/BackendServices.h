@@ -8,11 +8,11 @@ namespace Dxf
 /** Composition-root dependencies. All backends must outlive the application. */
 struct FBackendServices
 {
-    IPlatform& Platform;
-    IInputSource& Input;
-    ITextureBackend& Textures;
-    ISoundBackend& Sounds;
-    IFontBackend& Fonts;
-    IRenderBackend& Renderer;
+	IPlatform& Platform;
+	IInputSource& Input;
+	ITextureBackend& Textures;
+	ISoundBackend& Sounds;
+	IFontBackend& Fonts;
+	IRenderBackend& Renderer;
 };
 }

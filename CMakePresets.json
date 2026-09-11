@@ -1,0 +1,116 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 24,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "portable-debug",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/Build/portable-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "DXF_BUILD_TESTS": "ON",
+        "DXF_BUILD_NATIVE": "OFF",
+        "DXF_BUILD_EXAMPLE": "OFF"
+      }
+    },
+    {
+      "name": "portable-release",
+      "inherits": "portable-debug",
+      "binaryDir": "${sourceDir}/Build/portable-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "sanitized",
+      "inherits": "portable-debug",
+      "binaryDir": "${sourceDir}/Build/sanitized",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "clang++",
+        "DXF_SANITIZERS": "ON"
+      }
+    },
+    {
+      "name": "windows-debug",
+      "inherits": "portable-debug",
+      "binaryDir": "${sourceDir}/Build/windows-debug",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "cl",
+        "DXF_BUILD_NATIVE": "ON",
+        "DXF_BUILD_EXAMPLE": "ON",
+        "DXLIB_ROOT": "$env{DXLIB_ROOT}"
+      }
+    },
+    {
+      "name": "windows-release",
+      "inherits": "windows-debug",
+      "binaryDir": "${sourceDir}/Build/windows-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "portable-debug",
+      "configurePreset": "portable-debug"
+    },
+    {
+      "name": "portable-release",
+      "configurePreset": "portable-release"
+    },
+    {
+      "name": "sanitized",
+      "configurePreset": "sanitized"
+    },
+    {
+      "name": "windows-debug",
+      "configurePreset": "windows-debug"
+    },
+    {
+      "name": "windows-release",
+      "configurePreset": "windows-release"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "portable-debug",
+      "configurePreset": "portable-debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "portable-release",
+      "configurePreset": "portable-release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "sanitized",
+      "configurePreset": "sanitized",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "windows-debug",
+      "configurePreset": "windows-debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "windows-release",
+      "configurePreset": "windows-release",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}
