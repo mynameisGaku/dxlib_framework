@@ -1,0 +1,17 @@
+$ cmake --build /mnt/data/dxf-validation/sanitized --parallel 4
+[1/14] Building CXX object CMakeFiles/dxf_tests.dir/Tests/SandboxTests.cpp.o
+[2/14] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Tests/TestMain.cpp.o
+[3/14] Building CXX object CMakeFiles/dxf_tests.dir/Tests/GameplayTests.cpp.o
+[4/14] Building CXX object CMakeFiles/dxf_tests.dir/Examples/Sandbox/SandboxGame.cpp.o
+[5/14] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibPlatform.cpp.o
+[6/14] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibInputSource.cpp.o
+[7/14] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibTextureBackend.cpp.o
+[8/14] Building CXX object CMakeFiles/dxf_tests.dir/Tests/ApplicationTests.cpp.o
+[9/14] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibFontBackend.cpp.o
+[10/14] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibSoundBackend.cpp.o
+[11/14] Linking CXX executable dxf_tests
+[12/14] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Tests/NativeTests.cpp.o
+[13/14] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibRenderBackend.cpp.o
+[14/14] Linking CXX executable dxf_native_contract_tests
+
+EXIT_CODE=0

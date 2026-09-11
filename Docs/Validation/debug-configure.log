@@ -1,0 +1,6 @@
+$ cmake -S /mnt/data/dxlib_framework -B /mnt/data/dxf-validation/debug -G Ninja -DCMAKE_BUILD_TYPE=Debug -DDXF_BUILD_TESTS=ON -DDXF_BUILD_NATIVE=OFF -DDXF_BUILD_EXAMPLE=OFF
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /mnt/data/dxf-validation/debug
+
+EXIT_CODE=0

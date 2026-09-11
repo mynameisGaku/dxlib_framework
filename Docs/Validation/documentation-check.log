@@ -1,0 +1,6 @@
+Relative documentation links: PASS
+Sample asset regeneration (SHA-256 byte equality): PASS
+README C++ example syntax check: PASS
+$ c++ -std=c++20 -Wall -Wextra -Wpedantic -fsyntax-only /mnt/data/dxf-validation/ReadmeExample.cpp -I /mnt/data/dxlib_framework/Source/Foundation/Public -I /mnt/data/dxlib_framework/Source/DxLibSupport/Public -I /mnt/data/dxlib_framework/Source/Runtime/Public -I /mnt/data/dxlib_framework/Source/Gameplay/Public -I /mnt/data/dxlib_framework/Source/Native/Public
+
+EXIT_CODE=0

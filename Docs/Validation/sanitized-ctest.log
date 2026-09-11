@@ -1,0 +1,13 @@
+$ ctest --test-dir /mnt/data/dxf-validation/sanitized --output-on-failure
+Internal ctest changing into directory: /mnt/data/dxf-validation/sanitized
+Test project /mnt/data/dxf-validation/sanitized
+    Start 1: Framework
+1/2 Test #1: Framework ........................   Passed    0.03 sec
+    Start 2: NativeContract
+2/2 Test #2: NativeContract ...................   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =   0.04 sec
+
+EXIT_CODE=0

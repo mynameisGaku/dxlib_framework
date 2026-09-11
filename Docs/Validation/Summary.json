@@ -1,0 +1,25 @@
+{
+  "native_sdk_verified": false,
+  "profiles": {
+    "debug": {
+      "framework_cases": 84,
+      "native_contract_cases": 11
+    },
+    "release": {
+      "framework_cases": 84,
+      "native_contract_cases": 11
+    },
+    "sanitized": {
+      "framework_cases": 84,
+      "native_contract_cases": 11
+    }
+  },
+  "standalone_public_headers": 63,
+  "standalone_sample_headers": 1,
+  "sample_assets": "BMP 64x64 24-bit; WAV mono 16-bit 22050Hz",
+  "environment": {
+    "python": "3.13.5",
+    "platform": "linux",
+    "cmake": "cmake version 3.31.6"
+  }
+}
