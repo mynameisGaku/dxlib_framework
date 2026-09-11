@@ -1,0 +1,12 @@
+[0/1] Re-running CMake...
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /mnt/data/build-dxf-debug
+[1/9] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibSoundBackend.cpp.o
+[2/9] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibFontBackend.cpp.o
+[3/9] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibTextureBackend.cpp.o
+[4/9] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibInputSource.cpp.o
+[5/9] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibPlatform.cpp.o
+[6/9] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibRenderBackend.cpp.o
+[7/9] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Tests/NativeTests.cpp.o
+[8/9] Linking CXX executable dxf_native_contract_tests

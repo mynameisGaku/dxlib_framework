@@ -29,6 +29,14 @@ if(DXF_SANITIZERS AND NOT MSVC)
     target_compile_options(dxlib_framework PUBLIC -fsanitize=address,undefined -fno-omit-frame-pointer)
     target_link_options(dxlib_framework PUBLIC -fsanitize=address,undefined)
 endif()
+set(DXF_NATIVE_SOURCES
+    Source/Native/Private/DxLibPlatform.cpp
+    Source/Native/Private/DxLibInputSource.cpp
+    Source/Native/Private/DxLibTextureBackend.cpp
+    Source/Native/Private/DxLibSoundBackend.cpp
+    Source/Native/Private/DxLibFontBackend.cpp
+    Source/Native/Private/DxLibRenderBackend.cpp
+)
 if(DXF_BUILD_TESTS)
     enable_testing()
     add_executable(dxf_tests Tests/TestMain.cpp Tests/FoundationTests.cpp Tests/SupportTests.cpp Tests/GameplayTests.cpp Tests/ApplicationTests.cpp)
@@ -36,7 +44,7 @@ if(DXF_BUILD_TESTS)
     target_include_directories(dxf_tests PRIVATE Tests)
     dxf_warnings(dxf_tests)
     add_test(NAME Framework COMMAND dxf_tests)
-    add_executable(dxf_native_contract_tests Tests/TestMain.cpp Tests/NativeTests.cpp)
+    add_executable(dxf_native_contract_tests Tests/TestMain.cpp Tests/NativeTests.cpp ${DXF_NATIVE_SOURCES})
     target_link_libraries(dxf_native_contract_tests PRIVATE dxf::framework)
     target_include_directories(dxf_native_contract_tests PRIVATE Tests Tests/FakeDxLib Source/Native/Public)
     dxf_warnings(dxf_native_contract_tests)
