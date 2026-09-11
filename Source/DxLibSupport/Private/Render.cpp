@@ -131,7 +131,7 @@ TResult<void> FRenderQueue2D::Execute_Internal(IRenderBackend& Backend)
 	return {};
 }
 FRenderSystem2D::FRenderSystem2D(IRenderBackend& Backend)
-	: m_pBackend(&Backend), m_Presenter(Backend), m_Context(m_Queue)
+	: m_pBackend(&Backend), m_Presenter(Backend), m_Context(m_Queue, this)
 {
 }
 TResult<void> FRenderSystem2D::BeginFrame(int Width, int Height, FColor Color)

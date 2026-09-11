@@ -4,7 +4,7 @@
 #include <functional>
 namespace Dxf
 {
-class FRenderSystem2D
+class FRenderSystem2D final : public IRenderControl
 {
 public:
 	explicit FRenderSystem2D(IRenderBackend& Backend);
@@ -15,11 +15,11 @@ public:
 		return m_Context;
 	}
 	TResult<void> BeginFrame(int Width, int Height, FColor Color = {0, 0, 0, 255});
-	TResult<void> SetRenderTarget(const FRenderTarget& Target);
-	TResult<void> SetBackBuffer();
-	TResult<void> ClearTarget(FColor Color);
+	TResult<void> SetRenderTarget(const FRenderTarget& Target) override;
+	TResult<void> SetBackBuffer() override;
+	TResult<void> ClearTarget(FColor Color) override;
 	TResult<void> Flush();
-	TResult<void> Native(const std::function<TResult<void>()>& Callback);
+	TResult<void> Native(const std::function<TResult<void>()>& Callback) override;
 	TResult<void> EndFrame();
 	void CancelFrame() noexcept;
 private:
