@@ -1,0 +1,4 @@
+[1/4] Building CXX object CMakeFiles/dxlib_framework.dir/Source/DxLibSupport/Private/Render.cpp.o
+[2/4] Building CXX object CMakeFiles/dxlib_framework.dir/Source/DxLibSupport/Private/Assets.cpp.o
+[3/4] Linking CXX static library libdxlib_framework.a
+[4/4] Linking CXX executable dxf_tests

@@ -6,7 +6,7 @@ namespace
 {
 std::string NormalizePath_Internal(const std::string& Path)
 {
-    auto Normalized = std::filesystem::u8path(Path).lexically_normal().generic_u8string();
+    auto Normalized = std::filesystem::path(std::u8string(Path.begin(), Path.end())).lexically_normal().generic_u8string();
     return std::string(reinterpret_cast<const char*>(Normalized.data()), Normalized.size());
 }
 }

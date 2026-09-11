@@ -140,7 +140,6 @@ TResult<void> FRenderSystem2D::Native(const std::function<TResult<void>()>& Call
 {
     if (!m_bFrame || m_bBusy || !Callback) { return StateError_Internal(); }
     TGuardValue Guard(m_bBusy, true); auto Flushed = Flush_Internal(); if (!Flushed) { return Flushed; }
-    TGuardValue Accepting(m_bFrame, true);
     m_Queue.SetAccepting_Internal(false);
     TResult<void> Result;
     try { Result = Callback(); }
@@ -148,7 +147,7 @@ TResult<void> FRenderSystem2D::Native(const std::function<TResult<void>()>& Call
     catch (...) { Result = TResult<void>::Failure(EErrorCode::UserException, "Unknown native callback exception"); }
     auto Restored = RestoreTarget_Internal();
     m_Queue.SetAccepting_Internal(static_cast<bool>(Restored));
-    if (!Restored) { return Restored; }
+    if (!Restored) { m_bFrame = false; m_Target = {}; return Restored; }
     return Result;
 }
 TResult<void> FRenderSystem2D::EndFrame()
