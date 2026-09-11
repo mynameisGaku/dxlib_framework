@@ -1,0 +1,13 @@
+[1/13] Building CXX object CMakeFiles/dxlib_framework.dir/Source/DxLibSupport/Private/Audio.cpp.o
+[2/13] Building CXX object CMakeFiles/dxlib_framework.dir/Source/Runtime/Private/Application.cpp.o
+[3/13] Building CXX object CMakeFiles/dxlib_framework.dir/Source/DxLibSupport/Private/Assets.cpp.o
+[4/13] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibRenderBackend.cpp.o
+[5/13] Building CXX object CMakeFiles/dxlib_framework.dir/Source/Runtime/Private/SceneNavigator.cpp.o
+[6/13] Building CXX object CMakeFiles/dxf_tests.dir/Tests/SupportTests.cpp.o
+[7/13] Building CXX object CMakeFiles/dxlib_framework.dir/Source/DxLibSupport/Private/Render.cpp.o
+[8/13] Linking CXX static library libdxlib_framework.a
+[9/13] Building CXX object CMakeFiles/dxf_tests.dir/Tests/GameplayTests.cpp.o
+[10/13] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Tests/NativeTests.cpp.o
+[11/13] Linking CXX executable dxf_native_contract_tests
+[12/13] Building CXX object CMakeFiles/dxf_tests.dir/Tests/ApplicationTests.cpp.o
+[13/13] Linking CXX executable dxf_tests

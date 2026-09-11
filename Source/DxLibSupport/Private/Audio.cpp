@@ -10,7 +10,7 @@ TResult<FPlaybackHandle> FAudioPlayer::Play(const FSound& Sound, const FPlayback
     const auto& Metadata = Sound.GetResource_Internal()->GetMetadata();
     auto Loaded = Metadata.Options.Storage == ESoundStorage::Memory ? m_pBackend->DuplicateSound(Sound.GetNativeHandle_Internal()) : m_pBackend->LoadSound(Metadata.Path, Metadata.Options);
     if (!Loaded) { return TResult<FPlaybackHandle>::Failure(Loaded.Error()); }
-    FNativeHandle Handle(Loaded.Value(), [Backend = m_pBackend](int Value) { Backend->StopSound(Value); Backend->DeleteSound(Value); });
+    FNativeHandle Handle(Loaded.Value(), m_pBackend, [](void* Context, int Value) noexcept { auto* Backend = static_cast<ISoundBackend*>(Context); Backend->StopSound(Value); Backend->DeleteSound(Value); });
     if (Handle.Get() < 0) { return TResult<FPlaybackHandle>::Failure(EErrorCode::BackendFailure, "Invalid voice allocation"); }
     auto Volume = m_pBackend->SetSoundVolume(Handle.Get(), Options.Volume);
     if (!Volume) { return TResult<FPlaybackHandle>::Failure(Volume.Error()); }

@@ -1,5 +1,4 @@
 #pragma once
-#include <functional>
 #include <utility>
 namespace Dxf
 {
@@ -8,25 +7,29 @@ class FNativeHandle
 {
 public:
     FNativeHandle() = default;
-    FNativeHandle(int Handle, std::function<void(int)> Deleter) : m_Handle(Handle), m_Deleter(std::move(Deleter)) {}
+    using FReleaseFunction = void (*)(void*, int) noexcept;
+    /** Release must be non-null for a valid handle; Context must outlive this owner. */
+    FNativeHandle(int Handle, void* Context, FReleaseFunction Release) noexcept
+        : m_Handle(Handle), m_pContext(Context), m_pRelease(Release) {}
     ~FNativeHandle() { Reset(); }
     FNativeHandle(const FNativeHandle&) = delete;
     FNativeHandle& operator=(const FNativeHandle&) = delete;
     FNativeHandle(FNativeHandle&& Other) noexcept
-        : m_Handle(std::exchange(Other.m_Handle, -1)), m_Deleter(std::move(Other.m_Deleter)) {}
+        : m_Handle(std::exchange(Other.m_Handle, -1)), m_pContext(Other.m_pContext), m_pRelease(Other.m_pRelease) {}
     FNativeHandle& operator=(FNativeHandle&& Other) noexcept
     {
-        if (this != &Other) { Reset(); m_Handle = std::exchange(Other.m_Handle, -1); m_Deleter = std::move(Other.m_Deleter); }
+        if (this != &Other) { Reset(); m_Handle = std::exchange(Other.m_Handle, -1); m_pContext = Other.m_pContext; m_pRelease = Other.m_pRelease; }
         return *this;
     }
     int Get() const noexcept { return m_Handle; }
     void Reset() noexcept
     {
         const int Handle = std::exchange(m_Handle, -1);
-        if (Handle >= 0 && m_Deleter) { m_Deleter(Handle); }
+        if (Handle >= 0 && m_pRelease) { m_pRelease(m_pContext, Handle); }
     }
 private:
     int m_Handle = -1;
-    std::function<void(int)> m_Deleter;
+    void* m_pContext = nullptr;
+    FReleaseFunction m_pRelease = nullptr;
 };
 }

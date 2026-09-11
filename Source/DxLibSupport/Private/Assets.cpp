@@ -12,7 +12,7 @@ std::string NormalizePath_Internal(const std::string& Path)
 }
 TResult<std::shared_ptr<FTextureResource>> FTextureLoader::Adopt_Internal(FTextureAllocation Allocation, bool bRenderTarget)
 {
-    FNativeHandle Handle(Allocation.NativeHandle, [Backend = m_pBackend](int Value) { Backend->DeleteTexture(Value); });
+    FNativeHandle Handle(Allocation.NativeHandle, m_pBackend, [](void* Context, int Value) noexcept { static_cast<ITextureBackend*>(Context)->DeleteTexture(Value); });
     if (Allocation.NativeHandle < 0 || Allocation.Width <= 0 || Allocation.Height <= 0)
     { return TResult<std::shared_ptr<FTextureResource>>::Failure(EErrorCode::BackendFailure, "Invalid texture allocation"); }
     auto Resource = std::make_shared<FTextureResource>(std::move(Handle), FTextureMetadata{Allocation.Width, Allocation.Height, bRenderTarget});
@@ -42,7 +42,7 @@ TResult<FSound> FSoundLoader::Load(const std::string& Path, const FSoundLoadOpti
     if (m_pRegistry->IsShutdown()) { return TResult<FSound>::Failure(EErrorCode::InvalidState, "Assets stopped"); }
     auto Loaded = m_pBackend->LoadSound(Path, Options);
     if (!Loaded) { return TResult<FSound>::Failure(Loaded.Error()); }
-    FNativeHandle Handle(Loaded.Value(), [Backend = m_pBackend](int Value) { Backend->DeleteSound(Value); });
+    FNativeHandle Handle(Loaded.Value(), m_pBackend, [](void* Context, int Value) noexcept { static_cast<ISoundBackend*>(Context)->DeleteSound(Value); });
     if (Handle.Get() < 0) { return TResult<FSound>::Failure(EErrorCode::BackendFailure, "Invalid sound handle"); }
     auto Resource = std::make_shared<FSoundResource>(std::move(Handle), FSoundMetadata{Path, Options});
     if (!m_pRegistry->Register(Resource)) { return TResult<FSound>::Failure(EErrorCode::InvalidState, "Assets stopped"); }
@@ -54,7 +54,7 @@ TResult<FFont> FFontLoader::Load(const FFontOptions& Options)
     if (Options.Size <= 0 || Options.Thickness <= 0) { return TResult<FFont>::Failure(EErrorCode::InvalidArgument, "Invalid font dimensions"); }
     auto Loaded = m_pBackend->CreateFont(Options);
     if (!Loaded) { return TResult<FFont>::Failure(Loaded.Error()); }
-    FNativeHandle Handle(Loaded.Value(), [Backend = m_pBackend](int Value) { Backend->DeleteFont(Value); });
+    FNativeHandle Handle(Loaded.Value(), m_pBackend, [](void* Context, int Value) noexcept { static_cast<IFontBackend*>(Context)->DeleteFont(Value); });
     if (Handle.Get() < 0) { return TResult<FFont>::Failure(EErrorCode::BackendFailure, "Invalid font handle"); }
     auto Resource = std::make_shared<FFontResource>(std::move(Handle), Options);
     if (!m_pRegistry->Register(Resource)) { return TResult<FFont>::Failure(EErrorCode::InvalidState, "Assets stopped"); }
