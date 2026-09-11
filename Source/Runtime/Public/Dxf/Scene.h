@@ -8,6 +8,7 @@ class DScene : public DLifecycleObject
 public:
     DScene() { SetTickWhenPaused(true); }
     FSceneClock& GetClock() noexcept { return m_Clock; }
+    const FSceneClock& GetClock() const noexcept { return m_Clock; }
     std::uint64_t GetAudioScope() const noexcept { return m_AudioScope; }
     void Enter_Internal(const FSceneActivationContext& Context) noexcept
     {
