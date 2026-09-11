@@ -1,0 +1,16 @@
+[PASS] Result holds a move-only value
+[PASS] Result preserves error and void success
+[PASS] RTTI supports safe derived checks
+[PASS] SlotMap invalidates removed handles and increments generation
+[PASS] Handles do not resolve against a different owner
+[PASS] Handle outlives storage without dangling pointer
+[PASS] Typed handle rejects incorrect dynamic type
+[PASS] SlotMap snapshot permits removal without iterator invalidation
+[PASS] FrameClock clamps simulation delta but retains real delta
+[PASS] FrameClock rejects negative and nonfinite elapsed inputs
+[PASS] SceneClock pause and scale preserve unscaled time
+[PASS] Input edges are stable during a frame
+[PASS] Focus loss releases keys and mouse buttons
+[PASS] Gamepad disconnection emits release and clears axes
+[PASS] InputMap action is held until all bound keys release
+15/15 passed
