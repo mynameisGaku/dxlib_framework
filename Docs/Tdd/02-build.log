@@ -1,0 +1,20 @@
+[0/1] Re-running CMake...
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /mnt/data/build-dxf-debug
+[1/8] Building CXX object CMakeFiles/dxlib_framework.dir/Source/DxLibSupport/Private/Audio.cpp.o
+[2/8] Building CXX object CMakeFiles/dxlib_framework.dir/Source/DxLibSupport/Private/Render.cpp.o
+[3/8] Building CXX object CMakeFiles/dxf_tests.dir/Tests/FoundationTests.cpp.o
+[4/8] Building CXX object CMakeFiles/dxlib_framework.dir/Source/DxLibSupport/Private/Assets.cpp.o
+/mnt/data/dxlib_framework/Source/DxLibSupport/Private/Assets.cpp: In function 'std::string Dxf::{anonymous}::NormalizePath_Internal(const std::string&)':
+/mnt/data/dxlib_framework/Source/DxLibSupport/Private/Assets.cpp:9:46: warning: 'std::filesystem::__cxx11::path std::filesystem::__cxx11::u8path(const _Source&) [with _Source = std::__cxx11::basic_string<char>; _Require = path; _CharT = char]' is deprecated: use 'path((const char8_t*)&*source)' instead [-Wdeprecated-declarations]
+    9 |     auto Normalized = std::filesystem::u8path(Path).lexically_normal().generic_u8string();
+      |                       ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+In file included from /usr/include/c++/14/filesystem:52,
+                 from /mnt/data/dxlib_framework/Source/DxLibSupport/Private/Assets.cpp:2:
+/usr/include/c++/14/bits/fs_path.h:843:5: note: declared here
+  843 |     u8path(const _Source& __source)
+      |     ^~~~~~
+[5/8] Linking CXX static library libdxlib_framework.a
+[6/8] Building CXX object CMakeFiles/dxf_tests.dir/Tests/SupportTests.cpp.o
+[7/8] Linking CXX executable dxf_tests

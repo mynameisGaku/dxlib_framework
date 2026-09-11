@@ -5,7 +5,10 @@ option(DXF_BUILD_NATIVE "Build the Windows DxLib adapter" OFF)
 option(DXF_BUILD_EXAMPLE "Build the native Sandbox" OFF)
 option(DXF_SANITIZERS "Enable address/undefined sanitizers" OFF)
 set(DXLIB_ROOT "" CACHE PATH "Directory containing DxLib.h and the matching libraries")
-add_library(dxlib_framework STATIC Source/Foundation/Private/Foundation.cpp)
+add_library(dxlib_framework STATIC Source/Foundation/Private/Foundation.cpp
+    Source/DxLibSupport/Private/Assets.cpp
+    Source/DxLibSupport/Private/Render.cpp
+    Source/DxLibSupport/Private/Audio.cpp)
 add_library(dxf::framework ALIAS dxlib_framework)
 target_compile_features(dxlib_framework PUBLIC cxx_std_20)
 foreach(Layer Foundation DxLibSupport Runtime Gameplay)

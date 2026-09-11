@@ -66,6 +66,17 @@ public:
         }
         return Result;
     }
+    template <typename TPredicate> void RemoveIf_Internal(TPredicate Predicate) noexcept
+    {
+        for (auto& Slot : m_Slots)
+        {
+            if (Slot.Object && Predicate(*Slot.Object)) { Slot.Object.reset(); ++Slot.Generation; --m_Size; }
+        }
+    }
+    template <typename TFunction> void ForEach_Internal(TFunction Function)
+    {
+        for (auto& Slot : m_Slots) { if (Slot.Object) { Function(*Slot.Object); } }
+    }
     std::size_t Size() const noexcept { return m_Size; }
 private:
     struct FSlot
