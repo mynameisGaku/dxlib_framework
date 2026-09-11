@@ -1,0 +1,17 @@
+[0/1] Re-running CMake...
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /mnt/data/build-dxf-debug
+[1/8] Building CXX object CMakeFiles/dxf_tests.dir/Tests/SandboxTests.cpp.o
+FAILED: CMakeFiles/dxf_tests.dir/Tests/SandboxTests.cpp.o 
+/usr/bin/c++  -I/mnt/data/dxlib_framework/Tests -I/mnt/data/dxlib_framework/Examples/Sandbox -I/mnt/data/dxlib_framework/Source/Foundation/Public -I/mnt/data/dxlib_framework/Source/DxLibSupport/Public -I/mnt/data/dxlib_framework/Source/Runtime/Public -I/mnt/data/dxlib_framework/Source/Gameplay/Public -g -std=gnu++20 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -MD -MT CMakeFiles/dxf_tests.dir/Tests/SandboxTests.cpp.o -MF CMakeFiles/dxf_tests.dir/Tests/SandboxTests.cpp.o.d -o CMakeFiles/dxf_tests.dir/Tests/SandboxTests.cpp.o -c /mnt/data/dxlib_framework/Tests/SandboxTests.cpp
+/mnt/data/dxlib_framework/Tests/SandboxTests.cpp:4:10: fatal error: SandboxGame.h: No such file or directory
+    4 | #include "SandboxGame.h"
+      |          ^~~~~~~~~~~~~~~
+compilation terminated.
+[2/8] Building CXX object CMakeFiles/dxf_tests.dir/Tests/TestMain.cpp.o
+[3/8] Building CXX object CMakeFiles/dxf_tests.dir/Tests/FoundationTests.cpp.o
+[4/8] Building CXX object CMakeFiles/dxf_tests.dir/Tests/SupportTests.cpp.o
+[5/8] Building CXX object CMakeFiles/dxf_tests.dir/Tests/ApplicationTests.cpp.o
+[6/8] Building CXX object CMakeFiles/dxf_tests.dir/Tests/GameplayTests.cpp.o
+ninja: build stopped: subcommand failed.
