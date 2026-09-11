@@ -207,3 +207,92 @@ TEST("AppRunner executes until a scene requests quit")
 	REQUIRE(Result);
 	REQUIRE(Observation.Ticks == 1 && Observation.Destructs == 1);
 }
+TEST("Application shutdown requested during draw waits for the draw callback and cancels presentation")
+{
+	FFakeBackend Backend;
+	FAppObservation Observation;
+	FApplication App(MakeServices_Internal(Backend));
+	Observation.Draw = [&](FRenderContext&)
+	{
+		Observation.bInsideCallback = true;
+		App.Shutdown();
+		REQUIRE(Observation.Destructs == 0);
+		Observation.bInsideCallback = false;
+	};
+	REQUIRE(App.Start(std::make_unique<DObservedAppScene>(Observation)));
+	auto Step = App.Step(0);
+	REQUIRE(Step && !Step.Value());
+	REQUIRE(!Observation.bDestroyedInsideCallback && Observation.Destructs == 1);
+	REQUIRE(Backend.GetTrace().Presentations == 0);
+}
+TEST("Scene navigator rejects a commit inside a scene draw callback")
+{
+	FFakeBackend Backend;
+	FAppObservation Observation;
+	FApplication App(MakeServices_Internal(Backend));
+	Observation.Draw = [&](FRenderContext&)
+	{
+		REQUIRE(!App.GetScenes().Commit());
+	};
+	REQUIRE(App.Start(std::make_unique<DObservedAppScene>(Observation)));
+	REQUIRE(App.Step(0));
+	REQUIRE(Backend.GetTrace().Presentations == 1 && Observation.Destructs == 0);
+}
+TEST("Scene navigator shutdown from tick does not destroy the callback receiver until return")
+{
+	FFakeBackend Backend;
+	FAppObservation Observation;
+	FApplication App(MakeServices_Internal(Backend));
+	Observation.Tick = [&](const FTickContext& Context)
+	{
+		Context.Scenes->Shutdown();
+		REQUIRE(Observation.Destructs == 0);
+	};
+	REQUIRE(App.Start(std::make_unique<DObservedAppScene>(Observation)));
+	auto Step = App.Step(0);
+	REQUIRE(Step && !Step.Value());
+	REQUIRE(!Observation.bDestroyedInsideCallback && Observation.Destructs == 1);
+}
+namespace
+{
+class DOrderedGame final : public DGameInstance
+{
+public:
+	explicit DOrderedGame(std::vector<std::string>& Events) : m_pEvents(&Events)
+	{
+	}
+protected:
+	void OnDeinitialize() noexcept override
+	{
+		m_pEvents->push_back("game-stop");
+	}
+private:
+	std::vector<std::string>* m_pEvents;
+};
+class DOrderedScene final : public DScene
+{
+public:
+	explicit DOrderedScene(std::vector<std::string>& Events) : m_pEvents(&Events)
+	{
+	}
+protected:
+	void OnDeinitialize() noexcept override
+	{
+		m_pEvents->push_back("scene-stop");
+	}
+private:
+	std::vector<std::string>* m_pEvents;
+};
+}
+TEST("Application stops scene before game instance and platform last")
+{
+	FFakeBackend Backend;
+	auto& Events = Backend.GetTrace().Events;
+	FApplication App(MakeServices_Internal(Backend), {}, std::make_unique<DOrderedGame>(Events));
+	REQUIRE(App.Start(std::make_unique<DOrderedScene>(Events)));
+	App.Shutdown();
+	const auto Scene = std::find(Events.begin(), Events.end(), "scene-stop");
+	const auto Game = std::find(Events.begin(), Events.end(), "game-stop");
+	const auto Platform = std::find(Events.begin(), Events.end(), "shutdown");
+	REQUIRE(Scene < Game && Game < Platform);
+}

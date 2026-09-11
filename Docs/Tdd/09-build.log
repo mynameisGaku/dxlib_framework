@@ -1,0 +1,25 @@
+[1/25] Building CXX object CMakeFiles/dxlib_framework.dir/Source/Foundation/Private/Foundation.cpp.o
+[2/25] Building CXX object CMakeFiles/dxlib_framework.dir/Source/Runtime/Private/LifecycleObject.cpp.o
+[3/25] Building CXX object CMakeFiles/dxlib_framework.dir/Source/DxLibSupport/Private/Audio.cpp.o
+[4/25] Building CXX object CMakeFiles/dxlib_framework.dir/Source/DxLibSupport/Private/Render.cpp.o
+[5/25] Building CXX object CMakeFiles/dxlib_framework.dir/Source/Runtime/Private/SceneNavigator.cpp.o
+[6/25] Building CXX object CMakeFiles/dxlib_framework.dir/Source/DxLibSupport/Private/Assets.cpp.o
+[7/25] Building CXX object CMakeFiles/dxf_tests.dir/Tests/TestMain.cpp.o
+[8/25] Building CXX object CMakeFiles/dxlib_framework.dir/Source/Runtime/Private/Application.cpp.o
+[9/25] Linking CXX static library libdxlib_framework.a
+[10/25] Building CXX object CMakeFiles/dxf_tests.dir/Tests/SupportTests.cpp.o
+[11/25] Building CXX object CMakeFiles/dxf_tests.dir/Tests/FoundationTests.cpp.o
+[12/25] Building CXX object CMakeFiles/dxf_tests.dir/Tests/GameplayTests.cpp.o
+[13/25] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Tests/TestMain.cpp.o
+[14/25] Building CXX object CMakeFiles/dxf_tests.dir/Tests/SandboxTests.cpp.o
+[15/25] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibPlatform.cpp.o
+[16/25] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibInputSource.cpp.o
+[17/25] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Tests/NativeTests.cpp.o
+[18/25] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibTextureBackend.cpp.o
+[19/25] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibSoundBackend.cpp.o
+[20/25] Building CXX object CMakeFiles/dxf_tests.dir/Examples/Sandbox/SandboxGame.cpp.o
+[21/25] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibFontBackend.cpp.o
+[22/25] Building CXX object CMakeFiles/dxf_tests.dir/Tests/ApplicationTests.cpp.o
+[23/25] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibRenderBackend.cpp.o
+[24/25] Linking CXX executable dxf_tests
+[25/25] Linking CXX executable dxf_native_contract_tests
