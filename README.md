@@ -29,7 +29,7 @@
 .\GenerateProjectFiles.bat -Development # テスト・補助プロジェクトを含む開発用
 ```
 
-`-Portable` のソリューションはルートの `dxlib_framework-portable.sln`（または `.slnx`）です。プロジェクト・ビルド出力は通常版が `Build/VisualStudio`、Portable版が `Build/VisualStudio-portable` にまとまります。ヘッダーは各プロジェクト内にフォルダ構成に沿って表示されます。SDKは環境変数 `DXLIB_ROOT`、または `Setup.cmd` が作るマニフェストから検出します。引数なしの場合は結果を確認できるよう終了時にキー入力を待ちます。既存のNinjaビルドとは別のフォルダを使い、再実行でプロジェクトを更新できます。
+`-Portable` のソリューションはルートの `dxlib_framework-portable.sln`（または `.slnx`）です。プロジェクト・ビルド出力は通常版が `Build/VisualStudio`、Portable版が `Build/VisualStudio-portable` にまとまります。cppとヘッダーは各プロジェクト内に、リポジトリからの実際の相対パスに沿ったフィルタで表示されます（例：Source/Toolbox/Private、Examples/Sandbox）。SDKは環境変数 `DXLIB_ROOT`、または `Setup.cmd` が作るマニフェストから検出します。引数なしの場合は結果を確認できるよう終了時にキー入力を待ちます。既存のNinjaビルドとは別のフォルダを使い、再実行でプロジェクトを更新できます。
 
 `-Development`はルートの`dxlib_framework-development.slnx`（または`.sln`）へ出力し、通常版と別の`Build/VisualStudio-development`で生成します。`-Portable -Development`も組み合わせられ、`Build/VisualStudio-portable-development`を使います。通常版と開発版は互いの生成結果を上書きしません。`Build`内のソリューションはCMake管理用の原本なので、普段はルートのソリューションを開いてください。ヘッダー追加や構成変更の後は`GenerateProjectFiles.bat`を再実行します。
 

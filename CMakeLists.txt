@@ -51,9 +51,13 @@ function(dxf_ide_headers Target)
             # PRIVATE also gives header-only INTERFACE libraries an IDE project,
             # without exporting source-tree paths to package consumers.
             target_sources(${Target} PRIVATE ${Headers})
-            source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${Headers})
         endif()
     endforeach()
+    # cppとヘッダーを、リポジトリからの実際の相対パスで表示する。
+    get_target_property(Sources ${Target} SOURCES)
+    if(Sources)
+        source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${Sources})
+    endif()
 endfunction()
 
 function(dxf_public_headers Target Layer Visibility)
