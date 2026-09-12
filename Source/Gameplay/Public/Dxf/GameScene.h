@@ -18,6 +18,14 @@ public:
 	{
 		return m_Objects.Destroy(Object);
 	}
+	template <typename T> TObjectHandle<T> FindObject() const noexcept
+	{
+		return m_Objects.FindFirst<T>();
+	}
+	template <typename T> std::vector<TObjectHandle<T>> GetObjects() const
+	{
+		return m_Objects.FindAll<T>();
+	}
 	std::size_t GetObjectCount() const noexcept
 	{
 		return m_Objects.Size();

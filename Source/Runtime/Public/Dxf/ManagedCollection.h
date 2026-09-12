@@ -53,6 +53,14 @@ public:
 		Object->RequestDestroy_Internal();
 		return true;
 	}
+	template <typename U> TObjectHandle<U> FindFirst() const noexcept
+	{
+		return m_Storage.template FindFirst<U>();
+	}
+	template <typename U> std::vector<TObjectHandle<U>> FindAll() const
+	{
+		return m_Storage.template FindAll<U>();
+	}
 	std::size_t Size() const noexcept
 	{
 		return m_Storage.Size();

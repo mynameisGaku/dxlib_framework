@@ -21,6 +21,14 @@ public:
 	{
 		return m_Components.Destroy(Component);
 	}
+	template <typename T> TObjectHandle<T> FindComponent() const noexcept
+	{
+		return m_Components.FindFirst<T>();
+	}
+	template <typename T> std::vector<TObjectHandle<T>> GetComponents() const
+	{
+		return m_Components.FindAll<T>();
+	}
 	std::size_t GetComponentCount() const noexcept
 	{
 		return m_Components.Size();

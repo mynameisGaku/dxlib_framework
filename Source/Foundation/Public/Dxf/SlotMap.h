@@ -118,6 +118,33 @@ public:
 			}
 		}
 	}
+	template <typename U> TObjectHandle<U> FindFirst() const noexcept
+	{
+		static_assert(std::is_base_of_v<T, U>);
+		for (std::size_t Index = 0; Index < m_Slots.size(); ++Index)
+		{
+			const auto& Slot = m_Slots[Index];
+			if (Slot.Object && Slot.Object->IsHandleAccessible_Internal() && dynamic_cast<U*>(Slot.Object.get()))
+			{
+				return TObjectHandle<U>(m_pDomain, {m_Domain, Index, Slot.Generation});
+			}
+		}
+		return {};
+	}
+	template <typename U> std::vector<TObjectHandle<U>> FindAll() const
+	{
+		static_assert(std::is_base_of_v<T, U>);
+		std::vector<TObjectHandle<U>> Result;
+		for (auto Handle : Snapshot())
+		{
+			auto Typed = Handle.template Cast<U>();
+			if (Typed)
+			{
+				Result.push_back(Typed);
+			}
+		}
+		return Result;
+	}
 	std::size_t Size() const noexcept
 	{
 		return m_Size;
