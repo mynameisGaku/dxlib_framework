@@ -16,6 +16,7 @@ if ($ExpectedSha256 -and $ExpectedSha256 -notmatch '^[0-9a-fA-F]{64}$') { throw 
 if ((Test-Path $Manifest) -and -not $Force) {
     $Existing = Get-Content -Raw $Manifest | ConvertFrom-Json
     if ($Existing.version -eq $Version -and (Test-Path (Join-Path $Existing.include_directory 'DxLib.h'))) {
+        if ($ExpectedSha256 -and $Existing.sha256 -ne $ExpectedSha256.ToLowerInvariant()) { throw 'Cached SDK hash differs from ExpectedSha256. Use -Force to download again.' }
         Write-Host ('Using existing SDK: ' + $Existing.include_directory)
         return
     }

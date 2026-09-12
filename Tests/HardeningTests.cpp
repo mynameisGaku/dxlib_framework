@@ -13,13 +13,20 @@ using namespace Dxf::Testing;
 
 namespace
 {
-class DPlainObject final : public DObject {};
+class DPlainObject final : public DObject
+{
+};
 
 class DDestructionCallback final : public DObject
 {
 public:
-	explicit DDestructionCallback(std::function<void()> Callback) : m_Callback(std::move(Callback)) {}
-	~DDestructionCallback() override { m_Callback(); }
+	explicit DDestructionCallback(std::function<void()> Callback) : m_Callback(std::move(Callback))
+	{
+	}
+	~DDestructionCallback() override
+	{
+		m_Callback();
+	}
 private:
 	std::function<void()> m_Callback;
 };
@@ -38,25 +45,39 @@ class DHookObject final : public DGameObject
 public:
 	DHookObject(FHookCounts& Counts, std::function<void()> Init = {}, std::function<void()> Tick = {},
 		std::function<void()> Draw = {})
-		: m_pCounts(&Counts), m_Init(std::move(Init)), m_Tick(std::move(Tick)), m_Draw(std::move(Draw)) {}
+		: m_pCounts(&Counts), m_Init(std::move(Init)), m_Tick(std::move(Tick)), m_Draw(std::move(Draw))
+	{
+	}
 protected:
 	TResult<void> OnInitialize(const FInitContext&) override
 	{
 		++m_pCounts->Initialize;
-		if (m_Init) { m_Init(); }
+		if (m_Init)
+		{
+			m_Init();
+		}
 		return {};
 	}
 	void OnTick(const FTickContext&) override
 	{
 		++m_pCounts->Tick;
-		if (m_Tick) { m_Tick(); }
+		if (m_Tick)
+		{
+			m_Tick();
+		}
 	}
 	void OnDraw(FRenderContext&) const override
 	{
 		++m_pCounts->Draw;
-		if (m_Draw) { m_Draw(); }
+		if (m_Draw)
+		{
+			m_Draw();
+		}
 	}
-	void OnDeinitialize() noexcept override { ++m_pCounts->Stop; }
+	void OnDeinitialize() noexcept override
+	{
+		++m_pCounts->Stop;
+	}
 private:
 	FHookCounts* m_pCounts;
 	std::function<void()> m_Init;
@@ -68,16 +89,27 @@ class DPreparationScene final : public DScene
 {
 public:
 	DPreparationScene(FHookCounts& Counts, std::function<void()> Init = {})
-		: m_pCounts(&Counts), m_Init(std::move(Init)) {}
+		: m_pCounts(&Counts), m_Init(std::move(Init))
+	{
+	}
 protected:
 	TResult<void> OnInitialize(const FInitContext&) override
 	{
 		++m_pCounts->Initialize;
-		if (m_Init) { m_Init(); }
+		if (m_Init)
+		{
+			m_Init();
+		}
 		return {};
 	}
-	void OnEnter(const FSceneActivationContext&) noexcept override { ++m_pCounts->Enter; }
-	void OnDeinitialize() noexcept override { ++m_pCounts->Stop; }
+	void OnEnter(const FSceneActivationContext&) noexcept override
+	{
+		++m_pCounts->Enter;
+	}
+	void OnDeinitialize() noexcept override
+	{
+		++m_pCounts->Stop;
+	}
 private:
 	FHookCounts* m_pCounts;
 	std::function<void()> m_Init;

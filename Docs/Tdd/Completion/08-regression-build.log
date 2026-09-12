@@ -1,0 +1,7 @@
+[0/1] Re-running CMake...
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /mnt/data/build-dxf/debug
+[1/4] Building CXX object CMakeFiles/dxf_tests.dir/Tests/StressTests.cpp.o
+[2/4] Building CXX object CMakeFiles/dxf_tests.dir/Tests/HardeningTests.cpp.o
+[3/4] Linking CXX executable dxf_tests
