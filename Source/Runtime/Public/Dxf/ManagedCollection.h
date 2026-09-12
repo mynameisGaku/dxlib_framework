@@ -32,6 +32,11 @@ public:
 			auto Object = std::make_unique<U>(std::forward<TArgs>(Args)...);
 			Object->SetCreationOrder_Internal(m_NextCreationOrder++);
 			PrepareObject_Internal(*Object);
+			// User constructors can request shutdown through another reference to this collection.
+			if (!m_bAccepting || m_bShutdownRequested)
+			{
+				return TResult<TObjectHandle<U>>::Failure(EErrorCode::InvalidState, "Collection stopped during construction");
+			}
 			return TResult<TObjectHandle<U>>::Success(m_Storage.Insert(std::move(Object)).template Cast<U>());
 		}
 		catch (const std::exception& Error)

@@ -48,9 +48,10 @@ TResult<FSound> FAssetService::LoadSound(const std::string& Path, const FSoundLo
 	{
 		return TResult<FSound>::Failure(EErrorCode::InvalidState, "Assets stopped");
 	}
-	if (!Detail::IsValidNativeString_Internal(Path))
+	if (!Detail::IsValidNativeString_Internal(Path) ||
+		(Options.Storage != ESoundStorage::Memory && Options.Storage != ESoundStorage::Stream))
 	{
-		return TResult<FSound>::Failure(EErrorCode::InvalidArgument, "Sound path must be nonempty UTF-8 without NUL");
+		return TResult<FSound>::Failure(EErrorCode::InvalidArgument, "Sound requires a valid storage mode and nonempty UTF-8 path without NUL");
 	}
 	const std::string Normalized = NormalizePath_Internal(Path);
 	const std::string Key = Normalized + (Options.Storage == ESoundStorage::Memory ? "|memory" : "|stream");

@@ -1,0 +1,10 @@
+[1/10] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/AssetService.cpp.o
+[2/10] Linking CXX static library libdxf_supportd.a
+[3/10] Building CXX object CMakeFiles/dxf_tests.dir/Tests/SandboxTests.cpp.o
+[4/10] Building CXX object CMakeFiles/dxf_tests.dir/Tests/ApplicationTests.cpp.o
+[5/10] Building CXX object CMakeFiles/dxf_tests.dir/Tests/HardeningTests.cpp.o
+[6/10] Building CXX object CMakeFiles/dxf_tests.dir/Tests/UsabilityTests.cpp.o
+[7/10] Building CXX object CMakeFiles/dxf_tests.dir/Tests/GameplayTests.cpp.o
+[8/10] Linking CXX executable dxf_native_contract_tests
+[9/10] Building CXX object CMakeFiles/dxf_tests.dir/Examples/Sandbox/SandboxGame.cpp.o
+[10/10] Linking CXX executable dxf_tests
