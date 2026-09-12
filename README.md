@@ -16,7 +16,9 @@
 
 ### Visual Studioのソリューションを生成する
 
-初回は `Setup.cmd` でDxLib SDKを用意し、ルートの `GenerateProjectFiles.bat` をダブルクリックします。Visual StudioのC++開発ツールとCMakeを自動検出し、`Build/VisualStudio/dxlib_framework.sln` を生成します。Visual Studioで開き、Debug／Release・x64を選択してビルドできます。生成だけではビルドしません。
+初回は `Setup.cmd` でDxLib SDKを用意し、ルートの `GenerateProjectFiles.bat` をダブルクリックします。Visual StudioのC++開発ツールとCMakeを自動検出し、`dxlib_framework.sln`（環境によっては `.slnx`）を生成します。Visual Studioで開き、Debug／Release・x64を選択してビルドできます。生成だけではビルドしません。
+
+生成時はCMakeの構成キャッシュを作り直し、環境変数や過去のキャッシュにある外部ツールチェーン設定を無効化して、検出したMSVCを直接使います。システムの環境変数は変更しません。
 
 ```powershell
 .\GenerateProjectFiles.bat -Open       # 生成後にソリューションを開く
@@ -24,7 +26,7 @@
 .\GenerateProjectFiles.bat -Portable   # DxLib不要のテスト用ソリューション
 ```
 
-`-Portable` の生成先は `Build/VisualStudio-portable` です。SDKは環境変数 `DXLIB_ROOT`、または `Setup.cmd` が作るマニフェストから検出します。引数なしの場合は結果を確認できるよう終了時にキー入力を待ちます。既存のNinjaビルドとは別のフォルダを使い、再実行でプロジェクトを更新できます。
+`-Portable` のソリューションはルートの `dxlib_framework-portable.sln`（または `.slnx`）です。プロジェクト・ビルド出力は通常版が `Build/VisualStudio`、Portable版が `Build/VisualStudio-portable` にまとまります。ヘッダーは各プロジェクト内にフォルダ構成に沿って表示されます。SDKは環境変数 `DXLIB_ROOT`、または `Setup.cmd` が作るマニフェストから検出します。引数なしの場合は結果を確認できるよう終了時にキー入力を待ちます。既存のNinjaビルドとは別のフォルダを使い、再実行でプロジェクトを更新できます。
 
 ### コマンドからビルド・検証する
 

@@ -1,4 +1,8 @@
 /Build/
+/dxlib_framework.sln
+/dxlib_framework.slnx
+/dxlib_framework-portable.sln
+/dxlib_framework-portable.slnx
 /.vs/
 /out/
 CMakeUserPresets.json

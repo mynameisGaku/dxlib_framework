@@ -14,7 +14,15 @@ try {
     if (-not (Test-Path -LiteralPath $VsWhere)) {
         throw 'Install Visual Studio with Desktop development with C++, Windows SDK, and CMake tools.'
     }
-    $Installations = @((& $VsWhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -format json | ConvertFrom-Json))
+    $SavedOutputEncoding = [Console]::OutputEncoding
+    try {
+        [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
+        $InstallationJson = & $VsWhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -format json -utf8
+        if ($LASTEXITCODE -ne 0) { throw 'Visual Studio detection failed.' }
+        $Installations = @($InstallationJson | ConvertFrom-Json)
+    } finally {
+        [Console]::OutputEncoding = $SavedOutputEncoding
+    }
     if ($Installations.Count -eq 0) { throw 'Visual Studio C++ tools were not found. Install the Desktop development with C++ workload.' }
     $Installation = $Installations[0]
     $Major = ([version]$Installation.installationVersion).Major
@@ -45,7 +53,9 @@ try {
         }
         $SdkRoot = (Resolve-Path -LiteralPath $SdkRoot).Path
     }
-    $Arguments = @('-S', $Root, '-B', $Build, '-G', $Generators[0].name, '-A', 'x64',
+    $Arguments = @('--fresh', '-S', $Root, '-B', $Build, '-G', $Generators[0].name, '-A', 'x64',
+        # Use the detected MSVC directly; override both environment and cached toolchains.
+        '-DCMAKE_TOOLCHAIN_FILE:FILEPATH=',
         ('-DCMAKE_GENERATOR_INSTANCE=' + $Installation.installationPath),
         '-DCMAKE_CONFIGURATION_TYPES=Debug;Release', '-DDXF_BUILD_TESTS=ON',
         ('-DDXF_BUILD_NATIVE=' + $Native), ('-DDXF_BUILD_EXAMPLE=' + $Native),
@@ -54,7 +64,42 @@ try {
     & $CMake @Arguments
     if ($LASTEXITCODE -ne 0) { throw 'Solution generation failed. See the CMake output above.' }
     $Solution = Join-Path $Build 'dxlib_framework.sln'
+    if (-not (Test-Path -LiteralPath $Solution)) {
+        $Solution = Join-Path $Build 'dxlib_framework.slnx'
+    }
     if (-not (Test-Path -LiteralPath $Solution)) { throw ('Solution was not created: ' + $Solution) }
+    # Keep CMake outputs in Build, but rebase solution references for the root entry point.
+    $BuildRelative = 'Build/VisualStudio/'
+    $SolutionName = 'dxlib_framework'
+    if ($Portable) {
+        $BuildRelative = 'Build/VisualStudio-portable/'
+        $SolutionName += '-portable'
+    }
+    $Extension = [IO.Path]::GetExtension($Solution)
+    $RootSolution = Join-Path $Root ($SolutionName + $Extension)
+    if ($Extension -eq '.slnx') {
+        $Document = New-Object System.Xml.XmlDocument
+        $Document.PreserveWhitespace = $true
+        $Document.Load($Solution)
+        foreach ($Attribute in $Document.SelectNodes('//Project/@Path | //BuildDependency/@Project | //File/@Path')) {
+            if (-not [IO.Path]::IsPathRooted($Attribute.Value)) {
+                $Attribute.Value = $BuildRelative + $Attribute.Value.Replace('\', '/')
+            }
+        }
+        $Document.Save($RootSolution)
+    } else {
+        $Text = [IO.File]::ReadAllText($Solution)
+        $Text = [regex]::Replace($Text, '(?m)^(Project\("[^"\r\n]+"\) = "[^"\r\n]+", ")([^"\r\n]+)(",.*)$', {
+            param($Match)
+            $ProjectPath = $Match.Groups[2].Value
+            if ($ProjectPath -match '\.(vcxproj|csproj|fsproj)$' -and -not [IO.Path]::IsPathRooted($ProjectPath)) {
+                $ProjectPath = $BuildRelative.Replace('/', '\') + $ProjectPath
+            }
+            $Match.Groups[1].Value + $ProjectPath + $Match.Groups[3].Value
+        })
+        [IO.File]::WriteAllText($RootSolution, $Text, (New-Object System.Text.UTF8Encoding($true)))
+    }
+    $Solution = $RootSolution
     Write-Host ('Solution generated: ' + $Solution)
     if ($Open) { Invoke-Item -LiteralPath $Solution }
     exit 0
