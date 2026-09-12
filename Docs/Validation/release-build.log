@@ -1,4 +1,7 @@
-$ cmake --build /mnt/data/build-dxf/final-validation/release --parallel 4
-ninja: no work to do.
+$ cmake --build /mnt/data/dxlib_framework_work/Build/Validation/release --parallel 4
+[1/4] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/AudioPlayer.cpp.o
+[2/4] Linking CXX static library libdxf_support.a
+[3/4] Linking CXX executable dxf_native_contract_tests
+[4/4] Linking CXX executable dxf_tests
 
 EXIT_CODE=0

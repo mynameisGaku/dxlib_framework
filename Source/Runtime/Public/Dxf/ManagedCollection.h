@@ -131,16 +131,20 @@ public:
 		FinishDispatch_Internal();
 		return Result;
 	}
+	void RequestStop_Internal() noexcept override
+	{
+		m_bShutdownRequested = true;
+		m_Storage.ForEach_Internal([](T& Object)
+		{
+			Object.RequestDestroy_Internal();
+		});
+	}
 	void Shutdown_Internal() noexcept override
 	{
 		if (m_bBusy)
 		{
-			m_bShutdownRequested = true;
-			// Suppress the remainder of the current dispatch without deleting its receiver.
-			m_Storage.ForEach_Internal([](T& Object)
-			{
-				Object.RequestDestroy_Internal();
-			});
+			// Defer deletion until the current callback returns, but stop dispatch now.
+			RequestStop_Internal();
 			return;
 		}
 		if (!m_bAccepting)

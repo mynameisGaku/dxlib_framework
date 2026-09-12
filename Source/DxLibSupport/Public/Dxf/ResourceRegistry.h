@@ -70,15 +70,21 @@ public:
 	}
 	void Shutdown() noexcept
 	{
+		if (m_bShutdown)
+		{
+			return;
+		}
 		m_bShutdown = true;
-		for (auto& Record : m_Records)
+		// Release callbacks may call Shutdown or CollectUnused. Detach the list
+		// before invoking external code so it cannot invalidate our traversal.
+		auto Records = std::move(m_Records);
+		for (auto& Record : Records)
 		{
 			if (auto Resource = Record.lock())
 			{
 				Resource->Release_Internal();
 			}
 		}
-		m_Records.clear();
 	}
 	bool IsShutdown() const noexcept
 	{

@@ -1,4 +1,4 @@
-$ /mnt/data/build-dxf/final-validation/sanitized/dxf_native_contract_tests
+$ /mnt/data/dxlib_framework_work/Build/Validation/sanitized/dxf_native_contract_tests
 [PASS] Native platform selects UTF8 and rejects a second active session
 [PASS] Native failed DxLib initialization releases the session lease and partial state
 [PASS] Native texture load forwards UTF8 paths and cleans up a failed size query

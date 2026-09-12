@@ -1,11 +1,38 @@
-PASS relative links: README.md
-PASS relative links: CHANGELOG.md
-PASS relative links: Docs/Architecture.md
-PASS relative links: Docs/ValidationReport.md
-PASS relative links: Docs/CodingStandard.md
-PASS relative links: Docs/Limitations.md
-PASS relative links: Docs/Sources.md
-PASS relative links: Docs/WindowsValidation.md
-PASS relative links: Docs/API.md
-PASS relative links: Docs/Testing.md
-PASS current documentation distinguishes actual SDK and contract test results
+Local documentation targets checked: 35
+README.md -> Docs/Migration_0.3.md
+README.md -> Docs/ValidationReport.md
+README.md -> CHANGELOG.md
+README.md -> Docs/Architecture.md
+README.md -> Docs/API.md
+README.md -> Docs/CodingStandard.md
+README.md -> Docs/Limitations.md
+README.md -> Docs/WindowsValidation.md
+README.md -> Examples/Sandbox/WindowsMain.cpp
+README.md -> Examples/Sandbox/SandboxGame.cpp
+CHANGELOG.md -> Docs/ValidationReport.md
+Docs/Limitations.md -> API.md
+Docs/ValidationReport.md -> Migration_0.3.md
+Docs/ValidationReport.md -> Testing.md
+Docs/ValidationReport.md -> Tdd/Continuation/01-red.log
+Docs/ValidationReport.md -> Tdd/Continuation/02-red.log
+Docs/ValidationReport.md -> Tdd/Continuation/03-red.log
+Docs/ValidationReport.md -> Tdd/Continuation/03-green.log
+Docs/ValidationReport.md -> Validation/Summary.json
+Docs/ValidationReport.md -> Validation/toolchain.log
+Docs/ValidationReport.md -> Validation/debug-cases-framework.log
+Docs/ValidationReport.md -> Validation/debug-cases-native.log
+Docs/ValidationReport.md -> Validation/release-cases-framework.log
+Docs/ValidationReport.md -> Validation/sanitized-cases-framework.log
+Docs/ValidationReport.md -> Validation/debug-ctest.log
+Docs/ValidationReport.md -> Validation/release-ctest.log
+Docs/ValidationReport.md -> Validation/sanitized-ctest.log
+Docs/ValidationReport.md -> Validation/headers.log
+Docs/ValidationReport.md -> Validation/consumer-build.log
+Docs/ValidationReport.md -> Validation/Package/Summary.json
+Docs/ValidationReport.md -> Validation/python-tools.log
+Docs/ValidationReport.md -> Validation/ReleaseArchive/Summary.json
+Docs/ValidationReport.md -> Validation/ReleaseArchive/ctest.log
+Docs/ValidationReport.md -> Validation/sdk-availability.log
+Docs/ValidationReport.md -> WindowsValidation.md
+MISSING=0
+External sources and URLs not revalidated by this script.

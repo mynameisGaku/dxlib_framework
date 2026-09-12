@@ -51,6 +51,7 @@ public:
 	TResult<void> Tick();
 	void Shutdown() noexcept;
 private:
+	TResult<FPlaybackHandle> Play_Internal(const FSound& Sound, const FPlaybackOptions& Options);
 	ISoundBackend* m_pBackend;
 	TSlotMap<DPlayback> m_Playbacks;
 	bool m_bShutdown = false;

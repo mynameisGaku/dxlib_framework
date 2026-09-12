@@ -1,0 +1,55 @@
+test_archive_cannot_overwrite_source (test_release.ReleaseTests.test_archive_cannot_overwrite_source) ... ok
+test_archive_has_valid_manifest_and_reproducible_bytes (test_release.ReleaseTests.test_archive_has_valid_manifest_and_reproducible_bytes) ... ok
+test_fonts_are_never_packaged (test_release.ReleaseTests.test_fonts_are_never_packaged) ... ok
+test_only_distribution_inputs_are_included (test_release.ReleaseTests.test_only_distribution_inputs_are_included) ... ok
+test_symbolic_links_are_rejected (test_release.ReleaseTests.test_symbolic_links_are_rejected) ... ok
+test_tools_bytecode_is_not_distributed (test_release.ReleaseTests.test_tools_bytecode_is_not_distributed) ... ok
+test_failed_package_configure_replaces_stale_success (test_validation.ValidationFailureTests.test_failed_package_configure_replaces_stale_success) ... FAIL
+test_failed_portable_configure_replaces_stale_success (test_validation.ValidationFailureTests.test_failed_portable_configure_replaces_stale_success) ... debug-configure: FAIL
+FAIL
+test_timeout_keeps_partial_log_and_marks_current_run_failed (test_validation.ValidationFailureTests.test_timeout_keeps_partial_log_and_marks_current_run_failed) ... FAIL
+
+======================================================================
+FAIL: test_failed_package_configure_replaces_stale_success (test_validation.ValidationFailureTests.test_failed_package_configure_replaces_stale_success)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/mnt/data/dxlib_framework_work/Tools/Tests/test_validation.py", line 67, in test_failed_package_configure_replaces_stale_success
+    self.assert_failed_current_run(logs)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/mnt/data/dxlib_framework_work/Tools/Tests/test_validation.py", line 42, in assert_failed_current_run
+    self.assertEqual(data['status'], 'failed')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'passed' != 'failed'
+- passed
++ failed
+
+
+======================================================================
+FAIL: test_failed_portable_configure_replaces_stale_success (test_validation.ValidationFailureTests.test_failed_portable_configure_replaces_stale_success)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/mnt/data/dxlib_framework_work/Tools/Tests/test_validation.py", line 57, in test_failed_portable_configure_replaces_stale_success
+    self.assert_failed_current_run(self.logs)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/mnt/data/dxlib_framework_work/Tools/Tests/test_validation.py", line 42, in assert_failed_current_run
+    self.assertEqual(data['status'], 'failed')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'passed' != 'failed'
+- passed
++ failed
+
+
+======================================================================
+FAIL: test_timeout_keeps_partial_log_and_marks_current_run_failed (test_validation.ValidationFailureTests.test_timeout_keeps_partial_log_and_marks_current_run_failed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/mnt/data/dxlib_framework_work/Tools/Tests/test_validation.py", line 78, in test_timeout_keeps_partial_log_and_marks_current_run_failed
+    self.assertTrue(log.exists(), 'Timeout lost the command and partial output')
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : Timeout lost the command and partial output
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.016s
+
+FAILED (failures=3)
+EXIT_CODE=1

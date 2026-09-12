@@ -1,0 +1,123 @@
+[PASS] Result holds a move-only value
+[PASS] Result preserves error and void success
+[PASS] RTTI supports safe derived checks
+[PASS] SlotMap invalidates removed handles and increments generation
+[PASS] Handles do not resolve against a different owner
+[PASS] Handle outlives storage without dangling pointer
+[PASS] Typed handle rejects incorrect dynamic type
+[PASS] SlotMap snapshot permits removal without iterator invalidation
+[PASS] FrameClock clamps simulation delta but retains real delta
+[PASS] FrameClock rejects negative and nonfinite elapsed inputs
+[PASS] SceneClock pause and scale preserve unscaled time
+[PASS] Input edges are stable during a frame
+[PASS] Focus loss releases keys and mouse buttons
+[PASS] Gamepad disconnection emits release and clears axes
+[PASS] InputMap action is held until all bound keys release
+[PASS] Result can carry an error object as successful data without confusing the failure branch
+[PASS] Texture cache shares normalized paths
+[PASS] Texture load options participate in cache identity
+[PASS] Texture is freed once when last reference expires
+[PASS] Asset shutdown invalidates externally retained references
+[PASS] Failed load is not cached and can be retried
+[PASS] Invalid successful native handle is rejected
+[PASS] Loading after asset shutdown is rejected
+[PASS] Invalid render target dimensions fail before backend call
+[PASS] Font cache separates sizes and invalidates references
+[PASS] Render queue sorts layer and order while preserving equal-key insertion
+[PASS] Sprite opacity does not leak to following commands
+[PASS] Render commands keep textures alive until execution
+[PASS] Native barrier flushes earlier commands and restores state after exception
+[PASS] Drawing render target into itself is rejected
+[PASS] Invalidated texture fails submission and never reaches backend
+[PASS] Invalidation between queue and flush is detected
+[PASS] Nonfinite sprite values are rejected
+[PASS] Render flush prevents reentrant native calls
+[PASS] Each memory sound playback owns a distinct native handle
+[PASS] Stream playback reloads instead of duplicating unsupported sound data
+[PASS] Failed playback frees the newly created voice
+[PASS] Audio scopes stop scene sound without stopping persistent music
+[PASS] Finished voices are reclaimed by Tick
+[PASS] Audio player rejects another player's handle and invalid volume
+[PASS] Session ends exactly once on success and does not end an uninitialized backend
+[PASS] Native state restoration failure aborts the frame
+[PASS] Native handle adoption is allocation-free, noexcept and releases once across moves
+[PASS] Scene-facing render context exposes ordered target and native barriers without Application access
+[PASS] Queue-only render contexts reject unsupported immediate control explicitly
+[PASS] Spawn remains pending until boundary and initializes exactly once
+[PASS] GameObject override cannot bypass automatic component dispatch
+[PASS] Spawn during tick is initialized only at the next boundary
+[PASS] Destroying a later sibling suppresses its remaining callbacks immediately
+[PASS] Self destruction in tick skips owned components and later draw
+[PASS] Destroy before initialization never calls user initialization or shutdown hooks
+[PASS] Initialization failure rolls back the object and invalidates the handle
+[PASS] Component initialization failure rolls back its parent transaction
+[PASS] Shutdown is idempotent and stops components before their owner
+[PASS] Mutations submitted from shutdown wait for the next boundary
+[PASS] Children added to an existing object during another initializer wait for a new boundary
+[PASS] Update ordering is deterministic after slot reuse
+[PASS] Pause skips normal objects but honors tick-when-paused components
+[PASS] Scene override cannot bypass object dispatch
+[PASS] Scene switch preserves the active scene until commit
+[PASS] Failed scene preparation leaves current scene active
+[PASS] A request made inside OnEnter survives for the next scene boundary
+[PASS] Multiple pending scene requests use last-request-wins without initializing discarded scenes
+[PASS] Handles from a destroyed scene cannot resolve into the next scene
+[PASS] GameObject initialization exception is converted into an error and cleaned up
+[PASS] Application frame polls input once, dispatches and presents
+[PASS] Application rolls back failed platform initialization without double shutdown
+[PASS] Application rolls back failed initial scene and ends session
+[PASS] Application retains current scene after a later failed transition
+[PASS] Application defers shutdown until the user callback has returned
+[PASS] Application rejects recursive Step without ending the outer frame
+[PASS] Application converts user tick exceptions and releases all services
+[PASS] Application stops cleanly when event pumping reports quit
+[PASS] Application rejects backwards frame time before executing another frame
+[PASS] Application invalidates surviving asset references before ending DxLib
+[PASS] AppRunner executes until a scene requests quit
+[PASS] Application shutdown requested during draw waits for the draw callback and cancels presentation
+[PASS] Scene navigator rejects a commit inside a scene draw callback
+[PASS] Scene navigator shutdown from tick does not destroy the callback receiver until return
+[PASS] Application stops scene before game instance and platform last
+[PASS] Sandbox uses actual scene object and component code to move and draw
+[PASS] Sandbox switches scene while game state survives and old handles expire
+[PASS] Sandbox audio is scene scoped and Escape shuts down the application
+[PASS] Sandbox propagates missing assets instead of entering a half-constructed scene
+[PASS] Slot removal invalidates generation before running a reentrant destructor
+[PASS] Collection shutdown in Tick prevents later objects from ticking
+[PASS] Collection shutdown during preparation skips remaining initializations
+[PASS] Standalone object Tick translates user exceptions to TResult
+[PASS] Standalone object Draw translates unknown user exceptions to TResult
+[PASS] Navigator shutdown during preparation never activates the replacement
+[PASS] Navigator quit during preparation retains current scene until shutdown
+[PASS] Asset paths reject embedded NUL before reaching a backend
+[PASS] Asset paths reject overlong UTF8 surrogate and truncated sequences
+[PASS] Asset paths accept valid Japanese and four byte UTF8
+[PASS] Direct loaders reject empty paths and invalid sound storage enums
+[PASS] Font families reject embedded NUL and malformed UTF8
+[PASS] Sound resources from another backend are rejected before duplication
+[PASS] Render execution failure prevents presenting a partial frame
+[PASS] Resource registry rejects null records
+[PASS] A scene destroyed during preparation is never activated
+[PASS] Text rendering rejects malformed UTF8 and embedded NUL before dispatch
+[PASS] A collection stopped by an object constructor must reject that spawn
+[PASS] Invalid sound storage must not alias an existing streamed cache entry
+[FAIL] native callback failure poisons the entire frame even when ignored: !End at line 97
+[FAIL] native callback exception rejects further commands and cannot be presented: !Render.GetContext().FillRectangle({0, 0, 10, 10}) at line 115
+[FAIL] failed clear cannot present a partially cleared frame: !Render.EndFrame() at line 127
+[FAIL] begin frame contains backend exceptions at each startup stage and is reusable: injected renderer exception
+[FAIL] clear target contains backend exceptions and retains the first failure: injected renderer exception
+[FAIL] present exception closes the failed frame so the next frame can begin: injected renderer exception
+[FAIL] render target backend exception is contained and rollback keeps the frame usable: injected renderer exception
+[FAIL] native state restoration exception is contained and blocks presentation: injected renderer exception
+[PASS] Actions combine keyboard mouse and gamepad without duplicate press edges
+[PASS] Invalid action bindings are rejected without creating actions
+[PASS] Input actions support rebinding and opposed digital axes
+[PASS] Typed component lookup returns pending handles and excludes destruction requests
+[PASS] Scene object queries remain non-owning across scene shutdown
+[PASS] Built-in sprite component draws through automatic child dispatch
+[PASS] Unconfigured sprite component is inert instead of issuing an invalid draw
+[PASS] Slot generations survive 20000 deterministic create remove and reuse operations
+[PASS] Assets survive 1000 load release cache-collection cycles without live handles
+[PASS] UTF8 validation accepts every Unicode scalar and rejects every encoded surrogate
+113/121 passed
+EXIT_CODE=1

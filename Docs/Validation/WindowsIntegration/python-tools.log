@@ -1,0 +1,16 @@
+test_archive_cannot_overwrite_source (test_release.ReleaseTests.test_archive_cannot_overwrite_source) ... ok
+test_archive_has_valid_manifest_and_reproducible_bytes (test_release.ReleaseTests.test_archive_has_valid_manifest_and_reproducible_bytes) ... ok
+test_fonts_are_never_packaged (test_release.ReleaseTests.test_fonts_are_never_packaged) ... ok
+test_only_distribution_inputs_are_included (test_release.ReleaseTests.test_only_distribution_inputs_are_included) ... ok
+test_symbolic_links_are_rejected (test_release.ReleaseTests.test_symbolic_links_are_rejected) ... ok
+test_tools_bytecode_is_not_distributed (test_release.ReleaseTests.test_tools_bytecode_is_not_distributed) ... ok
+build-configure: FAIL
+test_failed_package_configure_replaces_stale_success (test_validation.ValidationFailureTests.test_failed_package_configure_replaces_stale_success) ... ok
+debug-configure: FAIL
+test_failed_portable_configure_replaces_stale_success (test_validation.ValidationFailureTests.test_failed_portable_configure_replaces_stale_success) ... ok
+test_timeout_keeps_partial_log_and_marks_current_run_failed (test_validation.ValidationFailureTests.test_timeout_keeps_partial_log_and_marks_current_run_failed) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.059s
+
+OK

@@ -1,6 +1,6 @@
-$ cmake -S /mnt/data/build-dxf/final-validation/ConsumerSource -B /mnt/data/build-dxf/final-validation/ConsumerBuild -G Ninja -DCMAKE_BUILD_TYPE=Debug -DDXF_WARNINGS_AS_ERRORS=ON
+$ cmake -S /mnt/data/dxlib_framework_work/Build/Validation/ConsumerSource -B /mnt/data/dxlib_framework_work/Build/Validation/ConsumerBuild -G Ninja -DCMAKE_BUILD_TYPE=Debug -DDXF_WARNINGS_AS_ERRORS=ON
 -- Configuring done (0.0s)
 -- Generating done (0.0s)
--- Build files have been written to: /mnt/data/build-dxf/final-validation/ConsumerBuild
+-- Build files have been written to: /mnt/data/dxlib_framework_work/Build/Validation/ConsumerBuild
 
 EXIT_CODE=0

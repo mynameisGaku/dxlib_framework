@@ -148,7 +148,7 @@ TEST("Render commands keep textures alive until execution")
 	REQUIRE(Renderer.EndFrame());
 	REQUIRE(Backend.GetTrace().DeletedTextures.size() == 1);
 }
-TEST("Native barrier flushes earlier commands and restores state after exception")
+TEST("Native barrier restores state after exception but discards the failed frame")
 {
 	FFakeBackend Backend;
 	FAssetService Assets(Backend, Backend, Backend);
@@ -166,7 +166,8 @@ TEST("Native barrier flushes earlier commands and restores state after exception
 	REQUIRE(!Result);
 	REQUIRE(Backend.GetTrace().CurrentTarget == -1);
 	REQUIRE(Backend.GetTrace().Resets > Resets);
-	REQUIRE(Renderer.EndFrame());
+	REQUIRE(!Renderer.EndFrame());
+	REQUIRE(Backend.GetTrace().Presentations == 0);
 }
 TEST("Drawing render target into itself is rejected")
 {

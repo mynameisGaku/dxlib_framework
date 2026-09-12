@@ -1,21 +1,24 @@
 {
-  "version": "0.2.0",
   "native_sdk_verified": false,
   "warnings_as_errors": true,
   "profiles": {
     "debug": {
-      "framework_cases": 113,
+      "framework_cases": 138,
       "native_contract_cases": 14
     },
     "release": {
-      "framework_cases": 113,
+      "framework_cases": 138,
       "native_contract_cases": 14
     },
     "sanitized": {
-      "framework_cases": 113,
+      "framework_cases": 138,
       "native_contract_cases": 14
     }
   },
+  "status": "passed",
+  "run_id": "fb602d18efe44cdfa0cbfbd584a6ca6f",
+  "started_utc": "2026-09-12T08:50:46.670427+00:00",
+  "version": "0.3.0",
   "standalone_public_headers": 65,
   "standalone_sample_headers": 1,
   "sample_assets": "BMP 64x64 24-bit; WAV mono 16-bit 22050Hz",
@@ -23,5 +26,6 @@
     "python": "3.13.5",
     "platform": "linux",
     "cmake": "cmake version 3.31.6"
-  }
+  },
+  "finished_utc": "2026-09-12T08:51:05.319041+00:00"
 }

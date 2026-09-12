@@ -1,12 +1,12 @@
-$ cmake -S /mnt/data/build-dxf/release-check/dxlib_framework -B /mnt/data/build-dxf/release-check/Build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DDXF_BUILD_TESTS=ON -DDXF_BUILD_NATIVE=OFF -DDXF_WARNINGS_AS_ERRORS=ON
+$ cmake -S /mnt/data/dxf_release03_final_check/dxlib_framework -B /mnt/data/dxf_release03_final_check/dxlib_framework/Build/clean -G Ninja -DCMAKE_BUILD_TYPE=Debug -DDXF_BUILD_TESTS=ON -DDXF_BUILD_NATIVE=OFF -DDXF_WARNINGS_AS_ERRORS=ON
 -- The CXX compiler identification is GNU 14.2.0
 -- Detecting CXX compiler ABI info
 -- Detecting CXX compiler ABI info - done
 -- Check for working CXX compiler: /usr/bin/c++ - skipped
 -- Detecting CXX compile features
 -- Detecting CXX compile features - done
--- Configuring done (0.2s)
+-- Configuring done (0.1s)
 -- Generating done (0.0s)
--- Build files have been written to: /mnt/data/build-dxf/release-check/Build
+-- Build files have been written to: /mnt/data/dxf_release03_final_check/dxlib_framework/Build/clean
 
 EXIT_CODE=0

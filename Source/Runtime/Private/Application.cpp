@@ -209,6 +209,11 @@ void FApplication::Shutdown() noexcept
 	if (m_bBusy)
 	{
 		m_bShutdownRequested = true;
+		m_Scenes.RequestQuit();
+		if (m_pGame)
+		{
+			m_pGame->RequestDestroy_Internal();
+		}
 		return;
 	}
 	if (m_bShutdown)

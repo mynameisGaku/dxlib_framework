@@ -6,6 +6,22 @@ namespace Dxf
 {
 namespace
 {
+template <typename TFunction>
+TResult<void> CallBackend_Internal(TFunction&& Function)
+{
+	try
+	{
+		return Function();
+	}
+	catch (const std::exception& Error)
+	{
+		return TResult<void>::Failure(EErrorCode::BackendFailure, Error.what());
+	}
+	catch (...)
+	{
+		return TResult<void>::Failure(EErrorCode::BackendFailure, "Unknown render backend exception");
+	}
+}
 TResult<void> StateError_Internal()
 {
 	return TResult<void>::Failure(EErrorCode::InvalidState, "Invalid or reentrant render operation");
@@ -26,7 +42,10 @@ TResult<void> FRenderSystem2D::BeginFrame(int Width, int Height, FColor Color)
 		return TResult<void>::Failure(EErrorCode::InvalidArgument, "Invalid frame dimensions");
 	}
 	TGuardValue Guard(m_bBusy, true);
-	auto Result = m_Presenter.Begin(Width, Height, Color);
+	auto Result = CallBackend_Internal([&]
+	{
+		return m_Presenter.Begin(Width, Height, Color);
+	});
 	if (!Result)
 	{
 		return Result;
@@ -50,12 +69,18 @@ TResult<void> FRenderSystem2D::RestoreTarget_Internal()
 	const int Width = bTarget ? m_Target.GetWidth() : m_Width;
 	const int Height = bTarget ? m_Target.GetHeight() : m_Height;
 	const int Handle = bTarget ? m_Target.AsTexture().GetNativeHandle_Internal() : -1;
-	auto Set = m_pBackend->SetTarget(Handle, Width, Height);
+	auto Set = CallBackend_Internal([&]
+	{
+		return m_pBackend->SetTarget(Handle, Width, Height);
+	});
 	if (!Set)
 	{
 		return Set;
 	}
-	auto Reset = m_pBackend->ResetState(Width, Height);
+	auto Reset = CallBackend_Internal([&]
+	{
+		return m_pBackend->ResetState(Width, Height);
+	});
 	if (!Reset)
 	{
 		return Reset;
@@ -63,40 +88,33 @@ TResult<void> FRenderSystem2D::RestoreTarget_Internal()
 	m_Queue.SetTarget_Internal(Handle);
 	return {};
 }
+TResult<void> FRenderSystem2D::FailFrame_Internal(const FError& Error)
+{
+	// Rendering may already have changed pixels. Keep the first failure until the
+	// frame is ended or cancelled; a later successful operation cannot undo it.
+	if (!m_FrameError)
+	{
+		m_FrameError = Error;
+	}
+	m_Queue.SetAccepting_Internal(false);
+	m_Queue.Clear_Internal();
+	return TResult<void>::Failure(*m_FrameError);
+}
 TResult<void> FRenderSystem2D::Flush_Internal()
 {
 	if (m_FrameError)
 	{
 		return TResult<void>::Failure(*m_FrameError);
 	}
-	TResult<void> Result;
-	try
+	auto Result = CallBackend_Internal([&]() -> TResult<void>
 	{
 		if (m_Target.AsTexture().GetResource_Internal() && !m_Target.IsValid())
 		{
-			Result = TResult<void>::Failure(EErrorCode::InvalidState, "Target was invalidated");
+			return TResult<void>::Failure(EErrorCode::InvalidState, "Target was invalidated");
 		}
-		else
-		{
-			Result = m_Queue.Execute_Internal(*m_pBackend);
-		}
-	}
-	catch (const std::exception& Error)
-	{
-		Result = TResult<void>::Failure(EErrorCode::BackendFailure, Error.what());
-	}
-	catch (...)
-	{
-		Result = TResult<void>::Failure(EErrorCode::BackendFailure, "Unknown render backend exception");
-	}
-	if (!Result)
-	{
-		// Never present a partially executed frame even if a caller ignores this error.
-		m_FrameError = Result.Error();
-		m_Queue.Clear_Internal();
-		m_Queue.SetAccepting_Internal(false);
-	}
-	return Result;
+		return m_Queue.Execute_Internal(*m_pBackend);
+	});
+	return Result ? Result : FailFrame_Internal(Result.Error());
 }
 TResult<void> FRenderSystem2D::Flush()
 {
@@ -176,7 +194,15 @@ TResult<void> FRenderSystem2D::ClearTarget(FColor Color)
 	}
 	TGuardValue Guard(m_bBusy, true);
 	auto Flushed = Flush_Internal();
-	return Flushed ? m_pBackend->Clear(Color) : Flushed;
+	if (!Flushed)
+	{
+		return Flushed;
+	}
+	auto Cleared = CallBackend_Internal([&]
+	{
+		return m_pBackend->Clear(Color);
+	});
+	return Cleared ? Cleared : FailFrame_Internal(Cleared.Error());
 }
 TResult<void> FRenderSystem2D::Native(const std::function<TResult<void>()>& Callback)
 {
@@ -204,15 +230,19 @@ TResult<void> FRenderSystem2D::Native(const std::function<TResult<void>()>& Call
 	{
 		Result = TResult<void>::Failure(EErrorCode::UserException, "Unknown native callback exception");
 	}
+	// Restoration is attempted even after the callback fails. Never resume drawing
+	// after either failure, even when the caller ignores Native's result.
 	auto Restored = RestoreTarget_Internal();
-	m_Queue.SetAccepting_Internal(static_cast<bool>(Restored));
+	if (!Result)
+	{
+		return FailFrame_Internal(Result.Error());
+	}
 	if (!Restored)
 	{
-		m_bFrame = false;
-		m_Target = {};
-		return Restored;
+		return FailFrame_Internal(Restored.Error());
 	}
-	return Result;
+	m_Queue.SetAccepting_Internal(true);
+	return {};
 }
 TResult<void> FRenderSystem2D::EndFrame()
 {
@@ -227,7 +257,10 @@ TResult<void> FRenderSystem2D::EndFrame()
 		return Back;
 	}
 	TGuardValue Guard(m_bBusy, true);
-	auto Presented = m_Presenter.Present();
+	auto Presented = CallBackend_Internal([&]
+	{
+		return m_Presenter.Present();
+	});
 	m_bFrame = false;
 	m_Queue.SetAccepting_Internal(false);
 	m_Queue.Clear_Internal();

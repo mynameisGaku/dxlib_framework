@@ -1,0 +1,7 @@
+{
+  "version": "0.3.0",
+  "tested_candidate": "dxlib_framework_0.3.0_candidate.zip",
+  "implementation_files_compared": 128,
+  "all_identical": true,
+  "changes_after_candidate": "Documentation and validation logs only"
+}

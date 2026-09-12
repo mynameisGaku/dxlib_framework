@@ -1,12 +1,12 @@
-$ cmake -S /mnt/data/build-dxf/package-final/run-vkbur03e/Consumer -B /mnt/data/build-dxf/package-final/run-vkbur03e/ConsumerBuild -G Ninja -DCMAKE_BUILD_TYPE=Debug "-DCMAKE_PREFIX_PATH=/mnt/data/build-dxf/package-final/run-vkbur03e/Relocated package"
+$ cmake -S /mnt/data/dxlib_framework_work/Build/PackageValidation/run-5mska2_a/Consumer -B /mnt/data/dxlib_framework_work/Build/PackageValidation/run-5mska2_a/ConsumerBuild -G Ninja -DCMAKE_BUILD_TYPE=Debug "-DCMAKE_PREFIX_PATH=/mnt/data/dxlib_framework_work/Build/PackageValidation/run-5mska2_a/Relocated package"
 -- The CXX compiler identification is GNU 14.2.0
 -- Detecting CXX compiler ABI info
 -- Detecting CXX compiler ABI info - done
 -- Check for working CXX compiler: /usr/bin/c++ - skipped
 -- Detecting CXX compile features
 -- Detecting CXX compile features - done
--- Configuring done (0.2s)
+-- Configuring done (0.1s)
 -- Generating done (0.0s)
--- Build files have been written to: /mnt/data/build-dxf/package-final/run-vkbur03e/ConsumerBuild
+-- Build files have been written to: /mnt/data/dxlib_framework_work/Build/PackageValidation/run-5mska2_a/ConsumerBuild
 
 EXIT_CODE=0

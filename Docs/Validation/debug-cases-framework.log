@@ -1,4 +1,4 @@
-$ /mnt/data/build-dxf/final-validation/debug/dxf_tests
+$ /mnt/data/dxlib_framework_work/Build/Validation/debug/dxf_tests
 [PASS] Result holds a move-only value
 [PASS] Result preserves error and void success
 [PASS] RTTI supports safe derived checks
@@ -27,7 +27,7 @@ $ /mnt/data/build-dxf/final-validation/debug/dxf_tests
 [PASS] Render queue sorts layer and order while preserving equal-key insertion
 [PASS] Sprite opacity does not leak to following commands
 [PASS] Render commands keep textures alive until execution
-[PASS] Native barrier flushes earlier commands and restores state after exception
+[PASS] Native barrier restores state after exception but discards the failed frame
 [PASS] Drawing render target into itself is rejected
 [PASS] Invalidated texture fails submission and never reaches backend
 [PASS] Invalidation between queue and flush is detected
@@ -102,6 +102,31 @@ $ /mnt/data/build-dxf/final-validation/debug/dxf_tests
 [PASS] Text rendering rejects malformed UTF8 and embedded NUL before dispatch
 [PASS] A collection stopped by an object constructor must reject that spawn
 [PASS] Invalid sound storage must not alias an existing streamed cache entry
+[PASS] native callback failure poisons the entire frame even when ignored
+[PASS] native callback exception rejects further commands and cannot be presented
+[PASS] failed clear cannot present a partially cleared frame
+[PASS] begin frame contains backend exceptions at each startup stage and is reusable
+[PASS] clear target contains backend exceptions and retains the first failure
+[PASS] present exception closes the failed frame so the next frame can begin
+[PASS] render target backend exception is contained and rollback keeps the frame usable
+[PASS] native state restoration exception is contained and blocks presentation
+[PASS] scene factory exceptions become results without replacing the current scene
+[PASS] stopped scene navigator rejects a factory before invoking its constructor
+[PASS] destroy requested pending scene is rejected at request time
+[PASS] pending scene destructor cannot commit a transition reentrantly
+[PASS] pending scene destructor cannot overwrite the replacement request
+[PASS] shutdown from pending scene destructor rejects the interrupted replacement
+[PASS] quit before commit never initializes the queued scene
+[PASS] quit from scene update suppresses its child object updates
+[PASS] quit from one object update suppresses later siblings in the same scene
+[PASS] shutdown from scene drawing suppresses child drawing and deinitializes once
+[PASS] quit while preparing an object cancels the remaining scene initialization
+[PASS] resource shutdown reentry releases each registered resource only once
+[PASS] resource cleanup callbacks cannot invalidate the registry shutdown traversal
+[PASS] shutdown during sound start rejects the voice and frees its allocation
+[PASS] sound start exception is contained and the partial voice is freed
+[PASS] sound poll exception is contained and the affected voice is stopped
+[PASS] audio shutdown during polling invalidates the rest of the snapshot safely
 [PASS] Actions combine keyboard mouse and gamepad without duplicate press edges
 [PASS] Invalid action bindings are rejected without creating actions
 [PASS] Input actions support rebinding and opposed digital axes
@@ -112,6 +137,6 @@ $ /mnt/data/build-dxf/final-validation/debug/dxf_tests
 [PASS] Slot generations survive 20000 deterministic create remove and reuse operations
 [PASS] Assets survive 1000 load release cache-collection cycles without live handles
 [PASS] UTF8 validation accepts every Unicode scalar and rejects every encoded surrogate
-113/113 passed
+138/138 passed
 
 EXIT_CODE=0

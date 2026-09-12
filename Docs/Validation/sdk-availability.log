@@ -1,0 +1,8 @@
+This only checks network access, not SDK compilation.
+$ curl -fI --connect-timeout 5 --max-time 10 https://dxlib.xsrv.jp/DxLib/DxLib_VC3_25a.zip
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0curl: (6) Could not resolve host: dxlib.xsrv.jp
+
+EXIT_CODE=6

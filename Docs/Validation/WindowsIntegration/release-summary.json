@@ -1,0 +1,14 @@
+﻿{
+    "timestamp_utc":  "2026-09-12T09:30:32.4403882Z",
+    "real_sdk_compiled_and_linked":  false,
+    "real_sdk_api_smoke_passed":  false,
+    "audio_api_smoke_passed":  false,
+    "visual_output_inspected":  false,
+    "audible_output_inspected":  false,
+    "profiles":  [
+
+                 ],
+    "passed":  false,
+    "sdk_root":  "C:\\Users\\g0190\\OneDrive\\Desktop\\frame\\dxlib_framework\\ThirdParty\\DxLib-3.25a\\DxLib_VC\\プロジェクトに追加すべきファイル_VC用",
+    "error":  "release-build failed. See C:\\Users\\g0190\\OneDrive\\Desktop\\frame\\dxlib_framework\\Build\\WindowsValidation\\release-build.log"
+}

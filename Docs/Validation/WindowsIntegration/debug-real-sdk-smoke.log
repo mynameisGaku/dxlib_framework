@@ -1,0 +1,3 @@
+﻿$ C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\windows-debug\NativeSmoke.exe 
+REAL_SDK_API_SMOKE_PASSED frames=12 audio=not-tested visual-output=not-inspected audible-output=not-inspected
+EXIT_CODE=0

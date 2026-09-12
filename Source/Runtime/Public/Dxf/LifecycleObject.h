@@ -58,6 +58,10 @@ public:
 	void RequestDestroy_Internal() noexcept
 	{
 		m_bDestroyRequested = true;
+		if (m_pChildren)
+		{
+			m_pChildren->RequestStop_Internal();
+		}
 	}
 	void SetCreationOrder_Internal(std::uint64_t Order) noexcept
 	{

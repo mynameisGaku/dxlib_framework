@@ -1,8 +1,36 @@
 #include "Dxf/AudioPlayer.h"
 #include <cmath>
+#include <exception>
 namespace Dxf
 {
+namespace
+{
+template <typename TFunction>
+auto CallSoundBackend_Internal(TFunction&& Function) -> decltype(Function())
+{
+	using FResult = decltype(Function());
+	try
+	{
+		return Function();
+	}
+	catch (const std::exception& Error)
+	{
+		return FResult::Failure(EErrorCode::BackendFailure, Error.what());
+	}
+	catch (...)
+	{
+		return FResult::Failure(EErrorCode::BackendFailure, "Unknown sound backend exception");
+	}
+}
+}
 TResult<FPlaybackHandle> FAudioPlayer::Play(const FSound& Sound, const FPlaybackOptions& Options)
+{
+	return CallSoundBackend_Internal([&]
+	{
+		return Play_Internal(Sound, Options);
+	});
+}
+TResult<FPlaybackHandle> FAudioPlayer::Play_Internal(const FSound& Sound, const FPlaybackOptions& Options)
 {
 	if (m_bShutdown || !Sound.IsValid())
 	{
@@ -32,15 +60,27 @@ TResult<FPlaybackHandle> FAudioPlayer::Play(const FSound& Sound, const FPlayback
 	{
 		return TResult<FPlaybackHandle>::Failure(EErrorCode::BackendFailure, "Invalid voice allocation");
 	}
+	if (m_bShutdown)
+	{
+		return TResult<FPlaybackHandle>::Failure(EErrorCode::InvalidState, "Audio stopped during allocation");
+	}
 	auto Volume = m_pBackend->SetSoundVolume(Handle.Get(), Options.Volume);
 	if (!Volume)
 	{
 		return TResult<FPlaybackHandle>::Failure(Volume.Error());
 	}
+	if (m_bShutdown)
+	{
+		return TResult<FPlaybackHandle>::Failure(EErrorCode::InvalidState, "Audio stopped during volume setup");
+	}
 	auto Started = m_pBackend->StartSound(Handle.Get(), Options.bLoop);
 	if (!Started)
 	{
 		return TResult<FPlaybackHandle>::Failure(Started.Error());
+	}
+	if (m_bShutdown)
+	{
+		return TResult<FPlaybackHandle>::Failure(EErrorCode::InvalidState, "Audio stopped during playback start");
 	}
 	return TResult<FPlaybackHandle>::Success(m_Playbacks.Insert(std::make_unique<DPlayback>(std::move(Handle), Options.Scope)));
 }
@@ -59,7 +99,11 @@ TResult<void> FAudioPlayer::SetVolume(FPlaybackHandle Handle, float Volume)
 	{
 		return TResult<void>::Failure(EErrorCode::InvalidArgument, "Invalid volume");
 	}
-	return m_pBackend->SetSoundVolume(Playback->GetHandle_Internal(), Volume);
+	const int NativeHandle = Playback->GetHandle_Internal();
+	return CallSoundBackend_Internal([&]
+	{
+		return m_pBackend->SetSoundVolume(NativeHandle, Volume);
+	});
 }
 void FAudioPlayer::StopScope(std::uint64_t Scope) noexcept
 {
@@ -72,7 +116,22 @@ TResult<void> FAudioPlayer::Tick()
 {
 	for (auto Handle : m_Playbacks.Snapshot())
 	{
-		auto Playing = m_pBackend->IsSoundPlaying(Handle.Get()->GetHandle_Internal());
+		if (m_bShutdown)
+		{
+			break;
+		}
+		const auto* Playback = m_Playbacks.Find_Internal(Handle.GetId());
+		if (!Playback)
+		{
+			continue;
+		}
+		// A backend callback may stop this or other voices. Do not retain or
+		// dereference the playback pointer after calling into the backend.
+		const int NativeHandle = Playback->GetHandle_Internal();
+		auto Playing = CallSoundBackend_Internal([&]
+		{
+			return m_pBackend->IsSoundPlaying(NativeHandle);
+		});
 		if (!Playing)
 		{
 			Stop(Handle);

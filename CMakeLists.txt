@@ -1,8 +1,14 @@
 cmake_minimum_required(VERSION 3.24)
-project(dxlib_framework VERSION 0.2.0 LANGUAGES CXX)
+project(dxlib_framework VERSION 0.3.0 LANGUAGES CXX)
 
 if(POLICY CMP0144)
     cmake_policy(SET CMP0144 NEW)
+endif()
+
+# Windows検証スクリプトが実際のコンパイラ出力から取得した依存ファイル行の接頭辞。
+set(DXF_MSVC_INCLUDE_PREFIX "" CACHE STRING "Measured MSVC showIncludes prefix; empty uses CMake detection")
+if(MSVC AND DXF_MSVC_INCLUDE_PREFIX)
+    set(CMAKE_CL_SHOWINCLUDES_PREFIX "${DXF_MSVC_INCLUDE_PREFIX}")
 endif()
 
 option(DXF_BUILD_TESTS "Build portable and native-contract regression tests" ${PROJECT_IS_TOP_LEVEL})
@@ -109,7 +115,7 @@ if(DXF_BUILD_TESTS)
     enable_testing()
     add_executable(dxf_tests Tests/TestMain.cpp Tests/FoundationTests.cpp Tests/SupportTests.cpp
         Tests/GameplayTests.cpp Tests/ApplicationTests.cpp Tests/SandboxTests.cpp
-        Tests/HardeningTests.cpp Tests/UsabilityTests.cpp Tests/StressTests.cpp Examples/Sandbox/SandboxGame.cpp)
+        Tests/HardeningTests.cpp Tests/RenderFailureTests.cpp Tests/SceneContinuationTests.cpp Tests/ResourceShutdownTests.cpp Tests/UsabilityTests.cpp Tests/StressTests.cpp Examples/Sandbox/SandboxGame.cpp)
     target_link_libraries(dxf_tests PRIVATE dxf::framework)
     target_include_directories(dxf_tests PRIVATE Tests Examples/Sandbox)
     dxf_warnings(dxf_tests)

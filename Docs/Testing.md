@@ -46,10 +46,10 @@ Linuxでの全検証は `python Tools/Validate.py --with-sanitizers` です。�
 
 ## Git履歴
 
-別配布の `dxlib_framework_0.2.0_history.bundle` には、この作業で実際に作ったRed／Green／Refactorのコミットを含めます。
+別配布の `dxlib_framework_0.3.0_history.bundle` には、この作業で実際に作ったRed／Green／Refactorのコミットを含めます。
 
 ```sh
-git clone dxlib_framework_0.2.0_history.bundle dxlib_framework_history
+git clone dxlib_framework_0.3.0_history.bundle dxlib_framework_history
 cd dxlib_framework_history
 git log --oneline
 ```
@@ -74,4 +74,23 @@ git log --oneline
 
 08をRed→Greenの不具合修正とは扱っていません。Windows用スクリプトとCI設定には静的検査のみを行い、実機成功として数えていません。全コード行や全条件をテストしたという意味でもありません。
 
-最新版の通過件数はC++113＋14件、Python6件です。C++はGCC Debug／ReleaseとClang ASan／UBSanの3構成で実行しました。公開ヘッダー65個とSandboxヘッダー1個を独立した翻訳単位で検査しています。
+0.2.0時点の通過件数はC++113＋14件、Python6件です。C++はGCC Debug／ReleaseとClang ASan／UBSanの3構成で実行しました。公開ヘッダー65個とSandboxヘッダー1個を独立した翻訳単位で検査しています。
+
+## 0.3.0の継続開発
+
+0.2.0（48コミット時点）のソースとテストを復元し、既存127件が通ることを確認してから着手しました。以下の記録は`Tdd/Continuation/`です。
+
+| 記録 | 修正前の実測 | 修正後 |
+|---|---|---|
+| 01 | 新規8件が失敗、113 / 121通過 | 描画失敗の保持・例外境界。121 / 121通過 |
+| 02 | 新規11件が失敗、121 / 132通過 | Scene差し替えの再入防止・子階層の停止。132 / 132通過 |
+| 03 | 新規6件のうち5件が失敗報告、最後のケースで終了コード139のクラッシュ | 資源終了・音声開始と状態取得の再入。138 / 138通過 |
+| 04 | Pythonの既存6件通過、新規3件失敗 | 古い成功Summaryの除去・タイムアウト出力の保存。9 / 9通過 |
+
+03のRedではプロセスが途中で落ちたため、実行ファイル末尾の総件数は出ていません。クラッシュを単なるassert失敗や「全ケース実行済み」として数えていません。Greenでは最後まで走らせています。
+
+01では、旧テストの「Nativeコールバックが例外を投げても状態復元できればEndFrame成功」という期待値も、失敗フレームを提示しない新しい契約へ変更しました。これは意図した動作変更であり、互換性を保った修正とは説明していません。対応する変更は同じGitコミットで確認できます。
+
+今回追加したC++25件はいずれも修正前に実行失敗を再現した回帰テストです。14件の代替SDK契約テストは件数を増やしていませんが、全構成で再実行します。Windows／実SDK検査とは区別してください。
+
+Pythonの検証失敗テストでは、わざと子プロセス失敗を注入するため、成功したテストの中に`debug-configure: FAIL`という出力が含まれます。ユニットテスト全体のOKと、実際の全検証Summaryのstatusを別々に確認してください。

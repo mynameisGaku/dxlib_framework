@@ -1,2 +1,4 @@
-PASS workflow YAML and least-privilege/static script checks
-NOT RUN: PowerShell interpreter, Windows MSVC, actual DxLib SDK
+0.3.0 distribution file inventory only. PowerShell and hosted CI NOT EXECUTED.
+.github/workflows/ci.yml SHA256=9446a407358aecb854b5d0063e49a9468fece3e5dcd000e2a5308a9ea4e107ac
+Tools/BuildWindows.ps1 SHA256=cedb148bdc5c17b4d4027240027cf8e135385c04e89c47fc35c48c130a5d4093
+Tools/SetupDxLib.ps1 SHA256=f21762fb6a4cecb758d7559515c765aedfcdf36c4ae06201330a155e29013429

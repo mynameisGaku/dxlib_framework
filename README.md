@@ -2,15 +2,19 @@
 
 **DxLibを、資源管理・入力・描画・Scene・GameObject・Componentから使えるようにするC++20フレームワークです。** 内部は担当処理ごとに分離し、ゲーム側は `Run<TScene>()`、`Spawn<T>()`、`AddComponent<T>()` とOn系フックを中心に実装します。Unreal Engineへの依存はありません。
 
-## 0.2.0について
+## 0.3.0について
 
-0.1.0を引き継ぎ、再入する生成・破棄、終了要求、描画失敗、UTF-8、キャッシュの境界処理を修正しました。入力のAction割り当て、型付きObject／Component検索、スプライトComponent、層別CMakeターゲット、インストール可能なパッケージ、Windows用セットアップ・検証入口も追加しています。
+0.2.0のソースと履歴を引き継いだ、終了・再入・描画失敗を中心とする更新版です。音声ポーリング中の終了で起きるクラッシュ、資源の二重解放呼び出し、Scene差し替え時の再入、終了要求後の子Object実行を修正しました。描画失敗の扱いも統一しています。
 
-**GCC Debug／ReleaseとClangのASan／UBSanで、C++全127ケースが通過しています。** うち14件は手書きの代替DxLibヘッダーを使う契約テストです。**実DxLib SDK・Windows・MSVC・実画面・音声・入力機器の検証は、この配布の作成環境では実行できていません。** Windows用スクリプトやCIの同梱を、その実行成功とは扱っていません。
+**GCC Debug／ReleaseとClang ASan／UBSanで、138件の基盤・回帰テスト＋14件の代替DxLib契約テストが通過しました。** Pythonの配布・検証ツールは9件通過しています。ZIP展開後の新規ビルドでも同じ152件＋9件を確認しました。詳細は検証結果を参照してください。**実DxLib SDK・Windows・MSVC・実画面・音声・入力機器では未検証です。** Windows用スクリプトやCIを同梱したことを、実機での成功とは扱っていません。
+
+**0.2からの注意：** Nativeコールバックが失敗した場合、状態を復元できても、そのフレームは表示しません。低レベルの独自ライフサイクル拡張にも変更があります。[移行時の注意](Docs/Migration_0.3.md)を確認してください。
 
 [検証結果](Docs/ValidationReport.md) ／ [変更履歴](CHANGELOG.md) ／ [設計と責務](Docs/Architecture.md) ／ [API](Docs/API.md) ／ [命名規則](Docs/CodingStandard.md) ／ [制限事項](Docs/Limitations.md)
 
 ## Windowsで動かす
+
+2026-09-12の追加検証では、MSVC Debugで153件のテストと実SDKの12フレーム動作確認が通過しました。MSVC Releaseの非実機テストも153件通過しています。ただし、DxLib VC 3.25aのReleaseリンクにはFBX関連の未解決参照が残っています。[現在のWindows検証結果](Docs/WindowsIntegration.md)を確認してください。
 
 Visual Studioの「C++によるデスクトップ開発」、x64ツール、Windows SDK、CMake Toolsが必要です。通常のPowerShellで、展開したフォルダーへ移動して実行できます。スクリプトが `vswhere` と `VsDevCmd` でx64環境を設定し、Visual Studio同梱のCMake／Ninjaも探索します。
 
@@ -81,7 +85,7 @@ Dxf::TResult<void> RunMyGame()
 | 実行基盤 | メインループ、GameInstance、Scene切り替え、失敗時の後始末、終了順序 |
 | Gameplay | 遅延生成・破棄、自動ライフサイクル、更新順、ポーズ、型付き検索、任意利用のSpriteRendererComponent |
 
-衝突・物理・3Dモデル・エディター・非同期ロードなどは、今回合意した2D基盤の範囲には含みません。
+衝突・物理・3Dモデル・エディター・非同期ロードなどは、この版の2D基盤の実装範囲には含みません。
 
 ## 既存CMakeプロジェクトへ組み込む
 
@@ -112,7 +116,7 @@ cmake --install Build/windows-release --prefix C:/Libraries/dxlib_framework
 ```
 
 ```cmake
-find_package(dxlib_framework 0.2 CONFIG REQUIRED)
+find_package(dxlib_framework 0.3 CONFIG REQUIRED)
 add_executable(MyGame WIN32 Main.cpp)
 target_link_libraries(MyGame PRIVATE dxf::native)
 dxf_use_static_runtime(MyGame)
@@ -133,11 +137,11 @@ python Tools/Validate.py --with-sanitizers
 # インストール → 別の場所へ移動 → find_package → リンク・実行
 python Tools/ValidatePackage.py
 
-# 配布用スクリプトの6テスト
+# 配布・検証スクリプトの9テスト
 python -m unittest discover -s Tools/Tests -v
 ```
 
-C++は113件の基盤テストと14件の接続部契約テストを、2つのCTest実行ファイルへ収録しています。接続部契約テストに使う `Tests/FakeDxLib/DxLib.h` は公式SDKではありません。
+C++は138件の基盤・回帰テストと14件の接続部契約テストを、2つのCTest実行ファイルへ収録しています。接続部契約テストに使う `Tests/FakeDxLib/DxLib.h` は公式SDKではありません。
 
 Pythonは通常のWindowsビルドには不要です。`.github/workflows/ci.yml` はLinux検証とWindows／実SDKのコンパイル・リンクを行う設定です。この配布の作成時点ではリモートのCIは実行していません。
 
@@ -156,4 +160,4 @@ Tools/                   セットアップ・検証・配布
 Assets/                  再生成可能なBMP・WAVのみ
 ```
 
-`python Tools/PackageRelease.py --output ../dxlib_framework_0.2.0.zip` で再配布用ZIPを生成できます。各ファイルのSHA-256はZIP内の `DistributionManifest.json` に、ZIP全体の値は隣の `.sha256` に記録されます。SDK・ビルド出力・Git内部情報・フォントファイルは含めません。
+`python Tools/PackageRelease.py --output ../dxlib_framework_0.3.0.zip` で再配布用ZIPを生成できます。各ファイルのSHA-256はZIP内の `DistributionManifest.json` に、ZIP全体の値は隣の `.sha256` に記録されます。SDK・ビルド出力・Git内部情報・フォントファイルは含めません。

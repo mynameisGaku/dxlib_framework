@@ -1,0 +1,16 @@
+﻿$ ctest.exe --test-dir C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\windows-debug --output-on-failure
+Test project C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/windows-debug
+    Start 1: Framework
+1/2 Test #1: Framework ........................   Passed    1.15 sec
+    Start 2: NativeContract
+2/2 Test #2: NativeContract ...................   Passed    0.22 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Label Time Summary:
+contract        =   0.22 sec*proc (1 test)
+not-real-sdk    =   0.22 sec*proc (1 test)
+portable        =   1.15 sec*proc (1 test)
+
+Total Test time (real) =   2.18 sec
+EXIT_CODE=0

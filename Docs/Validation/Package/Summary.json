@@ -1,7 +1,12 @@
 {
+  "real_dxlib_sdk": false,
+  "status": "passed",
+  "run_id": "bc565d7c569747b3949976fa5896241d",
+  "started_utc": "2026-09-12T08:51:39.969351+00:00",
+  "version": "0.3.0",
   "install": true,
   "relocation": true,
   "external_consumer": true,
   "support_without_runtime": true,
-  "real_dxlib_sdk": false
+  "finished_utc": "2026-09-12T08:51:44.666890+00:00"
 }

@@ -13,16 +13,28 @@ FSceneNavigator::~FSceneNavigator()
 }
 TResult<void> FSceneNavigator::RequestChange(std::unique_ptr<DScene> Scene)
 {
-	if (m_bShutdown || m_bShutdownRequested)
+	if (!CanAcceptRequest_Internal())
 	{
 		return TResult<void>::Failure(EErrorCode::InvalidState, "Navigator stopped");
 	}
-	if (!Scene || Scene->GetState() != ELifecycleState::Pending)
+	if (!Scene || Scene->GetState() != ELifecycleState::Pending || Scene->IsDestroyRequested())
 	{
 		return TResult<void>::Failure(EErrorCode::InvalidArgument, "Expected a new scene");
 	}
-	m_Storage.SetPending_Internal(std::move(Scene));
-	return {};
+	// Replacing a pending scene runs its user destructor. During that callback,
+	// prohibit nested replacements and dispatch while still deferring Shutdown.
+	const bool bWasBusy = m_bBusy;
+	{
+		TGuardValue DispatchGuard(m_bBusy, true);
+		TGuardValue RequestGuard(m_bReplacingPending, true);
+		m_Storage.SetPending_Internal(std::move(Scene));
+	}
+	if (!bWasBusy)
+	{
+		FinishDispatch_Internal();
+	}
+	return CanAcceptRequest_Internal() ? TResult<void>{} :
+		TResult<void>::Failure(EErrorCode::InvalidState, "Scene request interrupted by shutdown");
 }
 TResult<bool> FSceneNavigator::Commit_Internal()
 {
@@ -31,23 +43,27 @@ TResult<bool> FSceneNavigator::Commit_Internal()
 	{
 		return TResult<bool>::Success(false);
 	}
-	auto Prepared = m_Lifecycle.Prepare_Internal(*Next, {*m_pAssets});
+	TResult<void> Prepared;
+	{
+		TGuardValue PreparingGuard(m_pPreparing, Next.get());
+		Prepared = m_Lifecycle.Prepare_Internal(*Next, {*m_pAssets});
+	}
 	if (!Prepared)
 	{
 		m_LastTransitionError = Prepared.Error();
 		return TResult<bool>::Failure(Prepared.Error());
-	}
-	if (Next->IsDestroyRequested())
-	{
-		Next->Shutdown_Internal();
-		m_LastTransitionError = FError{EErrorCode::InvalidState, "Scene destroyed during preparation"};
-		return TResult<bool>::Failure(*m_LastTransitionError);
 	}
 	if (WantsQuit() || m_bShutdownRequested)
 	{
 		// A prepared scene has not entered an audio scope; do not stop global scope 0.
 		Next->Shutdown_Internal();
 		return TResult<bool>::Success(false);
+	}
+	if (Next->IsDestroyRequested())
+	{
+		Next->Shutdown_Internal();
+		m_LastTransitionError = FError{EErrorCode::InvalidState, "Scene destroyed during preparation"};
+		return TResult<bool>::Failure(*m_LastTransitionError);
 	}
 	if (auto* Current = m_Storage.GetCurrent())
 	{
@@ -69,6 +85,10 @@ TResult<bool> FSceneNavigator::Commit()
 	{
 		return TResult<bool>::Failure(EErrorCode::InvalidState, "Invalid or reentrant scene commit");
 	}
+	if (WantsQuit())
+	{
+		return TResult<bool>::Success(false);
+	}
 	auto Result = TResult<bool>::Success(false);
 	{
 		TGuardValue Guard(m_bBusy, true);
@@ -82,6 +102,10 @@ TResult<void> FSceneNavigator::CommitObjects()
 	if (m_bBusy || m_bShutdown)
 	{
 		return TResult<void>::Failure(EErrorCode::InvalidState, "Invalid scene boundary");
+	}
+	if (WantsQuit())
+	{
+		return {};
 	}
 	TResult<void> Result;
 	{
@@ -104,6 +128,10 @@ TResult<void> FSceneNavigator::Tick(FFrameTime Time, const FInputSnapshot& Input
 	{
 		return TResult<void>::Failure(EErrorCode::InvalidState, "Invalid or reentrant scene tick");
 	}
+	if (WantsQuit())
+	{
+		return {};
+	}
 	TResult<void> Result;
 	{
 		TGuardValue Guard(m_bBusy, true);
@@ -121,6 +149,10 @@ TResult<void> FSceneNavigator::Draw(FRenderContext& Render)
 	if (m_bBusy || m_bShutdown)
 	{
 		return TResult<void>::Failure(EErrorCode::InvalidState, "Invalid or reentrant scene draw");
+	}
+	if (WantsQuit())
+	{
+		return {};
 	}
 	TResult<void> Result;
 	{
@@ -140,12 +172,26 @@ void FSceneNavigator::FinishDispatch_Internal() noexcept
 		Shutdown();
 	}
 }
+void FSceneNavigator::RequestQuit() noexcept
+{
+	m_bQuit = true;
+	// Propagation changes flags only: the receiver of an active callback survives
+	// until its owner reaches the existing safe deletion boundary.
+	if (auto* Current = GetCurrent())
+	{
+		Current->RequestDestroy_Internal();
+	}
+	if (m_pPreparing)
+	{
+		m_pPreparing->RequestDestroy_Internal();
+	}
+}
 void FSceneNavigator::Shutdown() noexcept
 {
 	if (m_bBusy)
 	{
 		m_bShutdownRequested = true;
-		m_bQuit = true;
+		RequestQuit();
 		return;
 	}
 	if (m_bShutdown)

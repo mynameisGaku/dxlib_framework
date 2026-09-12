@@ -1,4 +1,4 @@
-$ cmake --build /mnt/data/build-dxf/package-final/run-vkbur03e/ConsumerBuild --parallel 4
+$ cmake --build /mnt/data/dxlib_framework_work/Build/PackageValidation/run-5mska2_a/ConsumerBuild --parallel 4
 [1/4] Building CXX object CMakeFiles/SupportOnly.dir/Support.cpp.o
 [2/4] Linking CXX executable SupportOnly
 [3/4] Building CXX object CMakeFiles/Consumer.dir/Main.cpp.o

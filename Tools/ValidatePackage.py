@@ -1,12 +1,12 @@
 """Build, install, relocate, and consume the package without SDK/network access."""
 from __future__ import annotations
 import argparse
-import json
 from pathlib import Path
 import shutil
 import subprocess
 import sys
 import tempfile
+from ValidationSupport import project_version, run_logged, validation_report
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -24,25 +24,22 @@ def main() -> int:
     # Each run is clean; never accept an old install as evidence for a failed build.
     work = Path(tempfile.mkdtemp(prefix='run-', dir=args.work.resolve()))
 
-    def run(name: str, command: list[str]) -> None:
-        result = subprocess.run(command, text=True, encoding='utf-8', errors='replace',
-                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=240)
-        (args.logs / f'{name}.log').write_text(
-            '$ ' + subprocess.list2cmdline(command) + '\n' + result.stdout +
-            f'\nEXIT_CODE={result.returncode}\n', encoding='utf-8')
-        if result.returncode:
-            raise RuntimeError(f'{name}: failed; see {args.logs / (name + ".log")}')
-        print(f'{name}: PASS', flush=True)
+    summary: dict[str, object] = {'real_dxlib_sdk': False}
 
-    run('build-configure', ['cmake', '-S', str(ROOT), '-B', str(work / 'Build'), '-G', 'Ninja',
-        '-DCMAKE_BUILD_TYPE=Debug', '-DDXF_BUILD_TESTS=OFF', '-DDXF_BUILD_NATIVE=OFF', '-DDXF_INSTALL=ON'])
-    run('build', ['cmake', '--build', str(work / 'Build'), '--parallel', str(args.jobs)])
-    run('install', ['cmake', '--install', str(work / 'Build'), '--prefix', str(work / 'Original')])
-    relocated = work / 'Relocated package'
-    shutil.move(str(work / 'Original'), str(relocated))
-    consumer = work / 'Consumer'
-    consumer.mkdir()
-    (consumer / 'Main.cpp').write_text('''#include "Dxf/GameScene.h"
+    def run(name: str, command: list[str]) -> None:
+        run_logged(args.logs, name, command, cwd=ROOT, timeout=240)
+
+    with validation_report(args.logs, summary):
+        summary['version'] = project_version(ROOT)
+        run('build-configure', ['cmake', '-S', str(ROOT), '-B', str(work / 'Build'), '-G', 'Ninja',
+            '-DCMAKE_BUILD_TYPE=Debug', '-DDXF_BUILD_TESTS=OFF', '-DDXF_BUILD_NATIVE=OFF', '-DDXF_INSTALL=ON'])
+        run('build', ['cmake', '--build', str(work / 'Build'), '--parallel', str(args.jobs)])
+        run('install', ['cmake', '--install', str(work / 'Build'), '--prefix', str(work / 'Original')])
+        relocated = work / 'Relocated package'
+        shutil.move(str(work / 'Original'), str(relocated))
+        consumer = work / 'Consumer'
+        consumer.mkdir()
+        (consumer / 'Main.cpp').write_text('''#include "Dxf/GameScene.h"
 #include "Dxf/RenderQueue2D.h"
 int main()
 {
@@ -52,14 +49,14 @@ int main()
     return Queue.Submit(Dxf::FRectangleCommand{}) ? 1 : 0;
 }
 ''', encoding='utf-8')
-    (consumer / 'Support.cpp').write_text('''#include "Dxf/RenderQueue2D.h"
+        (consumer / 'Support.cpp').write_text('''#include "Dxf/RenderQueue2D.h"
 int main()
 {
     Dxf::FRenderQueue2D Queue;
     return Queue.Submit(Dxf::FRectangleCommand{}) ? 1 : 0;
 }
 ''', encoding='utf-8')
-    (consumer / 'CMakeLists.txt').write_text('''cmake_minimum_required(VERSION 3.24)
+        (consumer / 'CMakeLists.txt').write_text('''cmake_minimum_required(VERSION 3.24)
 project(RelocatedConsumer LANGUAGES CXX)
 find_package(dxlib_framework CONFIG REQUIRED)
 add_executable(Consumer Main.cpp)
@@ -70,15 +67,14 @@ if(NOT TARGET dxf::foundation OR NOT TARGET dxf::support OR NOT TARGET dxf::runt
     message(FATAL_ERROR "Layer targets are missing from the installed package")
 endif()
 ''', encoding='utf-8')
-    run('consumer-configure', ['cmake', '-S', str(consumer), '-B', str(work / 'ConsumerBuild'), '-G',
-        'Ninja', '-DCMAKE_BUILD_TYPE=Debug', f'-DCMAKE_PREFIX_PATH={relocated.as_posix()}'])
-    run('consumer-build', ['cmake', '--build', str(work / 'ConsumerBuild'), '--parallel', str(args.jobs)])
-    suffix = '.exe' if sys.platform == 'win32' else ''
-    run('consumer-run', [str(work / 'ConsumerBuild' / ('Consumer' + suffix))])
-    run('support-only-run', [str(work / 'ConsumerBuild' / ('SupportOnly' + suffix))])
-    (args.logs / 'Summary.json').write_text(json.dumps({
-        'install': True, 'relocation': True, 'external_consumer': True,
-        'support_without_runtime': True, 'real_dxlib_sdk': False}, indent=2) + '\n', encoding='utf-8')
+        run('consumer-configure', ['cmake', '-S', str(consumer), '-B', str(work / 'ConsumerBuild'), '-G',
+            'Ninja', '-DCMAKE_BUILD_TYPE=Debug', f'-DCMAKE_PREFIX_PATH={relocated.as_posix()}'])
+        run('consumer-build', ['cmake', '--build', str(work / 'ConsumerBuild'), '--parallel', str(args.jobs)])
+        suffix = '.exe' if sys.platform == 'win32' else ''
+        run('consumer-run', [str(work / 'ConsumerBuild' / ('Consumer' + suffix))])
+        run('support-only-run', [str(work / 'ConsumerBuild' / ('SupportOnly' + suffix))])
+        summary.update(install=True, relocation=True, external_consumer=True,
+                       support_without_runtime=True)
     return 0
 
 

@@ -1,0 +1,6 @@
+[0/1] Re-running CMake...
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /mnt/data/dxlib_framework_work/Build/portable-debug
+[1/3] Building CXX object CMakeFiles/dxf_tests.dir/Tests/ResourceShutdownTests.cpp.o
+[2/3] Linking CXX executable dxf_tests

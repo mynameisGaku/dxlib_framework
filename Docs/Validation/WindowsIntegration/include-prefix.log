@@ -1,0 +1,8 @@
+﻿$ cl.exe /nologo /utf-8 /EP /showIncludes C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\WindowsValidation\IncludeProbe\dxf-includes.cpp
+dxf-includes.cpp
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\WindowsValidation\IncludeProbe\dxf-includes.h
+
+
+
+
+EXIT_CODE=0

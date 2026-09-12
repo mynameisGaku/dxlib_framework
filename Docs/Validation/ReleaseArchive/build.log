@@ -1,36 +1,39 @@
-$ cmake --build /mnt/data/build-dxf/release-check/Build --parallel 4
-[1/33] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/FontLoader.cpp.o
-[2/33] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/TextureLoader.cpp.o
-[3/33] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/SoundLoader.cpp.o
-[4/33] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/RenderSystem2D.cpp.o
-[5/33] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/AssetService.cpp.o
-[6/33] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/RenderQueue2D.cpp.o
-[7/33] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/AudioPlayer.cpp.o
-[8/33] Linking CXX static library libdxf_supportd.a
-[9/33] Building CXX object CMakeFiles/dxf_runtime.dir/Source/Runtime/Private/LifecycleObject.cpp.o
-[10/33] Building CXX object CMakeFiles/dxf_tests.dir/Tests/TestMain.cpp.o
-[11/33] Building CXX object CMakeFiles/dxf_runtime.dir/Source/Runtime/Private/SceneNavigator.cpp.o
-[12/33] Building CXX object CMakeFiles/dxf_runtime.dir/Source/Runtime/Private/Application.cpp.o
-[13/33] Linking CXX static library libdxf_runtimed.a
-[14/33] Building CXX object CMakeFiles/dxf_tests.dir/Tests/FoundationTests.cpp.o
-[15/33] Building CXX object CMakeFiles/dxf_tests.dir/Tests/SupportTests.cpp.o
-[16/33] Building CXX object CMakeFiles/dxf_tests.dir/Tests/GameplayTests.cpp.o
-[17/33] Building CXX object CMakeFiles/dxf_tests.dir/Tests/SandboxTests.cpp.o
-[18/33] Building CXX object CMakeFiles/dxf_tests.dir/Tests/ApplicationTests.cpp.o
-[19/33] Building CXX object CMakeFiles/dxf_tests.dir/Tests/HardeningTests.cpp.o
-[20/33] Building CXX object CMakeFiles/dxf_tests.dir/Tests/StressTests.cpp.o
-[21/33] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Tests/TestMain.cpp.o
-[22/33] Building CXX object CMakeFiles/dxf_tests.dir/Tests/UsabilityTests.cpp.o
-[23/33] Building CXX object CMakeFiles/dxf_tests.dir/Examples/Sandbox/SandboxGame.cpp.o
-[24/33] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibPlatform.cpp.o
-[25/33] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibTextureBackend.cpp.o
-[26/33] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibInputSource.cpp.o
-[27/33] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Tests/NativeSmoke/Smoke.cpp.o
-[28/33] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibSoundBackend.cpp.o
-[29/33] Linking CXX executable dxf_tests
-[30/33] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibFontBackend.cpp.o
-[31/33] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Tests/NativeTests.cpp.o
-[32/33] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibRenderBackend.cpp.o
-[33/33] Linking CXX executable dxf_native_contract_tests
+$ cmake --build /mnt/data/dxf_release03_final_check/dxlib_framework/Build/clean --parallel 4
+[1/36] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/FontLoader.cpp.o
+[2/36] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/SoundLoader.cpp.o
+[3/36] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/TextureLoader.cpp.o
+[4/36] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/RenderSystem2D.cpp.o
+[5/36] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/AssetService.cpp.o
+[6/36] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/AudioPlayer.cpp.o
+[7/36] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/RenderQueue2D.cpp.o
+[8/36] Linking CXX static library libdxf_supportd.a
+[9/36] Building CXX object CMakeFiles/dxf_runtime.dir/Source/Runtime/Private/LifecycleObject.cpp.o
+[10/36] Building CXX object CMakeFiles/dxf_tests.dir/Tests/TestMain.cpp.o
+[11/36] Building CXX object CMakeFiles/dxf_runtime.dir/Source/Runtime/Private/SceneNavigator.cpp.o
+[12/36] Building CXX object CMakeFiles/dxf_runtime.dir/Source/Runtime/Private/Application.cpp.o
+[13/36] Linking CXX static library libdxf_runtimed.a
+[14/36] Building CXX object CMakeFiles/dxf_tests.dir/Tests/FoundationTests.cpp.o
+[15/36] Building CXX object CMakeFiles/dxf_tests.dir/Tests/SupportTests.cpp.o
+[16/36] Building CXX object CMakeFiles/dxf_tests.dir/Tests/SandboxTests.cpp.o
+[17/36] Building CXX object CMakeFiles/dxf_tests.dir/Tests/GameplayTests.cpp.o
+[18/36] Building CXX object CMakeFiles/dxf_tests.dir/Tests/ApplicationTests.cpp.o
+[19/36] Building CXX object CMakeFiles/dxf_tests.dir/Tests/RenderFailureTests.cpp.o
+[20/36] Building CXX object CMakeFiles/dxf_tests.dir/Tests/HardeningTests.cpp.o
+[21/36] Building CXX object CMakeFiles/dxf_tests.dir/Tests/ResourceShutdownTests.cpp.o
+[22/36] Building CXX object CMakeFiles/dxf_tests.dir/Tests/SceneContinuationTests.cpp.o
+[23/36] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Tests/TestMain.cpp.o
+[24/36] Building CXX object CMakeFiles/dxf_tests.dir/Tests/StressTests.cpp.o
+[25/36] Building CXX object CMakeFiles/dxf_tests.dir/Examples/Sandbox/SandboxGame.cpp.o
+[26/36] Building CXX object CMakeFiles/dxf_tests.dir/Tests/UsabilityTests.cpp.o
+[27/36] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibPlatform.cpp.o
+[28/36] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibInputSource.cpp.o
+[29/36] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibTextureBackend.cpp.o
+[30/36] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Tests/NativeTests.cpp.o
+[31/36] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibSoundBackend.cpp.o
+[32/36] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibFontBackend.cpp.o
+[33/36] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Tests/NativeSmoke/Smoke.cpp.o
+[34/36] Linking CXX executable dxf_tests
+[35/36] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibRenderBackend.cpp.o
+[36/36] Linking CXX executable dxf_native_contract_tests
 
 EXIT_CODE=0

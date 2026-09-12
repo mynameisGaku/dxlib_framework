@@ -1,6 +1,6 @@
-$ cmake -S /mnt/data/work/dxlib_framework -B /mnt/data/build-dxf/final-validation/sanitized -G Ninja -DCMAKE_BUILD_TYPE=Debug -DDXF_BUILD_TESTS=ON -DDXF_BUILD_NATIVE=OFF -DDXF_BUILD_EXAMPLE=OFF -DDXF_BUILD_NATIVE_SMOKE=OFF -DDXF_WARNINGS_AS_ERRORS=ON -DCMAKE_CXX_COMPILER=clang++ -DDXF_SANITIZERS=ON
+$ cmake -S /mnt/data/dxlib_framework_work -B /mnt/data/dxlib_framework_work/Build/Validation/sanitized -G Ninja -DCMAKE_BUILD_TYPE=Debug -DDXF_BUILD_TESTS=ON -DDXF_BUILD_NATIVE=OFF -DDXF_BUILD_EXAMPLE=OFF -DDXF_BUILD_NATIVE_SMOKE=OFF -DDXF_WARNINGS_AS_ERRORS=ON -DCMAKE_CXX_COMPILER=clang++ -DDXF_SANITIZERS=ON
 -- Configuring done (0.0s)
 -- Generating done (0.0s)
--- Build files have been written to: /mnt/data/build-dxf/final-validation/sanitized
+-- Build files have been written to: /mnt/data/dxlib_framework_work/Build/Validation/sanitized
 
 EXIT_CODE=0

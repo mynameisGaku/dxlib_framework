@@ -105,7 +105,7 @@ void DLifecycleObject::Shutdown_Internal() noexcept
 {
 	if (m_bBusy)
 	{
-		m_bDestroyRequested = true;
+		RequestDestroy_Internal();
 		return;
 	}
 	if (m_State == ELifecycleState::Stopped)

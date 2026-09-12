@@ -24,6 +24,7 @@ public:
 	TResult<void> EndFrame();
 	void CancelFrame() noexcept;
 private:
+	TResult<void> FailFrame_Internal(const FError& Error);
 	TResult<void> RestoreTarget_Internal();
 	TResult<void> Flush_Internal();
 	IRenderBackend* m_pBackend;

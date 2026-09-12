@@ -1,8 +1,8 @@
-$ ctest --test-dir /mnt/data/build-dxf/final-validation/release --output-on-failure
-Internal ctest changing into directory: /mnt/data/build-dxf/final-validation/release
-Test project /mnt/data/build-dxf/final-validation/release
+$ ctest --test-dir /mnt/data/dxlib_framework_work/Build/Validation/release --output-on-failure
+Internal ctest changing into directory: /mnt/data/dxlib_framework_work/Build/Validation/release
+Test project /mnt/data/dxlib_framework_work/Build/Validation/release
     Start 1: Framework
-1/2 Test #1: Framework ........................   Passed    0.10 sec
+1/2 Test #1: Framework ........................   Passed    0.05 sec
     Start 2: NativeContract
 2/2 Test #2: NativeContract ...................   Passed    0.00 sec
 
@@ -11,8 +11,8 @@ Test project /mnt/data/build-dxf/final-validation/release
 Label Time Summary:
 contract        =   0.00 sec*proc (1 test)
 not-real-sdk    =   0.00 sec*proc (1 test)
-portable        =   0.10 sec*proc (1 test)
+portable        =   0.05 sec*proc (1 test)
 
-Total Test time (real) =   0.11 sec
+Total Test time (real) =   0.06 sec
 
 EXIT_CODE=0

@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 [CmdletBinding()]
 param(
     [ValidateSet('Debug', 'Release')][string]$Configuration = 'Debug',
@@ -6,6 +6,7 @@ param(
     [switch]$DownloadSdk,
     [switch]$RunDeviceSmoke,
     [switch]$Audio,
+    [switch]$Clean,
     [ValidateRange(1, 64)][int]$Jobs = 4
 )
 Set-StrictMode -Version Latest
@@ -76,6 +77,20 @@ Push-Location $Root
 try {
     if ($Audio -and -not $RunDeviceSmoke) { throw '-Audio requires -RunDeviceSmoke.' }
     Import-VisualStudio
+    # 実際の表示を採取し、CMakeの文字コード推測で依存追跡が崩れるのを防ぐ。
+    $ProbeDirectory = Join-Path $Logs 'IncludeProbe'
+    New-Item -ItemType Directory -Force -Path $ProbeDirectory | Out-Null
+    $ProbeHeader = Join-Path $ProbeDirectory 'dxf-includes.h'
+    $ProbeSource = Join-Path $ProbeDirectory 'dxf-includes.cpp'
+    '// include probe' | Set-Content -LiteralPath $ProbeHeader -Encoding ASCII
+    '#include "dxf-includes.h"' | Set-Content -LiteralPath $ProbeSource -Encoding ASCII
+    $ProbeOutput = Invoke-Logged 'include-prefix' 'cl.exe' @('/nologo', '/utf-8', '/EP', '/showIncludes', $ProbeSource)
+    $IncludePrefix = $null
+    foreach ($Line in ($ProbeOutput -split "`n")) {
+        $HeaderOffset = $Line.IndexOf($ProbeHeader, [StringComparison]::OrdinalIgnoreCase)
+        if ($HeaderOffset -gt 0) { $IncludePrefix = $Line.Substring(0, $HeaderOffset); break }
+    }
+    if (-not $IncludePrefix) { throw 'Could not measure the MSVC include dependency prefix.' }
     if ($DownloadSdk) { & (Join-Path $PSScriptRoot 'SetupDxLib.ps1') }
     $SdkRoot = $env:DXLIB_ROOT
     $ManifestPath = Join-Path $Root 'ThirdParty/dxlib-sdk.json'
@@ -91,10 +106,19 @@ try {
     foreach ($Config in $Configurations) {
         $Name = $Config.ToLowerInvariant()
         $Build = Join-Path $Root ('Build/windows-' + $Name)
-        Invoke-Logged ($Name + '-configure') 'cmake.exe' @('-S', $Root, '-B', $Build, '-G', 'Ninja',
+        $ConfigureMode = @()
+        if ($Clean) {
+            $ConfigureMode += '--fresh'
+            # ZIP復元でソース日時が古くなった場合も、既存のオブジェクトを使い回さない。
+            if (Test-Path (Join-Path $Build 'CMakeCache.txt')) {
+                Invoke-Logged ($Name + '-clean') 'cmake.exe' @('--build', $Build, '--target', 'clean') | Out-Null
+            }
+        }
+        Invoke-Logged ($Name + '-configure') 'cmake.exe' (@('-S', $Root, '-B', $Build, '-G', 'Ninja',
             '-DCMAKE_CXX_COMPILER=cl', ('-DCMAKE_BUILD_TYPE=' + $Config), ('-DDXLIB_ROOT=' + $SdkRoot),
+            ('-DDXF_MSVC_INCLUDE_PREFIX=' + $IncludePrefix),
             '-DDXF_BUILD_NATIVE=ON', '-DDXF_BUILD_EXAMPLE=ON', '-DDXF_BUILD_TESTS=ON',
-            '-DDXF_BUILD_NATIVE_SMOKE=ON', '-DDXF_RUN_DEVICE_TESTS=OFF', '-DDXF_INSTALL=ON') | Out-Null
+            '-DDXF_BUILD_NATIVE_SMOKE=ON', '-DDXF_RUN_DEVICE_TESTS=OFF', '-DDXF_INSTALL=ON') + $ConfigureMode) | Out-Null
         Invoke-Logged ($Name + '-build') 'cmake.exe' @('--build', $Build, '--parallel', "$Jobs") | Out-Null
         Invoke-Logged ($Name + '-ctest') 'ctest.exe' @('--test-dir', $Build, '--output-on-failure') | Out-Null
         $Core = Invoke-Logged ($Name + '-framework-cases') (Join-Path $Build 'dxf_tests.exe') @()

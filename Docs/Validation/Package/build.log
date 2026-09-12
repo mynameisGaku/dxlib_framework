@@ -1,13 +1,13 @@
-$ cmake --build /mnt/data/build-dxf/package-final/run-vkbur03e/Build --parallel 4
-[1/12] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/FontLoader.cpp.o
-[2/12] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/SoundLoader.cpp.o
+$ cmake --build /mnt/data/dxlib_framework_work/Build/PackageValidation/run-5mska2_a/Build --parallel 4
+[1/12] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/SoundLoader.cpp.o
+[2/12] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/FontLoader.cpp.o
 [3/12] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/TextureLoader.cpp.o
-[4/12] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/RenderSystem2D.cpp.o
-[5/12] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/AssetService.cpp.o
+[4/12] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/AssetService.cpp.o
+[5/12] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/RenderSystem2D.cpp.o
 [6/12] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/AudioPlayer.cpp.o
-[7/12] Building CXX object CMakeFiles/dxf_runtime.dir/Source/Runtime/Private/LifecycleObject.cpp.o
-[8/12] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/RenderQueue2D.cpp.o
-[9/12] Linking CXX static library libdxf_supportd.a
+[7/12] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/RenderQueue2D.cpp.o
+[8/12] Linking CXX static library libdxf_supportd.a
+[9/12] Building CXX object CMakeFiles/dxf_runtime.dir/Source/Runtime/Private/LifecycleObject.cpp.o
 [10/12] Building CXX object CMakeFiles/dxf_runtime.dir/Source/Runtime/Private/SceneNavigator.cpp.o
 [11/12] Building CXX object CMakeFiles/dxf_runtime.dir/Source/Runtime/Private/Application.cpp.o
 [12/12] Linking CXX static library libdxf_runtimed.a
