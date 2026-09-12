@@ -1,0 +1,6 @@
+build-configure: PASS
+build: PASS
+install: PASS
+[Errno 2] No such file or directory: '/mnt/data/build-dxf/package-red/run-yw5heqw6/Original'
+
+EXIT_CODE=1

@@ -1,0 +1,4 @@
+$ cmake --install /mnt/data/build-dxf/package-red/run-yw5heqw6/Build --prefix /mnt/data/build-dxf/package-red/run-yw5heqw6/Original
+-- Install configuration: "Debug"
+
+EXIT_CODE=0
