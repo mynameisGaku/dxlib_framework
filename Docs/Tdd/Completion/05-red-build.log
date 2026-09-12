@@ -1,0 +1,4 @@
+[1/4] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Tests/NativeTests.cpp.o
+[2/4] Linking CXX executable dxf_native_contract_tests
+[3/4] Building CXX object CMakeFiles/dxf_tests.dir/Tests/HardeningTests.cpp.o
+[4/4] Linking CXX executable dxf_tests

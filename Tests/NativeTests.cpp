@@ -154,3 +154,16 @@ TEST("Native convenience Run owns the session and exits on a scene quit request"
 	REQUIRE(Run<DQuitAfterOneTickScene>({}));
 	REQUIRE(DxLib::Trace.Ends == 1);
 }
+
+TEST("Native platform rejects embedded NUL or malformed UTF8 window titles")
+{
+	DxLib::Trace = {};
+	FDxLibPlatform Platform;
+	FWindowSettings Settings;
+	Settings.Title = std::string("title\0hidden", 12);
+	REQUIRE(!Platform.Initialize(Settings));
+	Settings.Title = std::string("\xed\xa0\x80", 3);
+	REQUIRE(!Platform.Initialize(Settings));
+	Settings.Title = "日本語のウィンドウ";
+	REQUIRE(Platform.Initialize(Settings));
+}

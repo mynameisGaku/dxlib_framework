@@ -316,3 +316,17 @@ TEST("A scene destroyed during preparation is never activated")
 	REQUIRE(Counts.Stop == 1);
 	REQUIRE(Scenes.GetCurrent() == nullptr);
 }
+
+TEST("Text rendering rejects malformed UTF8 and embedded NUL before dispatch")
+{
+	FFakeBackend Backend;
+	FAssetService Assets(Backend, Backend, Backend);
+	auto Font = Assets.LoadFont().Value();
+	FRenderSystem2D Renderer(Backend);
+	REQUIRE(Renderer.BeginFrame(320, 240));
+	REQUIRE(!Renderer.GetContext().DrawText(Font, std::string("a\0b", 3), {}));
+	REQUIRE(!Renderer.GetContext().DrawText(Font, std::string("\xc0\xaf", 2), {}));
+	REQUIRE(Renderer.GetContext().DrawText(Font, "", {}));
+	REQUIRE(Renderer.GetContext().DrawText(Font, "日本語", {}));
+	REQUIRE(Renderer.EndFrame());
+}
