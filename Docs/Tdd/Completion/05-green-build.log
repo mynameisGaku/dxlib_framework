@@ -1,0 +1,5 @@
+[1/5] Building CXX object CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/DxLibPlatform.cpp.o
+[2/5] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/RenderQueue2D.cpp.o
+[3/5] Linking CXX static library libdxf_supportd.a
+[4/5] Linking CXX executable dxf_native_contract_tests
+[5/5] Linking CXX executable dxf_tests

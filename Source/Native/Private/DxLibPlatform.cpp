@@ -1,5 +1,6 @@
 #include "Dxf/DxLibPlatform.h"
 #include "NativeApi.h"
+#include "Dxf/Utf8.h"
 namespace Dxf
 {
 namespace
@@ -17,9 +18,10 @@ TResult<void> FDxLibPlatform::Initialize(const FWindowSettings& Settings)
 	{
 		return TResult<void>::Failure(EErrorCode::InvalidState, "Another DxLib session is active");
 	}
-	if (Settings.Width <= 0 || Settings.Height <= 0)
+	if (Settings.Width <= 0 || Settings.Height <= 0 ||
+		!Detail::IsValidNativeString_Internal(Settings.Title, true))
 	{
-		return TResult<void>::Failure(EErrorCode::InvalidArgument, "Invalid window dimensions");
+		return TResult<void>::Failure(EErrorCode::InvalidArgument, "Invalid window dimensions or UTF-8 title");
 	}
 	if (DxLib::SetUseCharCodeFormat(DX_CHARCODEFORMAT_UTF8) < 0 ||
 		DxLib::SetMainWindowText(Settings.Title.c_str()) < 0 ||

@@ -1,5 +1,6 @@
 #include "Dxf/RenderQueue2D.h"
 #include "Dxf/GuardValue.h"
+#include "Dxf/Utf8.h"
 #include <algorithm>
 #include <cmath>
 #include <tuple>
@@ -50,6 +51,10 @@ TResult<void> FRenderQueue2D::Validate_Internal(const FRenderCommand& Command) c
 			if (!Value.Font.IsValid())
 			{
 				return TResult<void>::Failure(EErrorCode::InvalidState, "Font was invalidated");
+			}
+			if (!Detail::IsValidNativeString_Internal(Value.Text, true))
+			{
+				return TResult<void>::Failure(EErrorCode::InvalidArgument, "Text must be UTF-8 without embedded NUL");
 			}
 			if (!Finite_Internal(Value.Position))
 			{
