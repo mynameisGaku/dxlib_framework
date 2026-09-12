@@ -52,11 +52,20 @@ int main()
     return Queue.Submit(Dxf::FRectangleCommand{}) ? 1 : 0;
 }
 ''', encoding='utf-8')
+    (consumer / 'Support.cpp').write_text('''#include "Dxf/RenderQueue2D.h"
+int main()
+{
+    Dxf::FRenderQueue2D Queue;
+    return Queue.Submit(Dxf::FRectangleCommand{}) ? 1 : 0;
+}
+''', encoding='utf-8')
     (consumer / 'CMakeLists.txt').write_text('''cmake_minimum_required(VERSION 3.24)
 project(RelocatedConsumer LANGUAGES CXX)
 find_package(dxlib_framework CONFIG REQUIRED)
 add_executable(Consumer Main.cpp)
 target_link_libraries(Consumer PRIVATE dxf::framework)
+add_executable(SupportOnly Support.cpp)
+target_link_libraries(SupportOnly PRIVATE dxf::support)
 if(NOT TARGET dxf::foundation OR NOT TARGET dxf::support OR NOT TARGET dxf::runtime OR NOT TARGET dxf::gameplay)
     message(FATAL_ERROR "Layer targets are missing from the installed package")
 endif()
@@ -66,9 +75,10 @@ endif()
     run('consumer-build', ['cmake', '--build', str(work / 'ConsumerBuild'), '--parallel', str(args.jobs)])
     suffix = '.exe' if sys.platform == 'win32' else ''
     run('consumer-run', [str(work / 'ConsumerBuild' / ('Consumer' + suffix))])
+    run('support-only-run', [str(work / 'ConsumerBuild' / ('SupportOnly' + suffix))])
     (args.logs / 'Summary.json').write_text(json.dumps({
         'install': True, 'relocation': True, 'external_consumer': True,
-        'real_dxlib_sdk': False}, indent=2) + '\n', encoding='utf-8')
+        'support_without_runtime': True, 'real_dxlib_sdk': False}, indent=2) + '\n', encoding='utf-8')
     return 0
 
 

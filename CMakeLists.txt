@@ -154,8 +154,6 @@ if(DXF_BUILD_NATIVE_SMOKE)
     add_executable(NativeSmoke Tests/NativeSmoke/Main.cpp Tests/NativeSmoke/Smoke.cpp)
     target_link_libraries(NativeSmoke PRIVATE dxf::native_backends)
     dxf_warnings(NativeSmoke)
-    add_custom_command(TARGET NativeSmoke POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/Assets" "$<TARGET_FILE_DIR:NativeSmoke>/Assets")
     if(DXF_RUN_DEVICE_TESTS)
         enable_testing()
         add_test(NAME NativeDeviceSmoke COMMAND NativeSmoke)
@@ -174,8 +172,24 @@ if(DXF_BUILD_EXAMPLE)
     target_link_libraries(Sandbox PRIVATE dxf::native)
     dxf_warnings(Sandbox)
     set_property(TARGET Sandbox PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:Sandbox>")
-    add_custom_command(TARGET Sandbox POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/Assets" "$<TARGET_FILE_DIR:Sandbox>/Assets")
+endif()
+
+# One writer for shared assets; parallel links must not copy into the same destination.
+if(TARGET NativeSmoke OR TARGET Sandbox)
+    if(TARGET Sandbox)
+        set(_dxf_asset_target Sandbox)
+    else()
+        set(_dxf_asset_target NativeSmoke)
+    endif()
+    add_custom_target(dxf_sample_assets
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/Assets"
+            "$<TARGET_FILE_DIR:${_dxf_asset_target}>/Assets"
+        COMMENT "Copying sample assets")
+    foreach(_dxf_executable NativeSmoke Sandbox)
+        if(TARGET ${_dxf_executable})
+            add_dependencies(${_dxf_executable} dxf_sample_assets)
+        endif()
+    endforeach()
 endif()
 
 if(DXF_INSTALL)

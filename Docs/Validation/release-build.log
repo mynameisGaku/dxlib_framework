@@ -1,4 +1,4 @@
-$ cmake --build /mnt/data/dxf-validation/release --parallel 4
+$ cmake --build /mnt/data/build-dxf/final-validation/release --parallel 4
 ninja: no work to do.
 
 EXIT_CODE=0

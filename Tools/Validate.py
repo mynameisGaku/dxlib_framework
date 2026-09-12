@@ -28,7 +28,7 @@ def main() -> int:
     logs.mkdir(parents=True, exist_ok=True)
     environment = os.environ.copy()
     environment.update(ASAN_OPTIONS="detect_leaks=1", UBSAN_OPTIONS="halt_on_error=1:print_stacktrace=1")
-    summary: dict[str, object] = {"native_sdk_verified": False, "profiles": {}}
+    summary: dict[str, object] = {"version": "0.2.0", "native_sdk_verified": False, "warnings_as_errors": True, "profiles": {}}
 
     def run(name: str, command: list[str]) -> str:
         result = subprocess.run(command, cwd=ROOT, env=environment, text=True,
@@ -51,7 +51,7 @@ def main() -> int:
         build = build_root / name
         run(f"{name}-configure", ["cmake", "-S", str(ROOT), "-B", str(build), "-G", "Ninja",
             f"-DCMAKE_BUILD_TYPE={configuration}", "-DDXF_BUILD_TESTS=ON", "-DDXF_BUILD_NATIVE=OFF",
-            "-DDXF_BUILD_EXAMPLE=OFF", *extra])
+            "-DDXF_BUILD_EXAMPLE=OFF", "-DDXF_BUILD_NATIVE_SMOKE=OFF", "-DDXF_WARNINGS_AS_ERRORS=ON", *extra])
         run(f"{name}-build", ["cmake", "--build", str(build), "--parallel", str(args.jobs)])
         run(f"{name}-ctest", ["ctest", "--test-dir", str(build), "--output-on-failure"])
         counts = []
@@ -88,7 +88,7 @@ int main()
     (consumer / "CMakeLists.txt").write_text(f'''cmake_minimum_required(VERSION 3.24)
 project(DxfConsumer LANGUAGES CXX)
 add_subdirectory("{ROOT.as_posix()}" framework)
-if(DXF_BUILD_TESTS OR DXF_BUILD_NATIVE OR DXF_BUILD_EXAMPLE)
+if(DXF_BUILD_TESTS OR DXF_BUILD_NATIVE OR DXF_BUILD_EXAMPLE OR DXF_BUILD_NATIVE_SMOKE OR DXF_INSTALL)
     message(FATAL_ERROR "Subproject defaults must not enable tests, samples or native dependencies")
 endif()
 add_library(HeaderChecks OBJECT {' '.join(sources)})
@@ -99,7 +99,7 @@ add_executable(Consumer Main.cpp)
 target_link_libraries(Consumer PRIVATE dxf::framework)
 ''', encoding="utf-8")
     consumer_build = build_root / "ConsumerBuild"
-    run("consumer-configure", ["cmake", "-S", str(consumer), "-B", str(consumer_build), "-G", "Ninja", "-DCMAKE_BUILD_TYPE=Debug"])
+    run("consumer-configure", ["cmake", "-S", str(consumer), "-B", str(consumer_build), "-G", "Ninja", "-DCMAKE_BUILD_TYPE=Debug", "-DDXF_WARNINGS_AS_ERRORS=ON"])
     run("consumer-build", ["cmake", "--build", str(consumer_build), "--parallel", str(args.jobs)])
     run("consumer-run", [str(consumer_build / ("Consumer" + suffix))])
     summary["standalone_public_headers"] = len(headers)

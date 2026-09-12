@@ -1,4 +1,4 @@
-$ cmake -S /mnt/data/build-dxf/final-validation/ConsumerSource -B /mnt/data/build-dxf/final-validation/ConsumerBuild -G Ninja -DCMAKE_BUILD_TYPE=Debug -DDXF_WARNINGS_AS_ERRORS=ON
+$ cmake -S /mnt/data/work/dxlib_framework -B /mnt/data/build-dxf/package-final/run-vkbur03e/Build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DDXF_BUILD_TESTS=OFF -DDXF_BUILD_NATIVE=OFF -DDXF_INSTALL=ON
 -- The CXX compiler identification is GNU 14.2.0
 -- Detecting CXX compiler ABI info
 -- Detecting CXX compiler ABI info - done
@@ -7,6 +7,6 @@ $ cmake -S /mnt/data/build-dxf/final-validation/ConsumerSource -B /mnt/data/buil
 -- Detecting CXX compile features - done
 -- Configuring done (0.2s)
 -- Generating done (0.0s)
--- Build files have been written to: /mnt/data/build-dxf/final-validation/ConsumerBuild
+-- Build files have been written to: /mnt/data/build-dxf/package-final/run-vkbur03e/Build
 
 EXIT_CODE=0

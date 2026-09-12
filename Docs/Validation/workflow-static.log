@@ -1,0 +1,2 @@
+PASS workflow YAML and least-privilege/static script checks
+NOT RUN: PowerShell interpreter, Windows MSVC, actual DxLib SDK

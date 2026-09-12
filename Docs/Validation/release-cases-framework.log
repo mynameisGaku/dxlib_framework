@@ -1,4 +1,4 @@
-$ /mnt/data/dxf-validation/release/dxf_tests
+$ /mnt/data/build-dxf/final-validation/release/dxf_tests
 [PASS] Result holds a move-only value
 [PASS] Result preserves error and void success
 [PASS] RTTI supports safe derived checks
@@ -83,6 +83,35 @@ $ /mnt/data/dxf-validation/release/dxf_tests
 [PASS] Sandbox switches scene while game state survives and old handles expire
 [PASS] Sandbox audio is scene scoped and Escape shuts down the application
 [PASS] Sandbox propagates missing assets instead of entering a half-constructed scene
-84/84 passed
+[PASS] Slot removal invalidates generation before running a reentrant destructor
+[PASS] Collection shutdown in Tick prevents later objects from ticking
+[PASS] Collection shutdown during preparation skips remaining initializations
+[PASS] Standalone object Tick translates user exceptions to TResult
+[PASS] Standalone object Draw translates unknown user exceptions to TResult
+[PASS] Navigator shutdown during preparation never activates the replacement
+[PASS] Navigator quit during preparation retains current scene until shutdown
+[PASS] Asset paths reject embedded NUL before reaching a backend
+[PASS] Asset paths reject overlong UTF8 surrogate and truncated sequences
+[PASS] Asset paths accept valid Japanese and four byte UTF8
+[PASS] Direct loaders reject empty paths and invalid sound storage enums
+[PASS] Font families reject embedded NUL and malformed UTF8
+[PASS] Sound resources from another backend are rejected before duplication
+[PASS] Render execution failure prevents presenting a partial frame
+[PASS] Resource registry rejects null records
+[PASS] A scene destroyed during preparation is never activated
+[PASS] Text rendering rejects malformed UTF8 and embedded NUL before dispatch
+[PASS] A collection stopped by an object constructor must reject that spawn
+[PASS] Invalid sound storage must not alias an existing streamed cache entry
+[PASS] Actions combine keyboard mouse and gamepad without duplicate press edges
+[PASS] Invalid action bindings are rejected without creating actions
+[PASS] Input actions support rebinding and opposed digital axes
+[PASS] Typed component lookup returns pending handles and excludes destruction requests
+[PASS] Scene object queries remain non-owning across scene shutdown
+[PASS] Built-in sprite component draws through automatic child dispatch
+[PASS] Unconfigured sprite component is inert instead of issuing an invalid draw
+[PASS] Slot generations survive 20000 deterministic create remove and reuse operations
+[PASS] Assets survive 1000 load release cache-collection cycles without live handles
+[PASS] UTF8 validation accepts every Unicode scalar and rejects every encoded surrogate
+113/113 passed
 
 EXIT_CODE=0

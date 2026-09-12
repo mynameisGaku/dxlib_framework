@@ -1,0 +1,7 @@
+$ cmake --build /mnt/data/build-dxf/package-final/run-vkbur03e/ConsumerBuild --parallel 4
+[1/4] Building CXX object CMakeFiles/SupportOnly.dir/Support.cpp.o
+[2/4] Linking CXX executable SupportOnly
+[3/4] Building CXX object CMakeFiles/Consumer.dir/Main.cpp.o
+[4/4] Linking CXX executable Consumer
+
+EXIT_CODE=0

@@ -1,6 +1,7 @@
 PASS Source/DxLibSupport/Public/Dxf/AssetBackend.h
 PASS Source/DxLibSupport/Public/Dxf/AssetService.h
 PASS Source/DxLibSupport/Public/Dxf/AudioPlayer.h
+PASS Source/DxLibSupport/Public/Dxf/BackendServices.h
 PASS Source/DxLibSupport/Public/Dxf/DxLibSession.h
 PASS Source/DxLibSupport/Public/Dxf/Font.h
 PASS Source/DxLibSupport/Public/Dxf/FontLoader.h
@@ -33,11 +34,13 @@ PASS Source/Foundation/Public/Dxf/Object.h
 PASS Source/Foundation/Public/Dxf/ObjectHandle.h
 PASS Source/Foundation/Public/Dxf/Result.h
 PASS Source/Foundation/Public/Dxf/SlotMap.h
+PASS Source/Foundation/Public/Dxf/Utf8.h
 PASS Source/Gameplay/Public/Dxf/ComponentCollection.h
 PASS Source/Gameplay/Public/Dxf/GameObject.h
 PASS Source/Gameplay/Public/Dxf/GameObjectCollection.h
 PASS Source/Gameplay/Public/Dxf/GameObjectComponent.h
 PASS Source/Gameplay/Public/Dxf/GameScene.h
+PASS Source/Gameplay/Public/Dxf/SpriteRendererComponent.h
 PASS Source/Native/Public/Dxf/DxLibFontBackend.h
 PASS Source/Native/Public/Dxf/DxLibInputSource.h
 PASS Source/Native/Public/Dxf/DxLibPlatform.h
@@ -48,7 +51,6 @@ PASS Source/Native/Public/Dxf/NativeBackends.h
 PASS Source/Native/Public/Dxf/NativeRun.h
 PASS Source/Runtime/Public/Dxf/AppRunner.h
 PASS Source/Runtime/Public/Dxf/Application.h
-PASS Source/Runtime/Public/Dxf/BackendServices.h
 PASS Source/Runtime/Public/Dxf/Contexts.h
 PASS Source/Runtime/Public/Dxf/GameInstance.h
 PASS Source/Runtime/Public/Dxf/LifecycleGroup.h

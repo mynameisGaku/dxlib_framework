@@ -1,20 +1,22 @@
 {
+  "version": "0.2.0",
   "native_sdk_verified": false,
+  "warnings_as_errors": true,
   "profiles": {
     "debug": {
-      "framework_cases": 84,
-      "native_contract_cases": 11
+      "framework_cases": 113,
+      "native_contract_cases": 14
     },
     "release": {
-      "framework_cases": 84,
-      "native_contract_cases": 11
+      "framework_cases": 113,
+      "native_contract_cases": 14
     },
     "sanitized": {
-      "framework_cases": 84,
-      "native_contract_cases": 11
+      "framework_cases": 113,
+      "native_contract_cases": 14
     }
   },
-  "standalone_public_headers": 63,
+  "standalone_public_headers": 65,
   "standalone_sample_headers": 1,
   "sample_assets": "BMP 64x64 24-bit; WAV mono 16-bit 22050Hz",
   "environment": {
