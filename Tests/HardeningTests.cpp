@@ -330,3 +330,33 @@ TEST("Text rendering rejects malformed UTF8 and embedded NUL before dispatch")
 	REQUIRE(Renderer.GetContext().DrawText(Font, "日本語", {}));
 	REQUIRE(Renderer.EndFrame());
 }
+
+namespace
+{
+class DConstructorStop final : public DGameObject
+{
+public:
+	explicit DConstructorStop(FGameObjectCollection& Collection)
+	{
+		Collection.Shutdown_Internal();
+	}
+};
+}
+TEST("A collection stopped by an object constructor must reject that spawn")
+{
+	FGameObjectCollection Collection;
+	REQUIRE(!Collection.Spawn<DConstructorStop>(Collection));
+	REQUIRE(Collection.Size() == 0);
+	FHookCounts Counts;
+	REQUIRE(!Collection.Spawn<DHookObject>(Counts));
+}
+
+TEST("Invalid sound storage must not alias an existing streamed cache entry")
+{
+	FFakeBackend Backend;
+	FAssetService Assets(Backend, Backend, Backend);
+	auto Stream = Assets.LoadSound("music.wav", {ESoundStorage::Stream});
+	REQUIRE(Stream);
+	REQUIRE(!Assets.LoadSound("music.wav", {static_cast<ESoundStorage>(99)}));
+	REQUIRE(Backend.GetTrace().SoundLoads == 1);
+}
