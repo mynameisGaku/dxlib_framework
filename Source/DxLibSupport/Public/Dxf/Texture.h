@@ -71,7 +71,7 @@ public:
 	/**
 	 * 共有するリソースを取得する。
 	 */
-	const Toolbox::TSharedPtr<FTextureResource>& GetResource_Internal() const noexcept
+	FORCEINLINE const Toolbox::TSharedPtr<FTextureResource>& GetResource_Internal() const noexcept
 	{
 		return m_pResource;
 	}
@@ -108,7 +108,7 @@ public:
 	/**
 	 * 描画先を読み取り用テクスチャとして参照する。
 	 */
-	const FTexture& AsTexture() const noexcept
+	FORCEINLINE const FTexture& AsTexture() const noexcept
 	{
 		return m_Texture;
 	}

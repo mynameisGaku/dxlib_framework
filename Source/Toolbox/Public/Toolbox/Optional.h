@@ -129,9 +129,7 @@ public:
 	template <typename... Args> T& Emplace(Args&&... Values)
 	{
 		Reset();
-		/**
-		 * 構築または転送する対象の値。
-		 */
+		// 構築または転送する対象の値。
 		T* Value = new (m_Storage) T(Forward<Args>(Values)...);
 		m_bPresent = true;
 		return *Value;
@@ -150,14 +148,14 @@ public:
 	/**
 	 * 構築済みの値が存在するか調べる。
 	 */
-	bool HasValue() const noexcept
+	FORCEINLINE bool HasValue() const noexcept
 	{
 		return m_bPresent;
 	}
 	/**
 	 * 有効な値または対象があるか調べる。
 	 */
-	explicit operator bool() const noexcept
+	FORCEINLINE explicit operator bool() const noexcept
 	{
 		return m_bPresent;
 	}
@@ -239,14 +237,14 @@ private:
 	/**
 	 * 構築済みオブジェクトが置かれる内部領域を指す。
 	 */
-	T* Pointer_Internal() noexcept
+	FORCEINLINE T* Pointer_Internal() noexcept
 	{
 		return reinterpret_cast<T*>(m_Storage);
 	}
 	/**
 	 * 構築済みオブジェクトが置かれる内部領域を指す。
 	 */
-	const T* Pointer_Internal() const noexcept
+	FORCEINLINE const T* Pointer_Internal() const noexcept
 	{
 		return reinterpret_cast<const T*>(m_Storage);
 	}

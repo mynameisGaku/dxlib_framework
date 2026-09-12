@@ -14,11 +14,15 @@
 
 ## Windowsで動かす
 
+### 空のプロジェクトからゲームを作る
+
+まずは[Starter](Examples/Starter/README.md)を使ってください。`Examples/Starter/Source/BootScene.cpp`がゲームを書き始める場所です。空のウィンドウと初期化・更新・描画・終了処理の枠だけを用意しています。機能の使用例は引き続きSandboxで確認できます。
+
 ### Visual Studioのソリューションを生成する
 
 通常の入口はルートの`dxlib_framework.slnx`（Visual Studioの世代によっては`.sln`）です。`dxf_toolbox`・`dxf_foundation`・`dxf_support`・`dxf_runtime`・`dxf_gameplay`・`dxf_native_backends`・`Sandbox`の7プロジェクトだけを表示します。Toolboxを含め、ユーザーが利用する型とヘッダーを各プロジェクトから参照できます。テストやCMake補助プロジェクトは開発用へ分離しています。
 
-初回は `Setup.cmd` でDxLib SDKを用意し、ルートの `GenerateProjectFiles.bat` をダブルクリックします。Visual StudioのC++開発ツールとCMakeを自動検出し、`dxlib_framework.sln`（環境によっては `.slnx`）を生成します。Visual Studioで開き、Debug／Release・x64を選択してビルドできます。生成だけではビルドしません。
+初回は `Setup.cmd` でDxLib SDKを用意し、ルートの `GenerateProjectFiles.bat` をダブルクリックします。Visual StudioのC++開発ツールとCMakeを自動検出し、`dxlib_framework.sln`（環境によっては `.slnx`）を生成します。Visual Studioで開き、Debug／Release・x64を選択してビルドできます。通常版にはStarterとSandboxが含まれ、初回の実行対象はStarterです。生成だけではビルドしません。CMakeを直接使う場合は`DXF_BUILD_STARTER=ON`と`DXF_BUILD_NATIVE=ON`でStarterを追加できます。
 
 生成時はCMakeの構成キャッシュを作り直し、環境変数や過去のキャッシュにある外部ツールチェーン設定を無効化して、検出したMSVCを直接使います。システムの環境変数は変更しません。
 

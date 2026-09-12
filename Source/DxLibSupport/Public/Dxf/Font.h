@@ -40,7 +40,7 @@ public:
 	/**
 	 * 共有するリソースを取得する。
 	 */
-	const Toolbox::TSharedPtr<FFontResource>& GetResource_Internal() const noexcept
+	FORCEINLINE const Toolbox::TSharedPtr<FFontResource>& GetResource_Internal() const noexcept
 	{
 		return m_pResource;
 	}

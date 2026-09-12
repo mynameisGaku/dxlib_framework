@@ -45,9 +45,7 @@ template <size_t A, size_t... Rest> constexpr size_t Maximum()
 	}
 	else
 	{
-		/**
-		 * 残りの選択肢に必要な最大値。
-		 */
+		// 残りの選択肢に必要な最大値。
 		constexpr size_t B = Maximum<Rest...>();
 		return A > B ? A : B;
 	}
@@ -133,9 +131,7 @@ public:
 	{
 		if (this != &Other)
 		{
-			/**
-			 * 元の値を保ったまま変更を準備する複製。
-			 */
+			// 元の値を保ったまま変更を準備する複製。
 			TVariant Copy(Other);
 			*this = Move(Copy);
 		}
@@ -148,9 +144,7 @@ public:
 	    requires(!IsSame<TDecay<T>, TVariant>)
 	TVariant& operator=(T&& Value)
 	{
-		/**
-		 * 交換または代入が終わるまで元の値を保持する一時領域。
-		 */
+		// 交換または代入が終わるまで元の値を保持する一時領域。
 		TVariant Temporary(Forward<T>(Value));
 		*this = Move(Temporary);
 		return *this;
@@ -158,7 +152,7 @@ public:
 	/**
 	 * 現在有効な型の番号を返す。
 	 */
-	size_t Index() const noexcept
+	FORCEINLINE size_t Index() const noexcept
 	{
 		return m_Index;
 	}
@@ -300,7 +294,7 @@ private:
  * @param Value 読み出す対象の選択値。
 
  */
-template <size_t I, typename... T> decltype(auto) Get(TVariant<T...>& Value)
+template <size_t I, typename... T> FORCEINLINE decltype(auto) Get(TVariant<T...>& Value)
 {
 	return Value.template Get<I>();
 }
@@ -309,7 +303,7 @@ template <size_t I, typename... T> decltype(auto) Get(TVariant<T...>& Value)
  * @param Value 読み出す対象の選択値。
 
  */
-template <size_t I, typename... T> decltype(auto) Get(const TVariant<T...>& Value)
+template <size_t I, typename... T> FORCEINLINE decltype(auto) Get(const TVariant<T...>& Value)
 {
 	return Value.template Get<I>();
 }
@@ -318,7 +312,7 @@ template <size_t I, typename... T> decltype(auto) Get(const TVariant<T...>& Valu
  * @param Value 所有値を取り出す選択値。
 
  */
-template <size_t I, typename... T> decltype(auto) Get(TVariant<T...>&& Value)
+template <size_t I, typename... T> FORCEINLINE decltype(auto) Get(TVariant<T...>&& Value)
 {
 	return Move(Value.template Get<I>());
 }
@@ -327,7 +321,7 @@ template <size_t I, typename... T> decltype(auto) Get(TVariant<T...>&& Value)
  * @param Value 読み出す対象の選択値。
 
  */
-template <typename U, typename... T> const U& Get(const TVariant<T...>& Value)
+template <typename U, typename... T> FORCEINLINE const U& Get(const TVariant<T...>& Value)
 {
 	return Value.template Get<Detail::VariantIndex<U, T...>()>();
 }

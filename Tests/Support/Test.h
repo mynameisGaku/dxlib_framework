@@ -22,11 +22,9 @@ struct FCase
 /**
  * 翻訳単位をまたいで登録先を共有する。
  */
-inline Toolbox::TVector<FCase>& Cases_Internal()
+FORCEINLINE Toolbox::TVector<FCase>& Cases_Internal()
 {
-	/**
-	 * 初回参照時に作られる全テストの登録先。
-	 */
+	// 初回参照時に作られる全テストの登録先。
 	static Toolbox::TVector<FCase> Cases;
 	return Cases;
 }
@@ -52,7 +50,7 @@ public:
  * @param Text 条件式のソース表記。
  * @param Line 条件式がある行番号。
  */
-inline void Require_Internal(bool bValue, const char* Text, Toolbox::int32 Line)
+FORCEINLINE void Require_Internal(bool bValue, const char* Text, Toolbox::int32 Line)
 {
 	if (!bValue)
 	{

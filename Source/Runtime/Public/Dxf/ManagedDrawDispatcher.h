@@ -23,9 +23,7 @@ public:
 	 */
 	TResult<void> Draw_Internal(FRenderContext& Context)
 	{
-		/**
-		 * 所有するオブジェクト群。
-		 */
+		// 所有するオブジェクト群。
 		auto Objects = m_pStorage->Snapshot();
 		Toolbox::Sort(Objects.Begin(), Objects.End(),
 		              [&](const auto& A, const auto& B)
@@ -33,22 +31,16 @@ public:
 			              return m_pStorage->Find_Internal(A.GetId())->GetCreationOrder_Internal() <
 			                     m_pStorage->Find_Internal(B.GetId())->GetCreationOrder_Internal();
 		              });
-		/**
-		 * ハンドルを順に処理する。
-		 */
+		// ハンドルを順に処理する。
 		for (auto Handle : Objects)
 		{
-			/**
-			 * オブジェクト。
-			 */
+			// オブジェクト。
 			T* Object = m_pStorage->Find_Internal(Handle.GetId());
 			if (!Object)
 			{
 				continue;
 			}
-			/**
-			 * 処理結果。
-			 */
+			// 処理結果。
 			auto Result = Object->Draw_Internal(Context);
 			if (!Result)
 			{

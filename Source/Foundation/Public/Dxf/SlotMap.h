@@ -9,15 +9,11 @@ namespace Dxf
 /**
  * 重複しないハンドル所有領域の番号を割り当てる。
  */
-inline Toolbox::uint64 AllocateDomain_Internal()
+FORCEINLINE Toolbox::uint64 AllocateDomain_Internal()
 {
-	/**
-	 * 次に割り当てる番号。
-	 */
+	// 次に割り当てる番号。
 	static Toolbox::FAtomicCounter Next{1};
-	/**
-	 * 処理対象の値。
-	 */
+	// 処理対象の値。
 	const auto Value = Next.FetchAdd(1);
 	if (Value == 0)
 	{
@@ -74,9 +70,7 @@ public:
 		{
 			return {};
 		}
-		/**
-		 * 要素の位置。
-		 */
+		// 要素の位置。
 		Toolbox::size_t Index = 0;
 		for (; Index < m_Slots.Size(); ++Index)
 		{
@@ -89,9 +83,7 @@ public:
 		{
 			m_Slots.EmplaceBack();
 		}
-		/**
-		 * オブジェクトの格納スロット。
-		 */
+		// オブジェクトの格納スロット。
 		auto& Slot = m_Slots[Index];
 		Slot.Object = Toolbox::Move(Object);
 		++m_Size;
@@ -103,19 +95,15 @@ public:
 	 */
 	template <typename U> bool Remove(const TObjectHandle<U>& Handle) noexcept
 	{
-		/**
-		 * 識別子。
-		 */
+		// 識別子。
 		const auto Id = Handle.GetId();
 		if (!Find_Internal(Id))
 		{
 			return false;
 		}
-		/**
-		 * 利用者のデストラクターより先に削除を反映する。再登録や配列の拡張に備え、スロット参照を保持しない。
-		 *
-		 * 取り外したオブジェクトの所有権。
-		 */
+		// 利用者のデストラクターより先に削除を反映する。再登録や配列の拡張に備え、スロット参照を保持しない。
+		//
+		// 取り外したオブジェクトの所有権。
 		auto Removed = Toolbox::Move(m_Slots[Id.Index].Object);
 		++m_Slots[Id.Index].Generation;
 		--m_Size;
@@ -131,9 +119,7 @@ public:
 		{
 			return nullptr;
 		}
-		/**
-		 * オブジェクトの格納スロット。
-		 */
+		// オブジェクトの格納スロット。
 		const auto& Slot = m_Slots[Id.Index];
 		return Id.Generation == Slot.Generation ? Slot.Object.Get() : nullptr;
 	}
@@ -142,19 +128,13 @@ public:
 	 */
 	Toolbox::TVector<TObjectHandle<T>> Snapshot() const
 	{
-		/**
-		 * 処理結果。
-		 */
+		// 処理結果。
 		Toolbox::TVector<TObjectHandle<T>> Result;
 		Result.Reserve(m_Size);
-		/**
-		 * 要素の位置を進めて順に処理する。
-		 */
+		// 要素の位置を進めて順に処理する。
 		for (Toolbox::size_t Index = 0; Index < m_Slots.Size(); ++Index)
 		{
-			/**
-			 * オブジェクトの格納スロット。
-			 */
+			// オブジェクトの格納スロット。
 			const auto& Slot = m_Slots[Index];
 			if (Slot.Object)
 			{
@@ -169,22 +149,14 @@ public:
 	 */
 	template <typename TPredicate> void RemoveIf_Internal(TPredicate Predicate) noexcept
 	{
-		/**
-		 * 要素数。
-		 */
+		// 要素数。
 		const auto Count = m_Slots.Size();
-		/**
-		 * 要素の位置を進めて順に処理する。
-		 */
+		// 要素の位置を進めて順に処理する。
 		for (Toolbox::size_t Index = 0; Index < Count; ++Index)
 		{
-			/**
-			 * オブジェクト。
-			 */
+			// オブジェクト。
 			T* Object = m_Slots[Index].Object.Get();
-			/**
-			 * スロットの世代番号。
-			 */
+			// スロットの世代番号。
 			const auto Generation = m_Slots[Index].Generation;
 			if (Object && Predicate(*Object))
 			{
@@ -198,9 +170,7 @@ public:
 	 */
 	template <typename TFunction> void ForEach_Internal(TFunction Function)
 	{
-		/**
-		 * オブジェクトの格納スロットを順に処理する。
-		 */
+		// オブジェクトの格納スロットを順に処理する。
 		for (auto& Slot : m_Slots)
 		{
 			if (Slot.Object)
@@ -215,14 +185,10 @@ public:
 	template <typename U> TObjectHandle<U> FindFirst() const noexcept
 	{
 		static_assert(Toolbox::IsBaseOf<T, U>);
-		/**
-		 * 要素の位置を進めて順に処理する。
-		 */
+		// 要素の位置を進めて順に処理する。
 		for (Toolbox::size_t Index = 0; Index < m_Slots.Size(); ++Index)
 		{
-			/**
-			 * オブジェクトの格納スロット。
-			 */
+			// オブジェクトの格納スロット。
 			const auto& Slot = m_Slots[Index];
 			if (Slot.Object && Slot.Object->IsHandleAccessible_Internal() && dynamic_cast<U*>(Slot.Object.Get()))
 			{
@@ -237,18 +203,12 @@ public:
 	template <typename U> Toolbox::TVector<TObjectHandle<U>> FindAll() const
 	{
 		static_assert(Toolbox::IsBaseOf<T, U>);
-		/**
-		 * 処理結果。
-		 */
+		// 処理結果。
 		Toolbox::TVector<TObjectHandle<U>> Result;
-		/**
-		 * ハンドルを順に処理する。
-		 */
+		// ハンドルを順に処理する。
 		for (auto Handle : Snapshot())
 		{
-			/**
-			 * 型を確認したハンドル。
-			 */
+			// 型を確認したハンドル。
 			auto Typed = Handle.template Cast<U>();
 			if (Typed)
 			{
@@ -260,7 +220,7 @@ public:
 	/**
 	 * 有効な要素数を取得する。
 	 */
-	Toolbox::size_t Size() const noexcept
+	FORCEINLINE Toolbox::size_t Size() const noexcept
 	{
 		return m_Size;
 	}

@@ -56,27 +56,23 @@ public:
 	 */
 	T* Get() const noexcept
 	{
-		/**
-		 * ハンドルの所有領域。
-		 */
+		// ハンドルの所有領域。
 		const auto Domain = m_pDomain.Lock();
-		/**
-		 * オブジェクト。
-		 */
+		// オブジェクト。
 		DObject* Object = Domain && Domain->Resolve ? Domain->Resolve(m_Id) : nullptr;
 		return Object && Object->IsHandleAccessible_Internal() ? dynamic_cast<T*>(Object) : nullptr;
 	}
 	/**
 	 * 処理または参照が有効かを返す。
 	 */
-	explicit operator bool() const noexcept
+	FORCEINLINE explicit operator bool() const noexcept
 	{
 		return Get() != nullptr;
 	}
 	/**
 	 * 識別子を取得する。
 	 */
-	FObjectId GetId() const noexcept
+	FORCEINLINE FObjectId GetId() const noexcept
 	{
 		return m_Id;
 	}
@@ -91,7 +87,7 @@ public:
 	 * 識別情報が等しいかを比較する。
 	 * @param Other 操作相手。
 	 */
-	bool operator==(const TObjectHandle& Other) const noexcept
+	FORCEINLINE bool operator==(const TObjectHandle& Other) const noexcept
 	{
 		return m_Id == Other.m_Id;
 	}

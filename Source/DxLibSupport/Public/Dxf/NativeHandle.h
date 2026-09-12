@@ -67,14 +67,14 @@ public:
 	/**
 	 * 所有するネイティブハンドルの値を取得する。
 	 */
-	Toolbox::int32 Get() const noexcept
+	FORCEINLINE Toolbox::int32 Get() const noexcept
 	{
 		return m_Handle;
 	}
 	/**
 	 * バックエンドの識別ポインターを取得する。
 	 */
-	const void* GetBackendIdentity_Internal() const noexcept
+	FORCEINLINE const void* GetBackendIdentity_Internal() const noexcept
 	{
 		return m_pContext;
 	}
@@ -83,9 +83,7 @@ public:
 	 */
 	void Reset() noexcept
 	{
-		/**
-		 * ハンドル。
-		 */
+		// ハンドル。
 		const Toolbox::int32 Handle = Toolbox::Exchange(m_Handle, -1);
 		if (Handle >= 0 && m_pRelease)
 		{

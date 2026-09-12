@@ -2,9 +2,7 @@
 #include "Toolbox/Platform.h"
 #include "Toolbox/String.h"
 
-/**
- * 登録された検証を実行して成否を終了コードへ変える。
- */
+// 登録された検証を実行して成否を終了コードへ変える。
 Toolbox::int32 main(Toolbox::int32 ArgCount, char** Args)
 {
 	bool bAudio = false;
@@ -20,9 +18,7 @@ Toolbox::int32 main(Toolbox::int32 ArgCount, char** Args)
 			return 2;
 		}
 	}
-	/**
-	 * 検証対象の操作が返した成否と値。
-	 */
+	// 検証対象の操作が返した成否と値。
 	auto Result = Dxf::Testing::RunNativeSmoke(Toolbox::CurrentDirectory() / "Assets", bAudio);
 	if (!Result)
 	{

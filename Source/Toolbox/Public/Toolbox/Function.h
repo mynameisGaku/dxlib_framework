@@ -112,9 +112,7 @@ public:
 	{
 		if (this != &Other)
 		{
-			/**
-			 * 元の値を保ったまま変更を準備する複製。
-			 */
+			// 元の値を保ったまま変更を準備する複製。
 			TFunction Copy(Other);
 			m_pCallable = Move(Copy.m_pCallable);
 		}
@@ -127,7 +125,7 @@ public:
 	/**
 	 * 有効な値または対象があるか調べる。
 	 */
-	explicit operator bool() const noexcept
+	FORCEINLINE explicit operator bool() const noexcept
 	{
 		return static_cast<bool>(m_pCallable);
 	}

@@ -37,7 +37,7 @@ struct alignas(16) FVector3
 	 * @param InY Y軸の初期値。
 	 * @param InZ Z軸の初期値。
 	 */
-	constexpr FVector3(f32 InX = 0, f32 InY = 0, f32 InZ = 0) : X(InX), Y(InY), Z(InZ)
+	FORCEINLINE constexpr FVector3(f32 InX = 0, f32 InY = 0, f32 InZ = 0) : X(InX), Y(InY), Z(InZ)
 	{
 	}
 	/**
@@ -53,7 +53,7 @@ struct alignas(16) FVector3
 	/**
 	 * 方向を反転する。
 	 */
-	FVector3 operator-() const noexcept
+	FORCEINLINE FVector3 operator-() const noexcept
 	{
 		return {-X, -Y, -Z};
 	}
@@ -78,7 +78,7 @@ struct alignas(16) FVector3
 	 * 値を累積する。
 	 * @param Other 演算または比較の相手。
 	 */
-	FVector3& operator+=(FVector3 Other) noexcept
+	FORCEINLINE FVector3& operator+=(FVector3 Other) noexcept
 	{
 		return *this = *this + Other;
 	}
@@ -86,7 +86,7 @@ struct alignas(16) FVector3
 	 * 三軸が完全に一致するか調べる。
 	 * @param Other 演算または比較の相手。
 	 */
-	bool operator==(const FVector3& Other) const noexcept
+	FORCEINLINE bool operator==(const FVector3& Other) const noexcept
 	{
 		return X == Other.X && Y == Other.Y && Z == Other.Z;
 	}
@@ -94,14 +94,14 @@ struct alignas(16) FVector3
 	 * 軸番号0〜2の成分を返す。
 	 * @param Axis 回転軸または参照する軸番号。
 	 */
-	f32 Component(int32 Axis) const noexcept
+	FORCEINLINE f32 Component(int32 Axis) const noexcept
 	{
 		return Axis == 0 ? X : (Axis == 1 ? Y : Z);
 	}
 	/**
 	 * 全成分が有限値か調べる。
 	 */
-	bool IsValid() const noexcept
+	FORCEINLINE bool IsValid() const noexcept
 	{
 		return IsFinite(X) && IsFinite(Y) && IsFinite(Z);
 	}
@@ -122,7 +122,7 @@ FVector3 Cross(FVector3 A, FVector3 B) noexcept;
  * 長さの二乗を返し、不要な平方根を避ける。
  * @param Value 処理対象の値。
  */
-inline f32 LengthSquared(FVector3 Value) noexcept
+FORCEINLINE f32 LengthSquared(FVector3 Value) noexcept
 {
 	return Dot(Value, Value);
 }
@@ -130,11 +130,9 @@ inline f32 LengthSquared(FVector3 Value) noexcept
  * ベクトルの長さを返す。
  * @param Value 処理対象の値。
  */
-inline f32 Length(FVector3 Value) noexcept
+FORCEINLINE f32 Length(FVector3 Value) noexcept
 {
-	/**
-	 * 二乗を倍精度で計算し、有限な長さのオーバーフローと微小値の消失を防ぐ。
-	 */
+	// 二乗を倍精度で計算し、有限な長さのオーバーフローと微小値の消失を防ぐ。
 	const f64 Squared = f64(Value.X) * Value.X + f64(Value.Y) * Value.Y + f64(Value.Z) * Value.Z;
 	return static_cast<f32>(Sqrt(Squared));
 }
@@ -142,19 +140,15 @@ inline f32 Length(FVector3 Value) noexcept
  * 単位ベクトルへ変換する。ゼロ長はゼロベクトルを返す。
  * @param Value 処理対象の値。
  */
-inline FVector3 Normalize(FVector3 Value) noexcept
+FORCEINLINE FVector3 Normalize(FVector3 Value) noexcept
 {
-	/**
-	 * 最大成分を基準に縮尺をそろえ、長さが単精度を超える方向にも対応する。
-	 */
+	// 最大成分を基準に縮尺をそろえ、長さが単精度を超える方向にも対応する。
 	const f32 Scale = Max(Abs(Value.X), Max(Abs(Value.Y), Abs(Value.Z)));
 	if (!Value.IsValid() || Scale == 0)
 	{
 		return {};
 	}
-	/**
-	 * 各成分の絶対値が1以下になる補助ベクトル。
-	 */
+	// 各成分の絶対値が1以下になる補助ベクトル。
 	const FVector3 Scaled{Value.X / Scale, Value.Y / Scale, Value.Z / Scale};
 	return Scaled * (1.0f / Sqrt(LengthSquared(Scaled)));
 }
@@ -163,7 +157,7 @@ inline FVector3 Normalize(FVector3 Value) noexcept
  * @param A 左側の入力値。
  * @param B 右側の入力値。
  */
-inline FVector3 Min(FVector3 A, FVector3 B) noexcept
+FORCEINLINE FVector3 Min(FVector3 A, FVector3 B) noexcept
 {
 	return {Min(A.X, B.X), Min(A.Y, B.Y), Min(A.Z, B.Z)};
 }
@@ -172,7 +166,7 @@ inline FVector3 Min(FVector3 A, FVector3 B) noexcept
  * @param A 左側の入力値。
  * @param B 右側の入力値。
  */
-inline FVector3 Max(FVector3 A, FVector3 B) noexcept
+FORCEINLINE FVector3 Max(FVector3 A, FVector3 B) noexcept
 {
 	return {-Min(-A.X, -B.X), -Min(-A.Y, -B.Y), -Min(-A.Z, -B.Z)};
 }

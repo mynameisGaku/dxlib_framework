@@ -38,27 +38,27 @@ public:
 	 * @param Text 読み取る文字列。
 	 * @param Length 終端を除いた文字数。
 	 */
-	constexpr FStringView(const char* Text, size_t Length) : m_pData(Text), m_Size(Length)
+	FORCEINLINE constexpr FStringView(const char* Text, size_t Length) : m_pData(Text), m_Size(Length)
 	{
 	}
 	/**
 	 * 参照している文字列範囲の先頭を返す。所有権は移さない。
 	 */
-	const char* Data() const noexcept
+	FORCEINLINE const char* Data() const noexcept
 	{
 		return m_pData;
 	}
 	/**
 	 * 現在保持している要素数を返す。
 	 */
-	size_t Size() const noexcept
+	FORCEINLINE size_t Size() const noexcept
 	{
 		return m_Size;
 	}
 	/**
 	 * 要素が一つもないか調べる。
 	 */
-	bool IsEmpty() const noexcept
+	FORCEINLINE bool IsEmpty() const noexcept
 	{
 		return m_Size == 0;
 	}
@@ -66,7 +66,7 @@ public:
 	 * 指定位置の文字要素を返す。位置が範囲内であることを呼び出し側で確認する。
 	 * @param Index 文字要素の位置。
 	 */
-	char operator[](size_t Index) const noexcept
+	FORCEINLINE char operator[](size_t Index) const noexcept
 	{
 		return m_pData[Index];
 	}
@@ -76,9 +76,7 @@ public:
 	 */
 	size_t Find(char Character) const noexcept
 	{
-		/**
-		 * 現在の要素位置を進めて範囲を走査する。
-		 */
+		// 現在の要素位置を進めて範囲を走査する。
 		for (size_t I = 0; I < m_Size; ++I)
 		{
 			if (m_pData[I] == Character)
@@ -97,9 +95,7 @@ public:
 		{
 			return false;
 		}
-		/**
-		 * 現在の要素位置を進めて範囲を走査する。
-		 */
+		// 現在の要素位置を進めて範囲を走査する。
 		for (size_t I = 0; I < m_Size; ++I)
 		{
 			if (m_pData[I] != Other.m_pData[I])
@@ -157,9 +153,7 @@ public:
 			throw FException("String size overflow");
 		}
 		m_Characters.Reserve(Length + 1);
-		/**
-		 * 現在の要素位置を進めて範囲を走査する。
-		 */
+		// 現在の要素位置を進めて範囲を走査する。
 		for (size_t I = 0; I < Length; ++I)
 		{
 			m_Characters.PushBack(Text[I]);
@@ -189,7 +183,7 @@ public:
 	/**
 	 * 要素が一つもないか調べる。
 	 */
-	bool IsEmpty() const noexcept
+	FORCEINLINE bool IsEmpty() const noexcept
 	{
 		return Size() == 0;
 	}
@@ -232,14 +226,14 @@ public:
 	/**
 	 * range-forが必要とする先頭反復子を返す。
 	 */
-	const TChar* begin() const noexcept
+	FORCEINLINE const TChar* begin() const noexcept
 	{
 		return Begin();
 	}
 	/**
 	 * range-forが必要とする終端反復子を返す。
 	 */
-	const TChar* end() const noexcept
+	FORCEINLINE const TChar* end() const noexcept
 	{
 		return End();
 	}
@@ -247,7 +241,7 @@ public:
 	 * 指定位置の文字要素を返す。位置が範囲内であることを呼び出し側で確認する。
 	 * @param Index 文字要素の位置。
 	 */
-	TChar& operator[](size_t Index)
+	FORCEINLINE TChar& operator[](size_t Index)
 	{
 		return m_Characters[Index];
 	}
@@ -255,7 +249,7 @@ public:
 	 * 指定位置の文字要素を返す。位置が範囲内であることを呼び出し側で確認する。
 	 * @param Index 文字要素の位置。
 	 */
-	const TChar& operator[](size_t Index) const
+	FORCEINLINE const TChar& operator[](size_t Index) const
 	{
 		return CStr()[Index];
 	}
@@ -335,24 +329,18 @@ public:
 	{
 		if (&Other == this)
 		{
-			/**
-			 * 元の値を保ったまま変更を準備する複製。
-			 */
+			// 元の値を保ったまま変更を準備する複製。
 			TBasicString Copy(Other);
 			return *this += Copy;
 		}
-		/**
-		 * 変更前の文字数。追加分の書き込み開始位置に使う。
-		 */
+		// 変更前の文字数。追加分の書き込み開始位置に使う。
 		const size_t Before = Size();
 		if (Other.Size() >= TNumericLimits<size_t>::Max() - Before)
 		{
 			throw FException("String size overflow");
 		}
 		Resize(Before + Other.Size());
-		/**
-		 * 現在の要素位置を進めて範囲を走査する。
-		 */
+		// 現在の要素位置を進めて範囲を走査する。
 		for (size_t I = 0; I < Other.Size(); ++I)
 		{
 			m_Characters[Before + I] = Other[I];
@@ -376,9 +364,7 @@ public:
 		{
 			return false;
 		}
-		/**
-		 * 現在の要素位置を進めて範囲を走査する。
-		 */
+		// 現在の要素位置を進めて範囲を走査する。
 		for (size_t I = 0; I < Left.Size(); ++I)
 		{
 			if (Left[I] != Right[I])
@@ -393,9 +379,7 @@ public:
 	 */
 	friend bool operator<(const TBasicString& Left, const TBasicString& Right)
 	{
-		/**
-		 * 現在の要素位置を進めて範囲を走査する。
-		 */
+		// 現在の要素位置を進めて範囲を走査する。
 		for (size_t I = 0; I < Min(Left.Size(), Right.Size()); ++I)
 		{
 			if (Left[I] != Right[I])
@@ -448,9 +432,7 @@ using FWideString = TBasicString<wchar_t>;
  */
 template <typename T> FString ToString(T Value)
 {
-	/**
-	 * OS呼び出しや変換に使う一時領域。
-	 */
+	// OS呼び出しや変換に使う一時領域。
 	char Buffer[64];
 	if constexpr (T(-1) < T(0))
 	{

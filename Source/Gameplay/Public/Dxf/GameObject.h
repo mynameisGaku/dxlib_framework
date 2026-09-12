@@ -55,7 +55,7 @@ public:
 	/**
 	 * コンポーネントの数を取得する。
 	 */
-	Toolbox::size_t GetComponentCount() const noexcept
+	FORCEINLINE Toolbox::size_t GetComponentCount() const noexcept
 	{
 		return m_Components.Size();
 	}

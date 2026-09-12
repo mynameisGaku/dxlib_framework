@@ -8,33 +8,23 @@ namespace Dxf
  * メモリ確保やシステムロケールに依存せずUnicodeスカラー値を検証する。
  * @param Text 検証するUTF-8文字列。
  */
-inline bool IsValidUtf8(Toolbox::FStringView Text) noexcept
+FORCEINLINE bool IsValidUtf8(Toolbox::FStringView Text) noexcept
 {
-	/**
-	 * 要素の位置。
-	 */
+	// 要素の位置。
 	Toolbox::size_t Index = 0;
 	while (Index < Text.Size())
 	{
-		/**
-		 * UTF-8シーケンスの先頭バイト。
-		 */
+		// UTF-8シーケンスの先頭バイト。
 		const auto Lead = static_cast<unsigned char>(Text[Index++]);
 		if (Lead < 0x80)
 		{
 			continue;
 		}
-		/**
-		 * 復号中のUnicodeコードポイント。
-		 */
+		// 復号中のUnicodeコードポイント。
 		Toolbox::uint32 Value = 0;
-		/**
-		 * 符号化長に対する最小コードポイント。
-		 */
+		// 符号化長に対する最小コードポイント。
 		Toolbox::uint32 Minimum = 0;
-		/**
-		 * 読み取りが残っているバイト数。
-		 */
+		// 読み取りが残っているバイト数。
 		Toolbox::size_t Remaining = 0;
 		if (Lead >= 0xC2 && Lead <= 0xDF)
 		{
@@ -62,14 +52,10 @@ inline bool IsValidUtf8(Toolbox::FStringView Text) noexcept
 		{
 			return false;
 		}
-		/**
-		 * 要素の位置を進めて順に処理する。
-		 */
+		// 要素の位置を進めて順に処理する。
 		for (Toolbox::size_t Count = 0; Count < Remaining; ++Count)
 		{
-			/**
-			 * 現在検証するバイト。
-			 */
+			// 現在検証するバイト。
 			const auto Byte = static_cast<unsigned char>(Text[Index++]);
 			if ((Byte & 0xC0) != 0x80)
 			{
@@ -92,7 +78,7 @@ namespace Detail
  * @param Text 検証するUTF-8文字列。
  * @param bAllowEmpty 空文字列を有効として扱うか。
  */
-inline bool IsValidNativeString_Internal(Toolbox::FStringView Text, bool bAllowEmpty = false) noexcept
+FORCEINLINE bool IsValidNativeString_Internal(Toolbox::FStringView Text, bool bAllowEmpty = false) noexcept
 {
 	return (bAllowEmpty || !Text.IsEmpty()) && Text.Find('\0') == Toolbox::FStringView::NotFound && IsValidUtf8(Text);
 }

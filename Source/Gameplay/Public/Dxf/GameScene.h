@@ -49,7 +49,7 @@ public:
 	/**
 	 * オブジェクトの数を取得する。
 	 */
-	Toolbox::size_t GetObjectCount() const noexcept
+	FORCEINLINE Toolbox::size_t GetObjectCount() const noexcept
 	{
 		return m_Objects.Size();
 	}

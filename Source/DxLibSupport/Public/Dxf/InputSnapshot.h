@@ -87,7 +87,7 @@ public:
 	/**
 	 * デバイスから取得した入力状態を取得する。
 	 */
-	const FRawInput& GetRaw() const noexcept
+	FORCEINLINE const FRawInput& GetRaw() const noexcept
 	{
 		return m_Current;
 	}
@@ -100,7 +100,7 @@ private:
 	 * @param Values 判定対象の入力状態一覧。
 	 * @param Index 要素の位置。
 	 */
-	static bool Read_Internal(const Toolbox::TArray<bool, N>& Values, Toolbox::size_t Index) noexcept
+	FORCEINLINE static bool Read_Internal(const Toolbox::TArray<bool, N>& Values, Toolbox::size_t Index) noexcept
 	{
 		return Index < N && Values[Index];
 	}

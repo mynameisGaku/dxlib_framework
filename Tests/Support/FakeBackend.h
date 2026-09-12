@@ -162,9 +162,7 @@ public:
 		{
 			return TResult<FTextureAllocation>::Success({-1, 64, 64});
 		}
-		/**
-		 * 生存期間や世代を検証する登録ハンドル。
-		 */
+		// 生存期間や世代を検証する登録ハンドル。
 		Toolbox::int32 Handle = m_Trace.NextHandle++;
 		m_Trace.Textures.Insert(Handle);
 		return TResult<FTextureAllocation>::Success({Handle, 64, 64});
@@ -174,9 +172,7 @@ public:
 	 */
 	TResult<FTextureAllocation> CreateRenderTarget(Toolbox::int32 Width, Toolbox::int32 Height, bool) override
 	{
-		/**
-		 * 生存期間や世代を検証する登録ハンドル。
-		 */
+		// 生存期間や世代を検証する登録ハンドル。
 		Toolbox::int32 Handle = m_Trace.NextHandle++;
 		m_Trace.Textures.Insert(Handle);
 		return TResult<FTextureAllocation>::Success({Handle, Width, Height});
@@ -200,9 +196,7 @@ public:
 		{
 			return TResult<Toolbox::int32>::Failure(EErrorCode::NotFound, "missing sound");
 		}
-		/**
-		 * 生存期間や世代を検証する登録ハンドル。
-		 */
+		// 生存期間や世代を検証する登録ハンドル。
 		Toolbox::int32 Handle = m_Trace.NextHandle++;
 		m_Trace.Sounds[Handle] = false;
 		return TResult<Toolbox::int32>::Success(Handle);
@@ -213,9 +207,7 @@ public:
 	TResult<Toolbox::int32> DuplicateSound(Toolbox::int32) override
 	{
 		++m_Trace.Clones;
-		/**
-		 * 生存期間や世代を検証する登録ハンドル。
-		 */
+		// 生存期間や世代を検証する登録ハンドル。
 		Toolbox::int32 Handle = m_Trace.NextHandle++;
 		m_Trace.Sounds[Handle] = false;
 		return TResult<Toolbox::int32>::Success(Handle);
@@ -268,9 +260,7 @@ public:
 	 */
 	TResult<Toolbox::int32> CreateFont(const FFontOptions&) override
 	{
-		/**
-		 * 生存期間や世代を検証する登録ハンドル。
-		 */
+		// 生存期間や世代を検証する登録ハンドル。
 		Toolbox::int32 Handle = m_Trace.NextHandle++;
 		m_Trace.Fonts.Insert(Handle);
 		return TResult<Toolbox::int32>::Success(Handle);

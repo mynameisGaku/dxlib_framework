@@ -42,9 +42,7 @@ public:
 	{
 		Scene.Exit_Internal();
 		Scene.Shutdown_Internal();
-		/**
-		 * 終了フックが開始した音声も残さないよう、利用者の後始末後にも停止する。
-		 */
+		// 終了フックが開始した音声も残さないよう、利用者の後始末後にも停止する。
 		if (Scene.GetAudioScope() != 0)
 		{
 			m_pAudio->StopScope(Scene.GetAudioScope());

@@ -4,12 +4,10 @@
 #include "Toolbox/Utility.h"
 namespace Dxf
 {
-/**
- * 必要な依存関係を受け取り、初期状態を構築する。
- * @param Services アプリケーションが利用するサービス。
- * @param Settings 初期化に使用する設定。
- * @param Game シーン間で共有するゲーム状態。
- */
+// 必要な依存関係を受け取り、初期状態を構築する。
+// @param Services アプリケーションが利用するサービス。
+// @param Settings 初期化に使用する設定。
+// @param Game シーン間で共有するゲーム状態。
 FApplication::FApplication(FBackendServices Services, FApplicationSettings Settings,
                            Toolbox::TUniquePtr<DGameInstance> Game)
     : m_pPlatform(&Services.Platform), m_Settings(Toolbox::Move(Settings)), m_Session(Services.Platform),
@@ -18,26 +16,20 @@ FApplication::FApplication(FBackendServices Services, FApplicationSettings Setti
       m_Scenes(m_Assets, m_Audio, m_pGame.Get()), m_Clock(m_Settings.MaxDeltaSeconds)
 {
 }
-/**
- * 所有する状態を終了し、必要なリソースを解放する。
- */
+// 所有する状態を終了し、必要なリソースを解放する。
 FApplication::~FApplication()
 {
 	Shutdown();
 }
-/**
- * 初期化を行い実行を開始する。
- * @param InitialScene 最初に開始するシーン。
- */
+// 初期化を行い実行を開始する。
+// @param InitialScene 最初に開始するシーン。
 TResult<void> FApplication::Start_Internal(Toolbox::TUniquePtr<DScene> InitialScene)
 {
 	if (!InitialScene)
 	{
 		return TResult<void>::Failure(EErrorCode::InvalidArgument, "An initial scene is required");
 	}
-	/**
-	 * DxLibの開始結果。
-	 */
+	// DxLibの開始結果。
 	auto SessionResult = m_Session.Initialize(m_Settings.Window);
 	if (!SessionResult)
 	{
@@ -45,9 +37,7 @@ TResult<void> FApplication::Start_Internal(Toolbox::TUniquePtr<DScene> InitialSc
 	}
 	if (m_pGame)
 	{
-		/**
-		 * ゲーム更新の結果。
-		 */
+		// ゲーム更新の結果。
 		auto GameResult = m_pGame->Initialize_Internal({m_Assets});
 		if (!GameResult)
 		{
@@ -58,17 +48,13 @@ TResult<void> FApplication::Start_Internal(Toolbox::TUniquePtr<DScene> InitialSc
 	{
 		return TResult<void>::Failure(EErrorCode::InvalidState, "Shutdown requested during startup");
 	}
-	/**
-	 * 反映する要求。
-	 */
+	// 反映する要求。
 	auto Request = m_Scenes.RequestChange(Toolbox::Move(InitialScene));
 	if (!Request)
 	{
 		return Request;
 	}
-	/**
-	 * 保留中の変更の反映結果。
-	 */
+	// 保留中の変更の反映結果。
 	auto Commit = m_Scenes.Commit();
 	if (!Commit)
 	{
@@ -77,10 +63,8 @@ TResult<void> FApplication::Start_Internal(Toolbox::TUniquePtr<DScene> InitialSc
 	m_bStarted = true;
 	return {};
 }
-/**
- * 初期化を行い実行を開始する。
- * @param InitialScene 最初に開始するシーン。
- */
+// 初期化を行い実行を開始する。
+// @param InitialScene 最初に開始するシーン。
 TResult<void> FApplication::Start(Toolbox::TUniquePtr<DScene> InitialScene)
 {
 	if (m_bAttemptedStart || m_bShutdown || m_bBusy)
@@ -88,21 +72,15 @@ TResult<void> FApplication::Start(Toolbox::TUniquePtr<DScene> InitialScene)
 		return TResult<void>::Failure(EErrorCode::InvalidState, "Application is single-use or busy");
 	}
 	m_bAttemptedStart = true;
-	/**
-	 * 処理結果。
-	 */
+	// 処理結果。
 	TResult<void> Result;
 	try
 	{
-		/**
-		 * 処理終了時に状態を戻すガード。
-		 */
+		// 処理終了時に状態を戻すガード。
 		TGuardValue Guard(m_bBusy, true);
 		Result = Start_Internal(Toolbox::Move(InitialScene));
 	}
-	/**
-	 * 呼び出し先の例外を処理結果へ変換する。
-	 */
+	// 呼び出し先の例外を処理結果へ変換する。
 	catch (const Toolbox::FException& Exception)
 	{
 		Result = TResult<void>::Failure(EErrorCode::UserException, Exception.What());
@@ -117,26 +95,20 @@ TResult<void> FApplication::Start(Toolbox::TUniquePtr<DScene> InitialScene)
 	}
 	return Result;
 }
-/**
- * 正常終了が要求されているかを調べる。
- */
+// 正常終了が要求されているかを調べる。
 bool FApplication::WantsQuit_Internal() const noexcept
 {
 	return m_bShutdownRequested || m_Scenes.WantsQuit();
 }
-/**
- * 1フレーム分の入力・更新・描画を進める。
- * @param NowSeconds 単調増加する現在時刻の秒数。
- */
+// 1フレーム分の入力・更新・描画を進める。
+// @param NowSeconds 単調増加する現在時刻の秒数。
 TResult<bool> FApplication::Step_Internal(Toolbox::f64 NowSeconds)
 {
 	if (WantsQuit_Internal())
 	{
 		return TResult<bool>::Success(false);
 	}
-	/**
-	 * OSイベント処理の結果。
-	 */
+	// OSイベント処理の結果。
 	auto Events = m_pPlatform->PumpEvents();
 	if (!Events)
 	{
@@ -146,29 +118,21 @@ TResult<bool> FApplication::Step_Internal(Toolbox::f64 NowSeconds)
 	{
 		return TResult<bool>::Success(false);
 	}
-	/**
-	 * フレームの時間情報。
-	 */
+	// フレームの時間情報。
 	auto Time = m_Clock.Sample(NowSeconds);
 	if (!Time)
 	{
 		return TResult<bool>::Failure(Time.Error());
 	}
-	/**
-	 * フレームの入力情報。
-	 */
+	// フレームの入力情報。
 	auto Input = m_Input.Update();
 	if (!Input)
 	{
 		return TResult<bool>::Failure(Input.Error());
 	}
-	/**
-	 * シーン遷移の反映結果。
-	 */
+	// シーン遷移の反映結果。
 	auto Transition = m_Scenes.Commit();
-	/**
-	 * 以前のシーンが有効な間は、置き換えに失敗しても実行を継続できる。
-	 */
+	// 以前のシーンが有効な間は、置き換えに失敗しても実行を継続できる。
 	if (!Transition && !m_Scenes.GetCurrent())
 	{
 		return TResult<bool>::Failure(Transition.Error());
@@ -177,9 +141,7 @@ TResult<bool> FApplication::Step_Internal(Toolbox::f64 NowSeconds)
 	{
 		return TResult<bool>::Success(false);
 	}
-	/**
-	 * 所有するオブジェクト群。
-	 */
+	// 所有するオブジェクト群。
 	auto Objects = m_Scenes.CommitObjects();
 	if (!Objects)
 	{
@@ -191,9 +153,7 @@ TResult<bool> FApplication::Step_Internal(Toolbox::f64 NowSeconds)
 	}
 	if (m_pGame)
 	{
-		/**
-		 * ゲーム更新に渡すコンテキスト。
-		 */
+		// ゲーム更新に渡すコンテキスト。
 		auto GameTick =
 		    m_pGame->Tick_Internal({m_Input.GetSnapshot(), Time.Value(), &m_Scenes, m_pGame.Get(), &m_Audio, 0});
 		if (!GameTick)
@@ -205,9 +165,7 @@ TResult<bool> FApplication::Step_Internal(Toolbox::f64 NowSeconds)
 	{
 		return TResult<bool>::Success(false);
 	}
-	/**
-	 * 更新に渡すフレーム情報。
-	 */
+	// 更新に渡すフレーム情報。
 	auto Tick = m_Scenes.Tick(Time.Value(), m_Input.GetSnapshot());
 	if (!Tick)
 	{
@@ -217,25 +175,19 @@ TResult<bool> FApplication::Step_Internal(Toolbox::f64 NowSeconds)
 	{
 		return TResult<bool>::Success(false);
 	}
-	/**
-	 * 音声再生のサービス。
-	 */
+	// 音声再生のサービス。
 	auto Audio = m_Audio.Tick();
 	if (!Audio)
 	{
 		return TResult<bool>::Failure(Audio.Error());
 	}
-	/**
-	 * フレーム開始の結果。
-	 */
+	// フレーム開始の結果。
 	auto Begin = m_Renderer.BeginFrame(m_Settings.Window.Width, m_Settings.Window.Height, m_Settings.ClearColor);
 	if (!Begin)
 	{
 		return TResult<bool>::Failure(Begin.Error());
 	}
-	/**
-	 * 描画処理の結果。
-	 */
+	// 描画処理の結果。
 	auto Draw = m_Scenes.Draw(m_Renderer.GetContext());
 	if (!Draw)
 	{
@@ -246,9 +198,7 @@ TResult<bool> FApplication::Step_Internal(Toolbox::f64 NowSeconds)
 		m_Renderer.CancelFrame();
 		return TResult<bool>::Success(false);
 	}
-	/**
-	 * 画面提示の結果。
-	 */
+	// 画面提示の結果。
 	auto Present = m_Renderer.EndFrame();
 	if (!Present)
 	{
@@ -257,31 +207,23 @@ TResult<bool> FApplication::Step_Internal(Toolbox::f64 NowSeconds)
 	m_Assets.CollectUnused();
 	return TResult<bool>::Success(!WantsQuit_Internal());
 }
-/**
- * 1フレーム分の入力・更新・描画を進める。
- * @param NowSeconds 単調増加する現在時刻の秒数。
- */
+// 1フレーム分の入力・更新・描画を進める。
+// @param NowSeconds 単調増加する現在時刻の秒数。
 TResult<bool> FApplication::Step(Toolbox::f64 NowSeconds)
 {
 	if (m_bBusy || !IsRunning())
 	{
 		return TResult<bool>::Failure(EErrorCode::InvalidState, "Application is stopped or Step is reentrant");
 	}
-	/**
-	 * 処理結果。
-	 */
+	// 処理結果。
 	auto Result = TResult<bool>::Success(false);
 	try
 	{
-		/**
-		 * 処理終了時に状態を戻すガード。
-		 */
+		// 処理終了時に状態を戻すガード。
 		TGuardValue Guard(m_bBusy, true);
 		Result = Step_Internal(NowSeconds);
 	}
-	/**
-	 * 呼び出し先の例外を処理結果へ変換する。
-	 */
+	// 呼び出し先の例外を処理結果へ変換する。
 	catch (const Toolbox::FException& Exception)
 	{
 		Result = TResult<bool>::Failure(EErrorCode::UserException, Exception.What());
@@ -300,9 +242,7 @@ TResult<bool> FApplication::Step(Toolbox::f64 NowSeconds)
 	}
 	return Result;
 }
-/**
- * 管理する処理とリソースを順序どおり終了する。
- */
+// 管理する処理とリソースを順序どおり終了する。
 void FApplication::Shutdown() noexcept
 {
 	if (m_bBusy)
@@ -320,9 +260,7 @@ void FApplication::Shutdown() noexcept
 		return;
 	}
 	m_bShutdown = true;
-	/**
-	 * 処理終了時に状態を戻すガード。
-	 */
+	// 処理終了時に状態を戻すガード。
 	TGuardValue Guard(m_bBusy, true);
 	m_Scenes.Shutdown();
 	if (m_pGame)

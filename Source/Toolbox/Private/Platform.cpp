@@ -17,19 +17,13 @@
 #endif
 namespace Toolbox
 {
-/**
- * 壁時計に影響されない単調増加時刻をナノ秒で返す。
- */
+// 壁時計に影響されない単調増加時刻をナノ秒で返す。
 uint64 MonotonicNanoseconds()
 {
 #if defined(_WIN32)
-	/**
-	 * 高精度時計が返した現在のカウンター。
-	 */
+	// 高精度時計が返した現在のカウンター。
 	LARGE_INTEGER Counter{};
-	/**
-	 * 高精度時計が一秒間に進むカウント数。
-	 */
+	// 高精度時計が一秒間に進むカウント数。
 	LARGE_INTEGER Frequency{};
 	if (!QueryPerformanceCounter(&Counter) || !QueryPerformanceFrequency(&Frequency))
 	{
@@ -38,9 +32,7 @@ uint64 MonotonicNanoseconds()
 	return static_cast<uint64>(Counter.QuadPart / Frequency.QuadPart) * 1000000000ULL +
 	       static_cast<uint64>((Counter.QuadPart % Frequency.QuadPart) * 1000000000ULL / Frequency.QuadPart);
 #else
-	/**
-	 * 秒とナノ秒に分かれた単調増加時刻。
-	 */
+	// 秒とナノ秒に分かれた単調増加時刻。
 	timespec Value{};
 	if (clock_gettime(CLOCK_MONOTONIC, &Value) != 0)
 	{
@@ -49,10 +41,8 @@ uint64 MonotonicNanoseconds()
 	return static_cast<uint64>(Value.tv_sec) * 1000000000ULL + static_cast<uint64>(Value.tv_nsec);
 #endif
 }
-/**
- * UTF-8をワイド文字列へ変換する。不正な入力は例外で通知する。
- * @param Text 読み取る文字列。
- */
+// UTF-8をワイド文字列へ変換する。不正な入力は例外で通知する。
+// @param Text 読み取る文字列。
 FWideString ToWide(const FString& Text)
 {
 #if defined(_WIN32)
@@ -64,18 +54,14 @@ FWideString ToWide(const FString& Text)
 	{
 		throw FException("Path too long");
 	}
-	/**
-	 * 変換または読み取りに必要な文字・バイト数。
-	 */
+	// 変換または読み取りに必要な文字・バイト数。
 	const int32 Count =
 	    MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, Text.Data(), static_cast<int32>(Text.Size()), nullptr, 0);
 	if (!Count)
 	{
 		throw FException("Invalid UTF-8");
 	}
-	/**
-	 * 処理結果を組み立てる一時領域。
-	 */
+	// 処理結果を組み立てる一時領域。
 	FWideString Result;
 	Result.Resize(static_cast<size_t>(Count));
 	if (!MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, Text.Data(), static_cast<int32>(Text.Size()), Result.Data(),
@@ -85,26 +71,16 @@ FWideString ToWide(const FString& Text)
 	}
 	return Result;
 #else
-	/**
-	 * 処理結果を組み立てる一時領域。
-	 */
+	// 処理結果を組み立てる一時領域。
 	FWideString Result;
-	/**
-	 * 現在の要素位置を進めて範囲を走査する。
-	 */
+	// 現在の要素位置を進めて範囲を走査する。
 	for (size_t I = 0; I < Text.Size();)
 	{
-		/**
-		 * 変換中のUnicodeコードポイント。
-		 */
+		// 変換中のUnicodeコードポイント。
 		uint32 Code = static_cast<unsigned char>(Text[I++]);
-		/**
-		 * コードポイントを完成させるために必要な後続バイト数。
-		 */
+		// コードポイントを完成させるために必要な後続バイト数。
 		uint32 Remaining = 0;
-		/**
-		 * このUTF-8バイト長で許される最小コードポイント。
-		 */
+		// このUTF-8バイト長で許される最小コードポイント。
 		uint32 Minimum = 0;
 		if (Code >= 0xF0 && Code <= 0xF4)
 		{
@@ -145,10 +121,8 @@ FWideString ToWide(const FString& Text)
 	return Result;
 #endif
 }
-/**
- * ワイド文字列をUTF-8へ変換する。不正な入力は例外で通知する。
- * @param Text 読み取る文字列。
- */
+// ワイド文字列をUTF-8へ変換する。不正な入力は例外で通知する。
+// @param Text 読み取る文字列。
 FString FromWide(const FWideString& Text)
 {
 #if defined(_WIN32)
@@ -160,18 +134,14 @@ FString FromWide(const FWideString& Text)
 	{
 		throw FException("Path too long");
 	}
-	/**
-	 * 変換または読み取りに必要な文字・バイト数。
-	 */
+	// 変換または読み取りに必要な文字・バイト数。
 	const int32 Count = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, Text.Data(), static_cast<int32>(Text.Size()),
 	                                        nullptr, 0, nullptr, nullptr);
 	if (!Count)
 	{
 		throw FException("Invalid UTF-16");
 	}
-	/**
-	 * 処理結果を組み立てる一時領域。
-	 */
+	// 処理結果を組み立てる一時領域。
 	FString Result;
 	Result.Resize(static_cast<size_t>(Count));
 	if (!WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, Text.Data(), static_cast<int32>(Text.Size()), Result.Data(),
@@ -181,18 +151,12 @@ FString FromWide(const FWideString& Text)
 	}
 	return Result;
 #else
-	/**
-	 * 処理結果を組み立てる一時領域。
-	 */
+	// 処理結果を組み立てる一時領域。
 	FString Result;
-	/**
-	 * ワイド文字のコードポイントを順に取り出す。
-	 */
+	// ワイド文字のコードポイントを順に取り出す。
 	for (wchar_t Value : Text)
 	{
-		/**
-		 * 変換中のUnicodeコードポイント。
-		 */
+		// 変換中のUnicodeコードポイント。
 		const uint32 Code = static_cast<uint32>(Value);
 		if (Code < 0x80)
 		{
@@ -224,37 +188,27 @@ FString FromWide(const FWideString& Text)
 	return Result;
 #endif
 }
-/**
- * 指定した値を使って初期状態を構築する。
- * @param Text 読み取る文字列。
- */
+// 指定した値を使って初期状態を構築する。
+// @param Text 読み取る文字列。
 FPath::FPath(const wchar_t* Text) : m_Text(FromWide(FWideString(Text)))
 {
 }
-/**
- * 指定した値を使って初期状態を構築する。
- * @param Text 読み取る文字列。
- */
+// 指定した値を使って初期状態を構築する。
+// @param Text 読み取る文字列。
 FPath::FPath(const FWideString& Text) : m_Text(FromWide(Text))
 {
 }
-/**
- * パスの区切りや相対成分を整理する。ファイルへはアクセスしない。
- */
+// パスの区切りや相対成分を整理する。ファイルへはアクセスしない。
 FPath FPath::Normalize() const
 {
 	if (m_Text.IsEmpty())
 	{
 		return {};
 	}
-	/**
-	 * 変換または正規化の対象文字列。
-	 */
+	// 変換または正規化の対象文字列。
 	FString Text = m_Text;
 #if defined(_WIN32)
-	/**
-	 * 現在の要素位置を進めて範囲を走査する。
-	 */
+	// 現在の要素位置を進めて範囲を走査する。
 	for (size_t I = 0; I < Text.Size(); ++I)
 	{
 		if (Text[I] == '\\')
@@ -263,13 +217,9 @@ FPath FPath::Normalize() const
 		}
 	}
 #endif
-	/**
-	 * ドライブ名やルートを含むパス先頭部分。
-	 */
+	// ドライブ名やルートを含むパス先頭部分。
 	FString Prefix;
-	/**
-	 * ルート名の次から走査する開始位置。
-	 */
+	// ルート名の次から走査する開始位置。
 	size_t Start = 0;
 #if defined(_WIN32)
 	if (Text.Size() >= 2 && Text[1] == ':')
@@ -287,25 +237,17 @@ FPath FPath::Normalize() const
 		Prefix = Text.Substr(0, Start);
 	}
 #endif
-	/**
-	 * パスにルートディレクトリが含まれるかどうか。
-	 */
+	// パスにルートディレクトリが含まれるかどうか。
 	const bool Absolute = Start < Text.Size() && Text[Start] == '/';
 	if (Absolute)
 	{
 		Prefix += "/";
 	}
-	/**
-	 * 正規化後に残すパス構成要素。
-	 */
+	// 正規化後に残すパス構成要素。
 	TVector<FString> Parts;
-	/**
-	 * 末尾のディレクトリ区切りを維持するかどうか。
-	 */
+	// 末尾のディレクトリ区切りを維持するかどうか。
 	bool TrailingSeparator = Text.Back() == '/';
-	/**
-	 * 現在の要素位置を進めて範囲を走査する。
-	 */
+	// 現在の要素位置を進めて範囲を走査する。
 	for (size_t I = Start; I < Text.Size();)
 	{
 		if (Text[I] == '/')
@@ -313,17 +255,13 @@ FPath FPath::Normalize() const
 			++I;
 			continue;
 		}
-		/**
-		 * パス構成要素の開始位置。
-		 */
+		// パス構成要素の開始位置。
 		const size_t Begin = I;
 		while (I < Text.Size() && Text[I] != '/')
 		{
 			++I;
 		}
-		/**
-		 * 現在処理している一つのパス構成要素。
-		 */
+		// 現在処理している一つのパス構成要素。
 		FString Part = Text.Substr(Begin, I - Begin);
 		if (Part == ".")
 		{
@@ -346,13 +284,9 @@ FPath FPath::Normalize() const
 			Parts.PushBack(Move(Part));
 		}
 	}
-	/**
-	 * 処理結果を組み立てる一時領域。
-	 */
+	// 処理結果を組み立てる一時領域。
 	FString Result = Prefix;
-	/**
-	 * 現在の要素位置を進めて範囲を走査する。
-	 */
+	// 現在の要素位置を進めて範囲を走査する。
 	for (size_t I = 0; I < Parts.Size(); ++I)
 	{
 		if (I)
@@ -371,18 +305,12 @@ FPath FPath::Normalize() const
 	}
 	return FPath(Move(Result));
 }
-/**
- * 最後のパス要素を除いた親ディレクトリを返す。
- */
+// 最後のパス要素を除いた親ディレクトリを返す。
 FPath FPath::Parent() const
 {
-	/**
-	 * 変換または正規化の対象文字列。
-	 */
+	// 変換または正規化の対象文字列。
 	FString Text = Normalize().ToUtf8();
-	/**
-	 * 現在の要素位置を進めて範囲を走査する。
-	 */
+	// 現在の要素位置を進めて範囲を走査する。
 	for (size_t I = Text.Size(); I > 0; --I)
 	{
 		if (Text[I - 1] == '/')
@@ -392,20 +320,16 @@ FPath FPath::Parent() const
 	}
 	return {};
 }
-/**
- * 二つのパスを結合する。右側が絶対パスなら右側を返す。
- * @param Left 結合元のパス。
- * @param Right 追加するパス。
- */
+// 二つのパスを結合する。右側が絶対パスなら右側を返す。
+// @param Left 結合元のパス。
+// @param Right 追加するパス。
 FPath operator/(const FPath& Left, const FPath& Right)
 {
 	if (Left.m_Text.IsEmpty())
 	{
 		return Right;
 	}
-	/**
-	 * 結合する右側のパス。絶対パスなら左側を置き換える。
-	 */
+	// 結合する右側のパス。絶対パスなら左側を置き換える。
 	const FString& R = Right.m_Text;
 	if (!R.IsEmpty() && (R[0] == '/' || R[0] == '\\' || (R.Size() > 1 && R[1] == ':')))
 	{
@@ -413,27 +337,19 @@ FPath operator/(const FPath& Left, const FPath& Right)
 	}
 	return FPath(Left.m_Text + "/" + R);
 }
-/**
- * OSから現在の作業ディレクトリを取得する。
- */
+// OSから現在の作業ディレクトリを取得する。
 FPath CurrentDirectory()
 {
 #if defined(_WIN32)
-	/**
-	 * 変換または読み取りに必要な文字・バイト数。
-	 */
+	// 変換または読み取りに必要な文字・バイト数。
 	const DWORD Count = GetCurrentDirectoryW(0, nullptr);
 	if (!Count)
 	{
 		throw FException("Cannot read current directory");
 	}
-	/**
-	 * OS呼び出しや変換に使う一時領域。
-	 */
+	// OS呼び出しや変換に使う一時領域。
 	TVector<wchar_t> Buffer(Count);
-	/**
-	 * OSが実際に書き込んだ文字数。
-	 */
+	// OSが実際に書き込んだ文字数。
 	const DWORD Written = GetCurrentDirectoryW(Count, Buffer.Data());
 	if (!Written || Written >= Count)
 	{
@@ -441,9 +357,7 @@ FPath CurrentDirectory()
 	}
 	return FPath(FWideString(Buffer.Data(), Written));
 #else
-	/**
-	 * OS呼び出しや変換に使う一時領域。
-	 */
+	// OS呼び出しや変換に使う一時領域。
 	TVector<char> Buffer(256);
 	while (!getcwd(Buffer.Data(), Buffer.Size()))
 	{
@@ -456,19 +370,13 @@ FPath CurrentDirectory()
 	return FPath(Buffer.Data());
 #endif
 }
-/**
- * OSの一時ディレクトリを取得する。
- */
+// OSの一時ディレクトリを取得する。
 FPath TemporaryDirectory()
 {
 #if defined(_WIN32)
-	/**
-	 * OS呼び出しや変換に使う一時領域。
-	 */
+	// OS呼び出しや変換に使う一時領域。
 	TVector<wchar_t> Buffer(32768);
-	/**
-	 * OSが実際に書き込んだ文字数。
-	 */
+	// OSが実際に書き込んだ文字数。
 	DWORD Written = GetTempPathW(static_cast<DWORD>(Buffer.Size()), Buffer.Data());
 	if (!Written || Written >= Buffer.Size())
 	{
@@ -476,17 +384,13 @@ FPath TemporaryDirectory()
 	}
 	return FPath(FWideString(Buffer.Data(), Written));
 #else
-	/**
-	 * OSから得たディレクトリのパス。
-	 */
+	// OSから得たディレクトリのパス。
 	const char* Path = getenv("TMPDIR");
 	return FPath(Path && *Path ? Path : "/tmp");
 #endif
 }
-/**
- * 新しいディレクトリを作る。既存ならfalse、他の失敗は例外を返す。
- * @param Path 操作対象のパス。
- */
+// 新しいディレクトリを作る。既存ならfalse、他の失敗は例外を返す。
+// @param Path 操作対象のパス。
 bool CreateDirectory(const FPath& Path)
 {
 #if defined(_WIN32)
@@ -510,31 +414,23 @@ bool CreateDirectory(const FPath& Path)
 #endif
 	throw FException("Cannot create directory");
 }
-/**
- * 指定パスが通常のファイルを指しているか調べる。
- * @param Path 操作対象のパス。
- */
+// 指定パスが通常のファイルを指しているか調べる。
+// @param Path 操作対象のパス。
 bool IsRegularFile(const FPath& Path)
 {
 #if defined(_WIN32)
-	/**
-	 * 対象がディレクトリや再解析ポイントかを示す属性。
-	 */
+	// 対象がディレクトリや再解析ポイントかを示す属性。
 	const DWORD Attributes = GetFileAttributesW(ToWide(Path.ToUtf8()).CStr());
 	return Attributes != INVALID_FILE_ATTRIBUTES && !(Attributes & FILE_ATTRIBUTE_DIRECTORY);
 #else
-	/**
-	 * ファイル種別を含むPOSIXの属性情報。
-	 */
+	// ファイル種別を含むPOSIXの属性情報。
 	struct stat Info{};
 	return stat(Path.ToUtf8().CStr(), &Info) == 0 && S_ISREG(Info.st_mode);
 #endif
 }
-/**
- * ファイルを新規コピーする。既存のコピー先は上書きしない。
- * @param Source 読み取り元のパス。
- * @param Destination 新規作成するコピー先のパス。
- */
+// ファイルを新規コピーする。既存のコピー先は上書きしない。
+// @param Source 読み取り元のパス。
+// @param Destination 新規作成するコピー先のパス。
 void CopyFile(const FPath& Source, const FPath& Destination)
 {
 #if defined(_WIN32)
@@ -543,34 +439,24 @@ void CopyFile(const FPath& Source, const FPath& Destination)
 		throw FException("Cannot copy file");
 	}
 #else
-	/**
-	 * コピー元のファイルハンドル。
-	 */
+	// コピー元のファイルハンドル。
 	FILE* Input = fopen(Source.ToUtf8().CStr(), "rb");
 	if (!Input)
 	{
 		throw FException("Cannot open source file");
 	}
-	/**
-	 * コピー先のファイルハンドル。
-	 */
+	// コピー先のファイルハンドル。
 	FILE* Output = fopen(Destination.ToUtf8().CStr(), "wbx");
 	if (!Output)
 	{
 		fclose(Input);
 		throw FException("Cannot create destination file");
 	}
-	/**
-	 * OS呼び出しや変換に使う一時領域。
-	 */
+	// OS呼び出しや変換に使う一時領域。
 	char Buffer[8192];
-	/**
-	 * 変換または読み取りに必要な文字・バイト数。
-	 */
+	// 変換または読み取りに必要な文字・バイト数。
 	size_t Count;
-	/**
-	 * 読み書きのいずれかで失敗があったか。
-	 */
+	// 読み書きのいずれかで失敗があったか。
 	bool Failed = false;
 	while ((Count = fread(Buffer, 1, sizeof(Buffer), Input)) != 0)
 	{
@@ -592,30 +478,22 @@ void CopyFile(const FPath& Source, const FPath& Destination)
 	}
 #endif
 }
-/**
- * リンク先を辿らずツリーを削除する。失敗はErrorへ返す。
- * @param Path 操作対象のパス。
- * @param Error 失敗時のエラーコード。成功時は0。
- */
+// リンク先を辿らずツリーを削除する。失敗はErrorへ返す。
+// @param Path 操作対象のパス。
+// @param Error 失敗時のエラーコード。成功時は0。
 void RemoveTree(const FPath& Path, int32& Error) noexcept
 {
 	Error = 0;
 	try
 	{
 #if defined(_WIN32)
-		/**
-		 * Windows APIに渡すUTF-16のパス。
-		 */
+		// Windows APIに渡すUTF-16のパス。
 		const FWideString Wide = ToWide(Path.ToUtf8());
-		/**
-		 * 対象がディレクトリや再解析ポイントかを示す属性。
-		 */
+		// 対象がディレクトリや再解析ポイントかを示す属性。
 		const DWORD Attributes = GetFileAttributesW(Wide.CStr());
 		if (Attributes == INVALID_FILE_ATTRIBUTES)
 		{
-			/**
-			 * 変換中のUnicodeコードポイント。
-			 */
+			// 変換中のUnicodeコードポイント。
 			const DWORD Code = GetLastError();
 			if (Code != ERROR_FILE_NOT_FOUND && Code != ERROR_PATH_NOT_FOUND)
 			{
@@ -627,13 +505,9 @@ void RemoveTree(const FPath& Path, int32& Error) noexcept
 		{
 			if (!(Attributes & FILE_ATTRIBUTE_REPARSE_POINT))
 			{
-				/**
-				 * OSから読み取ったディレクトリ内の一項目。
-				 */
+				// OSから読み取ったディレクトリ内の一項目。
 				WIN32_FIND_DATAW Entry{};
-				/**
-				 * 列挙中のWindows検索ハンドル。終了時に閉じる。
-				 */
+				// 列挙中のWindows検索ハンドル。終了時に閉じる。
 				HANDLE Search = FindFirstFileW(ToWide((Path / "*").ToUtf8()).CStr(), &Entry);
 				if (Search == INVALID_HANDLE_VALUE)
 				{
@@ -644,9 +518,7 @@ void RemoveTree(const FPath& Path, int32& Error) noexcept
 				{
 					do
 					{
-						/**
-						 * 列挙中の項目名。親と自己の項目は除外する。
-						 */
+						// 列挙中の項目名。親と自己の項目は除外する。
 						const FWideString Name(Entry.cFileName);
 						if (Name == L"." || Name == L"..")
 						{
@@ -684,9 +556,7 @@ void RemoveTree(const FPath& Path, int32& Error) noexcept
 			Error = static_cast<int32>(GetLastError());
 		}
 #else
-		/**
-		 * ファイル種別を含むPOSIXの属性情報。
-		 */
+		// ファイル種別を含むPOSIXの属性情報。
 		struct stat Info{};
 		if (lstat(Path.ToUtf8().CStr(), &Info) != 0)
 		{
@@ -698,9 +568,7 @@ void RemoveTree(const FPath& Path, int32& Error) noexcept
 		}
 		if (S_ISDIR(Info.st_mode))
 		{
-			/**
-			 * POSIXのディレクトリ列挙ハンドル。終了時に閉じる。
-			 */
+			// POSIXのディレクトリ列挙ハンドル。終了時に閉じる。
 			DIR* Directory = opendir(Path.ToUtf8().CStr());
 			if (!Directory)
 			{
@@ -710,14 +578,10 @@ void RemoveTree(const FPath& Path, int32& Error) noexcept
 			try
 			{
 				errno = 0;
-				/**
-				 * ディレクトリから次の項目を読み取る。
-				 */
+				// ディレクトリから次の項目を読み取る。
 				while (dirent* Entry = readdir(Directory))
 				{
-					/**
-					 * 列挙中の項目名。親と自己の項目は除外する。
-					 */
+					// 列挙中の項目名。親と自己の項目は除外する。
 					const FString Name(Entry->d_name);
 					if (Name == "." || Name == "..")
 					{

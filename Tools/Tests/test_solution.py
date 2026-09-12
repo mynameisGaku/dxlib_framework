@@ -32,7 +32,7 @@ class SolutionTests(unittest.TestCase):
 
     def test_sln_removes_projects_and_dangling_guids(self):
         content = f'''Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{{TYPE}}") = "dxf_toolbox", "Source\\dxf_toolbox.vcxproj", "{KEEP}"
+Project("{{TYPE}}") = "Starter", "Examples\\Starter.vcxproj", "{KEEP}"
     ProjectSection(ProjectDependencies) = postProject
         {REMOVE} = {REMOVE}
     EndProjectSection
@@ -49,24 +49,24 @@ EndGlobal
         normal = self.convert('.sln', content)
         self.assertNotIn(REMOVE, normal)
         self.assertIn(KEEP, normal)
-        self.assertIn('Build\\VisualStudio\\Source\\dxf_toolbox.vcxproj', normal)
+        self.assertIn('Build\\VisualStudio\\Examples\\Starter.vcxproj', normal)
         development = self.convert('.sln', content, True)
         self.assertIn('ALL_BUILD', development)
         self.assertIn(REMOVE, development)
 
     def test_slnx_removes_helpers_and_rebases_dependencies(self):
         content = '''<Solution>
-  <Project Path="dxf_toolbox.vcxproj" />
+  <Project Path="Starter.vcxproj" />
   <Project Path="dxf_foundation.vcxproj">
-    <BuildDependency Project="dxf_toolbox.vcxproj" />
+    <BuildDependency Project="Starter.vcxproj" />
     <BuildDependency Project="ZERO_CHECK.vcxproj" />
   </Project>
   <Project Path="ZERO_CHECK.vcxproj" />
 </Solution>
 '''
         normal = ET.fromstring(self.convert('.slnx', content))
-        self.assertEqual([node.attrib['Path'] for node in normal.findall('Project')], ['Build/VisualStudio/dxf_toolbox.vcxproj', 'Build/VisualStudio/dxf_foundation.vcxproj'])
-        self.assertEqual([node.attrib['Project'] for node in normal.findall('.//BuildDependency')], ['Build/VisualStudio/dxf_toolbox.vcxproj'])
+        self.assertEqual([node.attrib['Path'] for node in normal.findall('Project')], ['Build/VisualStudio/Starter.vcxproj', 'Build/VisualStudio/dxf_foundation.vcxproj'])
+        self.assertEqual([node.attrib['Project'] for node in normal.findall('.//BuildDependency')], ['Build/VisualStudio/Starter.vcxproj'])
         development = ET.fromstring(self.convert('.slnx', content, True))
         self.assertEqual(len(development.findall('Project')), 3)
 

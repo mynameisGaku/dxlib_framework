@@ -17,7 +17,7 @@ public:
 	/**
 	 * アプリケーションが利用するサービスを取得する。
 	 */
-	FBackendServices GetServices() noexcept
+	FORCEINLINE FBackendServices GetServices() noexcept
 	{
 		return {m_Platform, m_Input, m_Textures, m_Sounds, m_Fonts, m_Renderer};
 	}

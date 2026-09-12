@@ -27,7 +27,7 @@ public:
 	/**
 	 * 処理に必要な実行環境を取得する。
 	 */
-	FRenderContext& GetContext() noexcept
+	FORCEINLINE FRenderContext& GetContext() noexcept
 	{
 		return m_Context;
 	}

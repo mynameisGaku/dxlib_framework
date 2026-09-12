@@ -23,17 +23,13 @@ public:
 	 */
 	TResult<void> Begin(Toolbox::int32 Width, Toolbox::int32 Height, FColor ClearColor)
 	{
-		/**
-		 * 描画先またはその設定結果。
-		 */
+		// 描画先またはその設定結果。
 		auto Target = m_pBackend->SetTarget(-1, Width, Height);
 		if (!Target)
 		{
 			return Target;
 		}
-		/**
-		 * 既定状態への復元結果。
-		 */
+		// 既定状態への復元結果。
 		auto Reset = m_pBackend->ResetState(Width, Height);
 		if (!Reset)
 		{

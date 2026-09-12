@@ -13,7 +13,7 @@ public:
 	/**
 	 * 現在の状態を取得する。
 	 */
-	DScene* GetCurrent() const noexcept
+	FORCEINLINE DScene* GetCurrent() const noexcept
 	{
 		return m_pCurrent.Get();
 	}
@@ -28,7 +28,7 @@ public:
 	/**
 	 * 待機中の対象の所有権を取り出す。
 	 */
-	Toolbox::TUniquePtr<DScene> TakePending_Internal() noexcept
+	FORCEINLINE Toolbox::TUniquePtr<DScene> TakePending_Internal() noexcept
 	{
 		return Toolbox::Move(m_pPending);
 	}

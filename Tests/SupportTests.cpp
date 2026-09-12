@@ -9,13 +9,9 @@ using namespace Dxf;
 using namespace Dxf::Testing;
 TEST("Texture cache shares normalized paths")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証に使用する資源管理。
-	 */
+	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
 	auto A = Assets.LoadTexture("Assets/../Assets/player.bmp");
 	auto B = Assets.LoadTexture("Assets/player.bmp");
@@ -25,18 +21,12 @@ TEST("Texture cache shares normalized paths")
 }
 TEST("Texture load options participate in cache identity")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証に使用する資源管理。
-	 */
+	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
 	auto A = Assets.LoadTexture("a.bmp");
-	/**
-	 * 検証条件を指定する読み込みオプション。
-	 */
+	// 検証条件を指定する読み込みオプション。
 	FTextureLoadOptions Options;
 	Options.bUse3D = false;
 	auto B = Assets.LoadTexture("a.bmp", Options);
@@ -45,13 +35,9 @@ TEST("Texture load options participate in cache identity")
 }
 TEST("Texture is freed once when last reference expires")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証に使用する資源管理。
-	 */
+	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
 	{
 		auto A = Assets.LoadTexture("a.bmp").Value();
@@ -65,18 +51,12 @@ TEST("Texture is freed once when last reference expires")
 }
 TEST("Asset shutdown invalidates externally retained references")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 所有側の外に残す参照。
-	 */
+	// 所有側の外に残す参照。
 	FTexture External;
 	{
-		/**
-		 * 検証に使用する資源管理。
-		 */
+		// 検証に使用する資源管理。
 		FAssetService Assets(Backend, Backend, Backend);
 		External = Assets.LoadTexture("a.bmp").Value();
 		Assets.Shutdown();
@@ -87,13 +67,9 @@ TEST("Asset shutdown invalidates externally retained references")
 }
 TEST("Failed load is not cached and can be retried")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証に使用する資源管理。
-	 */
+	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
 	Backend.GetTrace().bFailTexture = true;
 	REQUIRE(!Assets.LoadTexture("bad.bmp"));
@@ -103,13 +79,9 @@ TEST("Failed load is not cached and can be retried")
 }
 TEST("Invalid successful native handle is rejected")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証に使用する資源管理。
-	 */
+	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
 	Backend.GetTrace().bInvalidTexture = true;
 	REQUIRE(!Assets.LoadTexture("bad.bmp"));
@@ -117,13 +89,9 @@ TEST("Invalid successful native handle is rejected")
 }
 TEST("Loading after asset shutdown is rejected")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証に使用する資源管理。
-	 */
+	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
 	Assets.Shutdown();
 	REQUIRE(!Assets.LoadTexture("a.bmp"));
@@ -131,30 +99,20 @@ TEST("Loading after asset shutdown is rejected")
 }
 TEST("Invalid render target dimensions fail before backend call")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証に使用する資源管理。
-	 */
+	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
 	REQUIRE(!Assets.CreateRenderTarget(0, 100));
 	REQUIRE(Backend.GetTrace().Textures.IsEmpty());
 }
 TEST("Font cache separates sizes and invalidates references")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証に使用する資源管理。
-	 */
+	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
-	/**
-	 * 検証条件を指定する読み込みオプション。
-	 */
+	// 検証条件を指定する読み込みオプション。
 	FFontOptions Options;
 	auto A = Assets.LoadFont(Options).Value();
 	auto B = Assets.LoadFont(Options).Value();
@@ -169,17 +127,11 @@ TEST("Font cache separates sizes and invalidates references")
 }
 TEST("Render queue sorts layer and order while preserving equal-key insertion")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証に使用する資源管理。
-	 */
+	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
-	/**
-	 * 描画を実行する検証用レンダラー。
-	 */
+	// 描画を実行する検証用レンダラー。
 	FRenderSystem2D Renderer(Backend);
 	auto A = Assets.LoadTexture("a.bmp").Value();
 	auto B = Assets.LoadTexture("b.bmp").Value();
@@ -196,26 +148,16 @@ TEST("Render queue sorts layer and order while preserving equal-key insertion")
 }
 TEST("Sprite opacity does not leak to following commands")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証に使用する資源管理。
-	 */
+	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
-	/**
-	 * 描画を実行する検証用レンダラー。
-	 */
+	// 描画を実行する検証用レンダラー。
 	FRenderSystem2D Renderer(Backend);
-	/**
-	 * 検証で使用する画像資源。
-	 */
+	// 検証で使用する画像資源。
 	auto Texture = Assets.LoadTexture("a.bmp").Value();
 	REQUIRE(Renderer.BeginFrame(640, 480));
-	/**
-	 * 透過描画の検証条件。
-	 */
+	// 透過描画の検証条件。
 	FSpriteDrawOptions Transparent;
 	Transparent.Opacity = 0.3f;
 	REQUIRE(Renderer.GetContext().Draw(Texture, {}, Transparent));
@@ -225,23 +167,15 @@ TEST("Sprite opacity does not leak to following commands")
 }
 TEST("Render commands keep textures alive until execution")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証に使用する資源管理。
-	 */
+	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
-	/**
-	 * 描画を実行する検証用レンダラー。
-	 */
+	// 描画を実行する検証用レンダラー。
 	FRenderSystem2D Renderer(Backend);
 	REQUIRE(Renderer.BeginFrame(640, 480));
 	{
-		/**
-		 * 検証で使用する画像資源。
-		 */
+		// 検証で使用する画像資源。
 		auto Texture = Assets.LoadTexture("a.bmp").Value();
 		REQUIRE(Renderer.GetContext().Draw(Texture, {}));
 	}
@@ -251,31 +185,19 @@ TEST("Render commands keep textures alive until execution")
 }
 TEST("Native barrier restores state after exception but discards the failed frame")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証に使用する資源管理。
-	 */
+	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
-	/**
-	 * 描画を実行する検証用レンダラー。
-	 */
+	// 描画を実行する検証用レンダラー。
 	FRenderSystem2D Renderer(Backend);
-	/**
-	 * 検証で使用する画像資源。
-	 */
+	// 検証で使用する画像資源。
 	auto Texture = Assets.LoadTexture("a.bmp").Value();
 	REQUIRE(Renderer.BeginFrame(640, 480));
 	REQUIRE(Renderer.GetContext().Draw(Texture, {}));
-	/**
-	 * 描画状態リセットの呼び出し回数。
-	 */
+	// 描画状態リセットの呼び出し回数。
 	const Toolbox::int32 Resets = Backend.GetTrace().Resets;
-	/**
-	 * 検証対象の操作が返した成否と値。
-	 */
+	// 検証対象の操作が返した成否と値。
 	auto Result = Renderer.Native(
 	    [&]() -> TResult<void>
 	    {
@@ -291,21 +213,13 @@ TEST("Native barrier restores state after exception but discards the failed fram
 }
 TEST("Drawing render target into itself is rejected")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証に使用する資源管理。
-	 */
+	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
-	/**
-	 * 描画を実行する検証用レンダラー。
-	 */
+	// 描画を実行する検証用レンダラー。
 	FRenderSystem2D Renderer(Backend);
-	/**
-	 * 描画先または遷移先。
-	 */
+	// 描画先または遷移先。
 	auto Target = Assets.CreateRenderTarget(128, 128).Value();
 	REQUIRE(Renderer.BeginFrame(640, 480));
 	REQUIRE(Renderer.SetRenderTarget(Target));
@@ -316,21 +230,13 @@ TEST("Drawing render target into itself is rejected")
 }
 TEST("Invalidated texture fails submission and never reaches backend")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証に使用する資源管理。
-	 */
+	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
-	/**
-	 * 描画を実行する検証用レンダラー。
-	 */
+	// 描画を実行する検証用レンダラー。
 	FRenderSystem2D Renderer(Backend);
-	/**
-	 * 検証で使用する画像資源。
-	 */
+	// 検証で使用する画像資源。
 	auto Texture = Assets.LoadTexture("a.bmp").Value();
 	Assets.Shutdown();
 	REQUIRE(Renderer.BeginFrame(640, 480));
@@ -340,21 +246,13 @@ TEST("Invalidated texture fails submission and never reaches backend")
 }
 TEST("Invalidation between queue and flush is detected")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証に使用する資源管理。
-	 */
+	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
-	/**
-	 * 描画を実行する検証用レンダラー。
-	 */
+	// 描画を実行する検証用レンダラー。
 	FRenderSystem2D Renderer(Backend);
-	/**
-	 * 検証で使用する画像資源。
-	 */
+	// 検証で使用する画像資源。
 	auto Texture = Assets.LoadTexture("a.bmp").Value();
 	REQUIRE(Renderer.BeginFrame(640, 480));
 	REQUIRE(Renderer.GetContext().Draw(Texture, {}));
@@ -364,47 +262,29 @@ TEST("Invalidation between queue and flush is detected")
 }
 TEST("Nonfinite sprite values are rejected")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証に使用する資源管理。
-	 */
+	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
-	/**
-	 * 描画を実行する検証用レンダラー。
-	 */
+	// 描画を実行する検証用レンダラー。
 	FRenderSystem2D Renderer(Backend);
-	/**
-	 * 検証で使用する画像資源。
-	 */
+	// 検証で使用する画像資源。
 	auto Texture = Assets.LoadTexture("a.bmp").Value();
 	REQUIRE(Renderer.BeginFrame(640, 480));
-	/**
-	 * 検証条件を指定する読み込みオプション。
-	 */
+	// 検証条件を指定する読み込みオプション。
 	FSpriteDrawOptions Options;
 	Options.Opacity = Toolbox::TNumericLimits<Toolbox::f32>::QuietNaN();
 	REQUIRE(!Renderer.GetContext().Draw(Texture, {}, Options));
 }
 TEST("Render flush prevents reentrant native calls")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証に使用する資源管理。
-	 */
+	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
-	/**
-	 * 描画を実行する検証用レンダラー。
-	 */
+	// 描画を実行する検証用レンダラー。
 	FRenderSystem2D Renderer(Backend);
-	/**
-	 * 検証で使用する画像資源。
-	 */
+	// 検証で使用する画像資源。
 	auto Texture = Assets.LoadTexture("a.bmp").Value();
 	REQUIRE(Renderer.BeginFrame(640, 480));
 	Backend.GetTrace().OnDraw = [&]
@@ -420,21 +300,13 @@ TEST("Render flush prevents reentrant native calls")
 }
 TEST("Each memory sound playback owns a distinct native handle")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証に使用する資源管理。
-	 */
+	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
-	/**
-	 * 再生状態を管理する音声サービス。
-	 */
+	// 再生状態を管理する音声サービス。
 	FAudioPlayer Audio(Backend);
-	/**
-	 * 検証で使用する音声資源。
-	 */
+	// 検証で使用する音声資源。
 	auto Sound = Assets.LoadSound("shot.wav").Value();
 	auto A = Audio.Play(Sound).Value();
 	auto B = Audio.Play(Sound).Value();
@@ -446,26 +318,16 @@ TEST("Each memory sound playback owns a distinct native handle")
 }
 TEST("Stream playback reloads instead of duplicating unsupported sound data")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証に使用する資源管理。
-	 */
+	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
-	/**
-	 * 再生状態を管理する音声サービス。
-	 */
+	// 再生状態を管理する音声サービス。
 	FAudioPlayer Audio(Backend);
-	/**
-	 * 検証条件を指定する読み込みオプション。
-	 */
+	// 検証条件を指定する読み込みオプション。
 	FSoundLoadOptions Options;
 	Options.Storage = ESoundStorage::Stream;
-	/**
-	 * 検証で使用する音声資源。
-	 */
+	// 検証で使用する音声資源。
 	auto Sound = Assets.LoadSound("music.ogg", Options).Value();
 	REQUIRE(Audio.Play(Sound));
 	REQUIRE(Backend.GetTrace().Clones == 0);
@@ -473,21 +335,13 @@ TEST("Stream playback reloads instead of duplicating unsupported sound data")
 }
 TEST("Failed playback frees the newly created voice")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証に使用する資源管理。
-	 */
+	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
-	/**
-	 * 再生状態を管理する音声サービス。
-	 */
+	// 再生状態を管理する音声サービス。
 	FAudioPlayer Audio(Backend);
-	/**
-	 * 検証で使用する音声資源。
-	 */
+	// 検証で使用する音声資源。
 	auto Sound = Assets.LoadSound("shot.wav").Value();
 	Backend.GetTrace().bFailStart = true;
 	REQUIRE(!Audio.Play(Sound));
@@ -496,25 +350,15 @@ TEST("Failed playback frees the newly created voice")
 }
 TEST("Audio scopes stop scene sound without stopping persistent music")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証に使用する資源管理。
-	 */
+	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
-	/**
-	 * 再生状態を管理する音声サービス。
-	 */
+	// 再生状態を管理する音声サービス。
 	FAudioPlayer Audio(Backend);
-	/**
-	 * 検証で使用する音声資源。
-	 */
+	// 検証で使用する音声資源。
 	auto Sound = Assets.LoadSound("shot.wav").Value();
-	/**
-	 * 検証条件を指定する読み込みオプション。
-	 */
+	// 検証条件を指定する読み込みオプション。
 	FPlaybackOptions Options;
 	Options.Scope = 11;
 	auto A = Audio.Play(Sound, Options).Value();
@@ -525,25 +369,15 @@ TEST("Audio scopes stop scene sound without stopping persistent music")
 }
 TEST("Finished voices are reclaimed by Tick")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証に使用する資源管理。
-	 */
+	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
-	/**
-	 * 再生状態を管理する音声サービス。
-	 */
+	// 再生状態を管理する音声サービス。
 	FAudioPlayer Audio(Backend);
-	/**
-	 * 検証で使用する音声資源。
-	 */
+	// 検証で使用する音声資源。
 	auto Sound = Assets.LoadSound("shot.wav").Value();
-	/**
-	 * 音声の再生インスタンス。
-	 */
+	// 音声の再生インスタンス。
 	auto Voice = Audio.Play(Sound).Value();
 	for (auto& [Handle, bPlaying] : Backend.GetTrace().Sounds)
 	{
@@ -555,23 +389,15 @@ TEST("Finished voices are reclaimed by Tick")
 }
 TEST("Audio player rejects another player's handle and invalid volume")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証に使用する資源管理。
-	 */
+	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
 	FAudioPlayer A(Backend);
 	FAudioPlayer B(Backend);
-	/**
-	 * 検証で使用する音声資源。
-	 */
+	// 検証で使用する音声資源。
 	auto Sound = Assets.LoadSound("shot.wav").Value();
-	/**
-	 * 音声の再生インスタンス。
-	 */
+	// 音声の再生インスタンス。
 	auto Voice = A.Play(Sound).Value();
 	REQUIRE(!B.Stop(Voice));
 	REQUIRE(!A.SetVolume(Voice, -0.1f));
@@ -579,29 +405,21 @@ TEST("Audio player rejects another player's handle and invalid volume")
 }
 TEST("Session ends exactly once on success and does not end an uninitialized backend")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
 	{
-		/**
-		 * 実行中のセッション。
-		 */
+		// 実行中のセッション。
 		FDxLibSession Session(Backend);
 		REQUIRE(Session.Initialize({}));
 		Session.Shutdown();
 		Session.Shutdown();
 	}
 	REQUIRE(Backend.GetTrace().Events == Toolbox::TVector<Toolbox::FString>({"init", "shutdown"}));
-	/**
-	 * 不正操作が拒否されたか。
-	 */
+	// 不正操作が拒否されたか。
 	FFakeBackend Failed;
 	Failed.GetTrace().bFailPlatform = true;
 	{
-		/**
-		 * 実行中のセッション。
-		 */
+		// 実行中のセッション。
 		FDxLibSession Session(Failed);
 		REQUIRE(!Session.Initialize({}));
 	}
@@ -609,13 +427,9 @@ TEST("Session ends exactly once on success and does not end an uninitialized bac
 }
 TEST("Native state restoration failure aborts the frame")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 描画を実行する検証用レンダラー。
-	 */
+	// 描画を実行する検証用レンダラー。
 	FRenderSystem2D Renderer(Backend);
 	REQUIRE(Renderer.BeginFrame(640, 480));
 	REQUIRE(!Renderer.Native(
@@ -642,17 +456,11 @@ TEST("Native handle adoption is allocation-free, noexcept and releases once acro
 	};
 	static_assert(noexcept(FNativeHandle(1, &Releases, Release)));
 	{
-		/**
-		 * 最初に生成または登録した対象。
-		 */
+		// 最初に生成または登録した対象。
 		FNativeHandle First(1, &Releases, Release);
-		/**
-		 * 二番目に生成または登録した対象。
-		 */
+		// 二番目に生成または登録した対象。
 		FNativeHandle Second(Toolbox::Move(First));
-		/**
-		 * 三番目に生成または登録した対象。
-		 */
+		// 三番目に生成または登録した対象。
 		FNativeHandle Third(2, &Releases, Release);
 		Third = Toolbox::Move(Second);
 		REQUIRE(Releases == 1);
@@ -665,26 +473,16 @@ TEST("Native handle adoption is allocation-free, noexcept and releases once acro
 }
 TEST("Scene-facing render context exposes ordered target and native barriers without Application access")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証に使用する資源管理。
-	 */
+	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
-	/**
-	 * 描画を実行する検証用レンダラー。
-	 */
+	// 描画を実行する検証用レンダラー。
 	FRenderSystem2D Renderer(Backend);
-	/**
-	 * 描画先または遷移先。
-	 */
+	// 描画先または遷移先。
 	auto Target = Assets.CreateRenderTarget(64, 64, false).Value();
 	REQUIRE(Renderer.BeginFrame(640, 480));
-	/**
-	 * フック呼び出しへ渡す実行環境。
-	 */
+	// フック呼び出しへ渡す実行環境。
 	auto& Context = Renderer.GetContext();
 	REQUIRE(Context.SetRenderTarget(Target));
 	REQUIRE(Context.FillRectangle({0, 0, 32, 32}));
@@ -700,13 +498,9 @@ TEST("Scene-facing render context exposes ordered target and native barriers wit
 }
 TEST("Queue-only render contexts reject unsupported immediate control explicitly")
 {
-	/**
-	 * 処理順序を検証する待機操作。
-	 */
+	// 処理順序を検証する待機操作。
 	FRenderQueue2D Queue;
-	/**
-	 * フック呼び出しへ渡す実行環境。
-	 */
+	// フック呼び出しへ渡す実行環境。
 	FRenderContext Context(Queue);
 	REQUIRE(!Context.SetBackBuffer());
 	REQUIRE(!Context.Native(

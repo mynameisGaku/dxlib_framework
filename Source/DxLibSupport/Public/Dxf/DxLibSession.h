@@ -44,9 +44,7 @@ public:
 		{
 			return TResult<void>::Failure(EErrorCode::InvalidArgument, "Invalid window size");
 		}
-		/**
-		 * 処理結果。
-		 */
+		// 処理結果。
 		auto Result = m_pPlatform->Initialize(Settings);
 		m_bInitialized = static_cast<bool>(Result);
 		return Result;
@@ -65,7 +63,7 @@ public:
 	/**
 	 * 初期化が完了しているかを調べる。
 	 */
-	bool IsInitialized() const noexcept
+	FORCEINLINE bool IsInitialized() const noexcept
 	{
 		return m_bInitialized;
 	}

@@ -46,15 +46,11 @@ public:
 		}
 		try
 		{
-			/**
-			 * オブジェクト。
-			 */
+			// オブジェクト。
 			auto Object = Toolbox::MakeUnique<U>(Toolbox::Forward<TArgs>(Args)...);
 			Object->SetCreationOrder_Internal(m_NextCreationOrder++);
 			PrepareObject_Internal(*Object);
-			/**
-			 * 利用者のコンストラクターが別の参照経由で終了を要求する場合に備える。
-			 */
+			// 利用者のコンストラクターが別の参照経由で終了を要求する場合に備える。
 			if (!m_bAccepting || m_bShutdownRequested)
 			{
 				return TResult<TObjectHandle<U>>::Failure(EErrorCode::InvalidState,
@@ -62,9 +58,7 @@ public:
 			}
 			return TResult<TObjectHandle<U>>::Success(m_Storage.Insert(Toolbox::Move(Object)).template Cast<U>());
 		}
-		/**
-		 * 呼び出し先の例外を処理結果へ変換する。
-		 */
+		// 呼び出し先の例外を処理結果へ変換する。
 		catch (const Toolbox::FException& Error)
 		{
 			return TResult<TObjectHandle<U>>::Failure(EErrorCode::UserException, Error.What());
@@ -80,9 +74,7 @@ public:
 	 */
 	template <typename U> bool Destroy(const TObjectHandle<U>& Handle) noexcept
 	{
-		/**
-		 * オブジェクト。
-		 */
+		// オブジェクト。
 		T* Object = m_Storage.Find_Internal(Handle.GetId());
 		if (!Object || Object->IsDestroyRequested())
 		{
@@ -108,7 +100,7 @@ public:
 	/**
 	 * 有効な要素数を取得する。
 	 */
-	Toolbox::size_t Size() const noexcept
+	FORCEINLINE Toolbox::size_t Size() const noexcept
 	{
 		return m_Storage.Size();
 	}
@@ -136,14 +128,10 @@ public:
 		{
 			return {};
 		}
-		/**
-		 * 処理結果。
-		 */
+		// 処理結果。
 		TResult<void> Result;
 		{
-			/**
-			 * 処理終了時に状態を戻すガード。
-			 */
+			// 処理終了時に状態を戻すガード。
 			TGuardValue Guard(m_bBusy, true);
 			Result = m_Lifecycle.CommitBoundary_Internal(Context);
 		}
@@ -164,14 +152,10 @@ public:
 		{
 			return {};
 		}
-		/**
-		 * 処理結果。
-		 */
+		// 処理結果。
 		TResult<void> Result;
 		{
-			/**
-			 * 処理終了時に状態を戻すガード。
-			 */
+			// 処理終了時に状態を戻すガード。
 			TGuardValue Guard(m_bBusy, true);
 			Result = m_Updater.Tick_Internal(Context);
 		}
@@ -192,14 +176,10 @@ public:
 		{
 			return {};
 		}
-		/**
-		 * 処理結果。
-		 */
+		// 処理結果。
 		TResult<void> Result;
 		{
-			/**
-			 * 処理終了時に状態を戻すガード。
-			 */
+			// 処理終了時に状態を戻すガード。
 			TGuardValue Guard(m_bBusy, true);
 			Result = m_DrawDispatcher.Draw_Internal(Context);
 		}
@@ -225,9 +205,7 @@ public:
 	{
 		if (m_bBusy)
 		{
-			/**
-			 * 通知を直ちに止め、削除は実行中のコールバックが戻るまで遅延する。
-			 */
+			// 通知を直ちに止め、削除は実行中のコールバックが戻るまで遅延する。
 			RequestStop_Internal();
 			return;
 		}
@@ -237,9 +215,7 @@ public:
 		}
 		m_bAccepting = false;
 		m_bShutdownRequested = false;
-		/**
-		 * 処理終了時に状態を戻すガード。
-		 */
+		// 処理終了時に状態を戻すガード。
 		TGuardValue Guard(m_bBusy, true);
 		m_Lifecycle.Shutdown_Internal();
 	}

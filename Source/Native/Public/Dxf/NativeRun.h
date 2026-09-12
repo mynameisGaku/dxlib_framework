@@ -13,17 +13,11 @@ namespace Dxf
 template <typename TScene, typename... TArgs> TResult<void> Run(FApplicationSettings Settings, TArgs&&... Args)
 {
 	static_assert(Toolbox::IsBaseOf<DScene, TScene>);
-	/**
-	 * 各ネイティブ機能の実装。
-	 */
+	// 各ネイティブ機能の実装。
 	FDxLibBackends Backends;
-	/**
-	 * サービスを結合した実行用のアプリケーション。
-	 */
+	// サービスを結合した実行用のアプリケーション。
 	FApplication Application(Backends.GetServices(), Toolbox::Move(Settings));
-	/**
-	 * アプリケーションの実行器。
-	 */
+	// アプリケーションの実行器。
 	FAppRunner Runner;
 	return Runner.Run(Application, Toolbox::MakeUnique<TScene>(Toolbox::Forward<TArgs>(Args)...));
 }

@@ -147,7 +147,7 @@ inline FNativeTrace Trace;
 /**
  * 文字コード設定のAPI呼び出しを再現する。
  */
-inline Toolbox::int32 SetUseCharCodeFormat(Toolbox::int32 Value)
+FORCEINLINE Toolbox::int32 SetUseCharCodeFormat(Toolbox::int32 Value)
 {
 	Trace.CharCode = Value;
 	return 0;
@@ -155,49 +155,49 @@ inline Toolbox::int32 SetUseCharCodeFormat(Toolbox::int32 Value)
 /**
  * ウィンドウ名設定を再現する。
  */
-inline Toolbox::int32 SetMainWindowText(const char*)
+FORCEINLINE Toolbox::int32 SetMainWindowText(const char*)
 {
 	return 0;
 }
 /**
  * ウィンドウモード設定を再現する。
  */
-inline Toolbox::int32 ChangeWindowMode(Toolbox::int32)
+FORCEINLINE Toolbox::int32 ChangeWindowMode(Toolbox::int32)
 {
 	return 0;
 }
 /**
  * 画面サイズ設定を再現する。
  */
-inline Toolbox::int32 SetGraphMode(Toolbox::int32, Toolbox::int32, Toolbox::int32)
+FORCEINLINE Toolbox::int32 SetGraphMode(Toolbox::int32, Toolbox::int32, Toolbox::int32)
 {
 	return 0;
 }
 /**
  * 垂直同期設定を再現する。
  */
-inline Toolbox::int32 SetWaitVSyncFlag(Toolbox::int32)
+FORCEINLINE Toolbox::int32 SetWaitVSyncFlag(Toolbox::int32)
 {
 	return 0;
 }
 /**
  * 非アクティブ時の実行設定を再現する。
  */
-inline Toolbox::int32 SetAlwaysRunFlag(Toolbox::int32)
+FORCEINLINE Toolbox::int32 SetAlwaysRunFlag(Toolbox::int32)
 {
 	return 0;
 }
 /**
  * ネイティブ初期化の呼び出しを再現する。
  */
-inline Toolbox::int32 DxLib_Init()
+FORCEINLINE Toolbox::int32 DxLib_Init()
 {
 	return Trace.bFailInit ? -1 : 0;
 }
 /**
  * ネイティブ終了の呼び出しを再現する。
  */
-inline Toolbox::int32 DxLib_End()
+FORCEINLINE Toolbox::int32 DxLib_End()
 {
 	++Trace.Ends;
 	return 0;
@@ -205,21 +205,21 @@ inline Toolbox::int32 DxLib_End()
 /**
  * ネイティブイベント処理を再現する。
  */
-inline Toolbox::int32 ProcessMessage()
+FORCEINLINE Toolbox::int32 ProcessMessage()
 {
 	return 0;
 }
 /**
  * 検証用のウィンドウ稼働状態を返す。
  */
-inline Toolbox::int32 GetWindowActiveFlag()
+FORCEINLINE Toolbox::int32 GetWindowActiveFlag()
 {
 	return Trace.bActive ? TRUE : FALSE;
 }
 /**
  * 検証用の全キー状態を書き込む。
  */
-inline Toolbox::int32 GetHitKeyStateAll(char* Keys)
+FORCEINLINE Toolbox::int32 GetHitKeyStateAll(char* Keys)
 {
 	Toolbox::Copy(Trace.Keys.Begin(), Trace.Keys.End(), Keys);
 	return Trace.bFailKeys ? -1 : 0;
@@ -227,7 +227,7 @@ inline Toolbox::int32 GetHitKeyStateAll(char* Keys)
 /**
  * 検証用のマウス座標を書き込む。
  */
-inline Toolbox::int32 GetMousePoint(Toolbox::int32* X, Toolbox::int32* Y)
+FORCEINLINE Toolbox::int32 GetMousePoint(Toolbox::int32* X, Toolbox::int32* Y)
 {
 	*X = 0;
 	*Y = 0;
@@ -236,28 +236,28 @@ inline Toolbox::int32 GetMousePoint(Toolbox::int32* X, Toolbox::int32* Y)
 /**
  * 検証用のマウスボタン状態を返す。
  */
-inline Toolbox::int32 GetMouseInput()
+FORCEINLINE Toolbox::int32 GetMouseInput()
 {
 	return Trace.MouseButtons;
 }
 /**
  * 検証用のホイール移動量を返す。
  */
-inline Toolbox::int32 GetMouseWheelRotVol()
+FORCEINLINE Toolbox::int32 GetMouseWheelRotVol()
 {
 	return 0;
 }
 /**
  * 検証用のゲームパッド接続数を返す。
  */
-inline Toolbox::int32 GetJoypadNum()
+FORCEINLINE Toolbox::int32 GetJoypadNum()
 {
 	return Trace.PadCount;
 }
 /**
  * 検証用のゲームパッドボタン状態を返す。
  */
-inline Toolbox::int32 GetJoypadInputState(Toolbox::int32 Pad)
+FORCEINLINE Toolbox::int32 GetJoypadInputState(Toolbox::int32 Pad)
 {
 	Trace.LastPad = Pad;
 	return Trace.PadButtons;
@@ -265,7 +265,7 @@ inline Toolbox::int32 GetJoypadInputState(Toolbox::int32 Pad)
 /**
  * 検証用のアナログスティック値を書き込む。
  */
-inline Toolbox::int32 GetJoypadAnalogInput(Toolbox::int32* X, Toolbox::int32* Y, Toolbox::int32 Pad)
+FORCEINLINE Toolbox::int32 GetJoypadAnalogInput(Toolbox::int32* X, Toolbox::int32* Y, Toolbox::int32 Pad)
 {
 	Trace.LastPad = Pad;
 	*X = Trace.PadX;
@@ -275,7 +275,7 @@ inline Toolbox::int32 GetJoypadAnalogInput(Toolbox::int32* X, Toolbox::int32* Y,
 /**
  * 画像読み込みAPIの呼び出しを再現する。
  */
-inline Toolbox::int32 LoadGraph(const char* Path, Toolbox::int32)
+FORCEINLINE Toolbox::int32 LoadGraph(const char* Path, Toolbox::int32)
 {
 	Trace.Path = Path;
 	return Trace.NextHandle++;
@@ -283,7 +283,7 @@ inline Toolbox::int32 LoadGraph(const char* Path, Toolbox::int32)
 /**
  * 検証用画像のサイズを返す。
  */
-inline Toolbox::int32 GetGraphSize(Toolbox::int32, Toolbox::int32* X, Toolbox::int32* Y)
+FORCEINLINE Toolbox::int32 GetGraphSize(Toolbox::int32, Toolbox::int32* X, Toolbox::int32* Y)
 {
 	*X = 64;
 	*Y = 64;
@@ -292,7 +292,7 @@ inline Toolbox::int32 GetGraphSize(Toolbox::int32, Toolbox::int32* X, Toolbox::i
 /**
  * 画像解放APIの呼び出しを再現する。
  */
-inline Toolbox::int32 DeleteGraph(Toolbox::int32)
+FORCEINLINE Toolbox::int32 DeleteGraph(Toolbox::int32)
 {
 	++Trace.DeletedGraphs;
 	return 0;
@@ -300,14 +300,14 @@ inline Toolbox::int32 DeleteGraph(Toolbox::int32)
 /**
  * 描画先生成APIの呼び出しを再現する。
  */
-inline Toolbox::int32 MakeScreen(Toolbox::int32, Toolbox::int32, Toolbox::int32)
+FORCEINLINE Toolbox::int32 MakeScreen(Toolbox::int32, Toolbox::int32, Toolbox::int32)
 {
 	return Trace.NextHandle++;
 }
 /**
  * 音声の読み込み方式設定を再現する。
  */
-inline Toolbox::int32 SetCreateSoundDataType(Toolbox::int32 Type)
+FORCEINLINE Toolbox::int32 SetCreateSoundDataType(Toolbox::int32 Type)
 {
 	Trace.SoundType = Type;
 	return 0;
@@ -315,7 +315,7 @@ inline Toolbox::int32 SetCreateSoundDataType(Toolbox::int32 Type)
 /**
  * 音声読み込みAPIの呼び出しを再現する。
  */
-inline Toolbox::int32 LoadSoundMem(const char*)
+FORCEINLINE Toolbox::int32 LoadSoundMem(const char*)
 {
 	Trace.LoadedSoundType = Trace.SoundType;
 	return Trace.NextHandle++;
@@ -323,35 +323,35 @@ inline Toolbox::int32 LoadSoundMem(const char*)
 /**
  * 音声複製APIの呼び出しを再現する。
  */
-inline Toolbox::int32 DuplicateSoundMem(Toolbox::int32)
+FORCEINLINE Toolbox::int32 DuplicateSoundMem(Toolbox::int32)
 {
 	return Trace.NextHandle++;
 }
 /**
  * 音声再生APIの呼び出しを再現する。
  */
-inline Toolbox::int32 PlaySoundMem(Toolbox::int32, Toolbox::int32, Toolbox::int32)
+FORCEINLINE Toolbox::int32 PlaySoundMem(Toolbox::int32, Toolbox::int32, Toolbox::int32)
 {
 	return 0;
 }
 /**
  * 音声停止APIの呼び出しを再現する。
  */
-inline Toolbox::int32 StopSoundMem(Toolbox::int32)
+FORCEINLINE Toolbox::int32 StopSoundMem(Toolbox::int32)
 {
 	return 0;
 }
 /**
  * 音声解放APIの呼び出しを再現する。
  */
-inline Toolbox::int32 DeleteSoundMem(Toolbox::int32)
+FORCEINLINE Toolbox::int32 DeleteSoundMem(Toolbox::int32)
 {
 	return 0;
 }
 /**
  * ネイティブ音量設定の引数を記録する。
  */
-inline Toolbox::int32 ChangeVolumeSoundMem(Toolbox::int32 Volume, Toolbox::int32)
+FORCEINLINE Toolbox::int32 ChangeVolumeSoundMem(Toolbox::int32 Volume, Toolbox::int32)
 {
 	Trace.Volume = Volume;
 	return 0;
@@ -359,28 +359,28 @@ inline Toolbox::int32 ChangeVolumeSoundMem(Toolbox::int32 Volume, Toolbox::int32
 /**
  * 検証用の音声再生状態を返す。
  */
-inline Toolbox::int32 CheckSoundMem(Toolbox::int32)
+FORCEINLINE Toolbox::int32 CheckSoundMem(Toolbox::int32)
 {
 	return 0;
 }
 /**
  * フォント生成APIの呼び出しを再現する。
  */
-inline Toolbox::int32 CreateFontToHandle(const char*, Toolbox::int32, Toolbox::int32, Toolbox::int32)
+FORCEINLINE Toolbox::int32 CreateFontToHandle(const char*, Toolbox::int32, Toolbox::int32, Toolbox::int32)
 {
 	return Trace.NextHandle++;
 }
 /**
  * フォント解放APIの呼び出しを再現する。
  */
-inline Toolbox::int32 DeleteFontToHandle(Toolbox::int32)
+FORCEINLINE Toolbox::int32 DeleteFontToHandle(Toolbox::int32)
 {
 	return 0;
 }
 /**
  * 描画先設定の引数を記録する。
  */
-inline Toolbox::int32 SetDrawScreen(Toolbox::int32 Handle)
+FORCEINLINE Toolbox::int32 SetDrawScreen(Toolbox::int32 Handle)
 {
 	Trace.Target = Handle;
 	return 0;
@@ -388,14 +388,14 @@ inline Toolbox::int32 SetDrawScreen(Toolbox::int32 Handle)
 /**
  * 描画範囲設定を再現する。
  */
-inline Toolbox::int32 SetDrawArea(Toolbox::int32, Toolbox::int32, Toolbox::int32, Toolbox::int32)
+FORCEINLINE Toolbox::int32 SetDrawArea(Toolbox::int32, Toolbox::int32, Toolbox::int32, Toolbox::int32)
 {
 	return 0;
 }
 /**
  * 透過合成設定の引数を記録する。
  */
-inline Toolbox::int32 SetDrawBlendMode(Toolbox::int32, Toolbox::int32 Alpha)
+FORCEINLINE Toolbox::int32 SetDrawBlendMode(Toolbox::int32, Toolbox::int32 Alpha)
 {
 	Trace.Alpha = Alpha;
 	return 0;
@@ -403,7 +403,7 @@ inline Toolbox::int32 SetDrawBlendMode(Toolbox::int32, Toolbox::int32 Alpha)
 /**
  * 描画色設定の引数を記録する。
  */
-inline Toolbox::int32 SetDrawBright(Toolbox::int32 R, Toolbox::int32 G, Toolbox::int32 B)
+FORCEINLINE Toolbox::int32 SetDrawBright(Toolbox::int32 R, Toolbox::int32 G, Toolbox::int32 B)
 {
 	Trace.Brightness = {R, G, B};
 	return 0;
@@ -411,56 +411,56 @@ inline Toolbox::int32 SetDrawBright(Toolbox::int32 R, Toolbox::int32 G, Toolbox:
 /**
  * 画像補間方式の設定を再現する。
  */
-inline Toolbox::int32 SetDrawMode(Toolbox::int32)
+FORCEINLINE Toolbox::int32 SetDrawMode(Toolbox::int32)
 {
 	return 0;
 }
 /**
  * 深度判定設定を再現する。
  */
-inline Toolbox::int32 SetUseZBufferFlag(Toolbox::int32)
+FORCEINLINE Toolbox::int32 SetUseZBufferFlag(Toolbox::int32)
 {
 	return 0;
 }
 /**
  * 深度書き込み設定を再現する。
  */
-inline Toolbox::int32 SetWriteZBufferFlag(Toolbox::int32)
+FORCEINLINE Toolbox::int32 SetWriteZBufferFlag(Toolbox::int32)
 {
 	return 0;
 }
 /**
  * 頂点シェーダー設定を再現する。
  */
-inline Toolbox::int32 SetUseVertexShader(Toolbox::int32)
+FORCEINLINE Toolbox::int32 SetUseVertexShader(Toolbox::int32)
 {
 	return 0;
 }
 /**
  * ピクセルシェーダー設定を再現する。
  */
-inline Toolbox::int32 SetUsePixelShader(Toolbox::int32)
+FORCEINLINE Toolbox::int32 SetUsePixelShader(Toolbox::int32)
 {
 	return 0;
 }
 /**
  * 背景色設定を再現する。
  */
-inline Toolbox::int32 SetBackgroundColor(Toolbox::int32, Toolbox::int32, Toolbox::int32)
+FORCEINLINE Toolbox::int32 SetBackgroundColor(Toolbox::int32, Toolbox::int32, Toolbox::int32)
 {
 	return 0;
 }
 /**
  * 画面消去APIの呼び出しを再現する。
  */
-inline Toolbox::int32 ClearDrawScreen()
+FORCEINLINE Toolbox::int32 ClearDrawScreen()
 {
 	return 0;
 }
 /**
  * RGB成分をネイティブ色値へまとめる。
  */
-inline Toolbox::uint32 GetColor(Toolbox::int32 R, Toolbox::int32 G, Toolbox::int32 B)
+FORCEINLINE Toolbox::uint32 GetColor(Toolbox::int32 R, Toolbox::int32 G, Toolbox::int32 B)
 {
 	return (static_cast<Toolbox::uint32>(R) << 16) | (static_cast<Toolbox::uint32>(G) << 8) |
 	       static_cast<Toolbox::uint32>(B);
@@ -468,9 +468,9 @@ inline Toolbox::uint32 GetColor(Toolbox::int32 R, Toolbox::int32 G, Toolbox::int
 /**
  * 変形画像描画の座標と資源番号を記録する。
  */
-inline Toolbox::int32 DrawModiGraphF(Toolbox::f32 X1, Toolbox::f32 Y1, Toolbox::f32 X2, Toolbox::f32 Y2,
-                                     Toolbox::f32 X3, Toolbox::f32 Y3, Toolbox::f32 X4, Toolbox::f32 Y4, Toolbox::int32,
-                                     Toolbox::int32)
+FORCEINLINE Toolbox::int32 DrawModiGraphF(Toolbox::f32 X1, Toolbox::f32 Y1, Toolbox::f32 X2, Toolbox::f32 Y2,
+                                          Toolbox::f32 X3, Toolbox::f32 Y3, Toolbox::f32 X4, Toolbox::f32 Y4,
+                                          Toolbox::int32, Toolbox::int32)
 {
 	Trace.Vertices = {X1, Y1, X2, Y2, X3, Y3, X4, Y4};
 	return Trace.bFailDraw ? -1 : 0;
@@ -478,7 +478,8 @@ inline Toolbox::int32 DrawModiGraphF(Toolbox::f32 X1, Toolbox::f32 Y1, Toolbox::
 /**
  * フォント付き文字描画の呼び出しを再現する。
  */
-inline Toolbox::int32 DrawStringFToHandle(Toolbox::f32, Toolbox::f32, const char* Text, Toolbox::uint32, Toolbox::int32)
+FORCEINLINE Toolbox::int32 DrawStringFToHandle(Toolbox::f32, Toolbox::f32, const char* Text, Toolbox::uint32,
+                                               Toolbox::int32)
 {
 	Trace.Text = Text;
 	return Trace.bFailDraw ? -1 : 0;
@@ -486,15 +487,15 @@ inline Toolbox::int32 DrawStringFToHandle(Toolbox::f32, Toolbox::f32, const char
 /**
  * 矩形描画APIの呼び出しを再現する。
  */
-inline Toolbox::int32 DrawBox(Toolbox::int32, Toolbox::int32, Toolbox::int32, Toolbox::int32, Toolbox::uint32,
-                              Toolbox::int32)
+FORCEINLINE Toolbox::int32 DrawBox(Toolbox::int32, Toolbox::int32, Toolbox::int32, Toolbox::int32, Toolbox::uint32,
+                                   Toolbox::int32)
 {
 	return Trace.bFailDraw ? -1 : 0;
 }
 /**
  * 画面表示APIの呼び出しを再現する。
  */
-inline Toolbox::int32 ScreenFlip()
+FORCEINLINE Toolbox::int32 ScreenFlip()
 {
 	++Trace.Presentations;
 	return 0;

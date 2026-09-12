@@ -64,17 +64,13 @@ public:
 	 */
 	void Update(const FInputSnapshot& Input)
 	{
-		/**
-		 * アクション名と対応する状態を順に更新する。
-		 */
+		// アクション名と対応する状態を順に更新する。
 		for (auto& [Name, Action] : m_Actions)
 		{
 			(void)Name;
 			Action.bPrevious = Action.bCurrent;
 			Action.bCurrent = false;
-			/**
-			 * 入力の割り当て情報を順に処理する。
-			 */
+			// 入力の割り当て情報を順に処理する。
 			for (const auto& Binding : Action.Bindings)
 			{
 				Action.bCurrent = Action.bCurrent || IsBindingDown_Internal(Input, Binding);
@@ -87,9 +83,7 @@ public:
 	 */
 	bool IsDown(const Toolbox::FString& Action) const
 	{
-		/**
-		 * 現在の状態。
-		 */
+		// 現在の状態。
 		const auto* State = Find_Internal(Action);
 		return State && State->bCurrent;
 	}
@@ -99,9 +93,7 @@ public:
 	 */
 	bool WasPressed(const Toolbox::FString& Action) const
 	{
-		/**
-		 * 現在の状態。
-		 */
+		// 現在の状態。
 		const auto* State = Find_Internal(Action);
 		return State && State->bCurrent && !State->bPrevious;
 	}
@@ -111,9 +103,7 @@ public:
 	 */
 	bool WasReleased(const Toolbox::FString& Action) const
 	{
-		/**
-		 * 現在の状態。
-		 */
+		// 現在の状態。
 		const auto* State = Find_Internal(Action);
 		return State && !State->bCurrent && State->bPrevious;
 	}
@@ -197,9 +187,7 @@ private:
 		{
 			return false;
 		}
-		/**
-		 * アクションに割り当てた入力一覧。
-		 */
+		// アクションに割り当てた入力一覧。
 		auto& Bindings = m_Actions[Toolbox::Move(Action)].Bindings;
 		if (Toolbox::Find(Bindings.Begin(), Bindings.End(), Binding) == Bindings.End())
 		{
@@ -231,9 +219,7 @@ private:
 	 */
 	const FActionState* Find_Internal(const Toolbox::FString& Name) const
 	{
-		/**
-		 * 検索結果のイテレーター。
-		 */
+		// 検索結果のイテレーター。
 		const auto It = m_Actions.Find(Name);
 		return It == m_Actions.End() ? nullptr : &It->Second;
 	}

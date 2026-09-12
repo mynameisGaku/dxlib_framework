@@ -16,13 +16,9 @@ public:
 	 */
 	Toolbox::TSharedPtr<TResource> Find(const Toolbox::FString& Key) const
 	{
-		/**
-		 * 検索結果のイテレーター。
-		 */
+		// 検索結果のイテレーター。
 		const auto It = m_Entries.Find(Key);
-		/**
-		 * 共有するリソース。
-		 */
+		// 共有するリソース。
 		auto Resource = It != m_Entries.End() ? It->Second.Lock() : nullptr;
 		return Resource && Resource->GetHandle_Internal() >= 0 ? Resource : nullptr;
 	}

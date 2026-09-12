@@ -59,9 +59,7 @@ public:
 	bool CompareExchange(uint64& Expected, uint64 Desired) noexcept
 	{
 #if defined(_MSC_VER)
-		/**
-		 * 比較交換を実行した時点でのカウンター値。
-		 */
+		// 比較交換を実行した時点でのカウンター値。
 		const auto Old = static_cast<uint64>(
 		    _InterlockedCompareExchange64(&m_Value, static_cast<long long>(Desired), static_cast<long long>(Expected)));
 		if (Old == Expected)
@@ -71,13 +69,9 @@ public:
 		Expected = Old;
 		return false;
 #else
-		/**
-		 * 比較の期待値。不一致なら実際の値を受け取る。
-		 */
+		// 比較の期待値。不一致なら実際の値を受け取る。
 		long long Current = static_cast<long long>(Expected);
-		/**
-		 * 比較交換が成功したかどうか。
-		 */
+		// 比較交換が成功したかどうか。
 		const bool Success = __atomic_compare_exchange_n(&m_Value, &Current, static_cast<long long>(Desired), false,
 		                                                 __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE);
 		Expected = static_cast<uint64>(Current);

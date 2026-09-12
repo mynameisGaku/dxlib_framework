@@ -12,7 +12,7 @@ public:
 	/**
 	 * OnInitializeからOnDeinitialize完了まで有効。構築中は使用できない。
 	 */
-	DGameObject* GetOwner() const noexcept
+	FORCEINLINE DGameObject* GetOwner() const noexcept
 	{
 		return m_pOwner;
 	}
@@ -27,7 +27,7 @@ public:
 	 * 所有元のオブジェクトを設定する。
 	 * @param Owner 所有元のオブジェクト。
 	 */
-	void SetOwner_Internal(DGameObject& Owner) noexcept
+	FORCEINLINE void SetOwner_Internal(DGameObject& Owner) noexcept
 	{
 		m_pOwner = &Owner;
 	}

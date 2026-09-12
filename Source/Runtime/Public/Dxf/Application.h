@@ -70,35 +70,35 @@ public:
 	/**
 	 * アプリケーションが実行中かを調べる。
 	 */
-	bool IsRunning() const noexcept
+	FORCEINLINE bool IsRunning() const noexcept
 	{
 		return m_bStarted && !m_bShutdown && !m_bShutdownRequested;
 	}
 	/**
 	 * シーン遷移の管理窓口を取得する。
 	 */
-	FSceneNavigator& GetScenes() noexcept
+	FORCEINLINE FSceneNavigator& GetScenes() noexcept
 	{
 		return m_Scenes;
 	}
 	/**
 	 * アセットを読み込むサービスを取得する。
 	 */
-	FAssetService& GetAssets() noexcept
+	FORCEINLINE FAssetService& GetAssets() noexcept
 	{
 		return m_Assets;
 	}
 	/**
 	 * 描画を統括するサービスを取得する。
 	 */
-	FRenderSystem2D& GetRenderer() noexcept
+	FORCEINLINE FRenderSystem2D& GetRenderer() noexcept
 	{
 		return m_Renderer;
 	}
 	/**
 	 * シーン間で共有するゲーム状態を取得する。
 	 */
-	DGameInstance* GetGameInstance() noexcept
+	FORCEINLINE DGameInstance* GetGameInstance() noexcept
 	{
 		return m_pGame.Get();
 	}

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: NOASSERTION
 #ifndef TOOLBOX_UTILITY_H
 #define TOOLBOX_UTILITY_H
+#include "Toolbox/Compiler.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <limits.h>
@@ -149,7 +150,7 @@ template <typename A, typename B> struct TSelect<false, A, B>
  * 値を移動可能な参照へ変換する。所有権の移動そのものは行わない。
  * @param Value 処理または保持する値。
  */
-template <typename T> constexpr typename TRemoveReference<T>::Type&& Move(T&& Value) noexcept
+template <typename T> FORCEINLINE constexpr typename TRemoveReference<T>::Type&& Move(T&& Value) noexcept
 {
 	return static_cast<typename TRemoveReference<T>::Type&&>(Value);
 }
@@ -157,7 +158,7 @@ template <typename T> constexpr typename TRemoveReference<T>::Type&& Move(T&& Va
  * 呼び出し元の参照種別を保って引数を転送する。
  * @param Value 処理または保持する値。
  */
-template <typename T> constexpr T&& Forward(typename TRemoveReference<T>::Type& Value) noexcept
+template <typename T> FORCEINLINE constexpr T&& Forward(typename TRemoveReference<T>::Type& Value) noexcept
 {
 	return static_cast<T&&>(Value);
 }
@@ -165,7 +166,7 @@ template <typename T> constexpr T&& Forward(typename TRemoveReference<T>::Type& 
  * 呼び出し元の参照種別を保って引数を転送する。
  * @param Value 処理または保持する値。
  */
-template <typename T> constexpr T&& Forward(typename TRemoveReference<T>::Type&& Value) noexcept
+template <typename T> FORCEINLINE constexpr T&& Forward(typename TRemoveReference<T>::Type&& Value) noexcept
 {
 	return static_cast<T&&>(Value);
 }
@@ -177,10 +178,8 @@ template <typename T> constexpr T&& Forward(typename TRemoveReference<T>::Type&&
 template <typename T>
 void Swap(T& A, T& B) noexcept(__is_nothrow_constructible(T, T&&) && __is_nothrow_assignable(T&, T&&))
 {
-	/**
-	 * 交換または代入が終わるまで元の値を保持する一時領域。
-	 * @param A 一つ目の値。
-	 */
+	// 交換または代入が終わるまで元の値を保持する一時領域。
+	// @param A 一つ目の値。
 	T Temporary(Move(A));
 	A = Move(B);
 	B = Move(Temporary);
@@ -190,11 +189,9 @@ void Swap(T& A, T& B) noexcept(__is_nothrow_constructible(T, T&&) && __is_nothro
  * @param Value 処理または保持する値。
  * @param Replacement 現在値と置き換える新しい値。
  */
-template <typename T, typename U> T Exchange(T& Value, U&& Replacement)
+template <typename T, typename U> FORCEINLINE T Exchange(T& Value, U&& Replacement)
 {
-	/**
-	 * 変更前の値または要素数。
-	 */
+	// 変更前の値または要素数。
 	T Previous = Move(Value);
 	Value = Forward<U>(Replacement);
 	return Previous;
@@ -204,7 +201,7 @@ template <typename T, typename U> T Exchange(T& Value, U&& Replacement)
  * @param A 一つ目の値。
  * @param B 二つ目の値。
  */
-template <typename T> constexpr T Min(T A, T B)
+template <typename T> FORCEINLINE constexpr T Min(T A, T B)
 {
 	return B < A ? B : A;
 }
@@ -213,7 +210,7 @@ template <typename T> constexpr T Min(T A, T B)
  * @param A 一つ目の比較値。
  * @param B 二つ目の比較値。
  */
-template <typename T> constexpr T Max(T A, T B)
+template <typename T> FORCEINLINE constexpr T Max(T A, T B)
 {
 	return A < B ? B : A;
 }
@@ -223,7 +220,7 @@ template <typename T> constexpr T Max(T A, T B)
  * @param Low 許容する最小値。
  * @param High 許容する最大値。
  */
-template <typename T> constexpr T Clamp(T Value, T Low, T High)
+template <typename T> FORCEINLINE constexpr T Clamp(T Value, T Low, T High)
 {
 	return Value < Low ? Low : (High < Value ? High : Value);
 }
@@ -231,7 +228,7 @@ template <typename T> constexpr T Clamp(T Value, T Low, T High)
  * 値の絶対値を返す。
  * @param Value 処理または保持する値。
  */
-template <typename T> constexpr T Abs(T Value)
+template <typename T> FORCEINLINE constexpr T Abs(T Value)
 {
 	return Value < T{} ? -Value : Value;
 }
@@ -239,7 +236,7 @@ template <typename T> constexpr T Abs(T Value)
  * NaNと無限大でないか調べる。
  * @param Value 処理または保持する値。
  */
-inline bool IsFinite(f64 Value) noexcept
+FORCEINLINE bool IsFinite(f64 Value) noexcept
 {
 	return isfinite(Value) != 0;
 }
@@ -247,7 +244,7 @@ inline bool IsFinite(f64 Value) noexcept
  * 非負の値の平方根を求める。負の値はNaNになる。
  * @param Value 処理または保持する値。
  */
-inline f64 Sqrt(f64 Value)
+FORCEINLINE f64 Sqrt(f64 Value)
 {
 	return sqrt(Value);
 }
@@ -255,7 +252,7 @@ inline f64 Sqrt(f64 Value)
  * 非負の値の平方根を求める。負の値はNaNになる。
  * @param Value 処理または保持する値。
  */
-inline f32 Sqrt(f32 Value)
+FORCEINLINE f32 Sqrt(f32 Value)
 {
 	return sqrtf(Value);
 }
@@ -263,7 +260,7 @@ inline f32 Sqrt(f32 Value)
  * ラジアン角の正弦を返す。
  * @param Value 処理または保持する値。
  */
-inline f64 Sin(f64 Value)
+FORCEINLINE f64 Sin(f64 Value)
 {
 	return sin(Value);
 }
@@ -271,7 +268,7 @@ inline f64 Sin(f64 Value)
  * ラジアン角の余弦を返す。
  * @param Value 処理または保持する値。
  */
-inline f64 Cos(f64 Value)
+FORCEINLINE f64 Cos(f64 Value)
 {
 	return cos(Value);
 }
@@ -279,7 +276,7 @@ inline f64 Cos(f64 Value)
  * 最も近い整数へ丸める。中間値はゼロから遠い方へ丸める。
  * @param Value 処理または保持する値。
  */
-inline int64 RoundToLong(f64 Value)
+FORCEINLINE int64 RoundToLong(f64 Value)
 {
 	return static_cast<int64>(llround(Value));
 }
@@ -311,7 +308,7 @@ template <> struct TNumericLimits<int32>
 	/**
 	 * この型で表せる最大の有限値を返す。
 	 */
-	static constexpr int32 Max()
+	FORCEINLINE static constexpr int32 Max()
 	{
 		return INT_MAX;
 	}
@@ -324,7 +321,7 @@ template <> struct TNumericLimits<f32>
 	/**
 	 * この型で表せる最大の有限値を返す。
 	 */
-	static constexpr f32 Max()
+	FORCEINLINE static constexpr f32 Max()
 	{
 		return FLT_MAX;
 	}
@@ -344,7 +341,7 @@ template <> struct TNumericLimits<f64>
 	/**
 	 * この型で表せる最大の有限値を返す。
 	 */
-	static constexpr f64 Max()
+	FORCEINLINE static constexpr f64 Max()
 	{
 		return DBL_MAX;
 	}
@@ -368,9 +365,7 @@ public:
 	 */
 	explicit FException(const char* Message) noexcept
 	{
-		/**
-		 * 現在処理している要素の位置。
-		 */
+		// 現在処理している要素の位置。
 		size_t Index = 0;
 		if (Message)
 		{
@@ -395,7 +390,7 @@ public:
 	/**
 	 * 保持している診断メッセージを返す。
 	 */
-	const char* What() const noexcept
+	FORCEINLINE const char* What() const noexcept
 	{
 		return m_Message;
 	}

@@ -7,34 +7,26 @@ namespace Dxf
 {
 namespace
 {
-/**
- * 不正な実行状態を示すエラーを生成する。
- */
+// 不正な実行状態を示すエラーを生成する。
 TResult<void> StateError_Internal()
 {
 	return TResult<void>::Failure(EErrorCode::InvalidState, "Invalid or reentrant render operation");
 }
-/**
- * 不透明度が有効な範囲かを検証する。
- * @param Style 描画状態またはその適用結果。
- */
+// 不透明度が有効な範囲かを検証する。
+// @param Style 描画状態またはその適用結果。
 bool ValidStyle_Internal(const FDrawStyle& Style)
 {
 	return Toolbox::IsFinite(Style.Opacity) && Style.Opacity >= 0.0f && Style.Opacity <= 1.0f;
 }
-/**
- * 座標成分が有限値かを調べる。
- * @param Value 処理対象の値。
- */
+// 座標成分が有限値かを調べる。
+// @param Value 処理対象の値。
 bool Finite_Internal(FVector2 Value)
 {
 	return Toolbox::IsFinite(Value.X) && Toolbox::IsFinite(Value.Y);
 }
 } // namespace
-/**
- * 描画命令のリソースと数値を検証する。
- * @param Command 実行する描画命令。
- */
+// 描画命令のリソースと数値を検証する。
+// @param Command 実行する描画命令。
 TResult<void> FRenderQueue2D::Validate_Internal(const FRenderCommand& Command) const
 {
 	return Toolbox::Visit(
@@ -44,9 +36,7 @@ TResult<void> FRenderQueue2D::Validate_Internal(const FRenderCommand& Command) c
 		    {
 			    return TResult<void>::Failure(EErrorCode::InvalidArgument, "Invalid draw style");
 		    }
-		    /**
-		     * 現在の描画命令の実体型。
-		     */
+		    // 現在の描画命令の実体型。
 		    using T = Toolbox::TDecay<decltype(Value)>;
 		    if constexpr (Toolbox::IsSame<T, FSpriteCommand>)
 		    {
@@ -91,19 +81,15 @@ TResult<void> FRenderQueue2D::Validate_Internal(const FRenderCommand& Command) c
 	    },
 	    Command);
 }
-/**
- * 検証した描画命令をキューへ追加する。
- * @param Command 実行する描画命令。
- */
+// 検証した描画命令をキューへ追加する。
+// @param Command 実行する描画命令。
 TResult<void> FRenderQueue2D::Submit(FRenderCommand Command)
 {
 	if (!m_bAccepting || m_bExecuting)
 	{
 		return StateError_Internal();
 	}
-	/**
-	 * 入力内容の検証結果。
-	 */
+	// 入力内容の検証結果。
 	auto Validation = Validate_Internal(Command);
 	if (!Validation)
 	{
@@ -112,28 +98,20 @@ TResult<void> FRenderQueue2D::Submit(FRenderCommand Command)
 	m_Commands.PushBack(Toolbox::Move(Command));
 	return {};
 }
-/**
- * 順序を整えて描画命令を実行する。
- * @param Backend ネイティブ処理の呼び出し先。
- */
+// 順序を整えて描画命令を実行する。
+// @param Backend ネイティブ処理の呼び出し先。
 TResult<void> FRenderQueue2D::Execute_Internal(IRenderBackend& Backend)
 {
 	if (m_bExecuting)
 	{
 		return StateError_Internal();
 	}
-	/**
-	 * 処理終了時に状態を戻すガード。
-	 */
+	// 処理終了時に状態を戻すガード。
 	TGuardValue Guard(m_bExecuting, true);
-	/**
-	 * 実行待ちの描画命令。
-	 */
+	// 実行待ちの描画命令。
 	Toolbox::TVector<FRenderCommand> Commands;
 	Commands.Swap(m_Commands);
-	/**
-	 * 検索または入力のキー。
-	 */
+	// 検索または入力のキー。
 	auto Key = [](const FRenderCommand& Command)
 	{
 		return Toolbox::Visit(
@@ -148,28 +126,20 @@ TResult<void> FRenderQueue2D::Execute_Internal(IRenderBackend& Backend)
 	                    {
 		                    return Key(A) < Key(B);
 	                    });
-	/**
-	 * 実行する描画命令を順に処理する。
-	 */
+	// 実行する描画命令を順に処理する。
 	for (const auto& Command : Commands)
 	{
-		/**
-		 * 入力内容の検証結果。
-		 */
+		// 入力内容の検証結果。
 		auto Validation = Validate_Internal(Command);
 		if (!Validation)
 		{
 			return Validation;
 		}
-		/**
-		 * 処理結果。
-		 */
+		// 処理結果。
 		auto Result = Toolbox::Visit(
 		    [&](const auto& Value) -> TResult<void>
 		    {
-			    /**
-			     * 現在の描画命令の実体型。
-			     */
+			    // 現在の描画命令の実体型。
 			    using T = Toolbox::TDecay<decltype(Value)>;
 			    if constexpr (Toolbox::IsSame<T, FSpriteCommand>)
 			    {

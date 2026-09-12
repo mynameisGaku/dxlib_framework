@@ -16,9 +16,7 @@ TEST("Actions combine keyboard mouse and gamepad without duplicate press edges")
 	REQUIRE(Map.BindMouse("Fire", EMouseButton::Left));
 	REQUIRE(Map.BindPad("Fire", 0, 0));
 	FInputStateTracker Tracker;
-	/**
-	 * 正規化前の入力データ。
-	 */
+	// 正規化前の入力データ。
 	FRawInput Raw;
 	Raw.MouseButtons[0] = true;
 	Tracker.Advance(Raw);
@@ -54,9 +52,7 @@ TEST("Input actions support rebinding and opposed digital axes")
 	REQUIRE(Map.Bind("Left", EKey::A));
 	REQUIRE(Map.Bind("Right", EKey::D));
 	FInputStateTracker Tracker;
-	/**
-	 * 正規化前の入力データ。
-	 */
+	// 正規化前の入力データ。
 	FRawInput Raw;
 	Raw.Keys[static_cast<Toolbox::size_t>(EKey::A)] = true;
 	Tracker.Advance(Raw);
@@ -74,21 +70,15 @@ TEST("Input actions support rebinding and opposed digital axes")
 
 namespace
 {
-/**
- * オブジェクト登録と型判定を検証する最小実装。
- */
+// オブジェクト登録と型判定を検証する最小実装。
 class DTestObject final : public DGameObject
 {
 };
-/**
- * コンポーネント登録と型判定を検証する最小実装。
- */
+// コンポーネント登録と型判定を検証する最小実装。
 class DTestComponent final : public DGameObjectComponent
 {
 };
-/**
- * 型変換を拒否すべき別種のコンポーネント。
- */
+// 型変換を拒否すべき別種のコンポーネント。
 class DOtherComponent final : public DGameObjectComponent
 {
 };
@@ -96,13 +86,9 @@ class DOtherComponent final : public DGameObjectComponent
 
 TEST("Typed component lookup returns pending handles and excludes destruction requests")
 {
-	/**
-	 * 検証対象のオブジェクト。
-	 */
+	// 検証対象のオブジェクト。
 	DTestObject Object;
-	/**
-	 * 検証対象のコンポーネント。
-	 */
+	// 検証対象のコンポーネント。
 	auto Component = Object.AddComponent<DTestComponent>().Value();
 	REQUIRE(Object.AddComponent<DOtherComponent>());
 	REQUIRE(Object.FindComponent<DTestComponent>() == Component);
@@ -114,21 +100,13 @@ TEST("Typed component lookup returns pending handles and excludes destruction re
 
 TEST("Scene object queries remain non-owning across scene shutdown")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証に使用する資源管理。
-	 */
+	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
-	/**
-	 * 検証対象のシーン。
-	 */
+	// 検証対象のシーン。
 	DGameScene Scene;
-	/**
-	 * 検証対象のオブジェクト。
-	 */
+	// 検証対象のオブジェクト。
 	auto Object = Scene.Spawn<DTestObject>().Value();
 	REQUIRE(Scene.FindObject<DTestObject>() == Object);
 	REQUIRE(Scene.GetObjects<DGameObject>().Size() == 1);
@@ -140,25 +118,15 @@ TEST("Scene object queries remain non-owning across scene shutdown")
 
 TEST("Built-in sprite component draws through automatic child dispatch")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証に使用する資源管理。
-	 */
+	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
-	/**
-	 * 描画を実行する検証用レンダラー。
-	 */
+	// 描画を実行する検証用レンダラー。
 	FRenderSystem2D Renderer(Backend);
-	/**
-	 * 検証対象のオブジェクト。
-	 */
+	// 検証対象のオブジェクト。
 	DTestObject Object;
-	/**
-	 * 検証するスプライト。
-	 */
+	// 検証するスプライト。
 	auto Sprite = Object.AddComponent<DSpriteRendererComponent>(Assets.LoadTexture("a.bmp").Value()).Value();
 	Sprite.Get()->GetPosition() = {12.0f, 24.0f};
 	Sprite.Get()->GetOptions().Opacity = 0.5f;
@@ -173,21 +141,13 @@ TEST("Built-in sprite component draws through automatic child dispatch")
 
 TEST("Unconfigured sprite component is inert instead of issuing an invalid draw")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証に使用する資源管理。
-	 */
+	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
-	/**
-	 * 描画を実行する検証用レンダラー。
-	 */
+	// 描画を実行する検証用レンダラー。
 	FRenderSystem2D Renderer(Backend);
-	/**
-	 * 検証対象のオブジェクト。
-	 */
+	// 検証対象のオブジェクト。
 	DTestObject Object;
 	REQUIRE(Object.AddComponent<DSpriteRendererComponent>());
 	REQUIRE(Object.Initialize_Internal({Assets}));

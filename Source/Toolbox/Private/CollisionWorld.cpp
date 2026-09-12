@@ -3,98 +3,60 @@
 #include "Toolbox/Atomic.h"
 namespace Toolbox
 {
-/**
- * 登録スロット、形状ごとの境界箱、自動構築される空間分割を保持する。
- */
+// 登録スロット、形状ごとの境界箱、自動構築される空間分割を保持する。
 struct FCollisionWorld::FImpl
 {
-	/**
-	 * 一つの登録を保持する再利用可能なスロット。
-	 */
+	// 一つの登録を保持する再利用可能なスロット。
 	struct FEntry
 	{
-		/**
-		 * スロットが所有する衝突形状。
-		 */
+		// スロットが所有する衝突形状。
 		TOptional<FCollisionShape> Shape;
-		/**
-		 * 形状またはノードを囲む境界箱。
-		 */
+		// 形状またはノードを囲む境界箱。
 		FAABB Box;
-		/**
-		 * 相手カテゴリの選別条件。
-		 */
+		// 相手カテゴリの選別条件。
 		FCollisionFilter Filter;
-		/**
-		 * スロット再使用を区別する世代。
-		 */
+		// スロット再使用を区別する世代。
 		uint64 Generation = 1;
 	};
-	/**
-	 * 分割領域と、この領域をまたぐ登録を保持するノード。
-	 */
+	// 分割領域と、この領域をまたぐ登録を保持するノード。
 	struct FNode
 	{
-		/**
-		 * 形状またはノードを囲む境界箱。
-		 */
+		// 形状またはノードを囲む境界箱。
 		FAABB Box;
-		/**
-		 * このノードに直接保持する登録番号。
-		 */
+		// このノードに直接保持する登録番号。
 		TVector<size_t> Items;
-		/**
-		 * 子ノード番号。最大値は未使用。
-		 */
+		// 子ノード番号。最大値は未使用。
 		TArray<size_t, 8> Children;
 		FNode()
 		{
 			Children.Fill(TNumericLimits<size_t>::Max());
 		}
 	};
-	/**
-	 * 世代付きの衝突形状スロット。
-	 */
+	// 世代付きの衝突形状スロット。
 	TVector<FEntry> Entries;
-	/**
-	 * 再帰分割で構築したノード配列。
-	 */
+	// 再帰分割で構築したノード配列。
 	TVector<FNode> Nodes;
-	/**
-	 * 直前の探索と分割の統計。
-	 */
+	// 直前の探索と分割の統計。
 	FCollisionStats Stats;
-	/**
-	 * このワールド固有の識別子。
-	 */
+	// このワールド固有の識別子。
 	uint64 Domain = 0;
-	/**
-	 * 登録変更により再構築が必要か。
-	 */
+	// 登録変更により再構築が必要か。
 	bool Dirty = true;
-	/**
-	 * 他のワールドで発行されたIDと、削除済みのIDを拒否する。
-	 */
+	// 他のワールドで発行されたIDと、削除済みのIDを拒否する。
 	bool Valid(FColliderId Id) const noexcept
 	{
 		return Id.World == Domain && Id.Index < Entries.Size() && Entries[Id.Index].Shape &&
 		       Entries[Id.Index].Generation == Id.Generation;
 	}
-	/**
-	 * スロット番号から現在のIDを作る。
-	 */
+	// スロット番号から現在のIDを作る。
 	FColliderId Id(size_t Index) const noexcept
 	{
 		return {Domain, Index, Entries[Index].Generation};
 	}
-	/**
-	 * 一つの子領域に完全に収まる登録だけを再帰的に振り分ける。
-	 */
+	// 一つの子領域に完全に収まる登録だけを再帰的に振り分ける。
 	size_t BuildNode(FAABB Box, const TVector<size_t>& Items, int32 Depth)
 	{
-		/**
-		 * 現在の要素または作成先の番号。
-		 */
+		// 現在の要素または作成先の番号。
 		const size_t Index = Nodes.Size();
 		Nodes.EmplaceBack();
 		Nodes[Index].Box = Box;
@@ -103,21 +65,13 @@ struct FCollisionWorld::FImpl
 			Nodes[Index].Items = Items;
 			return Index;
 		}
-		/**
-		 * XY平面での四分割を選ぶか。
-		 */
+		// XY平面での四分割を選ぶか。
 		const bool Planar = Stats.Index == ESpatialIndex::Quadtree;
-		/**
-		 * 分割方式に応じた子領域数。
-		 */
+		// 分割方式に応じた子領域数。
 		const size_t ChildCount = Planar ? 4 : 8;
-		/**
-		 * 分割面が交わる境界箱の中心。
-		 */
+		// 分割面が交わる境界箱の中心。
 		const FVector3 Middle = Box.Center();
-		/**
-		 * 分割後の各子領域の境界箱。
-		 */
+		// 分割後の各子領域の境界箱。
 		TArray<FAABB, 8> Boxes;
 		TArray<TVector<size_t>, 8> Groups;
 		for (size_t Child = 0; Child < ChildCount; ++Child)
@@ -129,9 +83,7 @@ struct FCollisionWorld::FImpl
 		}
 		for (size_t Item : Items)
 		{
-			/**
-			 * 一つの子領域に完全に収まったか。
-			 */
+			// 一つの子領域に完全に収まったか。
 			bool Assigned = false;
 			for (size_t Child = 0; Child < ChildCount; ++Child)
 			{
@@ -151,18 +103,14 @@ struct FCollisionWorld::FImpl
 		{
 			if (!Groups[Child].IsEmpty())
 			{
-				/**
-				 * 再帰構築した子ノード番号。
-				 */
+				// 再帰構築した子ノード番号。
 				const size_t ChildIndex = BuildNode(Boxes[Child], Groups[Child], Depth + 1);
 				Nodes[Index].Children[Child] = ChildIndex;
 			}
 		}
 		return Index;
 	}
-	/**
-	 * 変更がある時だけ、全登録を収めるルートと分割を再構築する。
-	 */
+	// 変更がある時だけ、全登録を収めるルートと分割を再構築する。
 	void Rebuild()
 	{
 		if (!Dirty)
@@ -170,13 +118,9 @@ struct FCollisionWorld::FImpl
 			return;
 		}
 		Nodes.Clear();
-		/**
-		 * 形状が存在する登録番号。
-		 */
+		// 形状が存在する登録番号。
 		TVector<size_t> Active;
-		/**
-		 * 形状またはノードを囲む境界箱。
-		 */
+		// 形状またはノードを囲む境界箱。
 		FAABB Box{};
 		for (size_t I = 0; I < Entries.Size(); ++I)
 		{
@@ -189,9 +133,7 @@ struct FCollisionWorld::FImpl
 		Stats.Index = ESpatialIndex::Direct;
 		if (Active.Size() > 8)
 		{
-			/**
-			 * 領域の三軸の幅。
-			 */
+			// 領域の三軸の幅。
 			const FVector3 Extents = Box.Max - Box.Min;
 			Stats.Index =
 			    Extents.Z <= (Extents.X + Extents.Y) * 0.001f ? ESpatialIndex::Quadtree : ESpatialIndex::Octree;
@@ -203,14 +145,10 @@ struct FCollisionWorld::FImpl
 		Stats.Nodes = Nodes.Size();
 		Dirty = false;
 	}
-	/**
-	 * 交差するノードだけを訪れ、境界箱の一致する候補を集める。
-	 */
+	// 交差するノードだけを訪れ、境界箱の一致する候補を集める。
 	void Candidates(size_t NodeIndex, const FAABB& Box, TVector<size_t>& Result) const
 	{
-		/**
-		 * 現在探索する分割ノード。
-		 */
+		// 現在探索する分割ノード。
 		const auto& Node = Nodes[NodeIndex];
 		if (!Node.Box.Intersects(Box))
 		{
@@ -231,29 +169,21 @@ struct FCollisionWorld::FImpl
 			}
 		}
 	}
-	/**
-	 * 問い合わせ統計をリセットし、古い空間分割を更新する。
-	 */
+	// 問い合わせ統計をリセットし、古い空間分割を更新する。
 	void Prepare()
 	{
 		Rebuild();
 		Stats.Candidates = 0;
 		Stats.NarrowTests = 0;
 	}
-	/**
-	 * 接触許容誤差ぶんだけ検索範囲を広げる。
-	 */
+	// 接触許容誤差ぶんだけ検索範囲を広げる。
 	FAABB Expanded(FAABB Box) const noexcept
 	{
-		/**
-		 * 接触許容誤差を各軸へ広げた幅。
-		 */
+		// 接触許容誤差を各軸へ広げた幅。
 		const FVector3 Margin{1e-5f, 1e-5f, 1e-5f};
 		return {Box.Min - Margin, Box.Max + Margin};
 	}
-	/**
-	 * 双方向のフィルターが相手を許可しているか調べる。
-	 */
+	// 双方向のフィルターが相手を許可しているか調べる。
 	bool Matches(FCollisionFilter A, FCollisionFilter B) const noexcept
 	{
 		return (A.Mask & B.Category) && (B.Mask & A.Category);
@@ -271,13 +201,9 @@ FCollisionWorld::FCollisionWorld() : m_pImpl(MakeUnique<FImpl>())
 FCollisionWorld::~FCollisionWorld() = default;
 FColliderId FCollisionWorld::Add(FCollisionShape Shape, FCollisionFilter Filter)
 {
-	/**
-	 * 形状またはノードを囲む境界箱。
-	 */
+	// 形状またはノードを囲む境界箱。
 	const FAABB Box = Bounds(Shape);
-	/**
-	 * 現在の要素または作成先の番号。
-	 */
+	// 現在の要素または作成先の番号。
 	size_t Index = 0;
 	for (; Index < m_pImpl->Entries.Size(); ++Index)
 	{
@@ -290,9 +216,7 @@ FColliderId FCollisionWorld::Add(FCollisionShape Shape, FCollisionFilter Filter)
 	{
 		m_pImpl->Entries.EmplaceBack();
 	}
-	/**
-	 * 処理する登録スロット。
-	 */
+	// 処理する登録スロット。
 	auto& Entry = m_pImpl->Entries[Index];
 	Entry.Shape.Emplace(Move(Shape));
 	Entry.Box = Box;
@@ -306,13 +230,9 @@ bool FCollisionWorld::Update(FColliderId Id, FCollisionShape Shape, FCollisionFi
 	{
 		return false;
 	}
-	/**
-	 * 形状またはノードを囲む境界箱。
-	 */
+	// 形状またはノードを囲む境界箱。
 	const FAABB Box = Bounds(Shape);
-	/**
-	 * 処理する登録スロット。
-	 */
+	// 処理する登録スロット。
 	auto& Entry = m_pImpl->Entries[Id.Index];
 	Entry.Shape = Move(Shape);
 	Entry.Box = Box;
@@ -326,9 +246,7 @@ bool FCollisionWorld::Remove(FColliderId Id) noexcept
 	{
 		return false;
 	}
-	/**
-	 * 処理する登録スロット。
-	 */
+	// 処理する登録スロット。
 	auto& Entry = m_pImpl->Entries[Id.Index];
 	Entry.Shape.Reset();
 	++Entry.Generation;
@@ -337,18 +255,12 @@ bool FCollisionWorld::Remove(FColliderId Id) noexcept
 }
 TVector<FColliderId> FCollisionWorld::Query(const FCollisionShape& Shape, FCollisionFilter Filter)
 {
-	/**
-	 * 形状またはノードを囲む境界箱。
-	 */
+	// 形状またはノードを囲む境界箱。
 	const FAABB Box = m_pImpl->Expanded(Bounds(Shape));
 	m_pImpl->Prepare();
-	/**
-	 * 境界箱の比較を通過した候補。
-	 */
+	// 境界箱の比較を通過した候補。
 	TVector<size_t> Candidates;
-	/**
-	 * 計算または検索の結果。
-	 */
+	// 計算または検索の結果。
 	TVector<FColliderId> Result;
 	if (!m_pImpl->Nodes.IsEmpty())
 	{
@@ -357,9 +269,7 @@ TVector<FColliderId> FCollisionWorld::Query(const FCollisionShape& Shape, FColli
 	m_pImpl->Stats.Candidates = Candidates.Size();
 	for (size_t Index : Candidates)
 	{
-		/**
-		 * 処理する登録スロット。
-		 */
+		// 処理する登録スロット。
 		const auto& Entry = m_pImpl->Entries[Index];
 		if (!m_pImpl->Matches(Filter, Entry.Filter))
 		{
@@ -376,19 +286,13 @@ TVector<FColliderId> FCollisionWorld::Query(const FCollisionShape& Shape, FColli
 TVector<FCollisionPair> FCollisionWorld::FindPairs()
 {
 	m_pImpl->Prepare();
-	/**
-	 * 計算または検索の結果。
-	 */
+	// 計算または検索の結果。
 	TVector<FCollisionPair> Result;
-	/**
-	 * 境界箱の比較を通過した候補。
-	 */
+	// 境界箱の比較を通過した候補。
 	TVector<size_t> Candidates;
 	for (size_t I = 0; I < m_pImpl->Entries.Size(); ++I)
 	{
-		/**
-		 * 処理する登録スロット。
-		 */
+		// 処理する登録スロット。
 		const auto& Entry = m_pImpl->Entries[I];
 		if (!Entry.Shape)
 		{
@@ -403,9 +307,7 @@ TVector<FCollisionPair> FCollisionWorld::FindPairs()
 				continue;
 			}
 			++m_pImpl->Stats.Candidates;
-			/**
-			 * 比較対象となる値。
-			 */
+			// 比較対象となる値。
 			const auto& Other = m_pImpl->Entries[J];
 			if (!m_pImpl->Matches(Entry.Filter, Other.Filter))
 			{

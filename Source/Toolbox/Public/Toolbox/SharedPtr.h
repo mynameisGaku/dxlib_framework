@@ -166,51 +166,49 @@ public:
 	 */
 	void Reset() noexcept
 	{
-		/**
-		 * 所有権を手放すための空の値。
-		 */
+		// 所有権を手放すための空の値。
 		TSharedPtr Empty;
 		Swap(Empty);
 	}
 	/**
 	 * 所有している対象のポインターを返す。空ならnullptrを返す。
 	 */
-	T* Get() const noexcept
+	FORCEINLINE T* Get() const noexcept
 	{
 		return m_pValue;
 	}
 	/**
 	 * 保持している対象へアクセスする。呼び出し前に有効性を確認する。
 	 */
-	T* operator->() const noexcept
+	FORCEINLINE T* operator->() const noexcept
 	{
 		return m_pValue;
 	}
 	/**
 	 * 保持している対象へアクセスする。呼び出し前に有効性を確認する。
 	 */
-	T& operator*() const noexcept
+	FORCEINLINE T& operator*() const noexcept
 	{
 		return *m_pValue;
 	}
 	/**
 	 * 有効な値または対象があるか調べる。
 	 */
-	explicit operator bool() const noexcept
+	FORCEINLINE explicit operator bool() const noexcept
 	{
 		return m_pValue != nullptr;
 	}
 	/**
 	 * 保持する値または対象が一致するか比較する。
 	 */
-	bool operator==(decltype(nullptr)) const noexcept
+	FORCEINLINE bool operator==(decltype(nullptr)) const noexcept
 	{
 		return !m_pValue;
 	}
 	/**
 	 * 保持する値または対象が一致するか比較する。
 	 */
-	template <typename U> bool operator==(const TSharedPtr<U>& Other) const noexcept
+	template <typename U> FORCEINLINE bool operator==(const TSharedPtr<U>& Other) const noexcept
 	{
 		return m_pValue == Other.Get();
 	}
@@ -310,17 +308,13 @@ public:
 	 */
 	TSharedPtr<T> Lock() const noexcept
 	{
-		/**
-		 * 処理結果を組み立てる一時領域。
-		 */
+		// 処理結果を組み立てる一時領域。
 		TSharedPtr<T> Result;
 		if (!m_pControl)
 		{
 			return Result;
 		}
-		/**
-		 * 比較交換で確保しようとしている現在の強参照数。
-		 */
+		// 比較交換で確保しようとしている現在の強参照数。
 		uint64 Count = m_pControl->Strong.Load();
 		while (Count != 0)
 		{

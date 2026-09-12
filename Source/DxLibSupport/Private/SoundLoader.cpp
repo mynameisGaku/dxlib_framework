@@ -3,11 +3,9 @@
 
 namespace Dxf
 {
-/**
- * 対象のリソースを読み込む。
- * @param Path 読み込むファイルのパス。
- * @param Options 処理に適用する設定。
- */
+// 対象のリソースを読み込む。
+// @param Path 読み込むファイルのパス。
+// @param Options 処理に適用する設定。
 TResult<FSound> FSoundLoader::Load(const Toolbox::FString& Path, const FSoundLoadOptions& Options)
 {
 	if (m_pRegistry->IsShutdown())
@@ -22,19 +20,15 @@ TResult<FSound> FSoundLoader::Load(const Toolbox::FString& Path, const FSoundLoa
 	{
 		return TResult<FSound>::Failure(EErrorCode::InvalidArgument, "Invalid sound storage mode");
 	}
-	/**
-	 * リソースの読み込み結果。
-	 */
+	// リソースの読み込み結果。
 	auto Loaded = m_pBackend->LoadSound(Path, Options);
 	if (!Loaded)
 	{
 		return TResult<FSound>::Failure(Loaded.Error());
 	}
-	/**
-	 * ネイティブハンドルの解放を保証する所有者。
-	 * @param Context 処理に必要な実行環境。
-	 * @param Value 処理対象の値。
-	 */
+	// ネイティブハンドルの解放を保証する所有者。
+	// @param Context 処理に必要な実行環境。
+	// @param Value 処理対象の値。
 	FNativeHandle Handle(Loaded.Value(), m_pBackend,
 	                     [](void* Context, Toolbox::int32 Value) noexcept
 	                     {
@@ -44,9 +38,7 @@ TResult<FSound> FSoundLoader::Load(const Toolbox::FString& Path, const FSoundLoa
 	{
 		return TResult<FSound>::Failure(EErrorCode::BackendFailure, "Invalid sound handle");
 	}
-	/**
-	 * 共有するリソース。
-	 */
+	// 共有するリソース。
 	auto Resource = Toolbox::MakeShared<FSoundResource>(Toolbox::Move(Handle), FSoundMetadata{Path, Options});
 	if (!m_pRegistry->Register(Resource))
 	{

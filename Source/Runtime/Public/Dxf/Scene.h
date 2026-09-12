@@ -18,21 +18,21 @@ public:
 	/**
 	 * 経過時間の計測器を取得する。
 	 */
-	FSceneClock& GetClock() noexcept
+	FORCEINLINE FSceneClock& GetClock() noexcept
 	{
 		return m_Clock;
 	}
 	/**
 	 * 経過時間の計測器を取得する。
 	 */
-	const FSceneClock& GetClock() const noexcept
+	FORCEINLINE const FSceneClock& GetClock() const noexcept
 	{
 		return m_Clock;
 	}
 	/**
 	 * シーンに紐づく音声の識別番号を取得する。
 	 */
-	Toolbox::uint64 GetAudioScope() const noexcept
+	FORCEINLINE Toolbox::uint64 GetAudioScope() const noexcept
 	{
 		return m_AudioScope;
 	}

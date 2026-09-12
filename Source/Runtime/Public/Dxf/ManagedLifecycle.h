@@ -27,18 +27,12 @@ public:
 			return;
 		}
 		m_Batch.Clear();
-		/**
-		 * ハンドルを順に処理する。
-		 */
+		// ハンドルを順に処理する。
 		for (auto Handle : m_pStorage->Snapshot())
 		{
-			/**
-			 * オブジェクト。
-			 */
+			// オブジェクト。
 			T* Object = m_pStorage->Find_Internal(Handle.GetId());
-			/**
-			 * 実行するバックエンド処理。
-			 */
+			// 実行するバックエンド処理。
 			const auto Operation =
 			    Object->IsDestroyRequested()
 			        ? EOperation::Destroy
@@ -61,50 +55,36 @@ public:
 		{
 			FreezeBoundary_Internal();
 		}
-		/**
-		 * 境界で固定した処理対象。
-		 */
+		// 境界で固定した処理対象。
 		auto Batch = Toolbox::Move(m_Batch);
 		m_Batch.Clear();
 		m_bFrozen = false;
-		/**
-		 * 最初に発生したエラー。
-		 */
+		// 最初に発生したエラー。
 		Toolbox::TOptional<FError> FirstError;
-		/**
-		 * 現在処理する登録項目を順に処理する。
-		 */
+		// 現在処理する登録項目を順に処理する。
 		for (const auto& Entry : Batch)
 		{
 			if (Entry.Operation != EOperation::Destroy)
 			{
 				continue;
 			}
-			/**
-			 * 取得したオブジェクトが有効な場合だけ処理する。
-			 */
+			// 取得したオブジェクトが有効な場合だけ処理する。
 			if (T* Object = m_pStorage->Find_Internal(Entry.Handle.GetId()))
 			{
 				Object->Shutdown_Internal();
 				m_pStorage->Remove(Entry.Handle);
 			}
 		}
-		/**
-		 * 現在処理する登録項目を順に処理する。
-		 */
+		// 現在処理する登録項目を順に処理する。
 		for (const auto& Entry : Batch)
 		{
-			/**
-			 * オブジェクト。
-			 */
+			// オブジェクト。
 			T* Object = m_pStorage->Find_Internal(Entry.Handle.GetId());
 			if (!Object || Object->IsDestroyRequested() || Entry.Operation == EOperation::Destroy)
 			{
 				continue;
 			}
-			/**
-			 * 処理結果。
-			 */
+			// 処理結果。
 			TResult<void> Result;
 			if (Entry.Operation == EOperation::Initialize)
 			{
@@ -114,9 +94,7 @@ public:
 					m_pStorage->Remove(Entry.Handle);
 				}
 			}
-			/**
-			 * 取得したオブジェクトが有効な場合だけ処理する。
-			 */
+			// 取得したオブジェクトが有効な場合だけ処理する。
 			else if (auto* Children = Object->GetChildren_Internal())
 			{
 				Result = Children->CommitBoundary_Internal(Context);

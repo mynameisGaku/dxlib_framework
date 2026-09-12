@@ -54,7 +54,7 @@ public:
 	/**
 	 * 共有するリソースを取得する。
 	 */
-	const Toolbox::TSharedPtr<FSoundResource>& GetResource_Internal() const noexcept
+	FORCEINLINE const Toolbox::TSharedPtr<FSoundResource>& GetResource_Internal() const noexcept
 	{
 		return m_pResource;
 	}

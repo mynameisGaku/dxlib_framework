@@ -22,9 +22,7 @@ public:
 			Raw.Pads = {};
 			Raw.Wheel = 0;
 		}
-		/**
-		 * ゲームパッドの番号を順に処理する。
-		 */
+		// ゲームパッドの番号を順に処理する。
 		for (auto& Pad : Raw.Pads)
 		{
 			if (!Pad.bConnected)
@@ -38,7 +36,7 @@ public:
 	/**
 	 * フレーム内で固定する入力情報を取得する。
 	 */
-	const FInputSnapshot& GetSnapshot() const noexcept
+	FORCEINLINE const FInputSnapshot& GetSnapshot() const noexcept
 	{
 		return m_Snapshot;
 	}

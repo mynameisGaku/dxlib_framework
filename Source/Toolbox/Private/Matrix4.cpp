@@ -4,9 +4,7 @@ namespace Toolbox
 {
 FMatrix4 FMatrix4::Translation(FVector3 Offset)
 {
-	/**
-	 * 計算または検索の結果。
-	 */
+	// 計算または検索の結果。
 	FMatrix4 Result;
 	Result.Values[3] = Offset.X;
 	Result.Values[7] = Offset.Y;
@@ -15,9 +13,7 @@ FMatrix4 FMatrix4::Translation(FVector3 Offset)
 }
 FMatrix4 FMatrix4::Scale(FVector3 Factors)
 {
-	/**
-	 * 計算または検索の結果。
-	 */
+	// 計算または検索の結果。
 	FMatrix4 Result;
 	Result.Values[0] = Factors.X;
 	Result.Values[5] = Factors.Y;
@@ -31,21 +27,13 @@ FMatrix4 FMatrix4::Rotation(FVector3 Axis, f32 Radians)
 	{
 		throw FException("Invalid rotation axis or angle");
 	}
-	/**
-	 * 回転角の余弦。
-	 */
+	// 回転角の余弦。
 	const f32 C = static_cast<f32>(Cos(Radians));
-	/**
-	 * 回転角の正弦。
-	 */
+	// 回転角の正弦。
 	const f32 S = static_cast<f32>(Sin(Radians));
-	/**
-	 * ロドリゲスの公式で使う1と余弦の差。
-	 */
+	// ロドリゲスの公式で使う1と余弦の差。
 	const f32 T = 1 - C;
-	/**
-	 * 計算または検索の結果。
-	 */
+	// 計算または検索の結果。
 	FMatrix4 Result;
 	Result.Values = {T * Axis.X * Axis.X + C,
 	                 T * Axis.X * Axis.Y - S * Axis.Z,
@@ -67,16 +55,12 @@ FMatrix4 FMatrix4::Rotation(FVector3 Axis, f32 Radians)
 }
 FMatrix4 FMatrix4::operator*(const FMatrix4& Other) const noexcept
 {
-	/**
-	 * 計算または検索の結果。
-	 */
+	// 計算または検索の結果。
 	FMatrix4 Result;
 	for (int32 Row = 0; Row < 4; ++Row)
 	{
 #if TOOLBOX_SIMD_SSE2
-		/**
-		 * 積和を蓄積する値。
-		 */
+		// 積和を蓄積する値。
 		__m128 Sum = _mm_setzero_ps();
 		for (int32 K = 0; K < 4; ++K)
 		{
@@ -87,9 +71,7 @@ FMatrix4 FMatrix4::operator*(const FMatrix4& Other) const noexcept
 #else
 		for (int32 Column = 0; Column < 4; ++Column)
 		{
-			/**
-			 * 積和を蓄積する値。
-			 */
+			// 積和を蓄積する値。
 			f32 Sum = 0;
 			for (int32 K = 0; K < 4; ++K)
 			{
@@ -103,9 +85,7 @@ FMatrix4 FMatrix4::operator*(const FMatrix4& Other) const noexcept
 }
 FVector3 FMatrix4::TransformPoint(FVector3 Point) const
 {
-	/**
-	 * 射影変換後の同次座標。
-	 */
+	// 射影変換後の同次座標。
 	const f32 W = Values[12] * Point.X + Values[13] * Point.Y + Values[14] * Point.Z + Values[15];
 	if (!IsFinite(W) || W == 0)
 	{
@@ -120,9 +100,7 @@ FVector3 FMatrix4::TransformDirection(FVector3 Direction) const noexcept
 }
 FMatrix4 FMatrix4::Transposed() const noexcept
 {
-	/**
-	 * 計算または検索の結果。
-	 */
+	// 計算または検索の結果。
 	FMatrix4 Result;
 	for (size_t Row = 0; Row < 4; ++Row)
 	{
@@ -139,13 +117,9 @@ bool FMatrix4::TryInverse(FMatrix4& Output, f32 Tolerance) const noexcept
 	{
 		return false;
 	}
-	/**
-	 * 行消去の作業用行列。
-	 */
+	// 行消去の作業用行列。
 	FMatrix4 Work = *this;
-	/**
-	 * 単位行列から構築する逆行列。
-	 */
+	// 単位行列から構築する逆行列。
 	FMatrix4 Inverse;
 	for (f32 Value : Values)
 	{
@@ -156,9 +130,7 @@ bool FMatrix4::TryInverse(FMatrix4& Output, f32 Tolerance) const noexcept
 	}
 	for (size_t Column = 0; Column < 4; ++Column)
 	{
-		/**
-		 * 絶対値が最大のピボット行。
-		 */
+		// 絶対値が最大のピボット行。
 		size_t Pivot = Column;
 		for (size_t Row = Column + 1; Row < 4; ++Row)
 		{
@@ -176,9 +148,7 @@ bool FMatrix4::TryInverse(FMatrix4& Output, f32 Tolerance) const noexcept
 			Swap(Work.Values[Column * 4 + K], Work.Values[Pivot * 4 + K]);
 			Swap(Inverse.Values[Column * 4 + K], Inverse.Values[Pivot * 4 + K]);
 		}
-		/**
-		 * 行を正規化する除数。
-		 */
+		// 行を正規化する除数。
 		const f32 Divisor = Work.Values[Column * 4 + Column];
 #if TOOLBOX_SIMD_SSE2
 		_mm_store_ps(Work.Values.Data() + Column * 4,
@@ -198,9 +168,7 @@ bool FMatrix4::TryInverse(FMatrix4& Output, f32 Tolerance) const noexcept
 			{
 				continue;
 			}
-			/**
-			 * 他行から消去する成分の倍率。
-			 */
+			// 他行から消去する成分の倍率。
 			const f32 Factor = Work.Values[Row * 4 + Column];
 #if TOOLBOX_SIMD_SSE2
 			_mm_store_ps(Work.Values.Data() + Row * 4,

@@ -22,7 +22,7 @@ template <typename T> struct TComplex
 	 * 実部と虚部をそれぞれ加算する。
 	 * @param Other 演算または比較の相手。
 	 */
-	TComplex operator+(TComplex Other) const noexcept
+	FORCEINLINE TComplex operator+(TComplex Other) const noexcept
 	{
 		return {Real + Other.Real, Imaginary + Other.Imaginary};
 	}
@@ -30,7 +30,7 @@ template <typename T> struct TComplex
 	 * 実部と虚部をそれぞれ減算する。
 	 * @param Other 演算または比較の相手。
 	 */
-	TComplex operator-(TComplex Other) const noexcept
+	FORCEINLINE TComplex operator-(TComplex Other) const noexcept
 	{
 		return {Real - Other.Real, Imaginary - Other.Imaginary};
 	}
@@ -38,7 +38,7 @@ template <typename T> struct TComplex
 	 * iの二乗を-1として積を求める。
 	 * @param Other 演算または比較の相手。
 	 */
-	TComplex operator*(TComplex Other) const noexcept
+	FORCEINLINE TComplex operator*(TComplex Other) const noexcept
 	{
 		return {Real * Other.Real - Imaginary * Other.Imaginary, Real * Other.Imaginary + Imaginary * Other.Real};
 	}
@@ -54,24 +54,16 @@ template <typename T> struct TComplex
 		}
 		if (Abs(Other.Real) >= Abs(Other.Imaginary))
 		{
-			/**
-			 * 複素除算の成分比。
-			 */
+			// 複素除算の成分比。
 			const T Ratio = Other.Imaginary / Other.Real;
-			/**
-			 * 行を正規化する除数。
-			 */
+			// 行を正規化する除数。
 			const T Divisor = T(1) + Ratio * Ratio;
 			return {(Real / Other.Real + (Imaginary / Other.Real) * Ratio) / Divisor,
 			        (Imaginary / Other.Real - (Real / Other.Real) * Ratio) / Divisor};
 		}
-		/**
-		 * 複素除算の成分比。
-		 */
+		// 複素除算の成分比。
 		const T Ratio = Other.Real / Other.Imaginary;
-		/**
-		 * 行を正規化する除数。
-		 */
+		// 行を正規化する除数。
 		const T Divisor = T(1) + Ratio * Ratio;
 		return {((Real / Other.Imaginary) * Ratio + Imaginary / Other.Imaginary) / Divisor,
 		        ((Imaginary / Other.Imaginary) * Ratio - Real / Other.Imaginary) / Divisor};
@@ -79,7 +71,7 @@ template <typename T> struct TComplex
 	/**
 	 * 虚部の符号を反転する。
 	 */
-	TComplex Conjugate() const noexcept
+	FORCEINLINE TComplex Conjugate() const noexcept
 	{
 		return {Real, -Imaginary};
 	}

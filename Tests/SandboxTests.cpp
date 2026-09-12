@@ -8,9 +8,7 @@ using namespace Dxf::Testing;
 using namespace Dxf::Sandbox;
 namespace
 {
-/**
- * サンドボックス検証用のサービス参照をまとめる。
- */
+// サンドボックス検証用のサービス参照をまとめる。
 FBackendServices SandboxServices_Internal(FFakeBackend& Backend)
 {
 	return {Backend, Backend, Backend, Backend, Backend, Backend};
@@ -18,23 +16,15 @@ FBackendServices SandboxServices_Internal(FFakeBackend& Backend)
 } // namespace
 TEST("Sandbox uses actual scene object and component code to move and draw")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証するアプリケーション。
-	 */
+	// 検証するアプリケーション。
 	FApplication App(SandboxServices_Internal(Backend), {}, Toolbox::MakeUnique<DSandboxGameInstance>());
 	REQUIRE(App.Start(Toolbox::MakeUnique<DSandboxScene>("Assets")));
-	/**
-	 * 検証対象のシーン。
-	 */
+	// 検証対象のシーン。
 	auto* Scene = App.GetScenes().GetCurrent()->TryCast<DSandboxScene>();
 	REQUIRE(Scene);
-	/**
-	 * 音声再生を操作するプレイヤー。
-	 */
+	// 音声再生を操作するプレイヤー。
 	auto Player = Scene->GetPlayer();
 	REQUIRE(Player.Get());
 	const Toolbox::f32 StartX = Player.Get()->GetPosition().X;
@@ -46,18 +36,12 @@ TEST("Sandbox uses actual scene object and component code to move and draw")
 }
 TEST("Sandbox switches scene while game state survives and old handles expire")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証するアプリケーション。
-	 */
+	// 検証するアプリケーション。
 	FApplication App(SandboxServices_Internal(Backend), {}, Toolbox::MakeUnique<DSandboxGameInstance>());
 	REQUIRE(App.Start(Toolbox::MakeUnique<DSandboxScene>("Assets")));
-	/**
-	 * 停止や置換後の旧プレイヤー。
-	 */
+	// 停止や置換後の旧プレイヤー。
 	auto OldPlayer = App.GetScenes().GetCurrent()->TryCast<DSandboxScene>()->GetPlayer();
 	REQUIRE(App.GetGameInstance()->TryCast<DSandboxGameInstance>()->GetSceneVisits() == 1);
 	Backend.GetTrace().Input.Keys[static_cast<Toolbox::size_t>(EKey::Enter)] = true;
@@ -70,13 +54,9 @@ TEST("Sandbox switches scene while game state survives and old handles expire")
 }
 TEST("Sandbox audio is scene scoped and Escape shuts down the application")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
-	/**
-	 * 検証するアプリケーション。
-	 */
+	// 検証するアプリケーション。
 	FApplication App(SandboxServices_Internal(Backend), {}, Toolbox::MakeUnique<DSandboxGameInstance>());
 	REQUIRE(App.Start(Toolbox::MakeUnique<DSandboxScene>("Assets")));
 	Backend.GetTrace().Input.Keys[static_cast<Toolbox::size_t>(EKey::Space)] = true;
@@ -89,14 +69,10 @@ TEST("Sandbox audio is scene scoped and Escape shuts down the application")
 }
 TEST("Sandbox propagates missing assets instead of entering a half-constructed scene")
 {
-	/**
-	 * 検証用のバックエンド。
-	 */
+	// 検証用のバックエンド。
 	FFakeBackend Backend;
 	Backend.GetTrace().bFailTexture = true;
-	/**
-	 * 検証するアプリケーション。
-	 */
+	// 検証するアプリケーション。
 	FApplication App(SandboxServices_Internal(Backend));
 	REQUIRE(!App.Start(Toolbox::MakeUnique<DSandboxScene>("MissingAssets")));
 	REQUIRE(Backend.GetTrace().Textures.IsEmpty() && Backend.GetTrace().Sounds.IsEmpty());

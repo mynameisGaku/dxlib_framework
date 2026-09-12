@@ -20,9 +20,7 @@ public:
 	 */
 	FEntry* Find(const K& Key)
 	{
-		/**
-		 * 登録されたキーと値の項目を順に調べる。
-		 */
+		// 登録されたキーと値の項目を順に調べる。
 		for (auto& Item : m_Entries)
 		{
 			if (Item.First == Key)
@@ -38,9 +36,7 @@ public:
 	 */
 	const FEntry* Find(const K& Key) const
 	{
-		/**
-		 * 登録されたキーと値の項目を順に調べる。
-		 */
+		// 登録されたキーと値の項目を順に調べる。
 		for (const auto& Item : m_Entries)
 		{
 			if (Item.First == Key)
@@ -56,9 +52,7 @@ public:
 	 */
 	V& operator[](const K& Key)
 	{
-		/**
-		 * 一致した要素または走査中の位置。
-		 */
+		// 一致した要素または走査中の位置。
 		auto It = Find(Key);
 		if (It == End())
 		{
@@ -72,9 +66,7 @@ public:
 	 */
 	V& At(const K& Key)
 	{
-		/**
-		 * 一致した要素または走査中の位置。
-		 */
+		// 一致した要素または走査中の位置。
 		auto It = Find(Key);
 		if (It == End())
 		{
@@ -88,9 +80,7 @@ public:
 	 */
 	size_t Erase(const K& Key)
 	{
-		/**
-		 * 一致した要素または走査中の位置。
-		 */
+		// 一致した要素または走査中の位置。
 		auto It = Find(Key);
 		if (It == End())
 		{
@@ -117,7 +107,7 @@ public:
 	/**
 	 * 現在保持している要素数を返す。
 	 */
-	size_t Size() const noexcept
+	FORCEINLINE size_t Size() const noexcept
 	{
 		return m_Entries.Size();
 	}
@@ -131,56 +121,56 @@ public:
 	/**
 	 * 先頭を指す反復子を返す。空の場合はEndと一致する。
 	 */
-	FEntry* Begin() noexcept
+	FORCEINLINE FEntry* Begin() noexcept
 	{
 		return m_Entries.Begin();
 	}
 	/**
 	 * 先頭を指す反復子を返す。空の場合はEndと一致する。
 	 */
-	const FEntry* Begin() const noexcept
+	FORCEINLINE const FEntry* Begin() const noexcept
 	{
 		return m_Entries.Begin();
 	}
 	/**
 	 * 最終要素の次を指す反復子を返す。この位置は参照しない。
 	 */
-	FEntry* End() noexcept
+	FORCEINLINE FEntry* End() noexcept
 	{
 		return m_Entries.End();
 	}
 	/**
 	 * 最終要素の次を指す反復子を返す。この位置は参照しない。
 	 */
-	const FEntry* End() const noexcept
+	FORCEINLINE const FEntry* End() const noexcept
 	{
 		return m_Entries.End();
 	}
 	/**
 	 * range-forが必要とする先頭反復子を返す。
 	 */
-	FEntry* begin() noexcept
+	FORCEINLINE FEntry* begin() noexcept
 	{
 		return Begin();
 	}
 	/**
 	 * range-forが必要とする先頭反復子を返す。
 	 */
-	const FEntry* begin() const noexcept
+	FORCEINLINE const FEntry* begin() const noexcept
 	{
 		return Begin();
 	}
 	/**
 	 * range-forが必要とする終端反復子を返す。
 	 */
-	FEntry* end() noexcept
+	FORCEINLINE FEntry* end() noexcept
 	{
 		return End();
 	}
 	/**
 	 * range-forが必要とする終端反復子を返す。
 	 */
-	const FEntry* end() const noexcept
+	FORCEINLINE const FEntry* end() const noexcept
 	{
 		return End();
 	}
@@ -214,9 +204,7 @@ public:
 	 */
 	size_t Erase(const T& Value)
 	{
-		/**
-		 * 一致した要素または走査中の位置。
-		 */
+		// 一致した要素または走査中の位置。
 		auto It = Toolbox::Find(m_Values.Begin(), m_Values.End(), Value);
 		if (It == m_Values.End())
 		{
@@ -228,7 +216,7 @@ public:
 	/**
 	 * 現在保持している要素数を返す。
 	 */
-	size_t Size() const noexcept
+	FORCEINLINE size_t Size() const noexcept
 	{
 		return m_Values.Size();
 	}

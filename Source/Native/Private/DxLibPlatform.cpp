@@ -5,24 +5,18 @@ namespace Dxf
 {
 namespace
 {
-/**
- * DxLibはプロセス全体で共有する。この所有権を含む操作はメインスレッドに限定する。
- *
- * プロセス内でDxLibを使用中の所有者。
- */
+// DxLibはプロセス全体で共有する。この所有権を含む操作はメインスレッドに限定する。
+//
+// プロセス内でDxLibを使用中の所有者。
 FDxLibPlatform* GSessionOwner = nullptr;
 } // namespace
-/**
- * 所有する状態を終了し、必要なリソースを解放する。
- */
+// 所有する状態を終了し、必要なリソースを解放する。
 FDxLibPlatform::~FDxLibPlatform()
 {
 	Shutdown();
 }
-/**
- * 使用に必要な初期化を行う。
- * @param Settings 初期化に使用する設定。
- */
+// 使用に必要な初期化を行う。
+// @param Settings 初期化に使用する設定。
 TResult<void> FDxLibPlatform::Initialize(const FWindowSettings& Settings)
 {
 	if (m_bInitialized || GSessionOwner != nullptr)
@@ -51,9 +45,7 @@ TResult<void> FDxLibPlatform::Initialize(const FWindowSettings& Settings)
 	m_bInitialized = true;
 	return {};
 }
-/**
- * 管理する処理とリソースを順序どおり終了する。
- */
+// 管理する処理とリソースを順序どおり終了する。
 void FDxLibPlatform::Shutdown() noexcept
 {
 	if (m_bInitialized)
@@ -63,9 +55,7 @@ void FDxLibPlatform::Shutdown() noexcept
 		GSessionOwner = nullptr;
 	}
 }
-/**
- * OSイベントを処理し継続可否を返す。
- */
+// OSイベントを処理し継続可否を返す。
 TResult<bool> FDxLibPlatform::PumpEvents()
 {
 	if (!m_bInitialized)

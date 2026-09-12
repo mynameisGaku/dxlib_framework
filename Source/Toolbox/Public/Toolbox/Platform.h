@@ -52,7 +52,7 @@ public:
 	/**
 	 * 所有しているUTF-8パスを変更せずに返す。
 	 */
-	const FString& ToUtf8() const noexcept
+	FORCEINLINE const FString& ToUtf8() const noexcept
 	{
 		return m_Text;
 	}

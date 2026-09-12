@@ -22,9 +22,7 @@ public:
 	 */
 	TResult<void> Update()
 	{
-		/**
-		 * デバイスから取得した入力状態。
-		 */
+		// デバイスから取得した入力状態。
 		auto Raw = m_pSource->Poll();
 		if (!Raw)
 		{

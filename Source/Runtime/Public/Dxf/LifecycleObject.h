@@ -38,21 +38,21 @@ public:
 	/**
 	 * 現在の状態を取得する。
 	 */
-	ELifecycleState GetState() const noexcept
+	FORCEINLINE ELifecycleState GetState() const noexcept
 	{
 		return m_State;
 	}
 	/**
 	 * 初期化が完了しているかを調べる。
 	 */
-	bool IsInitialized() const noexcept
+	FORCEINLINE bool IsInitialized() const noexcept
 	{
 		return m_State == ELifecycleState::Active;
 	}
 	/**
 	 * 破棄が要求されているかを調べる。
 	 */
-	bool IsDestroyRequested() const noexcept
+	FORCEINLINE bool IsDestroyRequested() const noexcept
 	{
 		return m_bDestroyRequested;
 	}
@@ -60,14 +60,14 @@ public:
 	 * 更新の優先順位を設定する。
 	 * @param Order 同じレイヤー内の処理順序。
 	 */
-	void SetUpdateOrder(Toolbox::int32 Order) noexcept
+	FORCEINLINE void SetUpdateOrder(Toolbox::int32 Order) noexcept
 	{
 		m_UpdateOrder = Order;
 	}
 	/**
 	 * 更新の優先順位を取得する。
 	 */
-	Toolbox::int32 GetUpdateOrder() const noexcept
+	FORCEINLINE Toolbox::int32 GetUpdateOrder() const noexcept
 	{
 		return m_UpdateOrder;
 	}
@@ -75,7 +75,7 @@ public:
 	 * 一時停止中も更新するかを設定する。
 	 * @param bEnabled 機能を有効にするか。
 	 */
-	void SetTickWhenPaused(bool bEnabled) noexcept
+	FORCEINLINE void SetTickWhenPaused(bool bEnabled) noexcept
 	{
 		m_bTickWhenPaused = bEnabled;
 	}
@@ -83,14 +83,14 @@ public:
 	 * 描画対象として表示するかを設定する。
 	 * @param bVisible 描画を有効にするか。
 	 */
-	void SetVisible(bool bVisible) noexcept
+	FORCEINLINE void SetVisible(bool bVisible) noexcept
 	{
 		m_bVisible = bVisible;
 	}
 	/**
 	 * 描画対象として表示するかを調べる。
 	 */
-	bool IsVisible() const noexcept
+	FORCEINLINE bool IsVisible() const noexcept
 	{
 		return m_bVisible;
 	}
@@ -135,21 +135,21 @@ public:
 	 * 生成された順序を設定する。
 	 * @param Order 同じレイヤー内の処理順序。
 	 */
-	void SetCreationOrder_Internal(Toolbox::uint64 Order) noexcept
+	FORCEINLINE void SetCreationOrder_Internal(Toolbox::uint64 Order) noexcept
 	{
 		m_CreationOrder = Order;
 	}
 	/**
 	 * 生成された順序を取得する。
 	 */
-	Toolbox::uint64 GetCreationOrder_Internal() const noexcept
+	FORCEINLINE Toolbox::uint64 GetCreationOrder_Internal() const noexcept
 	{
 		return m_CreationOrder;
 	}
 	/**
 	 * 子のライフサイクルグループを取得する。
 	 */
-	ILifecycleGroup* GetChildren_Internal() noexcept
+	FORCEINLINE ILifecycleGroup* GetChildren_Internal() noexcept
 	{
 		return m_pChildren;
 	}
@@ -188,7 +188,7 @@ protected:
 	 * 子のライフサイクルグループを接続する。
 	 * @param Children 子のライフサイクルグループ。
 	 */
-	void AttachChildren_Internal(ILifecycleGroup& Children) noexcept
+	FORCEINLINE void AttachChildren_Internal(ILifecycleGroup& Children) noexcept
 	{
 		m_pChildren = &Children;
 	}

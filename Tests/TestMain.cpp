@@ -1,13 +1,9 @@
 #include "Support/Test.h"
 #include "Toolbox/Platform.h"
-/**
- * 登録された検証を実行して成否を終了コードへ変える。
- */
+// 登録された検証を実行して成否を終了コードへ変える。
 Toolbox::int32 main()
 {
-	/**
-	 * 失敗したテストの件数。
-	 */
+	// 失敗したテストの件数。
 	Toolbox::int32 Failures = 0;
 	for (const auto& TestCase : Test::Cases_Internal())
 	{

@@ -23,7 +23,7 @@ namespace Dxf::Detail
  * @param Code DxLibが返した処理結果の整数。
  * @param Operation 失敗時に返す処理内容の説明。
  */
-inline TResult<void> CheckNative_Internal(Toolbox::int32 Code, const char* Operation)
+FORCEINLINE TResult<void> CheckNative_Internal(Toolbox::int32 Code, const char* Operation)
 {
 	return Code < 0 ? TResult<void>::Failure(EErrorCode::BackendFailure, Operation) : TResult<void>{};
 }

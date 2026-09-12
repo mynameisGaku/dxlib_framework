@@ -23,7 +23,7 @@ public:
 	 * 描画先と描画範囲を設定する。
 	 * @param Target 描画先またはその設定結果。
 	 */
-	void SetTarget_Internal(Toolbox::int32 Target) noexcept
+	FORCEINLINE void SetTarget_Internal(Toolbox::int32 Target) noexcept
 	{
 		m_Target = Target;
 	}
@@ -31,7 +31,7 @@ public:
 	 * 描画命令を受け付けるかを設定する。
 	 * @param bAccepting 新しい要求を受け付けるか。
 	 */
-	void SetAccepting_Internal(bool bAccepting) noexcept
+	FORCEINLINE void SetAccepting_Internal(bool bAccepting) noexcept
 	{
 		m_bAccepting = bAccepting;
 	}

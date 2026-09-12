@@ -38,14 +38,14 @@ public:
 	/**
 	 * ハンドルを取得する。
 	 */
-	Toolbox::int32 GetHandle_Internal() const noexcept
+	FORCEINLINE Toolbox::int32 GetHandle_Internal() const noexcept
 	{
 		return m_Handle.Get();
 	}
 	/**
 	 * 再生音声をまとめる識別番号を取得する。
 	 */
-	Toolbox::uint64 GetScope() const noexcept
+	FORCEINLINE Toolbox::uint64 GetScope() const noexcept
 	{
 		return m_Scope;
 	}

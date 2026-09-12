@@ -92,9 +92,7 @@ public:
 	{
 		if (this != &Other)
 		{
-			/**
-			 * 元の値を保ったまま変更を準備する複製。
-			 */
+			// 元の値を保ったまま変更を準備する複製。
 			TVector Copy(Other);
 			Swap(Copy);
 		}
@@ -107,9 +105,7 @@ public:
 	{
 		if (this != &Other)
 		{
-			/**
-			 * 交換または代入が終わるまで元の値を保持する一時領域。
-			 */
+			// 交換または代入が終わるまで元の値を保持する一時領域。
 			TVector Temporary(Move(Other));
 			Swap(Temporary);
 		}
@@ -139,13 +135,9 @@ public:
 		{
 			throw FException("Vector capacity overflow");
 		}
-		/**
-		 * 再確保先の領域。移動完了までは元の領域と分けて管理する。
-		 */
+		// 再確保先の領域。移動完了までは元の領域と分けて管理する。
 		T* NewData = static_cast<T*>(::operator new(Capacity * sizeof(T), std::align_val_t(alignof(T))));
-		/**
-		 * 新しい領域で構築が完了した要素数。失敗時の後始末に使う。
-		 */
+		// 新しい領域で構築が完了した要素数。失敗時の後始末に使う。
 		size_t Constructed = 0;
 		try
 		{
@@ -170,9 +162,7 @@ public:
 			Free_Internal(NewData);
 			throw;
 		}
-		/**
-		 * 再確保前に存在していた要素数。
-		 */
+		// 再確保前に存在していた要素数。
 		const size_t PreviousSize = m_Size;
 		Clear();
 		Free_Internal(m_pData);
@@ -189,13 +179,9 @@ public:
 		if (m_Size == m_Capacity)
 		{
 			// 引数が現在の要素を参照していても、再確保の前に値を保持する。
-			/**
-			 * 構築または転送する対象の値。
-			 */
+			// 構築または転送する対象の値。
 			T Value(Forward<Args>(Values)...);
-			/**
-			 * 計算のオーバーフローを起こさない上限。
-			 */
+			// 計算のオーバーフローを起こさない上限。
 			const size_t Maximum = TNumericLimits<size_t>::Max() / sizeof(T);
 			if (m_Size == Maximum)
 			{
@@ -268,9 +254,7 @@ public:
 			return;
 		}
 		Reserve(Count);
-		/**
-		 * 変更前の値または要素数。
-		 */
+		// 変更前の値または要素数。
 		const size_t Previous = m_Size;
 		try
 		{
@@ -295,9 +279,7 @@ public:
 	 */
 	T* Erase(T* Position)
 	{
-		/**
-		 * 現在処理している要素の位置。
-		 */
+		// 現在処理している要素の位置。
 		const size_t Index = static_cast<size_t>(Position - m_pData);
 		for (size_t I = Index; I + 1 < m_Size; ++I)
 		{
@@ -309,56 +291,56 @@ public:
 	/**
 	 * 現在保持している要素数を返す。
 	 */
-	size_t Size() const noexcept
+	FORCEINLINE size_t Size() const noexcept
 	{
 		return m_Size;
 	}
 	/**
 	 * 要素が一つもないか調べる。
 	 */
-	bool IsEmpty() const noexcept
+	FORCEINLINE bool IsEmpty() const noexcept
 	{
 		return m_Size == 0;
 	}
 	/**
 	 * 連続した要素領域へのポインターを返す。再確保後は使わない。
 	 */
-	T* Data() noexcept
+	FORCEINLINE T* Data() noexcept
 	{
 		return m_pData;
 	}
 	/**
 	 * 連続した要素領域へのポインターを返す。再確保後は使わない。
 	 */
-	const T* Data() const noexcept
+	FORCEINLINE const T* Data() const noexcept
 	{
 		return m_pData;
 	}
 	/**
 	 * 先頭を指す反復子を返す。空の場合はEndと一致する。
 	 */
-	T* Begin() noexcept
+	FORCEINLINE T* Begin() noexcept
 	{
 		return m_pData;
 	}
 	/**
 	 * 先頭を指す反復子を返す。空の場合はEndと一致する。
 	 */
-	const T* Begin() const noexcept
+	FORCEINLINE const T* Begin() const noexcept
 	{
 		return m_pData;
 	}
 	/**
 	 * 最終要素の次を指す反復子を返す。この位置は参照しない。
 	 */
-	T* End() noexcept
+	FORCEINLINE T* End() noexcept
 	{
 		return m_Size ? m_pData + m_Size : m_pData;
 	}
 	/**
 	 * 最終要素の次を指す反復子を返す。この位置は参照しない。
 	 */
-	const T* End() const noexcept
+	FORCEINLINE const T* End() const noexcept
 	{
 		return m_Size ? m_pData + m_Size : m_pData;
 	}
@@ -366,56 +348,56 @@ public:
 	/**
 	 * range-forが必要とする先頭反復子を返す。
 	 */
-	T* begin() noexcept
+	FORCEINLINE T* begin() noexcept
 	{
 		return Begin();
 	}
 	/**
 	 * range-forが必要とする先頭反復子を返す。
 	 */
-	const T* begin() const noexcept
+	FORCEINLINE const T* begin() const noexcept
 	{
 		return Begin();
 	}
 	/**
 	 * range-forが必要とする終端反復子を返す。
 	 */
-	T* end() noexcept
+	FORCEINLINE T* end() noexcept
 	{
 		return End();
 	}
 	/**
 	 * range-forが必要とする終端反復子を返す。
 	 */
-	const T* end() const noexcept
+	FORCEINLINE const T* end() const noexcept
 	{
 		return End();
 	}
 	/**
 	 * 指定した位置またはキーの要素へアクセスする。
 	 */
-	T& operator[](size_t Index) noexcept
+	FORCEINLINE T& operator[](size_t Index) noexcept
 	{
 		return m_pData[Index];
 	}
 	/**
 	 * 指定した位置またはキーの要素へアクセスする。
 	 */
-	const T& operator[](size_t Index) const noexcept
+	FORCEINLINE const T& operator[](size_t Index) const noexcept
 	{
 		return m_pData[Index];
 	}
 	/**
 	 * 末尾の要素を返す。呼び出し前に空でないことを確認する。
 	 */
-	T& Back() noexcept
+	FORCEINLINE T& Back() noexcept
 	{
 		return m_pData[m_Size - 1];
 	}
 	/**
 	 * 末尾の要素を返す。呼び出し前に空でないことを確認する。
 	 */
-	const T& Back() const noexcept
+	FORCEINLINE const T& Back() const noexcept
 	{
 		return m_pData[m_Size - 1];
 	}

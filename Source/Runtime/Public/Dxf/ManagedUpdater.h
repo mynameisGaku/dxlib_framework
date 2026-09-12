@@ -23,43 +23,29 @@ public:
 	 */
 	TResult<void> Tick_Internal(const FTickContext& Context)
 	{
-		/**
-		 * 所有するオブジェクト群。
-		 */
+		// 所有するオブジェクト群。
 		auto Objects = m_pStorage->Snapshot();
 		Toolbox::StableSort(Objects.Begin(), Objects.End(),
 		                    [&](const auto& A, const auto& B)
 		                    {
-			                    /**
-			                     * 最初の要素。
-			                     */
+			                    // 最初の要素。
 			                    const auto* First = m_pStorage->Find_Internal(A.GetId());
-			                    /**
-			                     * 二番目の要素。
-			                     */
+			                    // 二番目の要素。
 			                    const auto* Second = m_pStorage->Find_Internal(B.GetId());
 			                    return Toolbox::TPair(First->GetUpdateOrder(), First->GetCreationOrder_Internal()) <
-			                           /**
-			                            * 必要な依存関係を受け取り、初期状態を構築する。
-			                            */
+			                           // 必要な依存関係を受け取り、初期状態を構築する。
 			                           Toolbox::TPair(Second->GetUpdateOrder(), Second->GetCreationOrder_Internal());
 		                    });
-		/**
-		 * ハンドルを順に処理する。
-		 */
+		// ハンドルを順に処理する。
 		for (auto Handle : Objects)
 		{
-			/**
-			 * オブジェクト。
-			 */
+			// オブジェクト。
 			T* Object = m_pStorage->Find_Internal(Handle.GetId());
 			if (!Object)
 			{
 				continue;
 			}
-			/**
-			 * 処理結果。
-			 */
+			// 処理結果。
 			auto Result = Object->Tick_Internal(Context);
 			if (!Result)
 			{

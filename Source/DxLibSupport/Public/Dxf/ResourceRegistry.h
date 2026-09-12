@@ -45,7 +45,7 @@ public:
 	/**
 	 * ハンドルを取得する。
 	 */
-	Toolbox::int32 GetHandle_Internal() const noexcept
+	FORCEINLINE Toolbox::int32 GetHandle_Internal() const noexcept
 	{
 		return m_Handle.Get();
 	}
@@ -59,7 +59,7 @@ public:
 	/**
 	 * リソースの付随情報を取得する。
 	 */
-	const TMetadata& GetMetadata() const noexcept
+	FORCEINLINE const TMetadata& GetMetadata() const noexcept
 	{
 		return m_Metadata;
 	}
@@ -138,20 +138,14 @@ public:
 			return;
 		}
 		m_bShutdown = true;
-		/**
-		 * 解放コールバックの再入で走査が壊れないよう、外部処理の前に登録一覧を取り外す。
-		 *
-		 * 登録済みリソースの一覧。
-		 */
+		// 解放コールバックの再入で走査が壊れないよう、外部処理の前に登録一覧を取り外す。
+		//
+		// 登録済みリソースの一覧。
 		auto Records = Toolbox::Move(m_Records);
-		/**
-		 * 登録されたリソース情報を順に処理する。
-		 */
+		// 登録されたリソース情報を順に処理する。
 		for (auto& Record : Records)
 		{
-			/**
-			 * 共有するリソースを取得して有効性を確認する。
-			 */
+			// 共有するリソースを取得して有効性を確認する。
 			if (auto Resource = Record.Lock())
 			{
 				Resource->Release_Internal();
@@ -161,7 +155,7 @@ public:
 	/**
 	 * 終了処理が完了しているかを調べる。
 	 */
-	bool IsShutdown() const noexcept
+	FORCEINLINE bool IsShutdown() const noexcept
 	{
 		return m_bShutdown;
 	}

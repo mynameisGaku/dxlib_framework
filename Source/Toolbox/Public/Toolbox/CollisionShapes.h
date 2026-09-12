@@ -28,7 +28,7 @@ struct FAABB
 	/**
 	 * 箱の中心を返す。
 	 */
-	FVector3 Center() const noexcept
+	FORCEINLINE FVector3 Center() const noexcept
 	{
 		return Min * 0.5f + Max * 0.5f;
 	}
@@ -46,7 +46,7 @@ struct FAABB
 	 * 二つの箱を収める最小の境界箱を作る。
 	 * @param Other 演算または比較の相手。
 	 */
-	FAABB Merged(const FAABB& Other) const noexcept
+	FORCEINLINE FAABB Merged(const FAABB& Other) const noexcept
 	{
 		return {Toolbox::Min(Min, Other.Min), Toolbox::Max(Max, Other.Max)};
 	}

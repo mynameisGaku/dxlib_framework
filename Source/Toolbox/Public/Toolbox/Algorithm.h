@@ -20,7 +20,7 @@ template <typename A, typename B> struct TPair
 	/**
 	 * 辞書順で値を比較する。
 	 */
-	bool operator<(const TPair& Other) const
+	FORCEINLINE bool operator<(const TPair& Other) const
 	{
 		return First < Other.First || (!(Other.First < First) && Second < Other.Second);
 	}
@@ -58,9 +58,7 @@ template <typename It, typename V> It Find(It First, It Last, const V& Value)
  */
 template <typename It, typename V> size_t Count(It First, It Last, const V& Value)
 {
-	/**
-	 * 条件と一致した要素数の累計。
-	 */
+	// 条件と一致した要素数の累計。
 	size_t Total = 0;
 	for (; First != Last; ++First)
 	{
@@ -97,32 +95,22 @@ template <typename T, typename Compare> void StableSort(T* First, T* Last, Compa
 	{
 		return;
 	}
-	/**
-	 * 並べ替える要素の総数。
-	 */
+	// 並べ替える要素の総数。
 	const size_t Size = static_cast<size_t>(Last - First);
 	if (Size < 2)
 	{
 		return;
 	}
-	/**
-	 * 左右のソート範囲を分ける位置。
-	 */
+	// 左右のソート範囲を分ける位置。
 	const size_t Middle = Size / 2;
 	StableSort(First, First + Middle, Less);
 	StableSort(First + Middle, Last, Less);
-	/**
-	 * 左右の要素を安定順に統合する一時領域。
-	 */
+	// 左右の要素を安定順に統合する一時領域。
 	TVector<T> Merged;
 	Merged.Reserve(Size);
-	/**
-	 * 左半分の未処理要素の位置。
-	 */
+	// 左半分の未処理要素の位置。
 	size_t Left = 0;
-	/**
-	 * 右半分の未処理要素の位置。
-	 */
+	// 右半分の未処理要素の位置。
 	size_t Right = Middle;
 	while (Left < Middle && Right < Size)
 	{
@@ -143,9 +131,7 @@ template <typename T, typename Compare> void StableSort(T* First, T* Last, Compa
 	{
 		Merged.PushBack(Move(First[Right++]));
 	}
-	/**
-	 * 現在の要素位置を進めて範囲を走査する。
-	 */
+	// 現在の要素位置を進めて範囲を走査する。
 	for (size_t I = 0; I < Size; ++I)
 	{
 		First[I] = Move(Merged[I]);
@@ -181,13 +167,9 @@ template <typename T> void Sort(T* First, T* Last)
  */
 template <typename Container, typename Predicate> size_t EraseIf(Container& Values, Predicate Match)
 {
-	/**
-	 * 取り除いた要素数の累計。
-	 */
+	// 取り除いた要素数の累計。
 	size_t Removed = 0;
-	/**
-	 * 削除後の位置を引き継ぎながら反復子を進める。
-	 */
+	// 削除後の位置を引き継ぎながら反復子を進める。
 	for (auto It = Values.Begin(); It != Values.End();)
 	{
 		if (Match(*It))

@@ -16,14 +16,14 @@ public:
 	/**
 	 * シーンを訪れた回数を加算する。
 	 */
-	void RecordSceneVisit() noexcept
+	FORCEINLINE void RecordSceneVisit() noexcept
 	{
 		++m_SceneVisits;
 	}
 	/**
 	 * 累積のシーン訪問回数を取得する。
 	 */
-	Toolbox::int32 GetSceneVisits() const noexcept
+	FORCEINLINE Toolbox::int32 GetSceneVisits() const noexcept
 	{
 		return m_SceneVisits;
 	}
@@ -48,7 +48,7 @@ public:
 	/**
 	 * 描画位置を取得する。
 	 */
-	const FVector2& GetPosition() const noexcept
+	FORCEINLINE const FVector2& GetPosition() const noexcept
 	{
 		return m_Position;
 	}
@@ -89,7 +89,7 @@ public:
 	/**
 	 * プレイヤーのハンドルを取得する。
 	 */
-	TObjectHandle<DPlayer> GetPlayer() const noexcept
+	FORCEINLINE TObjectHandle<DPlayer> GetPlayer() const noexcept
 	{
 		return m_Player;
 	}

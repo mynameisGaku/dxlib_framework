@@ -59,9 +59,7 @@ public:
 			return TResult<FFrameTime>::Failure(EErrorCode::InvalidArgument,
 			                                    "Clock sample must be finite and monotonic");
 		}
-		/**
-		 * 前回からの経過秒数。
-		 */
+		// 前回からの経過秒数。
 		const Toolbox::f64 Delta = m_Previous ? NowSeconds - *m_Previous : 0.0;
 		m_Previous = NowSeconds;
 		m_ElapsedSeconds += Delta;
@@ -110,14 +108,14 @@ public:
 	 * 一時停止しているかを設定する。
 	 * @param bPaused 一時停止するか。
 	 */
-	void SetPaused(bool bPaused) noexcept
+	FORCEINLINE void SetPaused(bool bPaused) noexcept
 	{
 		m_bPaused = bPaused;
 	}
 	/**
 	 * 一時停止しているかを調べる。
 	 */
-	bool IsPaused() const noexcept
+	FORCEINLINE bool IsPaused() const noexcept
 	{
 		return m_bPaused;
 	}

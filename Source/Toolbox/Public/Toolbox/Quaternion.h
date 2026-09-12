@@ -43,7 +43,7 @@ struct alignas(16) FQuaternion
 	/**
 	 * 四成分の長さの二乗を返す。
 	 */
-	f32 NormSquared() const noexcept
+	FORCEINLINE f32 NormSquared() const noexcept
 	{
 		return X * X + Y * Y + Z * Z + W * W;
 	}
@@ -52,9 +52,7 @@ struct alignas(16) FQuaternion
 	 */
 	FQuaternion Normalized() const
 	{
-		/**
-		 * 全成分の二乗を倍精度で蓄積し、微小値と巨大値の正規化を保つ。
-		 */
+		// 全成分の二乗を倍精度で蓄積し、微小値と巨大値の正規化を保つ。
 		const f64 Norm = Sqrt(f64(X) * X + f64(Y) * Y + f64(Z) * Z + f64(W) * W);
 		if (!IsFinite(Norm) || Norm <= 0)
 		{
@@ -66,7 +64,7 @@ struct alignas(16) FQuaternion
 	/**
 	 * 虚部の符号を反転する。単位四元数では逆回転になる。
 	 */
-	FQuaternion Conjugate() const noexcept
+	FORCEINLINE FQuaternion Conjugate() const noexcept
 	{
 		return {-X, -Y, -Z, W};
 	}
@@ -75,9 +73,7 @@ struct alignas(16) FQuaternion
 	 */
 	FQuaternion Inverse() const
 	{
-		/**
-		 * 逆元が表現可能な非単位四元数も、二乗の丸めで失わないための倍精度ノルム。
-		 */
+		// 逆元が表現可能な非単位四元数も、二乗の丸めで失わないための倍精度ノルム。
 		const f64 Norm = f64(X) * X + f64(Y) * Y + f64(Z) * Z + f64(W) * W;
 		if (!IsFinite(Norm) || Norm <= 0)
 		{
@@ -92,9 +88,7 @@ struct alignas(16) FQuaternion
 	 */
 	FQuaternion operator*(const FQuaternion& Other) const noexcept
 	{
-		/**
-		 * 合成後の四元数の虚部。
-		 */
+		// 合成後の四元数の虚部。
 		const FVector3 Imaginary = FVector3{Other.X, Other.Y, Other.Z} * W + FVector3{X, Y, Z} * Other.W +
 		                           Cross({X, Y, Z}, {Other.X, Other.Y, Other.Z});
 		return {Imaginary.X, Imaginary.Y, Imaginary.Z, W * Other.W - Dot({X, Y, Z}, {Other.X, Other.Y, Other.Z})};
@@ -105,19 +99,13 @@ struct alignas(16) FQuaternion
 	 */
 	FVector3 Rotate(FVector3 Value) const
 	{
-		/**
-		 * 計算中の単位四元数。
-		 */
+		// 計算中の単位四元数。
 		const auto Q = Normalized();
-		/**
-		 * 回転を表す単位軸。
-		 */
+		// 回転を表す単位軸。
 		const FVector3 Axis{Q.X, Q.Y, Q.Z};
-		/**
-		 * 虚部と入力方向の外積の二倍。
-		 * @param Axis 回転軸または参照する軸番号。
-		 * @param Value 処理対象の値。
-		 */
+		// 虚部と入力方向の外積の二倍。
+		// @param Axis 回転軸または参照する軸番号。
+		// @param Value 処理対象の値。
 		const FVector3 TwiceCross = Cross(Axis, Value) * 2;
 		return Value + TwiceCross * Q.W + Cross(Axis, TwiceCross);
 	}
@@ -126,13 +114,9 @@ struct alignas(16) FQuaternion
 	 */
 	FMatrix4 ToMatrix() const
 	{
-		/**
-		 * 計算中の単位四元数。
-		 */
+		// 計算中の単位四元数。
 		const auto Q = Normalized();
-		/**
-		 * 計算または検索の結果。
-		 */
+		// 計算または検索の結果。
 		FMatrix4 Result;
 		Result.Values = {1 - 2 * (Q.Y * Q.Y + Q.Z * Q.Z),
 		                 2 * (Q.X * Q.Y - Q.Z * Q.W),
@@ -172,32 +156,22 @@ struct alignas(16) FQuaternion
 		A = A.Normalized();
 		B = B.Normalized();
 		Alpha = Clamp(Alpha, 0.0f, 1.0f);
-		/**
-		 * 二つの単位四元数の内積。
-		 */
+		// 二つの単位四元数の内積。
 		f32 Cosine = A.X * B.X + A.Y * B.Y + A.Z * B.Z + A.W * B.W;
 		if (Cosine < 0)
 		{
 			B = {-B.X, -B.Y, -B.Z, -B.W};
 			Cosine = -Cosine;
 		}
-		/**
-		 * 左側の回転に掛ける補間係数。
-		 */
+		// 左側の回転に掛ける補間係数。
 		f32 Left = 1 - Alpha;
-		/**
-		 * 右側の回転に掛ける補間係数。
-		 */
+		// 右側の回転に掛ける補間係数。
 		f32 Right = Alpha;
 		if (Cosine < 0.9995f)
 		{
-			/**
-			 * 補間する回転間の角度。
-			 */
+			// 補間する回転間の角度。
 			const f32 Angle = static_cast<f32>(acos(Clamp(Cosine, -1.0f, 1.0f)));
-			/**
-			 * 球面補間の正規化に使う正弦。
-			 */
+			// 球面補間の正規化に使う正弦。
 			const f32 Denominator = static_cast<f32>(Sin(Angle));
 			Left = static_cast<f32>(Sin((1 - Alpha) * Angle)) / Denominator;
 			Right = static_cast<f32>(Sin(Alpha * Angle)) / Denominator;

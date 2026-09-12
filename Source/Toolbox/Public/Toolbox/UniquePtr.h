@@ -88,14 +88,14 @@ public:
 	/**
 	 * 所有している対象のポインターを返す。空ならnullptrを返す。
 	 */
-	T* Get() const noexcept
+	FORCEINLINE T* Get() const noexcept
 	{
 		return m_pValue;
 	}
 	/**
 	 * 破棄せずに所有権を手放す。返したポインターの管理は呼び出し側へ移る。
 	 */
-	T* Release() noexcept
+	FORCEINLINE T* Release() noexcept
 	{
 		return Exchange(m_pValue, nullptr);
 	}
@@ -107,9 +107,7 @@ public:
 	{
 		if (Pointer != m_pValue)
 		{
-			/**
-			 * 置き換え前の値。公開状態を更新してから後始末する。
-			 */
+			// 置き換え前の値。公開状態を更新してから後始末する。
 			T* Old = Exchange(m_pValue, Pointer);
 			delete Old;
 		}
@@ -117,28 +115,28 @@ public:
 	/**
 	 * 有効な値または対象があるか調べる。
 	 */
-	explicit operator bool() const noexcept
+	FORCEINLINE explicit operator bool() const noexcept
 	{
 		return m_pValue != nullptr;
 	}
 	/**
 	 * 保持している対象へアクセスする。呼び出し前に有効性を確認する。
 	 */
-	T& operator*() const noexcept
+	FORCEINLINE T& operator*() const noexcept
 	{
 		return *m_pValue;
 	}
 	/**
 	 * 保持している対象へアクセスする。呼び出し前に有効性を確認する。
 	 */
-	T* operator->() const noexcept
+	FORCEINLINE T* operator->() const noexcept
 	{
 		return m_pValue;
 	}
 	/**
 	 * 保持する値または対象が一致するか比較する。
 	 */
-	bool operator==(decltype(nullptr)) const noexcept
+	FORCEINLINE bool operator==(decltype(nullptr)) const noexcept
 	{
 		return !m_pValue;
 	}

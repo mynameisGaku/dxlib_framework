@@ -52,9 +52,7 @@ public:
 		{
 			return RequestChange(Toolbox::MakeUnique<T>(Toolbox::Forward<TArgs>(Args)...));
 		}
-		/**
-		 * 呼び出し先の例外を処理結果へ変換する。
-		 */
+		// 呼び出し先の例外を処理結果へ変換する。
 		catch (const Toolbox::FException& Error)
 		{
 			return TResult<void>::Failure(EErrorCode::UserException, Error.What());
@@ -93,7 +91,7 @@ public:
 	/**
 	 * 直近のシーン遷移のエラーを取得する。
 	 */
-	const Toolbox::TOptional<FError>& GetLastTransitionError() const noexcept
+	FORCEINLINE const Toolbox::TOptional<FError>& GetLastTransitionError() const noexcept
 	{
 		return m_LastTransitionError;
 	}
@@ -104,7 +102,7 @@ public:
 	/**
 	 * 正常終了が要求されているかを調べる。
 	 */
-	bool WantsQuit() const noexcept
+	FORCEINLINE bool WantsQuit() const noexcept
 	{
 		return m_bQuit || m_bShutdown;
 	}
