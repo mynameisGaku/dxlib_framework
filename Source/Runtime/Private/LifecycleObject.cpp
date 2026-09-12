@@ -81,6 +81,42 @@ TResult<void> DLifecycleObject::Tick_Internal(const FTickContext& Context)
 		return TResult<void>::Failure(EErrorCode::UserException, "Unknown update exception");
 	}
 }
+// 更新対象へ固定時間更新を通知する。
+// @param Context 処理に必要な実行環境。
+TResult<void> DLifecycleObject::FixedTick_Internal(const FFixedTickContext& Context)
+{
+	if (m_bBusy)
+	{
+		return TResult<void>::Failure(EErrorCode::InvalidState, "Reentrant object update");
+	}
+	if (!IsInitialized() || m_bDestroyRequested)
+	{
+		return {};
+	}
+	try
+	{
+		// 処理終了時に状態を戻すガード。
+		TGuardValue Guard(m_bBusy, true);
+		if (!Context.bPaused || m_bTickWhenPaused)
+		{
+			OnFixedTick(Context);
+		}
+		if (m_pChildren && !m_bDestroyRequested)
+		{
+			return m_pChildren->FixedTick_Internal(Context);
+		}
+		return {};
+	}
+	// 呼び出し先の例外を処理結果へ変換する。
+	catch (const Toolbox::FException& Error)
+	{
+		return TResult<void>::Failure(EErrorCode::UserException, Error.What());
+	}
+	catch (...)
+	{
+		return TResult<void>::Failure(EErrorCode::UserException, "Unknown update exception");
+	}
+}
 // 対象の描画を要求する。
 // @param Context 処理に必要な実行環境。
 TResult<void> DLifecycleObject::Draw_Internal(FRenderContext& Context)

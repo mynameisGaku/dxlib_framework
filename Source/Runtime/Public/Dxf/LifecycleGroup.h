@@ -28,6 +28,11 @@ public:
 	 */
 	virtual TResult<void> Tick_Internal(const FTickContext& Context) = 0;
 	/**
+	 * 更新対象へ固定時間更新を通知する。
+	 * @param Context 処理に必要な実行環境。
+	 */
+	virtual TResult<void> FixedTick_Internal(const FFixedTickContext& Context) = 0;
+	/**
 	 * 対象の描画を要求する。
 	 * @param Context 処理に必要な実行環境。
 	 */

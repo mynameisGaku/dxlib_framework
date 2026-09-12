@@ -281,6 +281,24 @@ public:
 	 */
 	FContactSettings3D GetContactSettings() const noexcept;
 	/**
+	 * 剛体の姿勢を直接設定する。速度と蓄積力は変更しない。
+	 * テレポート後は接触キャッシュの消去と補間履歴の破棄を呼び出し元が行う。
+	 * 期限切れIDと非有限値は例外で通知する。
+	 * @param Id 登録を識別する世代付きID。
+	 * @param Position メートル単位の重心位置。
+	 * @param Orientation 右手則の単位姿勢。
+	 */
+	void SetBodyTransform(FBodyId3D Id, Toolbox::FVector3 Position, Toolbox::FQuaternion Orientation);
+	/**
+	 * 前回Impulseの再利用記録を消去する。
+	 */
+	void ClearContactCache() noexcept;
+	/**
+	 * コライダーIDが有効な登録を指すか調べる。
+	 * @param Id 登録を識別する世代付きID。
+	 */
+	bool IsColliderAlive(FColliderId3D Id) const noexcept;
+	/**
 	 * 指定秒数だけ物理状態を進める。力とトルクは更新後に一度だけ消去する。
 	 * 取り付け済みのコライダー同士の接触拘束も解く。箱同士の組は接触を生成しない。
 	 * 非有限・非正の秒数と範囲外の分割数は例外で通知し、状態を変更しない。

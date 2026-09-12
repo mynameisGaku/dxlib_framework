@@ -1,0 +1,290 @@
+﻿dxf-includes.cpp
+繝｡繝｢: 繧､繝ｳ繧ｯ繝ｫ繝ｼ繝・繝輔ぃ繧､繝ｫ:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\WindowsValidation\IncludeProbe\dxf-includes.h
+
+
+
+
+-- Configuring done (0.5s)
+-- Generating done (0.1s)
+-- Build files have been written to: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/windows-debug
+[0/2] Re-checking globbed directories...
+[1/9] Copying sample assets
+[2/9] Building CXX object CMakeFiles\dxf_runtime.dir\Source\Runtime\Private\LifecycleObject.cpp.obj
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/LifecycleObject.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/Object.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Utility.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Compiler.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stddef.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\sal.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\concurrencysal.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vadefs.h
+メモ: インクルード ファイル:     C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\stdint.h
+メモ: インクルード ファイル:     C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\limits.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\float.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\math.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_math.h
+メモ: インクルード ファイル:     C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\new
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals_core.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xkeycheck.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\exception
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_doom_core.hpp
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\crtdbg.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new_debug.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\crtdefs.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\use_ansi.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdlib
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\math.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stdlib.h
+メモ: インクルード ファイル:         C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_malloc.h
+メモ: インクルード ファイル:         C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_search.h
+メモ: インクルード ファイル:         C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_wstdlib.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\type_traits
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstddef
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xtr1common
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdint
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\malloc.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_exception.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\eh.h
+メモ: インクルード ファイル:         C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_terminate.h
+メモ: インクルード ファイル:     C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\initializer_list
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/LifecycleGroup.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/Contexts.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/Clock.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/Result.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/String.h
+メモ: インクルード ファイル:        C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Vector.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stdio.h
+メモ: インクルード ファイル:         C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_wstdio.h
+メモ: インクルード ファイル:          C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_stdio_config.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Variant.h
+メモ: インクルード ファイル:        C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Optional.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Algorithm.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/Input.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputTypes.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Array.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputSource.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputSnapshot.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputStateTracker.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputSystem.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputMap.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Map.h
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/GuardValue.h
+[3/9] Linking CXX static library dxf_runtimed.lib
+[4/9] Building CXX object CMakeFiles\dxf_tests.dir\Tests\FixedTickTests.cpp.obj
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Support/Test.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Function.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/UniquePtr.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Utility.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Compiler.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stddef.h
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\sal.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\concurrencysal.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vadefs.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\stdint.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\limits.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\float.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\math.h
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_math.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\new
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals_core.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xkeycheck.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\exception
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_doom_core.hpp
+メモ: インクルード ファイル:         C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\crtdbg.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new_debug.h
+メモ: インクルード ファイル:           C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\crtdefs.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\use_ansi.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdlib
+メモ: インクルード ファイル:         C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\math.h
+メモ: インクルード ファイル:         C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stdlib.h
+メモ: インクルード ファイル:          C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_malloc.h
+メモ: インクルード ファイル:          C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_search.h
+メモ: インクルード ファイル:          C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_wstdlib.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\type_traits
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstddef
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xtr1common
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdint
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\malloc.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_exception.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\eh.h
+メモ: インクルード ファイル:          C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_terminate.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\initializer_list
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/String.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Vector.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stdio.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_wstdio.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_stdio_config.h
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Support/FakeBackend.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/AssetBackend.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/Result.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Variant.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Optional.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderBackend.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderCommands.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/Texture.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/ResourceRegistry.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Algorithm.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/NativeHandle.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/SharedPtr.h
+メモ: インクルード ファイル:        C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Atomic.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\intrin.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\intrin0.inl.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\setjmp.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\immintrin.h
+メモ: インクルード ファイル:           C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\wmmintrin.h
+メモ: インクルード ファイル:            C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\nmmintrin.h
+メモ: インクルード ファイル:             C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\smmintrin.h
+メモ: インクルード ファイル:              C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\tmmintrin.h
+メモ: インクルード ファイル:               C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\pmmintrin.h
+メモ: インクルード ファイル:                C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\emmintrin.h
+メモ: インクルード ファイル:                 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xmmintrin.h
+メモ: インクルード ファイル:                  C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\mmintrin.h
+メモ: インクルード ファイル:           C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\zmmintrin.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\ammintrin.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/Font.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/MathTypes.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/Platform.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/Input.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputTypes.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Array.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputSource.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputSnapshot.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputStateTracker.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputSystem.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputMap.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Map.h
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/GameObject.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/ComponentCollection.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/ManagedCollection.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/ManagedLifecycle.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/LifecycleObject.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/Object.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/LifecycleGroup.h
+メモ: インクルード ファイル:        C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/Contexts.h
+メモ: インクルード ファイル:         C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/Clock.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/SlotMap.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/ObjectHandle.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/ManagedUpdater.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/ManagedDrawDispatcher.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/GuardValue.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/GameObjectComponent.h
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/GameObjectCollection.h
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/AssetService.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/TextureLoader.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/SoundLoader.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/Sound.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/FontLoader.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/ResourceCache.h
+[5/9] Linking CXX executable dxf_native_contract_tests.exe
+[6/9] Linking CXX executable Starter.exe
+[7/9] Linking CXX executable Sandbox.exe
+[8/9] Linking CXX executable dxf_tests.exe
+Test project C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/windows-debug
+    Start 1: PhysicsContinuation
+1/4 Test #1: PhysicsContinuation ..............   Passed    0.14 sec
+    Start 2: NoStl
+2/4 Test #2: NoStl ............................   Passed    0.15 sec
+    Start 3: Framework
+3/4 Test #3: Framework ........................***Exception: SegFault  2.26 sec
+[PASS] Toolbox vector preserves values after a failed reserve
+[PASS] Toolbox vector supports self append and over-aligned values
+[PASS] Toolbox unique ownership transfers without double destruction
+[PASS] Toolbox shared and weak ownership expire exactly once
+[PASS] Toolbox shared conversion retains the original destructor
+[PASS] Toolbox optional and variant reject invalid access
+[PASS] Toolbox function copies captures independently
+[PASS] Toolbox strings retain embedded NUL and support self concatenation
+[PASS] Toolbox maps erase expired entries without losing live values
+[PASS] Toolbox stable sort preserves equal key order
+[PASS] Toolbox paths normalize without filesystem access
+[PASS] Toolbox atomic counter and monotonic time advance
+[PASS] Toolbox vector grows and self-appends values with deleted move constructors
+[PASS] Toolbox variant preserves duplicate alternative indices through copying and moving
+[PASS] Toolbox variant keeps TResult error payloads distinct from failure state
+[PASS] Toolbox void callbacks discard callable results and preserve captures
+[PASS] Toolbox optional reconstructs nonassignable copy-only and move-only values
+[PASS] Toolbox optional stays empty after failed reconstruction without leaking
+[PASS] SIMD vectors match scalar dot cross and arithmetic
+[PASS] SIMD matrix product matches the scalar reference
+[PASS] Matrix inverse reverses translation rotation and scale
+[PASS] Quaternion rotation agrees with matrix and inverse
+[PASS] Quaternion slerp uses the shortest rotation and handles opposite signs
+[PASS] Complex arithmetic supports both precisions and rejects zero division
+[PASS] All collision shape combinations overlap at origin and separate at distance
+[PASS] GJK boxes agree with direct AABB overlap
+[PASS] Rotated box sphere collisions match closest point distance
+[PASS] Mesh narrow phase preserves holes and handles triangle contacts
+[PASS] Mesh triangle tree prunes distant triangles automatically
+[PASS] Collision world automatically selects quadtree and rebuilds moved shapes
+[PASS] Octree pairs equal brute force after arbitrary insertions
+[PASS] Collision filtering and world identity reject unrelated registrations
+[PASS] Invalid collision shapes cannot enter the spatial tree
+[PASS] Complex SIMD batches match scalar products and allow exact in-place output
+[PASS] Vector and quaternion normalization preserve extreme finite scales
+[PASS] Matrix inversion pivots rows and rejects invalid tolerances without changing output
+[PASS] Spatial trees preserve contacts across partitions and after dimension changes
+[PASS] Sphere collisions avoid overflow when finite shapes exceed float distance range
+[PASS] Box sphere face contacts remain symmetric at every surface position
+[PASS] Box sphere closest distance respects gaps corners and finite large coordinates
+[PASS] Rotated box sphere contacts handle rounding allowed by axis validation
+[PASS] Result holds a move-only value
+[PASS] Result preserves error and void success
+[PASS] RTTI supports safe derived checks
+[PASS] SlotMap invalidates removed handles and increments generation
+[PASS] Handles do not resolve against a different owner
+[PASS] Handle outlives storage without dangling pointer
+[PASS] Typed handle rejects incorrect dynamic type
+[PASS] SlotMap snapshot permits removal without iterator invalidation
+[PASS] FrameClock clamps simulation delta but retains real delta
+[PASS] FrameClock rejects negative and nonfinite elapsed inputs
+[PASS] SceneClock pause and scale preserve unscaled time
+[PASS] Input edges are stable during a frame
+[PASS] Focus loss releases keys and mouse buttons
+[PASS] Gamepad disconnection emits release and clears axes
+[PASS] InputMap action is held until all bound keys release
+[PASS] Result can carry an error object as successful data without confusing the failure branch
+[PASS] Texture cache shares normalized paths
+[PASS] Texture load options participate in cache identity
+[PASS] Texture is freed once when last reference expires
+[PASS] Asset shutdown invalidates externally retained references
+[PASS] Failed load is not cached and can be r
+
+    Start 4: NativeContract
+4/4 Test #4: NativeContract ...................***Exception: SegFault  2.14 sec
+
+
+50% tests passed, 2 tests failed out of 4
+
+Label Time Summary:
+contract         =   2.14 sec*proc (1 test)
+not-real-sdk     =   2.14 sec*proc (1 test)
+physics          =   0.14 sec*proc (1 test)
+portable         =   2.40 sec*proc (2 tests)
+source-policy    =   0.15 sec*proc (1 test)
+
+Total Test time (real) =   4.88 sec
+
+The following tests FAILED:
+	  3 - Framework (SEGFAULT)                              portable
+	  4 - NativeContract (SEGFAULT)                         contract not-real-sdk
+Errors while running CTest
+.\Tools\Build.cmd : C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tools\BuildWindows.ps1 : debug-ctest failed. 
+See C:\Users\g0190\O
+発生場所 行:1 文字:1
++ .\Tools\Build.cmd -Configuration Debug 2>&1 | Out-File -FilePath "Doc ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (C:\Users\g0190\...:\Users\g0190\O:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+neDrive\Desktop\frame\dxlib_framework\Build\WindowsValidation\debug-ctest.log
+    + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException
+    + FullyQualifiedErrorId : Microsoft.PowerShell.Commands.WriteErrorException,BuildWindows.ps1
+ 

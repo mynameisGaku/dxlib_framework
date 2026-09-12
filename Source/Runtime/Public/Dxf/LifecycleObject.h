@@ -112,6 +112,11 @@ public:
 	 */
 	TResult<void> Tick_Internal(const FTickContext& Context);
 	/**
+	 * 更新対象へ固定時間更新を通知する。
+	 * @param Context 処理に必要な実行環境。
+	 */
+	TResult<void> FixedTick_Internal(const FFixedTickContext& Context);
+	/**
 	 * 対象の描画を要求する。
 	 * @param Context 処理に必要な実行環境。
 	 */
@@ -170,6 +175,12 @@ protected:
 	 * 現在のフレーム情報で状態を更新する。
 	 */
 	virtual void OnTick(const FTickContext&)
+	{
+	}
+	/**
+	 * 固定時間の刻みで状態を更新する。
+	 */
+	virtual void OnFixedTick(const FFixedTickContext&)
 	{
 	}
 	/**

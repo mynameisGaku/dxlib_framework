@@ -25,6 +25,7 @@ Destroyは即時deleteではありません。予約された対象をそれ以�
 |---|---|
 | `OnInitialize(const FInitContext&)` | 資源の取得とローカルな構築。TResultで成功・失敗を返す |
 | `OnTick(const FTickContext&)` | 更新。入力・時間・必要なゲーム実行サービスを使う |
+| `OnFixedTick(const FFixedTickContext&)` | 固定時間更新。物理シーンが子階層へ配る |
 | `OnDraw(FRenderContext&) const` | 描画要求を出す |
 | `OnDeinitialize() noexcept` | 終了と部分初期化の後始末 |
 | `OnEnter(...) noexcept` / `OnExit() noexcept` | Sceneを現在の場面として有効化・無効化する |
@@ -33,7 +34,24 @@ OnDeinitializeは、**初期化を一度でも試みた場合に、部分失敗�
 
 初期Sceneの失敗はApplication起動失敗です。差し替えSceneの準備失敗は現在のSceneを維持し、`GetLastTransitionError()`へ記録します。一方、実行中に追加したObjectの初期化が失敗し、`CommitObjects()`がエラーを返した場合、この版のApplicationは停止します。エラーを握りつぶして続行する方針にはしていません。
 
-OnTick／OnDrawから例外が出ると、固定のライフサイクル入口がTResultのエラーへ変換します。Application経由では、そのエラーを受けて終了処理を実行します。noexceptのフック、デストラクタ、バックエンドの解放処理から例外を出してはいけません。
+OnTick／OnFixedTick／OnDrawから例外が出ると、固定のライフサイクル入口がTResultのエラーへ変換します。Application経由では、そのエラーを受けて終了処理を実行します。noexceptのフック、デストラクタ、バックエンドの解放処理から例外を出してはいけません。
+
+## 固定更新と物理シーン
+
+`DPhysicsScene2D`／`DPhysicsScene3D` は `FFixedStepScheduler` の計画に従い、
+1フレームに0回以上の固定更新を実行します。呼び出し元はシーンだけです。
+1回の固定更新は、子階層への `OnFixedTick` 配布、物理ワールドの更新の順序です。
+オブジェクトの生成・破棄の確定は描画フレームの境界で行い、物理の力・姿勢変更は
+固定更新の境界で適用します。`OnTick` はfinalで固定更新の駆動に使うため、
+物理シーン利用者は毎刻みの処理を `OnFixedTick` へ書きます。
+
+`FFixedTickContext` の保持入力は毎更新で有効です。押下・解放のエッジは、
+フレーム内最初の更新と、固定更新が0回だったフレームの複写だけで有効になり、
+二重に発火しません。可変更新のSnapshotは消費も変更もせず、音声は固定更新で扱いません。
+
+`DRigidBody2DComponent`／`DRigidBody3DComponent` はDynamicの物理状態を正とし、
+Kinematicはゲーム側の速度指示を物理へ渡します。描画位置は前回・今回の物理姿勢と
+補間割合から求め、物理状態へ書き戻しません。`Teleport` は補間履歴と接触記録を破棄します。
 
 ## 入力と時間
 

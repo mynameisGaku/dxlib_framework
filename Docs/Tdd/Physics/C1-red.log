@@ -1,0 +1,528 @@
+﻿dxf-includes.cpp
+繝｡繝｢: 繧､繝ｳ繧ｯ繝ｫ繝ｼ繝・繝輔ぃ繧､繝ｫ:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\WindowsValidation\IncludeProbe\dxf-includes.h
+
+
+
+
+-- Configuring done (0.5s)
+-- Generating done (0.1s)
+-- Build files have been written to: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/windows-debug
+[0/2] Re-checking globbed directories...
+[1/6] Copying sample assets
+[2/6] Building CXX object CMakeFiles\dxf_tests.dir\Tests\FixedTickTests.cpp.obj
+FAILED: [code=2] CMakeFiles/dxf_tests.dir/Tests/FixedTickTests.cpp.obj 
+C:\PROGRA~1\MICROS~1\18\COMMUN~1\VC\Tools\MSVC\1451~1.362\bin\Hostx64\x64\cl.exe  /nologo /TP  -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Examples\Sandbox -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Examples\Starter\Source -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public /DWIN32 /D_WINDOWS /EHsc /Zi /Ob0 /Od /RTC1 -std:c++20 -MTd /W4 /permissive- /utf-8 /EHsc /GR /showIncludes /FoCMakeFiles\dxf_tests.dir\Tests\FixedTickTests.cpp.obj /FdCMakeFiles\dxf_tests.dir\ /FS -c C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Support/Test.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Function.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/UniquePtr.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Utility.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Compiler.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stddef.h
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\sal.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\concurrencysal.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vadefs.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\stdint.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\limits.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\float.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\math.h
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_math.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\new
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals_core.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xkeycheck.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\exception
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_doom_core.hpp
+メモ: インクルード ファイル:         C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\crtdbg.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new_debug.h
+メモ: インクルード ファイル:           C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\crtdefs.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\use_ansi.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdlib
+メモ: インクルード ファイル:         C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\math.h
+メモ: インクルード ファイル:         C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stdlib.h
+メモ: インクルード ファイル:          C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_malloc.h
+メモ: インクルード ファイル:          C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_search.h
+メモ: インクルード ファイル:          C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_wstdlib.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\type_traits
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstddef
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xtr1common
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdint
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\malloc.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_exception.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\eh.h
+メモ: インクルード ファイル:          C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_terminate.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\initializer_list
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/String.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Vector.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stdio.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_wstdio.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_stdio_config.h
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Support/FakeBackend.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/AssetBackend.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/Result.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Variant.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Optional.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderBackend.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderCommands.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/Texture.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/ResourceRegistry.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Algorithm.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/NativeHandle.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/SharedPtr.h
+メモ: インクルード ファイル:        C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Atomic.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\intrin.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\intrin0.inl.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\setjmp.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\immintrin.h
+メモ: インクルード ファイル:           C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\wmmintrin.h
+メモ: インクルード ファイル:            C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\nmmintrin.h
+メモ: インクルード ファイル:             C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\smmintrin.h
+メモ: インクルード ファイル:              C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\tmmintrin.h
+メモ: インクルード ファイル:               C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\pmmintrin.h
+メモ: インクルード ファイル:                C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\emmintrin.h
+メモ: インクルード ファイル:                 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xmmintrin.h
+メモ: インクルード ファイル:                  C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\mmintrin.h
+メモ: インクルード ファイル:           C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\zmmintrin.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\ammintrin.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/Font.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/MathTypes.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/Platform.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/Input.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputTypes.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Array.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputSource.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputSnapshot.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputStateTracker.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputSystem.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputMap.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Map.h
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/GameObject.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/ComponentCollection.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/ManagedCollection.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/ManagedLifecycle.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/LifecycleObject.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/Object.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/LifecycleGroup.h
+メモ: インクルード ファイル:        C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/Contexts.h
+メモ: インクルード ファイル:         C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/Clock.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/SlotMap.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/ObjectHandle.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/ManagedUpdater.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/ManagedDrawDispatcher.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/GuardValue.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/GameObjectComponent.h
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/GameObjectCollection.h
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/AssetService.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/TextureLoader.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/SoundLoader.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/Sound.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/FontLoader.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/ResourceCache.h
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(33): error C4430: 型指定子がありません - int と仮定しました。メモ: C++ は int を既定値としてサポートしていません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(33): error C2143: 構文エラー: ',' が '&' の前にありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(33): error C3668: '`anonymous-namespace'::DFixedComponent::OnFixedTick': オーバーライド指定子 'override' を伴うメソッドは、基底クラス メソッドをオーバーライドしませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(61): error C4430: 型指定子がありません - int と仮定しました。メモ: C++ は int を既定値としてサポートしていません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(61): error C2143: 構文エラー: ',' が '&' の前にありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(61): error C3668: '`anonymous-namespace'::DFixedObject::OnFixedTick': オーバーライド指定子 'override' を伴うメソッドは、基底クラス メソッドをオーバーライドしませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(94): error C3646: 'GetFixed': 不明なオーバーライド指定子です
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(94): error C2059: 構文エラー: '('
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(95): error C2334: '{' の前に予期しないトークンがありました。関数の本体は無視されます
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(110): error C2039: 'FixedTick_Internal': 'Dxf::FGameObjectCollection' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/GameObjectCollection.h(24): note: 'Dxf::FGameObjectCollection' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(110): error C2039: 'GetFixed': '`anonymous-namespace'::FFixedFixture' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(78): note: '`anonymous-namespace'::FFixedFixture' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(125): error C2039: 'FixedTick_Internal': 'Dxf::FGameObjectCollection' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/GameObjectCollection.h(24): note: 'Dxf::FGameObjectCollection' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(125): error C2039: 'GetFixed': '`anonymous-namespace'::FFixedFixture' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(78): note: '`anonymous-namespace'::FFixedFixture' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(135): error C2065: 'FFixedTickContext': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(135): error C2146: 構文エラー: ';' が、識別子 'Paused' の前に必要です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(135): error C2065: 'Paused': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(135): error C2039: 'GetFixed': '`anonymous-namespace'::FFixedFixture' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(78): note: '`anonymous-namespace'::FFixedFixture' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(136): error C2065: 'Paused': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(137): error C2039: 'FixedTick_Internal': 'Dxf::FGameObjectCollection' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/GameObjectCollection.h(24): note: 'Dxf::FGameObjectCollection' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(137): error C2065: 'Paused': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(140): error C2039: 'FixedTick_Internal': 'Dxf::FGameObjectCollection' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/GameObjectCollection.h(24): note: 'Dxf::FGameObjectCollection' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(140): error C2065: 'Paused': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(152): error C2039: 'FixedTick_Internal': 'Dxf::FGameObjectCollection' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/GameObjectCollection.h(24): note: 'Dxf::FGameObjectCollection' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(152): error C2039: 'GetFixed': '`anonymous-namespace'::FFixedFixture' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(78): note: '`anonymous-namespace'::FFixedFixture' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(162): error C2039: 'FixedTick_Internal': '`anonymous-namespace'::DFixedObject' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(50): note: '`anonymous-namespace'::DFixedObject' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(162): error C2039: 'GetFixed': '`anonymous-namespace'::FFixedFixture' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(78): note: '`anonymous-namespace'::FFixedFixture' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(166): error C2039: 'FixedTick_Internal': 'Dxf::FGameObjectCollection' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/GameObjectCollection.h(24): note: 'Dxf::FGameObjectCollection' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(166): error C2039: 'GetFixed': '`anonymous-namespace'::FFixedFixture' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FixedTickTests.cpp(78): note: '`anonymous-namespace'::FFixedFixture' の宣言を確認してください
+[3/6] Building CXX object CMakeFiles\Sandbox.dir\Examples\Sandbox\WindowsMain.cpp.obj
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/UniquePtr.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Utility.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Compiler.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stddef.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\sal.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\concurrencysal.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vadefs.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\stdint.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\limits.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\float.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\math.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_math.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\new
+メモ: インクルード ファイル:     C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals_core.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xkeycheck.h
+メモ: インクルード ファイル:     C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\exception
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_doom_core.hpp
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\crtdbg.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new_debug.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\crtdefs.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\use_ansi.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdlib
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\math.h
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stdlib.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_malloc.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_search.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_wstdlib.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\type_traits
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstddef
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xtr1common
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdint
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\malloc.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_exception.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\eh.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_terminate.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\initializer_list
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Public\Dxf/NativeBackends.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/BackendServices.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/AssetBackend.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/Result.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/String.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Vector.h
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stdio.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_wstdio.h
+メモ: インクルード ファイル:         C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_stdio_config.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Variant.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Optional.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/Input.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputTypes.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Array.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputSource.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputSnapshot.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputStateTracker.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputSystem.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputMap.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Algorithm.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Map.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/Platform.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderBackend.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderCommands.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/Texture.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/ResourceRegistry.h
+メモ: インクルード ファイル:        C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/NativeHandle.h
+メモ: インクルード ファイル:        C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/SharedPtr.h
+メモ: インクルード ファイル:         C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Atomic.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\intrin.h
+メモ: インクルード ファイル:           C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\intrin0.inl.h
+メモ: インクルード ファイル:           C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\setjmp.h
+メモ: インクルード ファイル:           C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\immintrin.h
+メモ: インクルード ファイル:            C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\wmmintrin.h
+メモ: インクルード ファイル:             C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\nmmintrin.h
+メモ: インクルード ファイル:              C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\smmintrin.h
+メモ: インクルード ファイル:               C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\tmmintrin.h
+メモ: インクルード ファイル:                C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\pmmintrin.h
+メモ: インクルード ファイル:                 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\emmintrin.h
+メモ: インクルード ファイル:                  C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xmmintrin.h
+メモ: インクルード ファイル:                   C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\mmintrin.h
+メモ: インクルード ファイル:            C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\zmmintrin.h
+メモ: インクルード ファイル:           C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\ammintrin.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/Font.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/MathTypes.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Public\Dxf/DxLibPlatform.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Public\Dxf/DxLibInputSource.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Public\Dxf/DxLibTextureBackend.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Public\Dxf/DxLibSoundBackend.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Public\Dxf/DxLibFontBackend.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Public\Dxf/DxLibRenderBackend.h
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/AppRunner.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/Application.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/DxLibSession.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/AssetService.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/TextureLoader.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/SoundLoader.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/Sound.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/FontLoader.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/ResourceCache.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/AudioPlayer.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/SlotMap.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/ObjectHandle.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/Object.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Function.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderSystem2D.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderQueue2D.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderControl.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/FramePresenter.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/GameInstance.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/LifecycleObject.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/LifecycleGroup.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/Contexts.h
+メモ: インクルード ファイル:        C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/Clock.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/SceneNavigator.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/SceneStorage.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/Scene.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/SceneLifecycle.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Platform.h
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Examples\Sandbox\SandboxGame.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/GameScene.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/GameObjectCollection.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/GameObject.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/ComponentCollection.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/ManagedCollection.h
+メモ: インクルード ファイル:        C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/ManagedLifecycle.h
+メモ: インクルード ファイル:        C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/ManagedUpdater.h
+メモ: インクルード ファイル:        C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/ManagedDrawDispatcher.h
+メモ: インクルード ファイル:        C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/GuardValue.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/GameObjectComponent.h
+メモ: インクルード ファイル:  C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\Windows.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\winapifamily.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\winpackagefamily.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\sdkddkver.h
+メモ: インクルード ファイル:   C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\excpt.h
+メモ: インクルード ファイル:   C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\stdarg.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\windef.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\minwindef.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\specstrings.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\specstrings_strict.h
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\specstrings_undef.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\driverspecs.h
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\sdv_driverspecs.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\winnt.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\ctype.h
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_wctype.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\kernelspecs.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\basetsd.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\guiddef.h
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\string.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_memory.h
+メモ: インクルード ファイル:         C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_memcpy_s.h
+メモ: インクルード ファイル:          C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\errno.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_string.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_wstring.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack4.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack4.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack4.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack2.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack2.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack2.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack8.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack1.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack1.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\apiset.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\ktmtypes.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\winbase.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\apisetcconv.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\minwinbase.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\apiquery2.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\processenv.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\fileapifromapp.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\fileapi.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\debugapi.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\utilapiset.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\handleapi.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\errhandlingapi.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\fibersapi.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\namedpipeapi.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\profileapi.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\heapapi.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\ioapiset.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\synchapi.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\interlockedapi.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\processthreadsapi.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\sysinfoapi.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\memoryapi.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\enclaveapi.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\threadpoollegacyapiset.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\threadpoolapiset.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\jobapi.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\jobapi2.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\wow64apiset.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\libloaderapi.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\securitybaseapi.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\namespaceapi.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\systemtopologyapi.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\processtopologyapi.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\securityappcontainer.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\realtimeapiset.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\winerror.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\timezoneapi.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\wingdi.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack1.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack2.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack2.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack4.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack4.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\winuser.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack2.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\tvout.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\winnls.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\datetimeapi.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\stringapiset.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\winnls.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\wincon.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\wincontypes.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\consoleapi.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\consoleapi2.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\consoleapi3.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\winver.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\verrsrc.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\winreg.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\reason.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\winnetwk.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\wnnc.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\cderr.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\dde.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\ddeml.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\dlgs.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\lzexpand.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\mmsystem.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\mmsyscom.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack1.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack1.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\mciapi.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\mmsyscom.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\mmiscapi.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\mmsyscom.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\mmiscapi2.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\mmsyscom.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\playsoundapi.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\mmsyscom.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\mmeapi.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\mmsyscom.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\timeapi.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\mmsyscom.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\joystickapi.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\mmsyscom.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\nb30.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\rpc.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack8.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\rpcdce.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\rpcdcep.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\rpcnsi.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\rpcnterr.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\rpcasync.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack8.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\shellapi.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\winperf.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack8.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\winsock.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\inaddr.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\wincrypt.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\bcrypt.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\ncrypt.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\dpapi.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\winefs.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\winscard.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\wtypes.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\rpcndr.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack8.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\rpcnsip.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\rpcsal.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\wtypesbase.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\guiddef.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\winioctl.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack1.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack1.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack1.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack1.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack1.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack1.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack1.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\winsmcrd.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\winspool.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\prsht.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack8.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\ole2.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack8.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\objbase.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack8.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\combaseapi.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack8.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\unknwnbase.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\objidlbase.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\guiddef.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\cguid.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\coml2api.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\objidl.h
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\unknwn.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\propidlbase.h
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\oaidl.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\urlmon.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\oleidl.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\servprov.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\msxml.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\propidl.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\oleauto.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\pshpack8.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\poppack.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\commdlg.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\prsht.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\shared\stralign.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\winsvc.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\mcx.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\imm.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\um\ime_cmodes.h
+ninja: build stopped: subcommand failed.
+.\Tools\Build.cmd : C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tools\BuildWindows.ps1 : debug-build failed. 
+See C:\Users\g0190\O
+発生場所 行:1 文字:1
++ .\Tools\Build.cmd -Configuration Debug 2>&1 | Out-File -FilePath "Doc ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (C:\Users\g0190\...:\Users\g0190\O:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+neDrive\Desktop\frame\dxlib_framework\Build\WindowsValidation\debug-build.log
+    + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException
+    + FullyQualifiedErrorId : Microsoft.PowerShell.Commands.WriteErrorException,BuildWindows.ps1
+ 

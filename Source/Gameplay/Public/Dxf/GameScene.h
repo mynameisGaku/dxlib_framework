@@ -54,6 +54,16 @@ public:
 		return m_Objects.Size();
 	}
 
+protected:
+	/**
+	 * 所有するオブジェクト群へ固定時間更新を通知する。
+	 * @param Context 固定更新の実行環境。
+	 */
+	TResult<void> FixedTickChildren_Internal(const FFixedTickContext& Context)
+	{
+		return m_Objects.FixedTick_Internal(Context);
+	}
+
 private:
 	/**
 	 * 所有するオブジェクト群。

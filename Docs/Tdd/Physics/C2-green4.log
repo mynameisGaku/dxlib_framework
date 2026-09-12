@@ -1,0 +1,504 @@
+﻿dxf-includes.cpp
+繝｡繝｢: 繧､繝ｳ繧ｯ繝ｫ繝ｼ繝・繝輔ぃ繧､繝ｫ:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\WindowsValidation\IncludeProbe\dxf-includes.h
+
+
+
+
+-- Configuring done (0.5s)
+-- Generating done (0.1s)
+-- Build files have been written to: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/windows-debug
+[0/2] Re-checking globbed directories...
+[1/4] Copying sample assets
+[2/4] Building CXX object CMakeFiles\dxf_tests.dir\Tests\PhysicsSceneTests.cpp.obj
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Support/Test.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Function.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/UniquePtr.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Utility.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Compiler.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stddef.h
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\sal.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\concurrencysal.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vadefs.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\stdint.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\limits.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\float.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\math.h
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_math.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\new
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals_core.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xkeycheck.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\exception
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_doom_core.hpp
+メモ: インクルード ファイル:         C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\crtdbg.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new_debug.h
+メモ: インクルード ファイル:           C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\crtdefs.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\use_ansi.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdlib
+メモ: インクルード ファイル:         C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\math.h
+メモ: インクルード ファイル:         C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stdlib.h
+メモ: インクルード ファイル:          C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_malloc.h
+メモ: インクルード ファイル:          C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_search.h
+メモ: インクルード ファイル:          C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_wstdlib.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\type_traits
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstddef
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xtr1common
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdint
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\malloc.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_exception.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\eh.h
+メモ: インクルード ファイル:          C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_terminate.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\initializer_list
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/String.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Vector.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stdio.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_wstdio.h
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_stdio_config.h
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Support/FakeBackend.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/AssetBackend.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/Result.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Variant.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Optional.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderBackend.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderCommands.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/Texture.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/ResourceRegistry.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Algorithm.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/NativeHandle.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/SharedPtr.h
+メモ: インクルード ファイル:        C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Atomic.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\intrin.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\intrin0.inl.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\setjmp.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\immintrin.h
+メモ: インクルード ファイル:           C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\wmmintrin.h
+メモ: インクルード ファイル:            C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\nmmintrin.h
+メモ: インクルード ファイル:             C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\smmintrin.h
+メモ: インクルード ファイル:              C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\tmmintrin.h
+メモ: インクルード ファイル:               C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\pmmintrin.h
+メモ: インクルード ファイル:                C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\emmintrin.h
+メモ: インクルード ファイル:                 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xmmintrin.h
+メモ: インクルード ファイル:                  C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\mmintrin.h
+メモ: インクルード ファイル:           C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\zmmintrin.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\ammintrin.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/Font.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/MathTypes.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/Platform.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/Input.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputTypes.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Array.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputSource.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputSnapshot.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputStateTracker.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputSystem.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/InputMap.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Map.h
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/PhysicsScene2D.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/GameScene.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/Scene.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/LifecycleObject.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/Object.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/LifecycleGroup.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/Contexts.h
+メモ: インクルード ファイル:        C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/Clock.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/GameObjectCollection.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/GameObject.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/ComponentCollection.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/ManagedCollection.h
+メモ: インクルード ファイル:        C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/ManagedLifecycle.h
+メモ: インクルード ファイル:         C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/SlotMap.h
+メモ: インクルード ファイル:          C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/ObjectHandle.h
+メモ: インクルード ファイル:        C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/ManagedUpdater.h
+メモ: インクルード ファイル:        C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/ManagedDrawDispatcher.h
+メモ: インクルード ファイル:        C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public\Dxf/GuardValue.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/GameObjectComponent.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody2D.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/BodyType.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Contact2D.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Collision2D.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Vector2.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/SceneNavigator.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/SceneStorage.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public\Dxf/SceneLifecycle.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/AudioPlayer.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/Sound.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/FixedStepScheduler.h
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/PhysicsScene3D.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Contact3D.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/CollisionShapes.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Vector3.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Quaternion.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Matrix4.h
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(47): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(67): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/RigidBodyComponent2D.h
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/RigidBodyComponent3D.h
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/RigidBodyComponent3D.h(357): warning C4324: 'Dxf::DRigidBody3DComponent': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/RigidBodyComponent3D.h(393): warning C4324: 'Dxf::DRigidBody3DComponent': アラインメント指定子のために構造体がパッドされました
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/AssetService.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/TextureLoader.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/SoundLoader.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/FontLoader.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/ResourceCache.h
+[3/4] Linking CXX executable dxf_tests.exe
+Test project C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/windows-debug
+    Start 1: PhysicsContinuation
+1/4 Test #1: PhysicsContinuation ..............   Passed    0.14 sec
+    Start 2: NoStl
+2/4 Test #2: NoStl ............................   Passed    0.16 sec
+    Start 3: Framework
+3/4 Test #3: Framework ........................   Passed    0.72 sec
+    Start 4: NativeContract
+4/4 Test #4: NativeContract ...................   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 4
+
+Label Time Summary:
+contract         =   0.01 sec*proc (1 test)
+not-real-sdk     =   0.01 sec*proc (1 test)
+physics          =   0.14 sec*proc (1 test)
+portable         =   0.86 sec*proc (2 tests)
+source-policy    =   0.16 sec*proc (1 test)
+
+Total Test time (real) =   1.09 sec
+[PASS] Toolbox vector preserves values after a failed reserve
+[PASS] Toolbox vector supports self append and over-aligned values
+[PASS] Toolbox unique ownership transfers without double destruction
+[PASS] Toolbox shared and weak ownership expire exactly once
+[PASS] Toolbox shared conversion retains the original destructor
+[PASS] Toolbox optional and variant reject invalid access
+[PASS] Toolbox function copies captures independently
+[PASS] Toolbox strings retain embedded NUL and support self concatenation
+[PASS] Toolbox maps erase expired entries without losing live values
+[PASS] Toolbox stable sort preserves equal key order
+[PASS] Toolbox paths normalize without filesystem access
+[PASS] Toolbox atomic counter and monotonic time advance
+[PASS] Toolbox vector grows and self-appends values with deleted move constructors
+[PASS] Toolbox variant preserves duplicate alternative indices through copying and moving
+[PASS] Toolbox variant keeps TResult error payloads distinct from failure state
+[PASS] Toolbox void callbacks discard callable results and preserve captures
+[PASS] Toolbox optional reconstructs nonassignable copy-only and move-only values
+[PASS] Toolbox optional stays empty after failed reconstruction without leaking
+[PASS] SIMD vectors match scalar dot cross and arithmetic
+[PASS] SIMD matrix product matches the scalar reference
+[PASS] Matrix inverse reverses translation rotation and scale
+[PASS] Quaternion rotation agrees with matrix and inverse
+[PASS] Quaternion slerp uses the shortest rotation and handles opposite signs
+[PASS] Complex arithmetic supports both precisions and rejects zero division
+[PASS] All collision shape combinations overlap at origin and separate at distance
+[PASS] GJK boxes agree with direct AABB overlap
+[PASS] Rotated box sphere collisions match closest point distance
+[PASS] Mesh narrow phase preserves holes and handles triangle contacts
+[PASS] Mesh triangle tree prunes distant triangles automatically
+[PASS] Collision world automatically selects quadtree and rebuilds moved shapes
+[PASS] Octree pairs equal brute force after arbitrary insertions
+[PASS] Collision filtering and world identity reject unrelated registrations
+[PASS] Invalid collision shapes cannot enter the spatial tree
+[PASS] Complex SIMD batches match scalar products and allow exact in-place output
+[PASS] Vector and quaternion normalization preserve extreme finite scales
+[PASS] Matrix inversion pivots rows and rejects invalid tolerances without changing output
+[PASS] Spatial trees preserve contacts across partitions and after dimension changes
+[PASS] Sphere collisions avoid overflow when finite shapes exceed float distance range
+[PASS] Box sphere face contacts remain symmetric at every surface position
+[PASS] Box sphere closest distance respects gaps corners and finite large coordinates
+[PASS] Rotated box sphere contacts handle rounding allowed by axis validation
+[PASS] Result holds a move-only value
+[PASS] Result preserves error and void success
+[PASS] RTTI supports safe derived checks
+[PASS] SlotMap invalidates removed handles and increments generation
+[PASS] Handles do not resolve against a different owner
+[PASS] Handle outlives storage without dangling pointer
+[PASS] Typed handle rejects incorrect dynamic type
+[PASS] SlotMap snapshot permits removal without iterator invalidation
+[PASS] FrameClock clamps simulation delta but retains real delta
+[PASS] FrameClock rejects negative and nonfinite elapsed inputs
+[PASS] SceneClock pause and scale preserve unscaled time
+[PASS] Input edges are stable during a frame
+[PASS] Focus loss releases keys and mouse buttons
+[PASS] Gamepad disconnection emits release and clears axes
+[PASS] InputMap action is held until all bound keys release
+[PASS] Result can carry an error object as successful data without confusing the failure branch
+[PASS] Texture cache shares normalized paths
+[PASS] Texture load options participate in cache identity
+[PASS] Texture is freed once when last reference expires
+[PASS] Asset shutdown invalidates externally retained references
+[PASS] Failed load is not cached and can be retried
+[PASS] Invalid successful native handle is rejected
+[PASS] Loading after asset shutdown is rejected
+[PASS] Invalid render target dimensions fail before backend call
+[PASS] Font cache separates sizes and invalidates references
+[PASS] Render queue sorts layer and order while preserving equal-key insertion
+[PASS] Sprite opacity does not leak to following commands
+[PASS] Render commands keep textures alive until execution
+[PASS] Native barrier restores state after exception but discards the failed frame
+[PASS] Drawing render target into itself is rejected
+[PASS] Invalidated texture fails submission and never reaches backend
+[PASS] Invalidation between queue and flush is detected
+[PASS] Nonfinite sprite values are rejected
+[PASS] Render flush prevents reentrant native calls
+[PASS] Each memory sound playback owns a distinct native handle
+[PASS] Stream playback reloads instead of duplicating unsupported sound data
+[PASS] Failed playback frees the newly created voice
+[PASS] Audio scopes stop scene sound without stopping persistent music
+[PASS] Finished voices are reclaimed by Tick
+[PASS] Audio player rejects another player's handle and invalid volume
+[PASS] Session ends exactly once on success and does not end an uninitialized backend
+[PASS] Native state restoration failure aborts the frame
+[PASS] Native handle adoption is allocation-free, noexcept and releases once across moves
+[PASS] Scene-facing render context exposes ordered target and native barriers without Application access
+[PASS] Queue-only render contexts reject unsupported immediate control explicitly
+[PASS] Spawn remains pending until boundary and initializes exactly once
+[PASS] GameObject override cannot bypass automatic component dispatch
+[PASS] Spawn during tick is initialized only at the next boundary
+[PASS] Destroying a later sibling suppresses its remaining callbacks immediately
+[PASS] Self destruction in tick skips owned components and later draw
+[PASS] Destroy before initialization never calls user initialization or shutdown hooks
+[PASS] Initialization failure rolls back the object and invalidates the handle
+[PASS] Component initialization failure rolls back its parent transaction
+[PASS] Shutdown is idempotent and stops components before their owner
+[PASS] Mutations submitted from shutdown wait for the next boundary
+[PASS] Children added to an existing object during another initializer wait for a new boundary
+[PASS] Update ordering is deterministic after slot reuse
+[PASS] Pause skips normal objects but honors tick-when-paused components
+[PASS] Scene override cannot bypass object dispatch
+[PASS] Scene switch preserves the active scene until commit
+[PASS] Failed scene preparation leaves current scene active
+[PASS] A request made inside OnEnter survives for the next scene boundary
+[PASS] Multiple pending scene requests use last-request-wins without initializing discarded scenes
+[PASS] Handles from a destroyed scene cannot resolve into the next scene
+[PASS] GameObject initialization exception is converted into an error and cleaned up
+[PASS] Application frame polls input once, dispatches and presents
+[PASS] Application rolls back failed platform initialization without double shutdown
+[PASS] Application rolls back failed initial scene and ends session
+[PASS] Application retains current scene after a later failed transition
+[PASS] Application defers shutdown until the user callback has returned
+[PASS] Application rejects recursive Step without ending the outer frame
+[PASS] Application converts user tick exceptions and releases all services
+[PASS] Application stops cleanly when event pumping reports quit
+[PASS] Application rejects backwards frame time before executing another frame
+[PASS] Application invalidates surviving asset references before ending DxLib
+[PASS] AppRunner executes until a scene requests quit
+[PASS] Application shutdown requested during draw waits for the draw callback and cancels presentation
+[PASS] Scene navigator rejects a commit inside a scene draw callback
+[PASS] Scene navigator shutdown from tick does not destroy the callback receiver until return
+[PASS] Application stops scene before game instance and platform last
+[PASS] Sandbox uses actual scene object and component code to move and draw
+[PASS] Sandbox switches scene while game state survives and old handles expire
+[PASS] Sandbox audio is scene scoped and Escape shuts down the application
+[PASS] Sandbox propagates missing assets instead of entering a half-constructed scene
+[PASS] FixedTick dispatches to object before components
+[PASS] FixedTick exception becomes failure result
+[PASS] FixedTick respects pause unless allowed
+[PASS] FixedTick skips destroy requested objects
+[PASS] FixedTick rejects reentrant dispatch
+[PASS] Physics scene runs scheduled fixed steps per frame
+[PASS] Physics scene exposes press edges on first step only
+[PASS] Physics scene keeps presses across zero step frames
+[PASS] Physics scene drops a ball onto the floor
+[PASS] Physics scene uploads kinematic velocity to the world
+[PASS] Physics scene teleport resets interpolation immediately
+[PASS] Physics scene survives destroy requested in fixed tick
+[PASS] Slot removal invalidates generation before running a reentrant destructor
+[PASS] Collection shutdown in Tick prevents later objects from ticking
+[PASS] Collection shutdown during preparation skips remaining initializations
+[PASS] Standalone object Tick translates user exceptions to TResult
+[PASS] Standalone object Draw translates unknown user exceptions to TResult
+[PASS] Navigator shutdown during preparation never activates the replacement
+[PASS] Navigator quit during preparation retains current scene until shutdown
+[PASS] Asset paths reject embedded NUL before reaching a backend
+[PASS] Asset paths reject overlong UTF8 surrogate and truncated sequences
+[PASS] Asset paths accept valid Japanese and four byte UTF8
+[PASS] Direct loaders reject empty paths and invalid sound storage enums
+[PASS] Font families reject embedded NUL and malformed UTF8
+[PASS] Sound resources from another backend are rejected before duplication
+[PASS] Render execution failure prevents presenting a partial frame
+[PASS] Resource registry rejects null records
+[PASS] A scene destroyed during preparation is never activated
+[PASS] Text rendering rejects malformed UTF8 and embedded NUL before dispatch
+[PASS] A collection stopped by an object constructor must reject that spawn
+[PASS] Invalid sound storage must not alias an existing streamed cache entry
+[PASS] native callback failure poisons the entire frame even when ignored
+[PASS] native callback exception rejects further commands and cannot be presented
+[PASS] failed clear cannot present a partially cleared frame
+[PASS] begin frame contains backend exceptions at each startup stage and is reusable
+[PASS] clear target contains backend exceptions and retains the first failure
+[PASS] present exception closes the failed frame so the next frame can begin
+[PASS] render target backend exception is contained and rollback keeps the frame usable
+[PASS] native state restoration exception is contained and blocks presentation
+[PASS] scene factory exceptions become results without replacing the current scene
+[PASS] stopped scene navigator rejects a factory before invoking its constructor
+[PASS] destroy requested pending scene is rejected at request time
+[PASS] pending scene destructor cannot commit a transition reentrantly
+[PASS] pending scene destructor cannot overwrite the replacement request
+[PASS] shutdown from pending scene destructor rejects the interrupted replacement
+[PASS] quit before commit never initializes the queued scene
+[PASS] quit from scene update suppresses its child object updates
+[PASS] quit from one object update suppresses later siblings in the same scene
+[PASS] shutdown from scene drawing suppresses child drawing and deinitializes once
+[PASS] quit while preparing an object cancels the remaining scene initialization
+[PASS] resource shutdown reentry releases each registered resource only once
+[PASS] resource cleanup callbacks cannot invalidate the registry shutdown traversal
+[PASS] shutdown during sound start rejects the voice and frees its allocation
+[PASS] sound start exception is contained and the partial voice is freed
+[PASS] sound poll exception is contained and the affected voice is stopped
+[PASS] audio shutdown during polling invalidates the rest of the snapshot safely
+[PASS] Actions combine keyboard mouse and gamepad without duplicate press edges
+[PASS] Invalid action bindings are rejected without creating actions
+[PASS] Input actions support rebinding and opposed digital axes
+[PASS] Typed component lookup returns pending handles and excludes destruction requests
+[PASS] Scene object queries remain non-owning across scene shutdown
+[PASS] Built-in sprite component draws through automatic child dispatch
+[PASS] Unconfigured sprite component is inert instead of issuing an invalid draw
+[PASS] Slot generations survive 20000 deterministic create remove and reuse operations
+[PASS] Assets survive 1000 load release cache-collection cycles without live handles
+[PASS] UTF8 validation accepts every Unicode scalar and rejects every encoded surrogate
+[PASS] Starter runs an empty scene without assets and exits when its window closes
+192/192 passed
+[PASS] Native platform selects UTF8 and rejects a second active session
+[PASS] Native failed DxLib initialization releases the session lease and partial state
+[PASS] Native texture load forwards UTF8 paths and cleans up a failed size query
+[PASS] Native input maps keys, mouse and normalized pad axes without keyboard emulation
+[PASS] Native input failure propagates and disconnected devices remain neutral
+[PASS] Native sound loader selects independent memory and stream storage explicitly
+[PASS] Native render applies per-command color and opacity without leaking sprite tint into text
+[PASS] Native sprite geometry supports pivot scale and both flip directions
+[PASS] Native backend errors abort presentation and preserve explicit target state
+[PASS] Native clear does not silently claim arbitrary alpha clear support
+[PASS] Native convenience Run owns the session and exits on a scene quit request
+[PASS] Native platform rejects embedded NUL or malformed UTF8 window titles
+[PASS] Native smoke exercises asset loading render targets input audio and ordered teardown
+[PASS] Native smoke reports a missing asset directory without starting DxLib
+[PASS] Native API preserves framework member names after Windows macros
+15/15 passed
+-- Install configuration: "Debug"
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/lib/dxf_toolboxd.lib
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/lib/dxf_supportd.lib
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/lib/dxf_runtimed.lib
+-- Installing: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/lib/dxf_physicsd.lib
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/lib/dxf_native_backendsd.lib
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Toolbox
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Toolbox/Algorithm.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Toolbox/Array.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Toolbox/Atomic.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Toolbox/Collision2D.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Toolbox/CollisionShapes.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Toolbox/CollisionWorld.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Toolbox/Compiler.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Toolbox/Complex.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Toolbox/Contact2D.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Toolbox/Contact3D.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Toolbox/ContinuousCollision.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Toolbox/FixedStepScheduler.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Toolbox/Function.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Toolbox/Map.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Toolbox/Matrix4.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Toolbox/Optional.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Toolbox/Platform.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Toolbox/Quaternion.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Toolbox/SharedPtr.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Toolbox/String.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Toolbox/SweepHit.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Toolbox/UniquePtr.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Toolbox/Utility.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Toolbox/Variant.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Toolbox/Vector.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Toolbox/Vector2.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Toolbox/Vector3.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/Clock.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/GuardValue.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/MathTypes.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/Object.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/ObjectHandle.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/Result.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/SlotMap.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/Utf8.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/AssetBackend.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/AssetService.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/AudioPlayer.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/BackendServices.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/DxLibSession.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/Font.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/FontLoader.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/FramePresenter.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/Input.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/InputMap.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/InputSnapshot.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/InputSource.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/InputStateTracker.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/InputSystem.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/InputTypes.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/NativeHandle.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/Platform.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/RenderBackend.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/RenderCommands.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/RenderContext.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/RenderControl.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/RenderQueue2D.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/RenderSystem2D.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/ResourceCache.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/ResourceRegistry.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/Sound.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/SoundLoader.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/Texture.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/TextureLoader.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/Application.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/AppRunner.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/Contexts.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/GameInstance.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/LifecycleGroup.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/LifecycleObject.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/ManagedCollection.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/ManagedDrawDispatcher.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/ManagedLifecycle.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/ManagedUpdater.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/Scene.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/SceneLifecycle.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/SceneNavigator.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/SceneStorage.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/ComponentCollection.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/GameObject.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/GameObjectCollection.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/GameObjectComponent.h
+-- Installing: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/GameScene.h
+-- Installing: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/PhysicsScene2D.h
+-- Installing: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/PhysicsScene3D.h
+-- Installing: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/RigidBodyComponent2D.h
+-- Installing: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/RigidBodyComponent3D.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/SpriteRendererComponent.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/BodyType.h
+-- Installing: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/RigidBody2D.h
+-- Installing: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/RigidBody3D.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/DxLibFontBackend.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/DxLibInputSource.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/DxLibPlatform.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/DxLibRenderBackend.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/DxLibSoundBackend.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/DxLibTextureBackend.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/NativeBackends.h
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/include/Dxf/NativeRun.h
+-- Old export file "C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/lib/cmake/dxlib_framework/dxlib_frameworkTargets.cmake" will be replaced.  Removing files [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/lib/cmake/dxlib_framework/dxlib_frameworkTargets-debug.cmake].
+-- Installing: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/lib/cmake/dxlib_framework/dxlib_frameworkTargets.cmake
+-- Installing: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/lib/cmake/dxlib_framework/dxlib_frameworkTargets-debug.cmake
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/lib/cmake/dxlib_framework/dxlib_frameworkConfig.cmake
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/lib/cmake/dxlib_framework/dxlib_frameworkConfigVersion.cmake
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/lib/cmake/dxlib_framework/FindDxLib.cmake
+-- Up-to-date: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Install/share/dxlib_framework/README.md
+Validation succeeded. Logs: C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\WindowsValidation
+API smoke does not inspect pixels, audible output, or physical key/gamepad operation.

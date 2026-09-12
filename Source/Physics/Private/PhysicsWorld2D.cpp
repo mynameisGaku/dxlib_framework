@@ -394,6 +394,11 @@ struct FPhysicsWorld2D::FImpl
 	// IDが有効な登録を指す場合だけコライダーを返す。
 	FColliderRecord2D* FindCollider_Internal(FColliderId2D Id) noexcept
 	{
+		return const_cast<FColliderRecord2D*>(static_cast<const FImpl*>(this)->FindCollider_Internal(Id));
+	}
+	// IDが有効な登録を指す場合だけコライダーを返す。
+	const FColliderRecord2D* FindCollider_Internal(FColliderId2D Id) const noexcept
+	{
 		if (Id.Body.World != World)
 		{
 			return nullptr;
@@ -403,7 +408,7 @@ struct FPhysicsWorld2D::FImpl
 			return nullptr;
 		}
 		// 世代と取り付け先が一致する有効な登録。
-		FColliderRecord2D& Record = Colliders[Id.Index];
+		const FColliderRecord2D& Record = Colliders[Id.Index];
 		const bool bMatches = Record.bAlive && Record.Generation == Id.Generation && Record.Body == Id.Body;
 		return bMatches ? &Record : nullptr;
 	}
@@ -1220,6 +1225,24 @@ void FPhysicsWorld2D::SetContactSettings(const FContactSettings2D& Settings)
 FContactSettings2D FPhysicsWorld2D::GetContactSettings() const noexcept
 {
 	return m_pImpl->Contact;
+}
+void FPhysicsWorld2D::SetBodyTransform(FBodyId2D Id, Toolbox::FVector2 Position, Toolbox::f32 Angle)
+{
+	if (!Position.IsValid() || !Toolbox::IsFinite(Angle))
+	{
+		throw Toolbox::FException("Invalid 2D body transform");
+	}
+	FBodyRecord2D& Record = m_pImpl->Resolve_Internal(Id);
+	Record.Position = Position;
+	Record.Angle = Angle;
+}
+void FPhysicsWorld2D::ClearContactCache() noexcept
+{
+	m_pImpl->Cache.Clear();
+}
+bool FPhysicsWorld2D::IsColliderAlive(FColliderId2D Id) const noexcept
+{
+	return m_pImpl->FindCollider_Internal(Id) != nullptr;
 }
 void FPhysicsWorld2D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 {

@@ -68,14 +68,42 @@ green4は単一刻み陽解法に対するテスト許容の理論不整合（�
 バッチ2はバッチ1のGreenが先行実装したため解析解ベースの回帰として記録し、
 段階B以降は厳密なRed先行へ戻す。
 
-## 次に着手する失敗テスト（段階B）
+## 実装済み（段階C: Scene／GameObject接続）
 
-- 2D円と静的箱、3D球と静的箱の接触点・単位法線・分離距離／貫通深度・Feature ID
-- 法線B→A、深度の正負統一、A/B交換での対応
-- Sequential Impulseの最小応答（床静止、滑走、反発、質量差、初期貫通、移動床）
+- `FFixedTickContext`（入力・時刻・未配達複写・補間割合・物理ワールド・遷移管理）
+- `OnFixedTick` と `FixedTick_Internal` を DLifecycleObject、ILifecycleGroup、
+  TManagedCollection、TManagedUpdaterへ追加。既存の OnTick 契約は維持
+- `DPhysicsScene2D`／`DPhysicsScene3D`（Gameplay層、OnTick は final で固定更新を駆動）
+- `DRigidBody2DComponent`／`DRigidBody3DComponent`（遅延生成、外力予約、補間描画、Teleport）
+- `DCollider2DComponent`／`DCollider3DComponent`（兄弟剛体への遅延接続）
+- ワールドへ `SetBodyTransform`、`ClearContactCache`、`IsColliderAlive` を追加
+- テスト `Tests/FixedTickTests.cpp`（5ケース）、`Tests/PhysicsSceneTests.cpp`（9ケース）
+
+確定した動作: 固定更新の呼び出し元はシーンだけ。配布→物理更新の順序。
+オブジェクトの生成・破棄の確定は描画フレーム境界、物理の力・姿勢変更は
+固定更新境界で適用する。Dynamicは物理が正、Kinematicはゲーム速度指示が正。
+描画は前回・今回の物理姿勢と補間割合から求め、書き戻さない。
+エッジは最初の更新と未配達複写だけで有効（最大8件保持）。可変Snapshotは不変。
+一時停止中は固定更新を進めず、終了要求後は残り更新を打ち切る。
+
+## 検証結果（自環境、Windows/MSVC Debug、段階C完了時）
+
+- CTest 4/4、dxf_tests.exe 194/194
+- physicsは10/10・16/16・11/11・20/20・11/11・18/18
+- `python Tools/CheckNoStl.py` は169ファイル、違反0
+
+TDD記録は `Docs/Tdd/Physics/C1-*.log`、`C2-*.log`。C1後に増分ビルドで
+SegFaultが出たが、クリーンビルドで解消した。vtable配置を変える
+Runtime層ヘッダー変更の後は `-Clean` で再検証する。
+
+## 次に着手する失敗テスト（段階D）
+
+- 高速円／球と薄い壁のすり抜け防止、両者移動の衝突、一固定更新中の複数接触
+- 静止接触からの離脱、端・角をかすめる非衝突、反復上限と残り時間の診断
 
 ## 残課題
 
-- 接触多様体、摩擦、Sleep、CCD接続、Scene連携、Joint、Mesh動的対応は未実装
+- 接触イベント（Begin／Stay／End）とTrigger、Sleep／Island、CCD接続は未実装
+- 3D箱同士の接触多様体、Joint、Mesh動的対応は未実装
 - Linux sanitizer、Release、実DxLib SDKでの検証は未実行
 - 性能測定は未実施

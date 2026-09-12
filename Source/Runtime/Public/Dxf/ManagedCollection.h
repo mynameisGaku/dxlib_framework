@@ -163,6 +163,30 @@ public:
 		return Result;
 	}
 	/**
+	 * 更新対象へ固定時間更新を通知する。
+	 * @param Context 処理に必要な実行環境。
+	 */
+	TResult<void> FixedTick_Internal(const FFixedTickContext& Context) override
+	{
+		if (m_bBusy)
+		{
+			return BusyError_Internal();
+		}
+		if (!m_bAccepting)
+		{
+			return {};
+		}
+		// 処理結果。
+		TResult<void> Result;
+		{
+			// 処理終了時に状態を戻すガード。
+			TGuardValue Guard(m_bBusy, true);
+			Result = m_Updater.FixedTick_Internal(Context);
+		}
+		FinishDispatch_Internal();
+		return Result;
+	}
+	/**
 	 * 対象の描画を要求する。
 	 * @param Context 処理に必要な実行環境。
 	 */

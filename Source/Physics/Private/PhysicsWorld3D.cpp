@@ -265,6 +265,11 @@ struct FPhysicsWorld3D::FImpl
 	// IDが有効な登録を指す場合だけコライダーを返す。
 	FColliderRecord3D* FindCollider_Internal(FColliderId3D Id) noexcept
 	{
+		return const_cast<FColliderRecord3D*>(static_cast<const FImpl*>(this)->FindCollider_Internal(Id));
+	}
+	// IDが有効な登録を指す場合だけコライダーを返す。
+	const FColliderRecord3D* FindCollider_Internal(FColliderId3D Id) const noexcept
+	{
 		if (Id.Body.World != World)
 		{
 			return nullptr;
@@ -274,7 +279,7 @@ struct FPhysicsWorld3D::FImpl
 			return nullptr;
 		}
 		// 世代と取り付け先が一致する有効な登録。
-		FColliderRecord3D& Record = Colliders[Id.Index];
+		const FColliderRecord3D& Record = Colliders[Id.Index];
 		const bool bMatches = Record.bAlive && Record.Generation == Id.Generation && Record.Body == Id.Body;
 		return bMatches ? &Record : nullptr;
 	}
@@ -1223,6 +1228,33 @@ void FPhysicsWorld3D::SetContactSettings(const FContactSettings3D& Settings)
 FContactSettings3D FPhysicsWorld3D::GetContactSettings() const noexcept
 {
 	return m_pImpl->Contact;
+}
+void FPhysicsWorld3D::SetBodyTransform(FBodyId3D Id, Toolbox::FVector3 Position, Toolbox::FQuaternion Orientation)
+{
+	if (!Position.IsValid())
+	{
+		throw Toolbox::FException("Invalid 3D body transform");
+	}
+	Toolbox::FQuaternion Normalized;
+	try
+	{
+		Normalized = Orientation.Normalized();
+	}
+	catch (const Toolbox::FException&)
+	{
+		throw Toolbox::FException("Invalid 3D body transform");
+	}
+	FBodyRecord3D& Record = m_pImpl->Resolve_Internal(Id);
+	Record.Position = Position;
+	Record.Orientation = Normalized;
+}
+void FPhysicsWorld3D::ClearContactCache() noexcept
+{
+	m_pImpl->Cache.Clear();
+}
+bool FPhysicsWorld3D::IsColliderAlive(FColliderId3D Id) const noexcept
+{
+	return m_pImpl->FindCollider_Internal(Id) != nullptr;
 }
 void FPhysicsWorld3D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 {

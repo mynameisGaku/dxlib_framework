@@ -139,7 +139,7 @@ dxf_warnings(dxf_runtime)
 add_library(dxf_gameplay INTERFACE)
 add_library(dxf::gameplay ALIAS dxf_gameplay)
 set_target_properties(dxf_gameplay PROPERTIES EXPORT_NAME gameplay)
-target_link_libraries(dxf_gameplay INTERFACE dxf::runtime)
+target_link_libraries(dxf_gameplay INTERFACE dxf::runtime dxf::physics)
 dxf_public_headers(dxf_gameplay Gameplay INTERFACE)
 
 add_library(dxf_physics STATIC
@@ -176,7 +176,7 @@ if(DXF_BUILD_TESTS)
         set_tests_properties(NoStl PROPERTIES LABELS "source-policy" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
     endif()
     add_executable(dxf_tests Tests/TestMain.cpp Tests/ToolboxTests.cpp Tests/MathCollisionTests.cpp Tests/FoundationTests.cpp Tests/SupportTests.cpp
-        Tests/GameplayTests.cpp Tests/ApplicationTests.cpp Tests/SandboxTests.cpp
+        Tests/GameplayTests.cpp Tests/ApplicationTests.cpp Tests/SandboxTests.cpp Tests/FixedTickTests.cpp Tests/PhysicsSceneTests.cpp
         Tests/HardeningTests.cpp Tests/RenderFailureTests.cpp Tests/SceneContinuationTests.cpp Tests/ResourceShutdownTests.cpp Tests/UsabilityTests.cpp Tests/StressTests.cpp Tests/StarterTests.cpp Examples/Starter/Source/BootScene.cpp Examples/Sandbox/SandboxGame.cpp)
     target_link_libraries(dxf_tests PRIVATE dxf::framework)
     target_include_directories(dxf_tests PRIVATE Tests Examples/Sandbox Examples/Starter/Source)
