@@ -1,0 +1,40 @@
+name: Framework verification
+'on':
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  portable:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: python3 Tools/Validate.py --with-sanitizers
+      - run: python3 Tools/ValidatePackage.py
+      - run: python3 -m unittest discover -s Tools/Tests -v
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: portable-validation
+          path: Docs/Validation
+  windows-sdk:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Build and link Debug and Release against the official SDK
+        shell: powershell
+        run: ./Tools/BuildWindows.ps1 -DownloadSdk -AllConfigurations
+      # Hosted runners do not stand in for an interactive desktop or physical devices.
+      # Run Validate.cmd locally for the opt-in real-device API smoke test.
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: windows-sdk-validation
+          path: Build/WindowsValidation
