@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.24)
 project(dxlib_framework VERSION 0.2.0 LANGUAGES CXX)
 
+if(POLICY CMP0144)
+    cmake_policy(SET CMP0144 NEW)
+endif()
+
 option(DXF_BUILD_TESTS "Build portable and native-contract regression tests" ${PROJECT_IS_TOP_LEVEL})
 option(DXF_BUILD_NATIVE "Build the Windows/MSVC DxLib adapter" OFF)
 option(DXF_BUILD_NATIVE_SMOKE "Build the self-terminating real-SDK smoke executable" ${DXF_BUILD_NATIVE})
@@ -112,7 +116,7 @@ if(DXF_BUILD_TESTS)
     add_test(NAME Framework COMMAND dxf_tests)
     set_tests_properties(Framework PROPERTIES TIMEOUT 60 LABELS "portable")
 
-    add_executable(dxf_native_contract_tests Tests/TestMain.cpp Tests/NativeTests.cpp Tests/NativeSmoke/Smoke.cpp ${DXF_NATIVE_SOURCES})
+    add_executable(dxf_native_contract_tests Tests/TestMain.cpp Tests/NativeTests.cpp Tests/NativeMacroTests.cpp Tests/NativeSmoke/Smoke.cpp ${DXF_NATIVE_SOURCES})
     target_link_libraries(dxf_native_contract_tests PRIVATE dxf::framework)
     target_include_directories(dxf_native_contract_tests PRIVATE Tests Tests/FakeDxLib Source/Native/Public)
     target_compile_definitions(dxf_native_contract_tests PRIVATE DXF_TEST_ASSET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/Assets")

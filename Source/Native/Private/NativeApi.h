@@ -4,6 +4,13 @@
 #define DX_NON_USING_NAMESPACE_DXLIB
 #endif
 #include "DxLib.h"
+// Windowsの文字種選択マクロが、この接続部の同名メンバー関数を書き換えるのを防ぐ。
+#ifdef CreateFont
+#undef CreateFont
+#endif
+#ifdef DrawText
+#undef DrawText
+#endif
 #include "Dxf/Result.h"
 namespace Dxf::Detail
 {
