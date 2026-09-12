@@ -19,6 +19,7 @@
 | install → 空白を含む別ディレクトリへ移動 → find_package | コンパイル・リンク・実行成功 |
 | インストールしたSupport層のみの利用 | Runtime・Gameplayなしでリンク・実行成功 |
 | 配布スクリプト | **6 / 6 テスト通過** |
+| 配布候補ZIPを展開し直したソース | 全ファイルのSHA-256照合・新規ビルド・全127ケース通過 |
 | CIのYAML／PowerShellファイル | YAML読み込み・静的検査のみ。PowerShell実行ではない |
 | 実DxLib SDK / Windows / MSVC | **未検証** |
 | 実画面・音声・入力機器／GitHub Actions実行 | **未検証・未実行** |
@@ -45,6 +46,8 @@ UTF-8検査ではU+0000～U+10FFFFの**1,114,112コードポイント値**を走
 
 [インストール・移動後の検査](Validation/Package/Summary.json) ／ [Support層のみの実行](Validation/Package/support-only-run.log)
 
+[配布候補の展開・再ビルド](Validation/ReleaseArchive/Summary.json) ／ [そのCTest結果](Validation/ReleaseArchive/ctest.log)
+
 [配布ツールの6テスト](Validation/python-tools.log) ／ [CI・スクリプトの静的検査](Validation/workflow-static.log)
 
 各検証コマンドと終了コードをログへ保存しています。テストの実行成功は、未実行の条件・デバイス・すべての経路で不具合がないことの証明ではありません。カバレッジ100%とは主張していません。
@@ -56,3 +59,5 @@ UTF-8検査ではU+0000～U+10FFFFの**1,114,112コードポイント値**を走
 [WindowsValidation.md](WindowsValidation.md)に実行入口と合否の記録方式を用意しています。**手順を同梱したことと、実機確認を済ませたことは別です。**
 
 追加開発のRed／Greenと回帰検査は[Testing.md](Testing.md)および `Tdd/Completion/` に記録しています。
+
+配布候補の再ビルド後は検証文書とログのみ追加し、最終ZIPと検査済み候補ZIPのSource・Tests・Examples・CMake・Tools・Assetsおよびビルド設定が同一であることを配布時に照合しています。ZIP全体のハッシュはログ追加により異なります。
