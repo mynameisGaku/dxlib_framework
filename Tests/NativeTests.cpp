@@ -1,4 +1,5 @@
 #include "Support/Test.h"
+#include "NativeSmoke/Smoke.h"
 #include "Dxf/NativeBackends.h"
 #include "Dxf/NativeRun.h"
 #include "Dxf/AssetService.h"
@@ -166,4 +167,22 @@ TEST("Native platform rejects embedded NUL or malformed UTF8 window titles")
 	REQUIRE(!Platform.Initialize(Settings));
 	Settings.Title = "日本語のウィンドウ";
 	REQUIRE(Platform.Initialize(Settings));
+}
+
+TEST("Native smoke exercises asset loading render targets input audio and ordered teardown")
+{
+	DxLib::Trace = {};
+	auto Report = Dxf::Testing::RunNativeSmoke(DXF_TEST_ASSET_DIR, true);
+	REQUIRE(Report);
+	REQUIRE(Report.Value().Frames == 12);
+	REQUIRE(Report.Value().bJapanesePathTested && Report.Value().bAudioTested);
+	REQUIRE(Report.Value().bResourcesInvalidated);
+	REQUIRE(DxLib::Trace.Ends == 1 && DxLib::Trace.Presentations == 12);
+}
+
+TEST("Native smoke reports a missing asset directory without starting DxLib")
+{
+	DxLib::Trace = {};
+	REQUIRE(!Dxf::Testing::RunNativeSmoke("no-such-dxf-smoke-assets", false));
+	REQUIRE(DxLib::Trace.Ends == 0);
 }
