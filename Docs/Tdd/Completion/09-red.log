@@ -1,0 +1,25 @@
+test_release (unittest.loader._FailedTest.test_release) ... ERROR
+
+======================================================================
+ERROR: test_release (unittest.loader._FailedTest.test_release)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_release
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/unittest/loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+  File "/usr/lib/python3.13/unittest/loader.py", line 339, in _get_module_from_name
+    __import__(name)
+    ~~~~~~~~~~^^^^^^
+  File "/mnt/data/work/dxlib_framework/Tools/Tests/test_release.py", line 13, in <module>
+    spec.loader.exec_module(release)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "<frozen importlib._bootstrap_external>", line 1022, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 1159, in get_code
+  File "<frozen importlib._bootstrap_external>", line 1217, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: '/mnt/data/work/dxlib_framework/Tools/PackageRelease.py'
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+FAILED (errors=1)
