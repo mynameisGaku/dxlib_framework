@@ -19,7 +19,7 @@ public:
 	 * @param Value 処理または保持する値。
 	 */
 	TOptional(const T& Value)
-	    requires(__is_constructible(T, const T&))
+	    requires(IsConstructible<T, const T&>)
 	{
 		Emplace(Value);
 	}
@@ -28,7 +28,7 @@ public:
 	 * @param Value 処理または保持する値。
 	 */
 	TOptional(T&& Value)
-	    requires(__is_constructible(T, T &&))
+	    requires(IsConstructible<T, T &&>)
 	{
 		Emplace(Move(Value));
 	}
@@ -37,8 +37,7 @@ public:
 	 * @param Other コピー・移動・比較の相手となる値。
 	 */
 	TOptional(const TOptional& Other)
-	    requires __is_constructible
-	(T, const T&)
+	    requires(IsConstructible<T, const T&>)
 	{
 		if (Other)
 		{
@@ -50,7 +49,7 @@ public:
 	 * @param Other コピー・移動・比較の相手となる値。
 	 */
 	TOptional(TOptional&& Other) noexcept(__is_nothrow_constructible(T, T&&))
-	    requires(__is_constructible(T, T &&))
+	    requires(IsConstructible<T, T &&>)
 	{
 		if (Other)
 		{
@@ -68,8 +67,7 @@ public:
 	 * 以前の値を後始末し、新しい値または所有権を受け取る。
 	 */
 	TOptional& operator=(const TOptional& Other)
-	    requires __is_constructible
-	(T, const T&)
+	    requires(IsConstructible<T, const T&>)
 	{
 		if (this != &Other)
 		{
@@ -89,7 +87,7 @@ public:
 	 */
 	TOptional& operator=(TOptional&& Other) noexcept(__is_nothrow_constructible(T, T&&) &&
 	                                                 (!__is_assignable(T&, T&&) || __is_nothrow_assignable(T&, T&&)))
-	    requires(__is_constructible(T, T &&))
+	    requires(IsConstructible<T, T &&>)
 	{
 		if (this != &Other)
 		{
@@ -108,7 +106,7 @@ public:
 	 * 以前の値を後始末し、新しい値または所有権を受け取る。
 	 */
 	TOptional& operator=(const T& Value)
-	    requires(__is_constructible(T, const T&))
+	    requires(IsConstructible<T, const T&>)
 	{
 		Assign_Internal(Value);
 		return *this;
@@ -117,7 +115,7 @@ public:
 	 * 以前の値を後始末し、新しい値または所有権を受け取る。
 	 */
 	TOptional& operator=(T&& Value)
-	    requires(__is_constructible(T, T &&))
+	    requires(IsConstructible<T, T &&>)
 	{
 		Assign_Internal(Move(Value));
 		return *this;

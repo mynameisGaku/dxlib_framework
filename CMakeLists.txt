@@ -75,6 +75,9 @@ add_library(dxf_toolbox STATIC
     Source/Toolbox/Private/Quaternion.cpp
     Source/Toolbox/Private/Complex.cpp
     Source/Toolbox/Private/CollisionShapes.cpp
+    Source/Toolbox/Private/Collision2D.cpp
+    Source/Toolbox/Private/ContinuousCollision.cpp
+    Source/Toolbox/Private/FixedStepScheduler.cpp
     Source/Toolbox/Private/Mesh.cpp
     Source/Toolbox/Private/CollisionWorld.cpp)
 add_library(dxf::toolbox ALIAS dxf_toolbox)
@@ -152,6 +155,9 @@ set(DXF_NATIVE_SOURCES
 
 if(DXF_BUILD_TESTS)
     enable_testing()
+    include(CMake/PhysicsTests.cmake)
+    dxf_add_physics_tests(dxf_physics_tests dxf::foundation)
+    dxf_warnings(dxf_physics_tests)
     find_package(Python3 QUIET COMPONENTS Interpreter)
     if(Python3_Interpreter_FOUND)
         add_test(NAME NoStl COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/Tools/CheckNoStl.py")

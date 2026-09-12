@@ -127,6 +127,12 @@ template <typename A> inline constexpr bool IsSame<A, A> = true;
  */
 template <typename A, typename B> inline constexpr bool IsBaseOf = __is_base_of(A, B);
 /**
+ * 指定した引数から型を構築できるかを調べる。
+ * requires節では組み込み型特性を直接使わず、コンパイラ間で共通の名前を使う。
+ */
+template <typename T, typename... Args> inline constexpr bool IsConstructible = __is_constructible(T, Args...);
+
+/**
  * コンパイル時の条件によって二つの型から選ぶ。
  */
 template <bool Condition, typename A, typename B> struct TSelect

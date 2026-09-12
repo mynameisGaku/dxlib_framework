@@ -30,6 +30,159 @@ bool FAABB::Intersects(const FAABB& Other) const noexcept
 }
 namespace
 {
+// 球と軸平行箱の最近点距離を、入力の差を取る前から倍精度で求める。
+f64 SphereAabbDistanceSquared_Internal(const FSphere& Sphere, const FAABB& Box) noexcept
+{
+	f64 DistanceSquared = 0;
+	for (int32 Axis = 0; Axis < 3; ++Axis)
+	{
+		const f64 Center = Sphere.Center.Component(Axis);
+		const f64 Nearest = Clamp(Center, f64(Box.Min.Component(Axis)), f64(Box.Max.Component(Axis)));
+		const f64 Gap = Center - Nearest;
+		DistanceSquared += Gap * Gap;
+	}
+	return DistanceSquared;
+}
+// OBB軸の丸め誤差も含め、実際の平行六面体への最近点を求める。
+// 三つの座標を「自由・下限・上限」に分けた27候補で境界付き最小二乗を解く。
+f64 SphereObbDistanceSquared_Internal(const FSphere& Sphere, const FOBB& Box) noexcept
+{
+	const f64 Delta[3] = {f64(Sphere.Center.X) - Box.Center.X, f64(Sphere.Center.Y) - Box.Center.Y,
+	                      f64(Sphere.Center.Z) - Box.Center.Z};
+	f64 Best = DBL_MAX;
+	for (int32 Candidate = 0; Candidate < 27; ++Candidate)
+	{
+		int32 State = Candidate;
+		int32 FreeAxes[3]{};
+		int32 FreeCount = 0;
+		f64 Coordinates[3]{};
+		f64 Residual[3] = {Delta[0], Delta[1], Delta[2]};
+		for (int32 Axis = 0; Axis < 3; ++Axis)
+		{
+			const int32 Mode = State % 3;
+			State /= 3;
+			if (Mode == 0)
+			{
+				FreeAxes[FreeCount++] = Axis;
+			}
+			else
+			{
+				Coordinates[Axis] = f64(Box.HalfExtents.Component(Axis)) * (Mode == 1 ? -1 : 1);
+				for (int32 Component = 0; Component < 3; ++Component)
+				{
+					Residual[Component] -= Coordinates[Axis] * Box.Axes[static_cast<size_t>(Axis)].Component(Component);
+				}
+			}
+		}
+		f64 Matrix[3][4]{};
+		for (int32 Row = 0; Row < FreeCount; ++Row)
+		{
+			const FVector3 A = Box.Axes[static_cast<size_t>(FreeAxes[Row])];
+			for (int32 Column = 0; Column < FreeCount; ++Column)
+			{
+				const FVector3 B = Box.Axes[static_cast<size_t>(FreeAxes[Column])];
+				Matrix[Row][Column] = f64(A.X) * B.X + f64(A.Y) * B.Y + f64(A.Z) * B.Z;
+			}
+			Matrix[Row][FreeCount] = A.X * Residual[0] + A.Y * Residual[1] + A.Z * Residual[2];
+		}
+		bool bFeasible = true;
+		for (int32 Column = 0; Column < FreeCount; ++Column)
+		{
+			int32 Pivot = Column;
+			for (int32 Row = Column + 1; Row < FreeCount; ++Row)
+			{
+				if (Abs(Matrix[Row][Column]) > Abs(Matrix[Pivot][Column]))
+				{
+					Pivot = Row;
+				}
+			}
+			if (Abs(Matrix[Pivot][Column]) < 1e-15)
+			{
+				bFeasible = false;
+				break;
+			}
+			for (int32 K = 0; K <= FreeCount; ++K)
+			{
+				Swap(Matrix[Pivot][K], Matrix[Column][K]);
+			}
+			const f64 Divisor = Matrix[Column][Column];
+			for (int32 K = Column; K <= FreeCount; ++K)
+			{
+				Matrix[Column][K] /= Divisor;
+			}
+			for (int32 Row = 0; Row < FreeCount; ++Row)
+			{
+				if (Row == Column)
+				{
+					continue;
+				}
+				const f64 Factor = Matrix[Row][Column];
+				for (int32 K = Column; K <= FreeCount; ++K)
+				{
+					Matrix[Row][K] -= Factor * Matrix[Column][K];
+				}
+			}
+		}
+		for (int32 Index = 0; Index < FreeCount && bFeasible; ++Index)
+		{
+			const int32 Axis = FreeAxes[Index];
+			Coordinates[Axis] = Matrix[Index][FreeCount];
+			const f64 Extent = Box.HalfExtents.Component(Axis);
+			bFeasible = Coordinates[Axis] >= -Extent && Coordinates[Axis] <= Extent;
+		}
+		if (!bFeasible)
+		{
+			continue;
+		}
+		f64 Squared = 0;
+		for (int32 Component = 0; Component < 3; ++Component)
+		{
+			f64 Gap = Delta[Component];
+			for (int32 Axis = 0; Axis < 3; ++Axis)
+			{
+				Gap -= Coordinates[Axis] * Box.Axes[static_cast<size_t>(Axis)].Component(Component);
+			}
+			Squared += Gap * Gap;
+		}
+		Best = Min(Best, Squared);
+	}
+	return Best;
+}
+// 対応する球対プリミティブはGJKを通さない。引数順は呼び出し元で統一する。
+bool TrySpherePrimitive_Internal(const FSphere& Sphere, const FCollisionShape& Other, f32 Tolerance, bool& bResult)
+{
+	f64 Squared = 0;
+	f64 Limit = f64(Sphere.Radius) + Tolerance;
+	if (HoldsAlternative<FSphere>(Other))
+	{
+		const FSphere& Right = Get<FSphere>(Other);
+		const f64 X = f64(Sphere.Center.X) - Right.Center.X;
+		const f64 Y = f64(Sphere.Center.Y) - Right.Center.Y;
+		const f64 Z = f64(Sphere.Center.Z) - Right.Center.Z;
+		Squared = X * X + Y * Y + Z * Z;
+		Limit += Right.Radius;
+	}
+	else if (HoldsAlternative<FAABB>(Other))
+	{
+		Squared = SphereAabbDistanceSquared_Internal(Sphere, Get<FAABB>(Other));
+	}
+	else if (HoldsAlternative<FOBB>(Other))
+	{
+		Squared = SphereObbDistanceSquared_Internal(Sphere, Get<FOBB>(Other));
+	}
+	else if (HoldsAlternative<FCube>(Other))
+	{
+		const FCube& Cube = Get<FCube>(Other);
+		Squared = SphereObbDistanceSquared_Internal(
+		    Sphere, FOBB{Cube.Center, {Cube.HalfExtent, Cube.HalfExtent, Cube.HalfExtent}, Cube.Axes});
+	}
+	else
+	{
+		return false;
+	}
+	bResult = Squared <= Limit * Limit;
+	return true;
+}
 // 箱の回転軸が直交する単位ベクトルか調べる。
 bool ValidAxes(const TArray<FVector3, 3>& Axes) noexcept
 {
@@ -384,11 +537,22 @@ bool Intersects(const FCollisionShape& A, const FCollisionShape& B, f32 Toleranc
 	}
 	// 形状またはノードを囲む境界箱。
 	FAABB Box = Bounds(A);
+	const FAABB OtherBounds = Bounds(B);
+	// f32の広域境界の膨張で詳細判定の精度を失う前に、対応する球対を計算する。
+	bool bPrimitiveResult = false;
+	if (HoldsAlternative<FSphere>(A) && TrySpherePrimitive_Internal(Get<FSphere>(A), B, Tolerance, bPrimitiveResult))
+	{
+		return bPrimitiveResult;
+	}
+	if (HoldsAlternative<FSphere>(B) && TrySpherePrimitive_Internal(Get<FSphere>(B), A, Tolerance, bPrimitiveResult))
+	{
+		return bPrimitiveResult;
+	}
 	// 接触許容誤差を各軸へ広げた幅。
 	const FVector3 Margin{Tolerance, Tolerance, Tolerance};
 	Box.Min = Box.Min - Margin;
 	Box.Max += Margin;
-	if (!Box.Intersects(Bounds(B)))
+	if (!Box.Intersects(OtherBounds))
 	{
 		return false;
 	}
@@ -423,20 +587,6 @@ bool Intersects(const FCollisionShape& A, const FCollisionShape& B, f32 Toleranc
 	if (HoldsAlternative<FMesh>(B))
 	{
 		return Intersects(B, A, Tolerance);
-	}
-	if (HoldsAlternative<FSphere>(A) && HoldsAlternative<FSphere>(B))
-	{
-		// 演算の左側に使用する値。
-		const auto& Left = Get<FSphere>(A);
-		// 演算の右側に使用する値。
-		const auto& Right = Get<FSphere>(B);
-		// 有限な単精度座標でも差や半径の和が上限を超えるため、差を取る前に倍精度へ広げる。
-		const f64 DeltaX = static_cast<f64>(Left.Center.X) - Right.Center.X;
-		const f64 DeltaY = static_cast<f64>(Left.Center.Y) - Right.Center.Y;
-		const f64 DeltaZ = static_cast<f64>(Left.Center.Z) - Right.Center.Z;
-		// 二球が接触と見なされる中心間距離の上限。
-		const f64 RadiusSum = static_cast<f64>(Left.Radius) + Right.Radius + Tolerance;
-		return DeltaX * DeltaX + DeltaY * DeltaY + DeltaZ * DeltaZ <= RadiusSum * RadiusSum;
 	}
 	return ConvexIntersects(A, B, Tolerance);
 }

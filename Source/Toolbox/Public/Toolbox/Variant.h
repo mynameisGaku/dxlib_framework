@@ -92,7 +92,7 @@ public:
 	 * @param Other コピー・移動・比較の相手となる値。
 	 */
 	TVariant(const TVariant& Other)
-	    requires(__is_constructible(Types, const Types&) && ...)
+	    requires(IsConstructible<Types, const Types&> && ...)
 	{
 		CopyFrom_Internal<0>(Other);
 	}
@@ -127,7 +127,7 @@ public:
 	 * 以前の値を後始末し、新しい値または所有権を受け取る。
 	 */
 	TVariant& operator=(const TVariant& Other)
-	    requires(__is_constructible(Types, const Types&) && ...)
+	    requires(IsConstructible<Types, const Types&> && ...)
 	{
 		if (this != &Other)
 		{
