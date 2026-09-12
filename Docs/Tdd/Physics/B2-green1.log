@@ -1,0 +1,342 @@
+﻿dxf-includes.cpp
+繝｡繝｢: 繧､繝ｳ繧ｯ繝ｫ繝ｼ繝・繝輔ぃ繧､繝ｫ:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\WindowsValidation\IncludeProbe\dxf-includes.h
+
+
+
+
+-- Configuring done (0.5s)
+-- Generating done (0.1s)
+-- Build files have been written to: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/windows-debug
+[0/2] Re-checking globbed directories...
+[1/7] Copying sample assets
+[2/7] Building CXX object CMakeFiles\dxf_physics.dir\Source\Physics\Private\PhysicsWorld2D.cpp.obj
+FAILED: [code=2] CMakeFiles/dxf_physics.dir/Source/Physics/Private/PhysicsWorld2D.cpp.obj 
+C:\PROGRA~1\MICROS~1\18\COMMUN~1\VC\Tools\MSVC\1451~1.362\bin\Hostx64\x64\cl.exe  /nologo /TP  -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public /DWIN32 /D_WINDOWS /EHsc /Zi /Ob0 /Od /RTC1 -std:c++20 -MTd /W4 /permissive- /utf-8 /EHsc /GR /showIncludes /FoCMakeFiles\dxf_physics.dir\Source\Physics\Private\PhysicsWorld2D.cpp.obj /FdCMakeFiles\dxf_physics.dir\dxf_physics.pdb /FS -c C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody2D.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/BodyType.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Contact2D.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Collision2D.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Vector2.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Utility.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Compiler.h
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stddef.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\sal.h
+メモ: インクルード ファイル:           C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\concurrencysal.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vadefs.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\stdint.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\limits.h
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\float.h
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\math.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_math.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\new
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals_core.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xkeycheck.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\exception
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_doom_core.hpp
+メモ: インクルード ファイル:          C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\crtdbg.h
+メモ: インクルード ファイル:           C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new_debug.h
+メモ: インクルード ファイル:            C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\crtdefs.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\use_ansi.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdlib
+メモ: インクルード ファイル:          C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\math.h
+メモ: インクルード ファイル:          C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stdlib.h
+メモ: インクルード ファイル:           C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_malloc.h
+メモ: インクルード ファイル:           C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_search.h
+メモ: インクルード ファイル:           C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_wstdlib.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\type_traits
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstddef
+メモ: インクルード ファイル:           C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xtr1common
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdint
+メモ: インクルード ファイル:         C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\malloc.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_exception.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\eh.h
+メモ: インクルード ファイル:           C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_terminate.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\initializer_list
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Variant.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Optional.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/UniquePtr.h
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Vector.h
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(143): error C2065: 'int32': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(143): error C2146: 構文エラー: ';' が、識別子 'BestFace' の前に必要です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(143): error C2065: 'BestFace': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(144): error C2065: 'int32': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(144): error C2146: 構文エラー: ';' が、識別子 'Owner' の前に必要です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(144): error C2143: 構文エラー: ';' が '=' の前にありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(144): error C2143: 構文エラー: ')' が '=' の前にありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(144): error C2059: 構文エラー: '='
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(144): error C2059: 構文エラー: ';'
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(145): error C2143: 構文エラー: ';' が '{' の前にありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(147): error C2059: 構文エラー: ';'
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(148): error C2143: 構文エラー: ';' が '{' の前にありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(157): error C2947: '>' が テンプレート-引数-一覧 に必要ですが、'>' が見つかりました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(158): error C2143: 構文エラー: ';' が '{' の前にありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(161): error C2947: '>' が テンプレート-引数-一覧 に必要ですが、'>=' が見つかりました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(161): error C2513: '<error>': 指定された型は、識別子の名前を指定せずに宣言されています。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(162): error C2065: 'Axes': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(162): error C2065: 'Axis': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(162): error C2065: 'Sign': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(163): error C2065: 'Axes': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(163): error C2065: 'Axis': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(163): error C2065: 'Sign': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(164): error C2065: 'Owner': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(165): error C2065: 'BestFace': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(165): error C2065: 'Axis': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(165): error C2065: 'Sign': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(168): error C2059: 構文エラー: '}'
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(168): error C2143: 構文エラー: ';' が '}' の前にありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(170): error C2143: 構文エラー: ';' が '{' の前にありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(170): error C2447: '{': 対応する関数ヘッダーがありません (旧形式の仮引数リスト?)
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(174): error C2065: 'bBestOnA': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(174): error C2065: 'A': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(174): error C2065: 'B': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(174): error C2530: 'Reference': 参照が初期化されずに宣言されています。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(175): error C2065: 'bBestOnA': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(175): error C2065: 'B': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(175): error C2065: 'A': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(175): error C2530: 'Incident': 参照が初期化されずに宣言されています。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(177): error C2065: 'BestX': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(177): error C2065: 'BestY': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(178): error C2059: 構文エラー: 'if'
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(179): error C2143: 構文エラー: ';' が '{' の前にありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(179): error C2447: '{': 対応する関数ヘッダーがありません (旧形式の仮引数リスト?)
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(186): error C4430: 型指定子がありません - int と仮定しました。メモ: C++ は int を既定値としてサポートしていません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(186): error C2440: '初期化中': 'initializer list' から 'int' に変換できません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(186): note: 初期化子に含まれている要素が多すぎます
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(187): error C4430: 型指定子がありません - int と仮定しました。メモ: C++ は int を既定値としてサポートしていません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(187): error C2146: 構文エラー: ';' が、識別子 'FaceAxis' の前に必要です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(187): error C2059: 構文エラー: '='
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(189): error C2065: 'FaceAxis': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(188): error C2737: 'ReferenceHalf': const オブジェクトを初期化する必要があります
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(192): error C2059: 構文エラー: 'if'
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(193): error C2143: 構文エラー: ';' が '{' の前にありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(193): error C2447: '{': 対応する関数ヘッダーがありません (旧形式の仮引数リスト?)
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(196): error C2059: 構文エラー: 'else'
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(197): error C2143: 構文エラー: ';' が '{' の前にありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(197): error C2447: '{': 対応する関数ヘッダーがありません (旧形式の仮引数リスト?)
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(200): error C2059: 構文エラー: 'else'
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(201): error C2143: 構文エラー: ';' が '{' の前にありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(201): error C2447: '{': 対応する関数ヘッダーがありません (旧形式の仮引数リスト?)
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(204): error C2059: 構文エラー: 'else'
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(205): error C2143: 構文エラー: ';' が '{' の前にありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(205): error C2447: '{': 対応する関数ヘッダーがありません (旧形式の仮引数リスト?)
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(211): error C4430: 型指定子がありません - int と仮定しました。メモ: C++ は int を既定値としてサポートしていません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(211): error C2374: 'BoxAxes_Internal': 再定義されています。2 回以上初期化されています。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(186): note: 'BoxAxes_Internal' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(211): error C2086: 'int BoxAxes_Internal': 再定義されました。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(186): note: 'BoxAxes_Internal' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(213): error C4430: 型指定子がありません - int と仮定しました。メモ: C++ は int を既定値としてサポートしていません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(213): error C2373: 'int32': 再定義されています。異なる型修飾子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(187): note: 'int32' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(213): error C2146: 構文エラー: ';' が、識別子 'IncidentFace' の前に必要です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(218): error C2059: 構文エラー: 'for'
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(218): error C2143: 構文エラー: ')' が ';' の前にありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(218): error C2143: 構文エラー: '>' が ';' の前にありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(218): error C7568: 想定される関数テンプレート 'Face' の後に引数リストがありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(218): warning C4091: '': 変数が何も宣言されていないときは、'<error>' の左辺を無視します。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(218): error C2059: 構文エラー: '++'
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(218): error C2059: 構文エラー: ')'
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(219): error C2143: 構文エラー: ';' が '{' の前にありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(219): error C2447: '{': 対応する関数ヘッダーがありません (旧形式の仮引数リスト?)
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(229): error C2059: 構文エラー: 'if'
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(230): error C2143: 構文エラー: ';' が '{' の前にありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(230): error C2447: '{': 対応する関数ヘッダーがありません (旧形式の仮引数リスト?)
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(235): error C2059: 構文エラー: 'else'
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(236): error C2143: 構文エラー: ';' が '{' の前にありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(236): error C2447: '{': 対応する関数ヘッダーがありません (旧形式の仮引数リスト?)
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(243): error C4430: 型指定子がありません - int と仮定しました。メモ: C++ は int を既定値としてサポートしていません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(243): error C2373: 'int32': 再定義されています。異なる型修飾子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(187): note: 'int32' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(243): error C2146: 構文エラー: ';' が、識別子 'ClippedCount' の前に必要です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(244): error C2059: 構文エラー: 'for'
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(244): error C2143: 構文エラー: ')' が ';' の前にありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(244): error C2143: 構文エラー: '>' が ';' の前にありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(244): error C7568: 想定される関数テンプレート 'Side' の後に引数リストがありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(244): warning C4091: '': 変数が何も宣言されていないときは、'<error>' の左辺を無視します。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(244): error C2059: 構文エラー: '++'
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(244): error C2059: 構文エラー: ')'
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(245): error C2143: 構文エラー: ';' が '{' の前にありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(245): error C2447: '{': 対応する関数ヘッダーがありません (旧形式の仮引数リスト?)
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(292): error C2065: 'bBestOnA': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(292): error C2065: 'BestFace': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(292): error C2065: 'BestFace': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(292): error C2737: 'Base': const オブジェクトを初期化する必要があります
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(293): error C2059: 構文エラー: 'for'
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(293): error C2143: 構文エラー: ')' が ';' の前にありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(293): error C2065: 'ClippedCount': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(293): error C2143: 構文エラー: '>' が ';' の前にありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(293): error C7568: 想定される関数テンプレート 'Index' の後に引数リストがありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(293): error C2062: 型 '<error>' は不要です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(293): warning C4091: '': 変数が何も宣言されていないときは、'<error>' の左辺を無視します。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(293): error C2059: 構文エラー: '++'
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld2D.cpp(293): fatal error C1003: プログラム内のエラーが 100 個を超えました。コンパイルは中断されます。
+[3/7] Building CXX object CMakeFiles\dxf_physics.dir\Source\Physics\Private\PhysicsWorld3D.cpp.obj
+FAILED: [code=2] CMakeFiles/dxf_physics.dir/Source/Physics/Private/PhysicsWorld3D.cpp.obj 
+C:\PROGRA~1\MICROS~1\18\COMMUN~1\VC\Tools\MSVC\1451~1.362\bin\Hostx64\x64\cl.exe  /nologo /TP  -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public /DWIN32 /D_WINDOWS /EHsc /Zi /Ob0 /Od /RTC1 -std:c++20 -MTd /W4 /permissive- /utf-8 /EHsc /GR /showIncludes /FoCMakeFiles\dxf_physics.dir\Source\Physics\Private\PhysicsWorld3D.cpp.obj /FdCMakeFiles\dxf_physics.dir\dxf_physics.pdb /FS -c C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld3D.cpp
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/BodyType.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Contact3D.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/CollisionShapes.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Vector3.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Utility.h
+メモ: インクルード ファイル:       C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Compiler.h
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stddef.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\sal.h
+メモ: インクルード ファイル:           C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\concurrencysal.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vadefs.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\stdint.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\limits.h
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\float.h
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\math.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_math.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\new
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals_core.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xkeycheck.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\exception
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_doom_core.hpp
+メモ: インクルード ファイル:          C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\crtdbg.h
+メモ: インクルード ファイル:           C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new_debug.h
+メモ: インクルード ファイル:            C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\crtdefs.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\use_ansi.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdlib
+メモ: インクルード ファイル:          C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\math.h
+メモ: インクルード ファイル:          C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stdlib.h
+メモ: インクルード ファイル:           C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_malloc.h
+メモ: インクルード ファイル:           C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_search.h
+メモ: インクルード ファイル:           C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_wstdlib.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\type_traits
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstddef
+メモ: インクルード ファイル:           C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xtr1common
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdint
+メモ: インクルード ファイル:         C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\malloc.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_exception.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\eh.h
+メモ: インクルード ファイル:           C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_terminate.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\initializer_list
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\emmintrin.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xmmintrin.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\mmintrin.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Array.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Variant.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Optional.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Vector.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/SharedPtr.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Atomic.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\intrin.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\intrin0.inl.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\setjmp.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\immintrin.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\wmmintrin.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\nmmintrin.h
+メモ: インクルード ファイル:           C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\smmintrin.h
+メモ: インクルード ファイル:            C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\tmmintrin.h
+メモ: インクルード ファイル:             C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\pmmintrin.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\zmmintrin.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\ammintrin.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Quaternion.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Matrix4.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/UniquePtr.h
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(47): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(67): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld3D.cpp(101): warning C4324: 'Dxf::FBodyRecord3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld3D.cpp(111): warning C4324: 'Dxf::FBodyRecord3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld3D.cpp(149): warning C4324: 'Dxf::FSolvePoint3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld3D.cpp(181): warning C4324: 'Dxf::FCachedImpulse3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld3D.cpp(185): warning C4324: 'Dxf::FCachedImpulse3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld3D.cpp(1081): error C3861: 'WorldInverseInertia_Internal': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\PhysicsWorld3D.cpp(1105): error C3861: 'WorldInverseInertia_Internal': 識別子が見つかりませんでした
+[4/7] Building CXX object CMakeFiles\dxf_physics_tests.dir\Tests\Physics\SolverTests.cpp.obj
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\TestCases.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Utility.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Compiler.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stddef.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\sal.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\concurrencysal.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vadefs.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\stdint.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\limits.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\float.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\math.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_math.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\new
+メモ: インクルード ファイル:     C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals_core.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xkeycheck.h
+メモ: インクルード ファイル:     C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\exception
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_doom_core.hpp
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\crtdbg.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new_debug.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\crtdefs.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\use_ansi.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdlib
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\math.h
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stdlib.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_malloc.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_search.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_wstdlib.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\type_traits
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstddef
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xtr1common
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdint
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\malloc.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_exception.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\eh.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_terminate.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\initializer_list
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody2D.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/BodyType.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Contact2D.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Collision2D.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Vector2.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Variant.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Optional.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/UniquePtr.h
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Contact3D.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/CollisionShapes.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Vector3.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\emmintrin.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xmmintrin.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\mmintrin.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Array.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Vector.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/SharedPtr.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Atomic.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\intrin.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\intrin0.inl.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\setjmp.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\immintrin.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\wmmintrin.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\nmmintrin.h
+メモ: インクルード ファイル:           C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\smmintrin.h
+メモ: インクルード ファイル:            C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\tmmintrin.h
+メモ: インクルード ファイル:             C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\pmmintrin.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\zmmintrin.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\ammintrin.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Quaternion.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Matrix4.h
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(47): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(67): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+ninja: build stopped: subcommand failed.
+.\Tools\Build.cmd : C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tools\BuildWindows.ps1 : debug-build failed. 
+See C:\Users\g0190\O
+発生場所 行:1 文字:1
++ .\Tools\Build.cmd -Configuration Debug 2>&1 | Out-File -FilePath "Doc ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (C:\Users\g0190\...:\Users\g0190\O:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+neDrive\Desktop\frame\dxlib_framework\Build\WindowsValidation\debug-build.log
+    + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException
+    + FullyQualifiedErrorId : Microsoft.PowerShell.Commands.WriteErrorException,BuildWindows.ps1
+ 

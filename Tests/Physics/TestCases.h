@@ -50,6 +50,16 @@ const FCase* GetFixedStepCases(Toolbox::size_t& Count) noexcept;
  * @param Count 返す配列の要素数。
  */
 const FCase* GetRigidBodyCases(Toolbox::size_t& Count) noexcept;
+/**
+ * 接触点・法線・分離距離の回帰ケースを返す。
+ * @param Count 返す配列の要素数。
+ */
+const FCase* GetContactCases(Toolbox::size_t& Count) noexcept;
+/**
+ * 衝突応答ソルバーの回帰ケースを返す。
+ * @param Count 返す配列の要素数。
+ */
+const FCase* GetSolverCases(Toolbox::size_t& Count) noexcept;
 } // namespace PhysicsTest
 #define PHYSICS_REQUIRE(...) PhysicsTest::Require_Internal(static_cast<bool>((__VA_ARGS__)), #__VA_ARGS__)
 #endif

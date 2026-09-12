@@ -1,0 +1,246 @@
+﻿dxf-includes.cpp
+繝｡繝｢: 繧､繝ｳ繧ｯ繝ｫ繝ｼ繝・繝輔ぃ繧､繝ｫ:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\WindowsValidation\IncludeProbe\dxf-includes.h
+
+
+
+
+-- Configuring done (0.5s)
+-- Generating done (0.1s)
+-- Build files have been written to: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/windows-debug
+[0/2] Re-checking globbed directories...
+[1/5] Copying sample assets
+[2/5] Building CXX object CMakeFiles\dxf_physics_tests.dir\Tools\PhysicsValidation\Main.cpp.obj
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\TestCases.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Utility.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Compiler.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stddef.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\sal.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\concurrencysal.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vadefs.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\stdint.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\limits.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\float.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\math.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_math.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\new
+メモ: インクルード ファイル:     C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals_core.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xkeycheck.h
+メモ: インクルード ファイル:     C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\exception
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_doom_core.hpp
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\crtdbg.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new_debug.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\crtdefs.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\use_ansi.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdlib
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\math.h
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stdlib.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_malloc.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_search.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_wstdlib.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\type_traits
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstddef
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xtr1common
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdint
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\malloc.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_exception.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\eh.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_terminate.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\initializer_list
+メモ: インクルード ファイル:  C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stdio.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_wstdio.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_stdio_config.h
+[3/5] Building CXX object CMakeFiles\dxf_physics_tests.dir\Tests\Physics\SolverTests.cpp.obj
+FAILED: [code=2] CMakeFiles/dxf_physics_tests.dir/Tests/Physics/SolverTests.cpp.obj 
+C:\PROGRA~1\MICROS~1\18\COMMUN~1\VC\Tools\MSVC\1451~1.362\bin\Hostx64\x64\cl.exe  /nologo /TP  -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public /DWIN32 /D_WINDOWS /EHsc /Zi /Ob0 /Od /RTC1 -std:c++20 -MTd /W4 /permissive- /utf-8 /EHsc /GR /showIncludes /FoCMakeFiles\dxf_physics_tests.dir\Tests\Physics\SolverTests.cpp.obj /FdCMakeFiles\dxf_physics_tests.dir\ /FS -c C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\TestCases.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Utility.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Compiler.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stddef.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\sal.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\concurrencysal.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vadefs.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\stdint.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\limits.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\float.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\math.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_math.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\new
+メモ: インクルード ファイル:     C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals_core.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xkeycheck.h
+メモ: インクルード ファイル:     C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\exception
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_doom_core.hpp
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\crtdbg.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new_debug.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\crtdefs.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\use_ansi.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdlib
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\math.h
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stdlib.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_malloc.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_search.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_wstdlib.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\type_traits
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstddef
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xtr1common
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdint
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\malloc.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_exception.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\eh.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_terminate.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\initializer_list
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody2D.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/BodyType.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Vector2.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/UniquePtr.h
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Vector3.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\emmintrin.h
+メモ: インクルード ファイル:     C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xmmintrin.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\mmintrin.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Quaternion.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Matrix4.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Array.h
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(45): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(65): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(14): error C4430: 型指定子がありません - int と仮定しました。メモ: C++ は int を既定値としてサポートしていません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(14): error C2146: 構文エラー: ';' が、識別子 'FloorDescription_Internal' の前に必要です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(15): error C2143: 構文エラー: ';' が '{' の前にありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(15): error C2447: '{': 対応する関数ヘッダーがありません (旧形式の仮引数リスト?)
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(31): error C2039: 'AttachCollider': 'Dxf::FPhysicsWorld2D' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody2D.h(82): note: 'Dxf::FPhysicsWorld2D' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(31): error C3861: 'FloorDescription_Internal': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(34): error C4430: 型指定子がありません - int と仮定しました。メモ: C++ は int を既定値としてサポートしていません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(34): error C2086: 'int `anonymous-namespace'::FColliderDescription2D': 再定義されました。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(14): note: '`anonymous-namespace'::FColliderDescription2D' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(34): error C2146: 構文エラー: ';' が、識別子 'BallDescription_Internal' の前に必要です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(35): error C2143: 構文エラー: ';' が '{' の前にありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(35): error C2447: '{': 対応する関数ヘッダーがありません (旧形式の仮引数リスト?)
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(52): error C2039: 'AttachCollider': 'Dxf::FPhysicsWorld2D' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody2D.h(82): note: 'Dxf::FPhysicsWorld2D' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(52): error C3861: 'BallDescription_Internal': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(70): error C2039: 'AttachCollider': 'Dxf::FPhysicsWorld2D' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody2D.h(82): note: 'Dxf::FPhysicsWorld2D' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(70): error C3861: 'BallDescription_Internal': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(86): error C2146: 構文エラー: ';' が、識別子 'Grippy' の前に必要です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(86): error C2065: 'Grippy': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(86): error C3861: 'BallDescription_Internal': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(87): error C2039: 'AttachCollider': 'Dxf::FPhysicsWorld2D' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody2D.h(82): note: 'Dxf::FPhysicsWorld2D' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(87): error C2065: 'Grippy': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(102): error C2146: 構文エラー: ';' が、識別子 'Slope' の前に必要です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(102): error C2065: 'Slope': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(103): error C2065: 'FOrientedBox2D': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(103): error C2146: 構文エラー: ';' が、識別子 'Shape' の前に必要です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(103): error C2065: 'Shape': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(104): error C2065: 'Shape': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(105): error C2065: 'Shape': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(106): error C2065: 'Shape': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(107): error C2065: 'Slope': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(107): error C2065: 'Shape': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(108): error C2065: 'Slope': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(109): error C2065: 'Slope': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(110): error C2039: 'AttachCollider': 'Dxf::FPhysicsWorld2D' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody2D.h(82): note: 'Dxf::FPhysicsWorld2D' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(110): error C2065: 'Slope': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(115): error C2039: 'AttachCollider': 'Dxf::FPhysicsWorld2D' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody2D.h(82): note: 'Dxf::FPhysicsWorld2D' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(115): error C3861: 'BallDescription_Internal': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(132): error C2039: 'AttachCollider': 'Dxf::FPhysicsWorld2D' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody2D.h(82): note: 'Dxf::FPhysicsWorld2D' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(132): error C3861: 'BallDescription_Internal': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(162): error C2146: 構文エラー: ';' が、識別子 'Elastic' の前に必要です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(162): error C2065: 'Elastic': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(162): error C3861: 'BallDescription_Internal': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(163): error C2039: 'AttachCollider': 'Dxf::FPhysicsWorld2D' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody2D.h(82): note: 'Dxf::FPhysicsWorld2D' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(163): error C2065: 'Elastic': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(164): error C2039: 'AttachCollider': 'Dxf::FPhysicsWorld2D' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody2D.h(82): note: 'Dxf::FPhysicsWorld2D' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(164): error C2065: 'Elastic': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(183): error C2039: 'AttachCollider': 'Dxf::FPhysicsWorld2D' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody2D.h(82): note: 'Dxf::FPhysicsWorld2D' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(183): error C3861: 'BallDescription_Internal': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(199): error C2146: 構文エラー: ';' が、識別子 'Deck' の前に必要です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(199): error C2065: 'Deck': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(200): error C2065: 'FOrientedBox2D': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(200): error C2146: 構文エラー: ';' が、識別子 'Shape' の前に必要です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(200): error C2065: 'Shape': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(201): error C2065: 'Shape': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(202): error C2065: 'Shape': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(203): error C2065: 'Shape': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(204): error C2065: 'Deck': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(204): error C2065: 'Shape': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(205): error C2065: 'Deck': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(206): error C2065: 'Deck': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(207): error C2039: 'AttachCollider': 'Dxf::FPhysicsWorld2D' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody2D.h(82): note: 'Dxf::FPhysicsWorld2D' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(207): error C2065: 'Deck': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(211): error C2039: 'AttachCollider': 'Dxf::FPhysicsWorld2D' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody2D.h(82): note: 'Dxf::FPhysicsWorld2D' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(211): error C3861: 'BallDescription_Internal': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(226): error C3878: 構文エラー: 'expression' の後に予期しないトークン 'Floor' があります
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(226): error C2760: 構文エラー: ')' は予期しないエラーでした。';' が必要です
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(226): error C3878: 構文エラー: 'expression-statement' の後に予期しないトークン ')' があります
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(247): error C2059: 構文エラー: ';'
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(249): error C3536: 'BounceApex_Internal': 初期化前に使用することはできません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(260): error C2146: 構文エラー: ';' が、識別子 'Edge' の前に必要です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(260): error C2065: 'Edge': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(261): error C2065: 'FOrientedBox2D': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(261): error C2146: 構文エラー: ';' が、識別子 'Shape' の前に必要です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(261): error C2065: 'Shape': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(262): error C2065: 'Shape': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(263): error C2065: 'Shape': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(264): error C2065: 'Shape': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(265): error C2065: 'Edge': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(265): error C2065: 'Shape': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(266): error C2065: 'Edge': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(267): error C2065: 'Edge': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(268): error C2039: 'AttachCollider': 'Dxf::FPhysicsWorld2D' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody2D.h(82): note: 'Dxf::FPhysicsWorld2D' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(268): error C2065: 'Edge': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(272): error C2039: 'AttachCollider': 'Dxf::FPhysicsWorld2D' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody2D.h(82): note: 'Dxf::FPhysicsWorld2D' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(272): error C3861: 'BallDescription_Internal': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(288): error C2146: 構文エラー: ';' が、識別子 'Crate' の前に必要です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(288): error C2065: 'Crate': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(289): error C2065: 'FOrientedBox2D': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(289): error C2146: 構文エラー: ';' が、識別子 'Shape' の前に必要です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(289): error C2065: 'Shape': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(290): error C2065: 'Shape': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(291): error C2065: 'Shape': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(292): error C2065: 'Shape': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(293): error C2065: 'Crate': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(293): error C2065: 'Shape': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(294): error C2065: 'Crate': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(295): error C2065: 'Crate': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(296): error C2039: 'AttachCollider': 'Dxf::FPhysicsWorld2D' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody2D.h(82): note: 'Dxf::FPhysicsWorld2D' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(296): error C2065: 'Crate': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(306): error C4430: 型指定子がありません - int と仮定しました。メモ: C++ は int を既定値としてサポートしていません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(306): error C2146: 構文エラー: ';' が、識別子 'FloorDescription3D_Internal' の前に必要です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(307): error C2143: 構文エラー: ';' が '{' の前にありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(307): error C2447: '{': 対応する関数ヘッダーがありません (旧形式の仮引数リスト?)
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(323): error C2039: 'AttachCollider': 'Dxf::FPhysicsWorld3D' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(83): note: 'Dxf::FPhysicsWorld3D' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\SolverTests.cpp(323): fatal error C1003: プログラム内のエラーが 100 個を超えました。コンパイルは中断されます。
+ninja: build stopped: subcommand failed.
+.\Tools\Build.cmd : C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tools\BuildWindows.ps1 : debug-build failed. 
+See C:\Users\g0190\O
+発生場所 行:1 文字:1
++ .\Tools\Build.cmd -Configuration Debug 2>&1 | Out-File -FilePath "Doc ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (C:\Users\g0190\...:\Users\g0190\O:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+neDrive\Desktop\frame\dxlib_framework\Build\WindowsValidation\debug-build.log
+    + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException
+    + FullyQualifiedErrorId : Microsoft.PowerShell.Commands.WriteErrorException,BuildWindows.ps1
+ 

@@ -2,7 +2,8 @@
 #ifndef DXF_PHYSICS_RIGID_BODY_2D_H
 #define DXF_PHYSICS_RIGID_BODY_2D_H
 #include "Dxf/BodyType.h"
-#include "Toolbox/Vector2.h"
+#include "Toolbox/Contact2D.h"
+#include "Toolbox/Variant.h"
 #include "Toolbox/UniquePtr.h"
 #include "Toolbox/Utility.h"
 namespace Dxf
@@ -76,8 +77,74 @@ struct FBodyDescription2D
 	Toolbox::f32 GravityScale = 1;
 };
 /**
- * 力・重力・Impulseで動く平面剛体を所有する。半陰的Eulerで更新する。
- * 単一スレッドで使用し、DxLibや描画を知らない。接触応答は行わない。
+ * 平面コライダーを識別する、世代付きの非所有ハンドル。
+ */
+struct FColliderId2D
+{
+	/**
+	 * 取り付け先の剛体。
+	 */
+	FBodyId2D Body;
+	/**
+	 * 登録スロットの番号。
+	 */
+	Toolbox::size_t Index = 0;
+	/**
+	 * 同じスロットを再使用した際の世代。
+	 */
+	Toolbox::uint64 Generation = 0;
+	/**
+	 * 同じ登録を指すか調べる。
+	 */
+	bool operator==(const FColliderId2D&) const = default;
+};
+/**
+ * 剛体へ取り付ける平面形状と材質。形状の中心は重心からの相対位置。
+ */
+struct FColliderDescription2D
+{
+	/**
+	 * 取り付ける形状。円または回転矩形。
+	 */
+	Toolbox::TVariant<Toolbox::FCircle2D, Toolbox::FOrientedBox2D> Shape;
+	/**
+	 * 有限な非負の摩擦係数。
+	 */
+	Toolbox::f32 Friction = 0.5f;
+	/**
+	 * 0〜1の反発係数。
+	 */
+	Toolbox::f32 Restitution = 0;
+};
+/**
+ * 接触拘束の解決設定。プロジェクトの試験条件に合わせた初期値。
+ */
+struct FContactSettings2D
+{
+	/**
+	 * 許容する貫通量。メートル単位の有限な非負値。
+	 */
+	Toolbox::f32 ContactSlop = 0.005f;
+	/**
+	 * 位置補正の緩和係数。0〜1。
+	 */
+	Toolbox::f32 BaumgarteBeta = 0.2f;
+	/**
+	 * 一分割で許す最大補正量。メートル単位の有限な正値。
+	 */
+	Toolbox::f32 MaxCorrection = 0.05f;
+	/**
+	 * 反発を適用する衝突前速度。メートル毎秒単位の有限な非負値。
+	 */
+	Toolbox::f32 RestitutionThreshold = 1.0f;
+	/**
+	 * 速度拘束の反復数。1〜64。
+	 */
+	Toolbox::uint32 VelocityIterations = 8;
+};
+/**
+ * 力・重力・Impulseで動く平面剛体を所有し、接触拘束を解く。
+ * 単一スレッドで使用し、DxLibや描画を知らない。
  */
 class FPhysicsWorld2D
 {
@@ -192,7 +259,28 @@ public:
 	 */
 	Toolbox::FVector2 GetGravity() const noexcept;
 	/**
+	 * コライダーを剛体へ取り付ける。不正な値は例外で通知し、状態を変更しない。
+	 * @param Body 取り付け先の剛体。
+	 * @param Description 取り付ける形状と材質。
+	 */
+	FColliderId2D AttachCollider(FBodyId2D Body, const FColliderDescription2D& Description);
+	/**
+	 * コライダーを外してIDを失効させる。期限切れIDはfalseを返す。
+	 * @param Id 登録を識別する世代付きID。
+	 */
+	bool DetachCollider(FColliderId2D Id) noexcept;
+	/**
+	 * 接触拘束の解決設定を変更する。不正な値は例外で通知する。
+	 * @param Settings 接触拘束の解決設定。
+	 */
+	void SetContactSettings(const FContactSettings2D& Settings);
+	/**
+	 * 接触拘束の解決設定を返す。
+	 */
+	FContactSettings2D GetContactSettings() const noexcept;
+	/**
 	 * 指定秒数だけ物理状態を進める。力とトルクは更新後に一度だけ消去する。
+	 * 取り付け済みのコライダー同士の接触拘束も解く。箱同士は最大二点の多様体になる。
 	 * 非有限・非正の秒数と範囲外の分割数は例外で通知し、状態を変更しない。
 	 * @param DeltaSeconds 有限な正の秒数。
 	 * @param SubSteps 1〜1024の分割数。

@@ -35,7 +35,285 @@ struct FBodyRecord2D
 	// 次の更新で使う蓄積トルク。ニュートンメートル単位。
 	Toolbox::f32 Torque = 0;
 };
-// 平面剛体の登録スロットと蓄積時間をまとめた実装。
+// 剛体へ取り付けた形状と材質の登録。
+struct FColliderRecord2D
+{
+	// スロット再使用を見分ける世代。
+	Toolbox::uint64 Generation = 0;
+	// 有効な登録か。
+	bool bAlive = false;
+	// 取り付け先の剛体。
+	FBodyId2D Body;
+	// 重心相対の形状。
+	Toolbox::TVariant<Toolbox::FCircle2D, Toolbox::FOrientedBox2D> Shape;
+	// 摩擦係数。
+	Toolbox::f32 Friction = 0.5f;
+	// 反発係数。
+	Toolbox::f32 Restitution = 0;
+};
+// 速度拘束の反復で使う単一接触点。
+struct FSolvePoint2D
+{
+	// 接触位置。メートル単位。
+	Toolbox::FVector2 Position;
+	// 二つ目から一つ目へ向く単位法線。
+	Toolbox::FVector2 Normal{1, 0};
+	// 表面間の符号付き距離。
+	Toolbox::f32 Separation = 0;
+	// 箱側の特徴を区別する安定ID。
+	Toolbox::uint32 FeatureId = 0;
+	// 混合済みの摩擦係数。
+	Toolbox::f32 Friction = 0;
+	// 混合済みの反発係数。
+	Toolbox::f32 Restitution = 0;
+	// 蓄積した法線Impulse。
+	Toolbox::f32 NormalImpulse = 0;
+	// 蓄積した接線Impulse。
+	Toolbox::f32 TangentImpulse = 0;
+	// 反復前の法線相対速度。反発目標の保存値。
+	Toolbox::f64 ApproachSpeed = 0;
+};
+// 正準順序のコライダー組と接触点列。
+struct FManifold2D
+{
+	// 正準順序の一つ目のコライダー。
+	FColliderId2D ColliderA;
+	// 正準順序の二つ目のコライダー。
+	FColliderId2D ColliderB;
+	// 一つ目の剛体。
+	FBodyId2D BodyA;
+	// 二つ目の剛体。
+	FBodyId2D BodyB;
+	// 解決する接触点列。
+	Toolbox::TVector<FSolvePoint2D> Points;
+};
+// 前回Impulseの再利用記録。
+struct FCachedImpulse2D
+{
+	// 正準順序の一つ目のコライダー。
+	FColliderId2D ColliderA;
+	// 正準順序の二つ目のコライダー。
+	FColliderId2D ColliderB;
+	// 一つ目の剛体の世代。
+	Toolbox::uint64 BodyGenerationA = 0;
+	// 二つ目の剛体の世代。
+	Toolbox::uint64 BodyGenerationB = 0;
+	// 接触点の特徴ID。
+	Toolbox::uint32 FeatureId = 0;
+	// 保存時の法線。
+	Toolbox::FVector2 Normal{1, 0};
+	// 保存した法線Impulse。
+	Toolbox::f32 NormalImpulse = 0;
+	// 保存した接線Impulse。
+	Toolbox::f32 TangentImpulse = 0;
+};
+// 箱の世界軸を求める。UがローカルX軸、VがローカルY軸。
+static void BoxAxes_Internal(const Toolbox::FOrientedBox2D& Box, Toolbox::FVector2& U, Toolbox::FVector2& V) noexcept
+{
+	// 回転角の余弦と正弦。
+	const Toolbox::f64 Cosine = Toolbox::Cos(Toolbox::f64(Box.Angle));
+	const Toolbox::f64 Sine = Toolbox::Sin(Toolbox::f64(Box.Angle));
+	U = {static_cast<Toolbox::f32>(Cosine), static_cast<Toolbox::f32>(Sine)};
+	V = {static_cast<Toolbox::f32>(-Sine), static_cast<Toolbox::f32>(Cosine)};
+}
+// 箱の頂点を求める。符号で四隅を区別する。
+static Toolbox::FVector2 BoxVertex_Internal(const Toolbox::FOrientedBox2D& Box, Toolbox::FVector2 U,
+                                            Toolbox::FVector2 V, Toolbox::f64 SignX, Toolbox::f64 SignY) noexcept
+{
+	const Toolbox::f64 X = Toolbox::f64(Box.Center.X) + SignX * Box.HalfExtents.X * U.X + SignY * Box.HalfExtents.Y * V.X;
+	const Toolbox::f64 Y = Toolbox::f64(Box.Center.Y) + SignX * Box.HalfExtents.X * U.Y + SignY * Box.HalfExtents.Y * V.Y;
+	return {static_cast<Toolbox::f32>(X), static_cast<Toolbox::f32>(Y)};
+}
+// 箱同士の接触を最大二点求める。分離時は空。法線はB→A。
+static void FindBoxContacts_Internal(const Toolbox::FOrientedBox2D& A, const Toolbox::FOrientedBox2D& B,
+                                     Toolbox::f32 Slop, Toolbox::TVector<Toolbox::FContactPoint2D>& Out)
+{
+	Toolbox::FVector2 AxesA[2];
+	Toolbox::FVector2 AxesB[2];
+	BoxAxes_Internal(A, AxesA[0], AxesA[1]);
+	BoxAxes_Internal(B, AxesB[0], AxesB[1]);
+	// 中心差。
+	const Toolbox::f64 DeltaX = Toolbox::f64(B.Center.X) - A.Center.X;
+	const Toolbox::f64 DeltaY = Toolbox::f64(B.Center.Y) - A.Center.Y;
+	// 最大分離とその軸の所有箱。
+	Toolbox::f64 BestSeparation = -1e30;
+	Toolbox::f64 BestX = 1;
+	Toolbox::f64 BestY = 0;
+	bool bBestOnA = true;
+	Toolbox::int32 BestFace = 1;
+	for (Toolbox::int32 Owner = 0; Owner < 2; ++Owner)
+	{
+		Toolbox::FVector2* Axes = Owner == 0 ? AxesA : AxesB;
+		for (Toolbox::int32 Axis = 0; Axis < 2; ++Axis)
+		{
+			// 軸方向の中心距離。
+			const Toolbox::f64 Distance = DeltaX * Axes[Axis].X + DeltaY * Axes[Axis].Y;
+			// 両箱の軸への投影半径。
+			const Toolbox::f64 ProjectA = Toolbox::f64(A.HalfExtents.X) * Toolbox::Abs(Toolbox::f64(AxesA[0].X) * Axes[Axis].X + Toolbox::f64(AxesA[0].Y) * Axes[Axis].Y) +
+			                              Toolbox::f64(A.HalfExtents.Y) * Toolbox::Abs(Toolbox::f64(AxesA[1].X) * Axes[Axis].X + Toolbox::f64(AxesA[1].Y) * Axes[Axis].Y);
+			const Toolbox::f64 ProjectB = Toolbox::f64(B.HalfExtents.X) * Toolbox::Abs(Toolbox::f64(AxesB[0].X) * Axes[Axis].X + Toolbox::f64(AxesB[0].Y) * Axes[Axis].Y) +
+			                              Toolbox::f64(B.HalfExtents.Y) * Toolbox::Abs(Toolbox::f64(AxesB[1].X) * Axes[Axis].X + Toolbox::f64(AxesB[1].Y) * Axes[Axis].Y);
+			const Toolbox::f64 Separation = Toolbox::Abs(Distance) - ProjectA - ProjectB;
+			if (Separation > BestSeparation)
+			{
+				BestSeparation = Separation;
+				// AからBへ向く軸方向。
+				const Toolbox::f64 Sign = Distance >= 0 ? 1 : -1;
+				BestX = Axes[Axis].X * Sign;
+				BestY = Axes[Axis].Y * Sign;
+				bBestOnA = Owner == 0;
+				BestFace = Axis * 2 + (Sign > 0 ? 1 : 0);
+			}
+		}
+	}
+	if (BestSeparation > Slop)
+	{
+		return;
+	}
+	// 基準面は相手箱へ向く側の面を使う。所有箱の最良面が遠い側の場合は近傍面へ読み替える。
+	Toolbox::int32 ReferenceFace = BestFace;
+	if (!bBestOnA)
+	{
+		ReferenceFace = BestFace ^ 1;
+	}
+	const Toolbox::FOrientedBox2D& Reference = bBestOnA ? A : B;
+	const Toolbox::FOrientedBox2D& Incident = bBestOnA ? B : A;
+	// 基準面の法線はAからBへ向く。
+	Toolbox::FVector2 FaceNormal = {static_cast<Toolbox::f32>(BestX), static_cast<Toolbox::f32>(BestY)};
+	if (!bBestOnA)
+	{
+		FaceNormal = {-FaceNormal.X, -FaceNormal.Y};
+	}
+	// 基準面の接線と半辺長。
+	Toolbox::FVector2 Tangent = {-FaceNormal.Y, FaceNormal.X};
+	Toolbox::FVector2 ReferenceU;
+	Toolbox::FVector2 ReferenceV;
+	BoxAxes_Internal(Reference, ReferenceU, ReferenceV);
+	const Toolbox::int32 FaceAxis = ReferenceFace / 2;
+	const Toolbox::f32 ReferenceHalf =
+	    FaceAxis == 0 ? Reference.HalfExtents.X : Reference.HalfExtents.Y;
+	// 基準面の中心。
+	Toolbox::FVector2 FaceCenter = Reference.Center;
+	if (ReferenceFace == 1)
+	{
+		FaceCenter += {ReferenceU.X * Reference.HalfExtents.X, ReferenceU.Y * Reference.HalfExtents.X};
+	}
+	else if (ReferenceFace == 0)
+	{
+		FaceCenter += {-ReferenceU.X * Reference.HalfExtents.X, -ReferenceU.Y * Reference.HalfExtents.X};
+	}
+	else if (ReferenceFace == 3)
+	{
+		FaceCenter += {ReferenceV.X * Reference.HalfExtents.Y, ReferenceV.Y * Reference.HalfExtents.Y};
+	}
+	else
+	{
+		FaceCenter += {-ReferenceV.X * Reference.HalfExtents.Y, -ReferenceV.Y * Reference.HalfExtents.Y};
+	}
+	// 入射辺は基準法線に最も逆らう面の両端。
+	Toolbox::FVector2 IncidentU;
+	Toolbox::FVector2 IncidentV;
+	BoxAxes_Internal(Incident, IncidentU, IncidentV);
+	Toolbox::f64 BestDot = 1e30;
+	Toolbox::int32 IncidentFace = 0;
+	const Toolbox::FVector2 Normals[4] = {{-IncidentU.X, -IncidentU.Y},
+	                                      {IncidentU.X, IncidentU.Y},
+	                                      {-IncidentV.X, -IncidentV.Y},
+	                                      {IncidentV.X, IncidentV.Y}};
+	for (Toolbox::int32 Face = 0; Face < 4; ++Face)
+	{
+		const Toolbox::f64 Alignment = Toolbox::f64(Normals[Face].X) * FaceNormal.X + Toolbox::f64(Normals[Face].Y) * FaceNormal.Y;
+		if (Alignment < BestDot)
+		{
+			BestDot = Alignment;
+			IncidentFace = Face;
+		}
+	}
+	// 入射辺の両端点。
+	Toolbox::FVector2 Edge[2];
+	if (IncidentFace == 0 || IncidentFace == 1)
+	{
+		const Toolbox::f64 SignX = IncidentFace == 1 ? 1 : -1;
+		Edge[0] = BoxVertex_Internal(Incident, IncidentU, IncidentV, SignX, -1);
+		Edge[1] = BoxVertex_Internal(Incident, IncidentU, IncidentV, SignX, 1);
+	}
+	else
+	{
+		const Toolbox::f64 SignY = IncidentFace == 3 ? 1 : -1;
+		Edge[0] = BoxVertex_Internal(Incident, IncidentU, IncidentV, -1, SignY);
+		Edge[1] = BoxVertex_Internal(Incident, IncidentU, IncidentV, 1, SignY);
+	}
+	// 基準面の側方平面で切り取る。
+	Toolbox::FVector2 Clipped[2] = {Edge[0], Edge[1]};
+	Toolbox::int32 ClippedCount = 2;
+	for (Toolbox::int32 Side = 0; Side < 2; ++Side)
+	{
+		const Toolbox::f64 Bound = Side == 0 ? -Toolbox::f64(ReferenceHalf) : Toolbox::f64(ReferenceHalf);
+		Toolbox::FVector2 Kept[2];
+		Toolbox::int32 KeptCount = 0;
+		for (Toolbox::int32 Index = 0; Index < ClippedCount; ++Index)
+		{
+			const Toolbox::f64 Lateral =
+			    (Toolbox::f64(Clipped[Index].X) - FaceCenter.X) * Tangent.X + (Toolbox::f64(Clipped[Index].Y) - FaceCenter.Y) * Tangent.Y;
+			const bool bInside = Side == 0 ? Lateral >= Bound : Lateral <= Bound;
+			if (bInside)
+			{
+				Kept[KeptCount] = Clipped[Index];
+				++KeptCount;
+			}
+		}
+		// 平面をまたぐ辺は交点を残す。
+		for (Toolbox::int32 Index = 0; Index < ClippedCount; ++Index)
+		{
+			const Toolbox::int32 Next = (Index + 1) % ClippedCount;
+			const Toolbox::f64 LateralA =
+			    (Toolbox::f64(Clipped[Index].X) - FaceCenter.X) * Tangent.X + (Toolbox::f64(Clipped[Index].Y) - FaceCenter.Y) * Tangent.Y;
+			const Toolbox::f64 LateralB =
+			    (Toolbox::f64(Clipped[Next].X) - FaceCenter.X) * Tangent.X + (Toolbox::f64(Clipped[Next].Y) - FaceCenter.Y) * Tangent.Y;
+			const bool bInsideA = Side == 0 ? LateralA >= Bound : LateralA <= Bound;
+			const bool bInsideB = Side == 0 ? LateralB >= Bound : LateralB <= Bound;
+			if (bInsideA != bInsideB && KeptCount < 2)
+			{
+				const Toolbox::f64 Fraction = (Bound - LateralA) / (LateralB - LateralA);
+				Kept[KeptCount] = {static_cast<Toolbox::f32>(Clipped[Index].X + (Clipped[Next].X - Clipped[Index].X) * Fraction),
+				                   static_cast<Toolbox::f32>(Clipped[Index].Y + (Clipped[Next].Y - Clipped[Index].Y) * Fraction)};
+				++KeptCount;
+			}
+		}
+		Clipped[0] = Kept[0];
+		if (KeptCount > 1)
+		{
+			Clipped[1] = Kept[1];
+		}
+		ClippedCount = KeptCount;
+		if (ClippedCount == 0)
+		{
+			return;
+		}
+	}
+	// 法線はBからAへ向ける。
+	Toolbox::FVector2 Normal = {-FaceNormal.X, -FaceNormal.Y};
+	// 特徴IDは基準面側の面番号に切り取り順を足す。
+	const Toolbox::uint32 Base =
+	    static_cast<Toolbox::uint32>((bBestOnA ? ReferenceFace : 8 + ReferenceFace) * 2);
+	for (Toolbox::int32 Index = 0; Index < ClippedCount && Index < 2; ++Index)
+	{
+		// A面からB表面への符号付き距離。B→A法線では貫通が負になる。
+		const Toolbox::f64 Separation = (Toolbox::f64(FaceCenter.X) - Clipped[Index].X) * Normal.X +
+		                                (Toolbox::f64(FaceCenter.Y) - Clipped[Index].Y) * Normal.Y;
+		if (Separation > Slop)
+		{
+			continue;
+		}
+		Toolbox::FContactPoint2D Hit;
+		Hit.Position = Clipped[Index];
+		Hit.Normal = Normal;
+		Hit.Separation = static_cast<Toolbox::f32>(Separation);
+		Hit.FeatureId = Base + static_cast<Toolbox::uint32>(Index);
+		Out.PushBack(Hit);
+	}
+}
+// 平面剛体の登録スロットと接触解決をまとめた実装。
 struct FPhysicsWorld2D::FImpl
 {
 	// 別ワールドのID混入を検出する識別子。
@@ -44,8 +322,16 @@ struct FPhysicsWorld2D::FImpl
 	Toolbox::TVector<FBodyRecord2D> Slots;
 	// 再使用可能な空きスロット番号。
 	Toolbox::TVector<Toolbox::size_t> Free;
+	// スロット番号で直接参照するコライダー領域。
+	Toolbox::TVector<FColliderRecord2D> Colliders;
+	// 再使用可能な空きコライダー番号。
+	Toolbox::TVector<Toolbox::size_t> ColliderFree;
+	// 前回Impulseの再利用記録。
+	Toolbox::TVector<FCachedImpulse2D> Cache;
 	// ワールド全体の重力加速度。
 	Toolbox::FVector2 Gravity{0, -9.8f};
+	// 接触拘束の解決設定。
+	FContactSettings2D Contact;
 	// 新しいワールドへ重ならない識別子を発行する。
 	static Toolbox::uint64 NextWorld_Internal()
 	{
@@ -105,9 +391,459 @@ struct FPhysicsWorld2D::FImpl
 		}
 		return *Record;
 	}
+	// IDが有効な登録を指す場合だけコライダーを返す。
+	FColliderRecord2D* FindCollider_Internal(FColliderId2D Id) noexcept
+	{
+		if (Id.Body.World != World)
+		{
+			return nullptr;
+		}
+		if (Id.Index >= Colliders.Size())
+		{
+			return nullptr;
+		}
+		// 世代と取り付け先が一致する有効な登録。
+		FColliderRecord2D& Record = Colliders[Id.Index];
+		const bool bMatches = Record.bAlive && Record.Generation == Id.Generation && Record.Body == Id.Body;
+		return bMatches ? &Record : nullptr;
+	}
+	// 正準順序が小さい方か調べる。
+	static bool ColliderLess_Internal(const FColliderId2D& A, const FColliderId2D& B) noexcept
+	{
+		if (A.Body.Index != B.Body.Index)
+		{
+			return A.Body.Index < B.Body.Index;
+		}
+		if (A.Body.Generation != B.Body.Generation)
+		{
+			return A.Body.Generation < B.Body.Generation;
+		}
+		if (A.Index != B.Index)
+		{
+			return A.Index < B.Index;
+		}
+		return A.Generation < B.Generation;
+	}
+	// ローカル円をワールド形状へ変換する。
+	static Toolbox::FCircle2D ToWorld_Internal(const FBodyRecord2D& Body, const Toolbox::FCircle2D& Local) noexcept
+	{
+		// 回転角の余弦と正弦。
+		const Toolbox::f64 Cosine = Toolbox::Cos(Toolbox::f64(Body.Angle));
+		const Toolbox::f64 Sine = Toolbox::Sin(Toolbox::f64(Body.Angle));
+		Toolbox::FCircle2D World = Local;
+		World.Center = {static_cast<Toolbox::f32>(Toolbox::f64(Body.Position.X) + Cosine * Local.Center.X - Sine * Local.Center.Y),
+		                static_cast<Toolbox::f32>(Toolbox::f64(Body.Position.Y) + Sine * Local.Center.X + Cosine * Local.Center.Y)};
+		return World;
+	}
+	// ローカル矩形をワールド形状へ変換する。
+	static Toolbox::FOrientedBox2D ToWorld_Internal(const FBodyRecord2D& Body, const Toolbox::FOrientedBox2D& Local) noexcept
+	{
+		// 回転角の余弦と正弦。
+		const Toolbox::f64 Cosine = Toolbox::Cos(Toolbox::f64(Body.Angle));
+		const Toolbox::f64 Sine = Toolbox::Sin(Toolbox::f64(Body.Angle));
+		Toolbox::FOrientedBox2D World = Local;
+		World.Center = {static_cast<Toolbox::f32>(Toolbox::f64(Body.Position.X) + Cosine * Local.Center.X - Sine * Local.Center.Y),
+		                static_cast<Toolbox::f32>(Toolbox::f64(Body.Position.Y) + Sine * Local.Center.X + Cosine * Local.Center.Y)};
+		World.Angle = Body.Angle + Local.Angle;
+		return World;
+	}
+	// 二つのコライダー組から接触点列を作る。
+	void AppendPairManifold_Internal(const FColliderRecord2D& RecordA, const FColliderId2D& IdA,
+	                                 const FColliderRecord2D& RecordB, const FColliderId2D& IdB,
+	                                 const FBodyRecord2D& BodyA, const FBodyRecord2D& BodyB, FManifold2D& Manifold)
+	{
+		Manifold.ColliderA = IdA;
+		Manifold.ColliderB = IdB;
+		Manifold.BodyA = RecordA.Body;
+		Manifold.BodyB = RecordB.Body;
+		// 摩擦は相乗平均、反発は最大値で混合する。入れ替え対称。
+		const Toolbox::f32 Friction = Toolbox::Sqrt(RecordA.Friction * RecordB.Friction);
+		const Toolbox::f32 Restitution =
+		    RecordA.Restitution > RecordB.Restitution ? RecordA.Restitution : RecordB.Restitution;
+		const Toolbox::size_t IndexA = RecordA.Shape.Index();
+		const Toolbox::size_t IndexB = RecordB.Shape.Index();
+		if (IndexA == 0 && IndexB == 0)
+		{
+			const Toolbox::FContactPoint2D Hit =
+			    Toolbox::FindContact(ToWorld_Internal(BodyA, RecordA.Shape.Get<0>()),
+			                         ToWorld_Internal(BodyB, RecordB.Shape.Get<0>()));
+			if (Hit.Separation > Contact.ContactSlop)
+			{
+				return;
+			}
+			FSolvePoint2D Point;
+			Point.Position = Hit.Position;
+			Point.Normal = Hit.Normal;
+			Point.Separation = Hit.Separation;
+			Point.FeatureId = Hit.FeatureId;
+			Point.Friction = Friction;
+			Point.Restitution = Restitution;
+			Manifold.Points.PushBack(Point);
+		}
+		else if (IndexA == 0 && IndexB == 1)
+		{
+			const Toolbox::FContactPoint2D Hit =
+			    Toolbox::FindContact(ToWorld_Internal(BodyA, RecordA.Shape.Get<0>()),
+			                         ToWorld_Internal(BodyB, RecordB.Shape.Get<1>()));
+			if (Hit.Separation > Contact.ContactSlop)
+			{
+				return;
+			}
+			FSolvePoint2D Point;
+			Point.Position = Hit.Position;
+			Point.Normal = Hit.Normal;
+			Point.Separation = Hit.Separation;
+			Point.FeatureId = Hit.FeatureId;
+			Point.Friction = Friction;
+			Point.Restitution = Restitution;
+			Manifold.Points.PushBack(Point);
+		}
+		else if (IndexA == 1 && IndexB == 0)
+		{
+			const Toolbox::FContactPoint2D Hit =
+			    Toolbox::FindContact(ToWorld_Internal(BodyA, RecordA.Shape.Get<1>()),
+			                         ToWorld_Internal(BodyB, RecordB.Shape.Get<0>()));
+			if (Hit.Separation > Contact.ContactSlop)
+			{
+				return;
+			}
+			FSolvePoint2D Point;
+			Point.Position = Hit.Position;
+			Point.Normal = Hit.Normal;
+			Point.Separation = Hit.Separation;
+			Point.FeatureId = Hit.FeatureId;
+			Point.Friction = Friction;
+			Point.Restitution = Restitution;
+			Manifold.Points.PushBack(Point);
+		}
+		else
+		{
+			Toolbox::TVector<Toolbox::FContactPoint2D> Hits;
+			FindBoxContacts_Internal(ToWorld_Internal(BodyA, RecordA.Shape.Get<1>()),
+			                         ToWorld_Internal(BodyB, RecordB.Shape.Get<1>()), Contact.ContactSlop, Hits);
+			for (Toolbox::size_t Index = 0; Index < Hits.Size(); ++Index)
+			{
+				FSolvePoint2D Point;
+				Point.Position = Hits[Index].Position;
+				Point.Normal = Hits[Index].Normal;
+				Point.Separation = Hits[Index].Separation;
+				Point.FeatureId = Hits[Index].FeatureId;
+				Point.Friction = Friction;
+				Point.Restitution = Restitution;
+				Manifold.Points.PushBack(Point);
+			}
+		}
+	}
+	// 全コライダー組から多様体列を作る。
+	void GenerateManifolds_Internal(Toolbox::TVector<FManifold2D>& Out)
+	{
+		for (Toolbox::size_t First = 0; First < Colliders.Size(); ++First)
+		{
+			FColliderRecord2D& RecordA = Colliders[First];
+			if (!RecordA.bAlive)
+			{
+				continue;
+			}
+			FBodyRecord2D* BodyA = Find_Internal(RecordA.Body);
+			if (BodyA == nullptr)
+			{
+				continue;
+			}
+			for (Toolbox::size_t Second = First + 1; Second < Colliders.Size(); ++Second)
+			{
+				FColliderRecord2D& RecordB = Colliders[Second];
+				if (!RecordB.bAlive)
+				{
+					continue;
+				}
+				FBodyRecord2D* BodyB = Find_Internal(RecordB.Body);
+				if (BodyB == nullptr)
+				{
+					continue;
+				}
+				// 両方が非Dynamicの組は応答も運動もしない。
+				if (BodyA->Type != EBodyType::Dynamic && BodyB->Type != EBodyType::Dynamic)
+				{
+					continue;
+				}
+				const FColliderId2D IdA = {RecordA.Body, First, RecordA.Generation};
+				const FColliderId2D IdB = {RecordB.Body, Second, RecordB.Generation};
+				FManifold2D Manifold;
+				if (ColliderLess_Internal(IdB, IdA))
+				{
+					AppendPairManifold_Internal(RecordB, IdB, RecordA, IdA, *BodyB, *BodyA, Manifold);
+				}
+				else
+				{
+					AppendPairManifold_Internal(RecordA, IdA, RecordB, IdB, *BodyA, *BodyB, Manifold);
+				}
+				if (!Manifold.Points.IsEmpty())
+				{
+					Out.PushBack(Manifold);
+				}
+			}
+		}
+	}
+	// 接触点の相対速度を求める。
+	static Toolbox::FVector2 RelativeVelocity_Internal(const FBodyRecord2D& BodyA, const FBodyRecord2D& BodyB,
+	                                                  Toolbox::FVector2 Point) noexcept
+	{
+		// 腕の回転による速度。
+		const Toolbox::f64 ArmAX = Toolbox::f64(Point.X) - BodyA.Position.X;
+		const Toolbox::f64 ArmAY = Toolbox::f64(Point.Y) - BodyA.Position.Y;
+		const Toolbox::f64 ArmBX = Toolbox::f64(Point.X) - BodyB.Position.X;
+		const Toolbox::f64 ArmBY = Toolbox::f64(Point.Y) - BodyB.Position.Y;
+		const Toolbox::f64 VelocityAX = Toolbox::f64(BodyA.Velocity.X) - Toolbox::f64(BodyA.AngularVelocity) * ArmAY;
+		const Toolbox::f64 VelocityAY = Toolbox::f64(BodyA.Velocity.Y) + Toolbox::f64(BodyA.AngularVelocity) * ArmAX;
+		const Toolbox::f64 VelocityBX = Toolbox::f64(BodyB.Velocity.X) - Toolbox::f64(BodyB.AngularVelocity) * ArmBY;
+		const Toolbox::f64 VelocityBY = Toolbox::f64(BodyB.Velocity.Y) + Toolbox::f64(BodyB.AngularVelocity) * ArmBX;
+		return {static_cast<Toolbox::f32>(VelocityAX - VelocityBX),
+		        static_cast<Toolbox::f32>(VelocityAY - VelocityBY)};
+	}
+	// 前回Impulseを適用し、反発目標の基準速度を保存する。
+	void WarmStart_Internal(FManifold2D& Manifold)
+	{
+		FBodyRecord2D* BodyA = Find_Internal(Manifold.BodyA);
+		FBodyRecord2D* BodyB = Find_Internal(Manifold.BodyB);
+		if (BodyA == nullptr || BodyB == nullptr)
+		{
+			return;
+		}
+		for (Toolbox::size_t Index = 0; Index < Manifold.Points.Size(); ++Index)
+		{
+			FSolvePoint2D& Point = Manifold.Points[Index];
+			const Toolbox::FVector2 Relative = RelativeVelocity_Internal(*BodyA, *BodyB, Point.Position);
+			Point.ApproachSpeed = Toolbox::f64(Relative.X) * Point.Normal.X + Toolbox::f64(Relative.Y) * Point.Normal.Y;
+			Point.NormalImpulse = 0;
+			Point.TangentImpulse = 0;
+			for (Toolbox::size_t CacheIndex = 0; CacheIndex < Cache.Size(); ++CacheIndex)
+			{
+				const FCachedImpulse2D& Cached = Cache[CacheIndex];
+				const bool bSamePair = Cached.ColliderA == Manifold.ColliderA && Cached.ColliderB == Manifold.ColliderB;
+				if (!bSamePair || Cached.FeatureId != Point.FeatureId)
+				{
+					continue;
+				}
+				if (Cached.BodyGenerationA != BodyA->Generation || Cached.BodyGenerationB != BodyB->Generation)
+				{
+					continue;
+				}
+				// 法線が大きく変わった接触は再利用しない。
+				const Toolbox::f64 Agreement = Toolbox::f64(Cached.Normal.X) * Point.Normal.X +
+				                              Toolbox::f64(Cached.Normal.Y) * Point.Normal.Y;
+				if (Agreement < 0.99)
+				{
+					continue;
+				}
+				Point.NormalImpulse = Cached.NormalImpulse;
+				Point.TangentImpulse = Cached.TangentImpulse;
+				// 保存したImpulseを即時適用する。
+				const Toolbox::FVector2 Tangent = {-Point.Normal.Y, Point.Normal.X};
+				const Toolbox::FVector2 Push = {Point.Normal.X * Point.NormalImpulse + Tangent.X * Point.TangentImpulse,
+				                                Point.Normal.Y * Point.NormalImpulse + Tangent.Y * Point.TangentImpulse};
+				ApplyImpulse_Internal(*BodyA, *BodyB, Point.Position, Push);
+				break;
+			}
+		}
+	}
+	// 速度へImpulseを適用する。一つ目に足し、二つ目から引く。
+	static void ApplyImpulse_Internal(FBodyRecord2D& BodyA, FBodyRecord2D& BodyB, Toolbox::FVector2 Point,
+	                                  Toolbox::FVector2 Push) noexcept
+	{
+		// 腕とImpulseの外積。
+		const Toolbox::f64 ArmAX = Toolbox::f64(Point.X) - BodyA.Position.X;
+		const Toolbox::f64 ArmAY = Toolbox::f64(Point.Y) - BodyA.Position.Y;
+		const Toolbox::f64 ArmBX = Toolbox::f64(Point.X) - BodyB.Position.X;
+		const Toolbox::f64 ArmBY = Toolbox::f64(Point.Y) - BodyB.Position.Y;
+		const Toolbox::f64 PushX = Push.X;
+		const Toolbox::f64 PushY = Push.Y;
+		BodyA.Velocity += {static_cast<Toolbox::f32>(PushX * BodyA.InverseMass),
+		                   static_cast<Toolbox::f32>(PushY * BodyA.InverseMass)};
+		BodyA.AngularVelocity = static_cast<Toolbox::f32>(Toolbox::f64(BodyA.AngularVelocity) +
+		                                                   (ArmAX * PushY - ArmAY * PushX) * BodyA.InverseInertia);
+		BodyB.Velocity += {static_cast<Toolbox::f32>(-PushX * BodyB.InverseMass),
+		                   static_cast<Toolbox::f32>(-PushY * BodyB.InverseMass)};
+		BodyB.AngularVelocity = static_cast<Toolbox::f32>(Toolbox::f64(BodyB.AngularVelocity) -
+		                                                   (ArmBX * PushY - ArmBY * PushX) * BodyB.InverseInertia);
+	}
+	// 単一接触点の速度拘束を解く。
+	static void SolvePoint_Internal(FBodyRecord2D& BodyA, FBodyRecord2D& BodyB, FSolvePoint2D& Point,
+	                                Toolbox::f32 RestitutionThreshold) noexcept
+	{
+		// 腕。
+		const Toolbox::f64 ArmAX = Toolbox::f64(Point.Position.X) - BodyA.Position.X;
+		const Toolbox::f64 ArmAY = Toolbox::f64(Point.Position.Y) - BodyA.Position.Y;
+		const Toolbox::f64 ArmBX = Toolbox::f64(Point.Position.X) - BodyB.Position.X;
+		const Toolbox::f64 ArmBY = Toolbox::f64(Point.Position.Y) - BodyB.Position.Y;
+		// 法線の有効質量。
+		const Toolbox::f64 CrossNA = ArmAX * Point.Normal.Y - ArmAY * Point.Normal.X;
+		const Toolbox::f64 CrossNB = ArmBX * Point.Normal.Y - ArmBY * Point.Normal.X;
+		const Toolbox::f64 NormalMass = Toolbox::f64(BodyA.InverseMass) + BodyB.InverseMass +
+		                                Toolbox::f64(BodyA.InverseInertia) * CrossNA * CrossNA +
+		                                Toolbox::f64(BodyB.InverseInertia) * CrossNB * CrossNB;
+		if (NormalMass <= 0)
+		{
+			return;
+		}
+		const Toolbox::FVector2 Relative = RelativeVelocity_Internal(BodyA, BodyB, Point.Position);
+		const Toolbox::f64 NormalSpeed = Toolbox::f64(Relative.X) * Point.Normal.X + Toolbox::f64(Relative.Y) * Point.Normal.Y;
+		// 反発目標は反復前の接近速度から一度だけ決める。
+		Toolbox::f64 Target = 0;
+		if (Point.ApproachSpeed < -Toolbox::f64(RestitutionThreshold))
+		{
+			Target = -Toolbox::f64(Point.Restitution) * Point.ApproachSpeed;
+		}
+		const Toolbox::f64 Lambda = (Target - NormalSpeed) / NormalMass;
+		const Toolbox::f64 Old = Point.NormalImpulse;
+		Point.NormalImpulse = static_cast<Toolbox::f32>(Old + Lambda > 0 ? Old + Lambda : 0);
+		const Toolbox::f64 Difference = Toolbox::f64(Point.NormalImpulse) - Old;
+		ApplyImpulse_Internal(BodyA, BodyB, Point.Position,
+		                      {static_cast<Toolbox::f32>(Point.Normal.X * Difference),
+		                       static_cast<Toolbox::f32>(Point.Normal.Y * Difference)});
+		// 接線の有効質量。
+		const Toolbox::f64 TangentX = -Toolbox::f64(Point.Normal.Y);
+		const Toolbox::f64 TangentY = Toolbox::f64(Point.Normal.X);
+		const Toolbox::f64 CrossTA = ArmAX * TangentY - ArmAY * TangentX;
+		const Toolbox::f64 CrossTB = ArmBX * TangentY - ArmBY * TangentX;
+		const Toolbox::f64 TangentMass = Toolbox::f64(BodyA.InverseMass) + BodyB.InverseMass +
+		                                 Toolbox::f64(BodyA.InverseInertia) * CrossTA * CrossTA +
+		                                 Toolbox::f64(BodyB.InverseInertia) * CrossTB * CrossTB;
+		if (TangentMass <= 0)
+		{
+			return;
+		}
+		const Toolbox::FVector2 Sliding = RelativeVelocity_Internal(BodyA, BodyB, Point.Position);
+		const Toolbox::f64 TangentSpeed = Toolbox::f64(Sliding.X) * TangentX + Toolbox::f64(Sliding.Y) * TangentY;
+		const Toolbox::f64 LambdaT = -TangentSpeed / TangentMass;
+		// 摩擦の合計は法線Impulseに比例する。
+		const Toolbox::f64 Limit = Toolbox::f64(Point.Friction) * Point.NormalImpulse;
+		const Toolbox::f64 OldT = Point.TangentImpulse;
+		const Toolbox::f64 Clamped = Toolbox::Clamp(OldT + LambdaT, -Limit, Limit);
+		Point.TangentImpulse = static_cast<Toolbox::f32>(Clamped);
+		const Toolbox::f64 DifferenceT = Clamped - OldT;
+		ApplyImpulse_Internal(BodyA, BodyB, Point.Position,
+		                      {static_cast<Toolbox::f32>(TangentX * DifferenceT),
+		                       static_cast<Toolbox::f32>(TangentY * DifferenceT)});
+	}
+	// 多様体列の速度拘束を反復して解く。
+	void SolveVelocities_Internal(Toolbox::TVector<FManifold2D>& Manifolds)
+	{
+		for (Toolbox::uint32 Iteration = 0; Iteration < Contact.VelocityIterations; ++Iteration)
+		{
+			for (Toolbox::size_t ManifoldIndex = 0; ManifoldIndex < Manifolds.Size(); ++ManifoldIndex)
+			{
+				FManifold2D& Manifold = Manifolds[ManifoldIndex];
+				FBodyRecord2D* BodyA = Find_Internal(Manifold.BodyA);
+				FBodyRecord2D* BodyB = Find_Internal(Manifold.BodyB);
+				if (BodyA == nullptr || BodyB == nullptr)
+				{
+					continue;
+				}
+				for (Toolbox::size_t PointIndex = 0; PointIndex < Manifold.Points.Size(); ++PointIndex)
+				{
+					SolvePoint_Internal(*BodyA, *BodyB, Manifold.Points[PointIndex], Contact.RestitutionThreshold);
+				}
+			}
+		}
+	}
+	// 解決結果を再利用記録へ保存する。
+	void StoreCache_Internal(const Toolbox::TVector<FManifold2D>& Manifolds)
+	{
+		for (Toolbox::size_t ManifoldIndex = 0; ManifoldIndex < Manifolds.Size(); ++ManifoldIndex)
+		{
+			const FManifold2D& Manifold = Manifolds[ManifoldIndex];
+			const FBodyRecord2D* BodyA = Find_Internal(Manifold.BodyA);
+			const FBodyRecord2D* BodyB = Find_Internal(Manifold.BodyB);
+			if (BodyA == nullptr || BodyB == nullptr)
+			{
+				continue;
+			}
+			for (Toolbox::size_t PointIndex = 0; PointIndex < Manifold.Points.Size(); ++PointIndex)
+			{
+				const FSolvePoint2D& Point = Manifold.Points[PointIndex];
+				bool bStored = false;
+				for (Toolbox::size_t CacheIndex = 0; CacheIndex < Cache.Size(); ++CacheIndex)
+				{
+					FCachedImpulse2D& Cached = Cache[CacheIndex];
+					const bool bSamePair =
+					    Cached.ColliderA == Manifold.ColliderA && Cached.ColliderB == Manifold.ColliderB;
+					if (bSamePair && Cached.FeatureId == Point.FeatureId)
+					{
+						Cached.BodyGenerationA = BodyA->Generation;
+						Cached.BodyGenerationB = BodyB->Generation;
+						Cached.Normal = Point.Normal;
+						Cached.NormalImpulse = Point.NormalImpulse;
+						Cached.TangentImpulse = Point.TangentImpulse;
+						bStored = true;
+						break;
+					}
+				}
+				if (!bStored)
+				{
+					// 記録が増えすぎたら作り直して無限肥大を防ぐ。
+					if (Cache.Size() >= 4096)
+					{
+						Cache.Clear();
+					}
+					FCachedImpulse2D Cached;
+					Cached.ColliderA = Manifold.ColliderA;
+					Cached.ColliderB = Manifold.ColliderB;
+					Cached.BodyGenerationA = BodyA->Generation;
+					Cached.BodyGenerationB = BodyB->Generation;
+					Cached.FeatureId = Point.FeatureId;
+					Cached.Normal = Point.Normal;
+					Cached.NormalImpulse = Point.NormalImpulse;
+					Cached.TangentImpulse = Point.TangentImpulse;
+					Cache.PushBack(Cached);
+				}
+			}
+		}
+	}
+	// 許容幅を超える貫通を位置で補正する。運動エネルギーは注入しない。
+	void CorrectPositions_Internal(const Toolbox::TVector<FManifold2D>& Manifolds) noexcept
+	{
+		for (Toolbox::size_t ManifoldIndex = 0; ManifoldIndex < Manifolds.Size(); ++ManifoldIndex)
+		{
+			const FManifold2D& Manifold = Manifolds[ManifoldIndex];
+			FBodyRecord2D* BodyA = Find_Internal(Manifold.BodyA);
+			FBodyRecord2D* BodyB = Find_Internal(Manifold.BodyB);
+			if (BodyA == nullptr || BodyB == nullptr)
+			{
+				continue;
+			}
+			// 逆質量の合計。
+			const Toolbox::f64 TotalInverse =
+			    Toolbox::f64(BodyA->InverseMass) + BodyB->InverseMass;
+			if (TotalInverse <= 0)
+			{
+				continue;
+			}
+			for (Toolbox::size_t PointIndex = 0; PointIndex < Manifold.Points.Size(); ++PointIndex)
+			{
+				const FSolvePoint2D& Point = Manifold.Points[PointIndex];
+				const Toolbox::f64 Excess = -(Toolbox::f64(Point.Separation) + Contact.ContactSlop);
+				if (Excess <= 0)
+				{
+					continue;
+				}
+				// 一分割の補正量に上限を設ける。
+				Toolbox::f64 Correction = Toolbox::f64(Contact.BaumgarteBeta) * Excess;
+				if (Correction > Contact.MaxCorrection)
+				{
+					Correction = Contact.MaxCorrection;
+				}
+				const Toolbox::f64 WeightA = Toolbox::f64(BodyA->InverseMass) / TotalInverse;
+				const Toolbox::f64 WeightB = Toolbox::f64(BodyB->InverseMass) / TotalInverse;
+				BodyA->Position += {static_cast<Toolbox::f32>(Point.Normal.X * Correction * WeightA),
+				                    static_cast<Toolbox::f32>(Point.Normal.Y * Correction * WeightA)};
+				BodyB->Position += {static_cast<Toolbox::f32>(-Point.Normal.X * Correction * WeightB),
+				                    static_cast<Toolbox::f32>(-Point.Normal.Y * Correction * WeightB)};
+			}
+		}
+	}
 };
-// Dynamicの運動だけを更新する。力は呼び出し元が消去する。
-static void IntegrateDynamic_Internal(FBodyRecord2D& Record, Toolbox::FVector2 Gravity, Toolbox::f64 StepSeconds)
+// Dynamicの速度だけを更新する。位置は呼び出し元が進める。
+static void IntegrateVelocity_Internal(FBodyRecord2D& Record, Toolbox::FVector2 Gravity, Toolbox::f64 StepSeconds)
 {
 	// 減衰後の速度へ加速度を足す半陰的Euler。
 	const Toolbox::f64 DampLinear = 1.0 / (1.0 + static_cast<Toolbox::f64>(Record.LinearDamping) * StepSeconds);
@@ -125,13 +861,18 @@ static void IntegrateDynamic_Internal(FBodyRecord2D& Record, Toolbox::FVector2 G
 	// 角速度。
 	Toolbox::f64 Angular = static_cast<Toolbox::f64>(Record.AngularVelocity) * DampAngular;
 	Angular += static_cast<Toolbox::f64>(Record.Torque) * Record.InverseInertia * StepSeconds;
-	// 更新後の速度で位置と姿勢を進める。
 	Record.Velocity = {static_cast<Toolbox::f32>(VelocityX), static_cast<Toolbox::f32>(VelocityY)};
 	Record.AngularVelocity = static_cast<Toolbox::f32>(Angular);
-	const Toolbox::f32 MovedX = static_cast<Toolbox::f32>(VelocityX * StepSeconds);
-	const Toolbox::f32 MovedY = static_cast<Toolbox::f32>(VelocityY * StepSeconds);
+}
+// 更新後の速度で位置と姿勢を進める。
+static void IntegratePosition_Internal(FBodyRecord2D& Record, Toolbox::f64 StepSeconds) noexcept
+{
+	const Toolbox::f32 MovedX = static_cast<Toolbox::f32>(Toolbox::f64(Record.Velocity.X) * StepSeconds);
+	const Toolbox::f32 MovedY = static_cast<Toolbox::f32>(Toolbox::f64(Record.Velocity.Y) * StepSeconds);
 	Record.Position += {MovedX, MovedY};
-	Record.Angle = static_cast<Toolbox::f32>(static_cast<Toolbox::f64>(Record.Angle) + Angular * StepSeconds);
+	// 指定角速度で姿勢を進める。
+	const Toolbox::f64 Turned = static_cast<Toolbox::f64>(Record.AngularVelocity) * StepSeconds;
+	Record.Angle = static_cast<Toolbox::f32>(static_cast<Toolbox::f64>(Record.Angle) + Turned);
 }
 // 指定速度どおりに運動させる。外力と減衰は適用しない。
 static void IntegrateKinematic_Internal(FBodyRecord2D& Record, Toolbox::f64 StepSeconds) noexcept
@@ -230,6 +971,19 @@ bool FPhysicsWorld2D::DestroyBody(FBodyId2D Id) noexcept
 	Record->Force = {};
 	Record->Torque = 0;
 	m_pImpl->Free.PushBack(Id.Index);
+	// 取り付け済みのコライダーも失効させる。
+	for (Toolbox::size_t Index = 0; Index < m_pImpl->Colliders.Size(); ++Index)
+	{
+		FColliderRecord2D& Collider = m_pImpl->Colliders[Index];
+		if (Collider.bAlive && Collider.Body == Id)
+		{
+			Collider.bAlive = false;
+			Collider.Generation += 1;
+			m_pImpl->ColliderFree.PushBack(Index);
+		}
+	}
+	// 古い接触記録を使い回さない。
+	m_pImpl->Cache.Clear();
 	return true;
 }
 bool FPhysicsWorld2D::IsAlive(FBodyId2D Id) const noexcept
@@ -371,6 +1125,102 @@ Toolbox::FVector2 FPhysicsWorld2D::GetGravity() const noexcept
 {
 	return m_pImpl->Gravity;
 }
+FColliderId2D FPhysicsWorld2D::AttachCollider(FBodyId2D Body, const FColliderDescription2D& Description)
+{
+	FBodyRecord2D& Target = m_pImpl->Resolve_Internal(Body);
+	(void)Target;
+	if (Description.Shape.Index() == 0)
+	{
+		if (!Toolbox::IsValid(Description.Shape.Get<0>()))
+		{
+			throw Toolbox::FException("Invalid 2D circle collider");
+		}
+	}
+	else
+	{
+		if (!Toolbox::IsValid(Description.Shape.Get<1>()))
+		{
+			throw Toolbox::FException("Invalid 2D box collider");
+		}
+	}
+	if (!Toolbox::IsFinite(Description.Friction) || Description.Friction < 0)
+	{
+		throw Toolbox::FException("Invalid 2D collider friction");
+	}
+	if (!Toolbox::IsFinite(Description.Restitution) || Description.Restitution < 0 || Description.Restitution > 1)
+	{
+		throw Toolbox::FException("Invalid 2D collider restitution");
+	}
+	// 新しい登録の初期状態。
+	FColliderRecord2D Record;
+	Record.Body = Body;
+	Record.Shape = Description.Shape;
+	Record.Friction = Description.Friction;
+	Record.Restitution = Description.Restitution;
+	// 空きスロットの再使用または末尾への追加。
+	Toolbox::size_t Index = 0;
+	if (!m_pImpl->ColliderFree.IsEmpty())
+	{
+		Index = m_pImpl->ColliderFree.Back();
+		m_pImpl->ColliderFree.PopBack();
+		FColliderRecord2D& Slot = m_pImpl->Colliders[Index];
+		// 破棄時に進めた世代を引き継ぎ、古いIDと区別する。
+		const Toolbox::uint64 NextGeneration = Slot.Generation + 1;
+		Slot = Record;
+		Slot.Generation = NextGeneration;
+		Slot.bAlive = true;
+	}
+	else
+	{
+		Index = m_pImpl->Colliders.Size();
+		Record.Generation = 1;
+		Record.bAlive = true;
+		m_pImpl->Colliders.PushBack(Record);
+	}
+	return {Body, Index, m_pImpl->Colliders[Index].Generation};
+}
+bool FPhysicsWorld2D::DetachCollider(FColliderId2D Id) noexcept
+{
+	FColliderRecord2D* Record = m_pImpl->FindCollider_Internal(Id);
+	if (Record == nullptr)
+	{
+		return false;
+	}
+	Record->bAlive = false;
+	Record->Generation += 1;
+	m_pImpl->ColliderFree.PushBack(Id.Index);
+	// 古い接触記録を使い回さない。
+	m_pImpl->Cache.Clear();
+	return true;
+}
+void FPhysicsWorld2D::SetContactSettings(const FContactSettings2D& Settings)
+{
+	if (!Toolbox::IsFinite(Settings.ContactSlop) || Settings.ContactSlop < 0)
+	{
+		throw Toolbox::FException("Invalid 2D contact slop");
+	}
+	if (!Toolbox::IsFinite(Settings.BaumgarteBeta) || Settings.BaumgarteBeta < 0 || Settings.BaumgarteBeta > 1)
+	{
+		throw Toolbox::FException("Invalid 2D contact beta");
+	}
+	if (!Toolbox::IsFinite(Settings.MaxCorrection) || Settings.MaxCorrection <= 0)
+	{
+		throw Toolbox::FException("Invalid 2D contact correction");
+	}
+	if (!Toolbox::IsFinite(Settings.RestitutionThreshold) || Settings.RestitutionThreshold < 0)
+	{
+		throw Toolbox::FException("Invalid 2D restitution threshold");
+	}
+	if (Settings.VelocityIterations < 1 || Settings.VelocityIterations > 64)
+	{
+		throw Toolbox::FException("Invalid 2D solver iterations");
+	}
+	m_pImpl->Contact = Settings;
+}
+FContactSettings2D FPhysicsWorld2D::GetContactSettings() const noexcept
+{
+	return m_pImpl->Contact;
+}
 void FPhysicsWorld2D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 {
 	if (!Toolbox::IsFinite(DeltaSeconds) || DeltaSeconds <= 0)
@@ -385,6 +1235,26 @@ void FPhysicsWorld2D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 	const Toolbox::f64 Slice = DeltaSeconds / static_cast<Toolbox::f64>(SubSteps);
 	for (Toolbox::uint32 SliceIndex = 0; SliceIndex < SubSteps; ++SliceIndex)
 	{
+		// 力と重力を速度へ反映する。
+		for (Toolbox::size_t Index = 0; Index < m_pImpl->Slots.Size(); ++Index)
+		{
+			FBodyRecord2D& Record = m_pImpl->Slots[Index];
+			if (!Record.bAlive || Record.Type != EBodyType::Dynamic)
+			{
+				continue;
+			}
+			IntegrateVelocity_Internal(Record, m_pImpl->Gravity, Slice);
+		}
+		// 現在位置の接触を集めて速度拘束を解く。
+		Toolbox::TVector<FManifold2D> Manifolds;
+		m_pImpl->GenerateManifolds_Internal(Manifolds);
+		for (Toolbox::size_t ManifoldIndex = 0; ManifoldIndex < Manifolds.Size(); ++ManifoldIndex)
+		{
+			m_pImpl->WarmStart_Internal(Manifolds[ManifoldIndex]);
+		}
+		m_pImpl->SolveVelocities_Internal(Manifolds);
+		m_pImpl->StoreCache_Internal(Manifolds);
+		// 更新後の速度で位置と姿勢を進める。
 		for (Toolbox::size_t Index = 0; Index < m_pImpl->Slots.Size(); ++Index)
 		{
 			FBodyRecord2D& Record = m_pImpl->Slots[Index];
@@ -394,13 +1264,15 @@ void FPhysicsWorld2D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 			}
 			if (Record.Type == EBodyType::Dynamic)
 			{
-				IntegrateDynamic_Internal(Record, m_pImpl->Gravity, Slice);
+				IntegratePosition_Internal(Record, Slice);
 			}
 			else if (Record.Type == EBodyType::Kinematic)
 			{
 				IntegrateKinematic_Internal(Record, Slice);
 			}
 		}
+		// 許容幅を超える貫通を位置で補正する。
+		m_pImpl->CorrectPositions_Internal(Manifolds);
 	}
 	// 蓄積した力とトルクを一度だけ消去する。
 	for (Toolbox::size_t Index = 0; Index < m_pImpl->Slots.Size(); ++Index)

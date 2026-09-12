@@ -33,12 +33,34 @@
 重心外Impulseの回転、Static／Kinematic、異方慣性の角運動量保存と姿勢正規化、
 減衰、GravityScale、無効入力とID世代管理。
 
-## 検証結果（自環境、Windows/MSVC Debug）
+## 実装済み（段階B: 接触情報と最小の衝突応答）
+
+- `Source/Toolbox/Public/Toolbox/Contact2D.h`（FOrientedBox2D、FContactPoint2D）
+- `Source/Toolbox/Public/Toolbox/Contact3D.h`（FContactPoint3D）
+- `Source/Toolbox/Private/Contact2D.cpp`、`Contact3D.cpp`（最近傍接触、法線B→A、符号付き分離距離、特徴ID）
+- ワールドへコライダー取り付け（円／回転矩形、球／OBB、摩擦・反発つき）と世代管理ID
+- Sequential Impulseソルバー（法線非負累積、反発しきい値と衝突前速度の保存、
+  2D接線・3D接平面の合成上限摩擦、世代・特徴・法線検査つき前回Impulse再利用、
+  許容幅と上限つき位置補正）
+- 2D箱同士はSATと辺切り取りの最大二点多様体。3D箱同士は生成しない（段階Eへ）
+- 混合則は摩擦が相乗平均、反発が最大値（入れ替え対称を試験）
+- テスト `Tests/Physics/ContactTests.cpp`（11ケース）、`Tests/Physics/SolverTests.cpp`（18ケース）
+
+検証済みの振る舞い: 床静止、摩擦なし滑走、摩擦による転がり遷移、斜面滑走、
+反発頂点、質量比の弾性衝突と運動量保存、初期貫通の安全解消、移動床の運搬、
+混合則の対称性、薄縁支持、箱の面着地、回転Kinematic箱の押し出し、コライダー寿命。
+
+## 検証結果（自環境、Windows/MSVC Debug、段階B完了時）
 
 - CTest 4/4（PhysicsContinuation、NoStl、Framework、NativeContract）
-- dxf_tests.exe 180/180、physicsは10/10・16/16・11/11・20/20
-- `python Tools/CheckNoStl.py` は157ファイル、違反0
+- dxf_tests.exe 180/180、physicsは10/10・16/16・11/11・20/20・11/11・18/18
+- `python Tools/CheckNoStl.py` は163ファイル、違反0
 - CTest登録数と実行ファイル内ケース数は別々に数える
+
+TDD記録は `Docs/Tdd/Physics/B1-*.log`、`B2-*.log`。B2では摩擦で停止しない
+真のRedを診断し、転がりへの遷移が理論通り（速度0.6、角速度-1.2）であることを
+確認してテスト側を転がり判定へ修正した。箱の面着地の失敗は箱同士接触の
+分離符号反転と非A基準面の選択誤りで、実装を修正した。
 
 TDD記録は `Docs/Tdd/Physics/A1-*.log`。A1-redは新規API不在のコンパイル失敗、
 green2は private 入れ子型への自由関数アクセス（前例に合わせてFImplメンバー化）、

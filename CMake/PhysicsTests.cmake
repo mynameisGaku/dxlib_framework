@@ -7,6 +7,8 @@ function(dxf_add_physics_tests Target CoreTarget)
         "${_root}/Tests/Physics/SweepTests.cpp"
         "${_root}/Tests/Physics/FixedStepTests.cpp"
         "${_root}/Tests/Physics/RigidBodyTests.cpp"
+        "${_root}/Tests/Physics/ContactTests.cpp"
+        "${_root}/Tests/Physics/SolverTests.cpp"
         "${_root}/Tests/Physics/TestCases.h")
     target_include_directories(${Target} PRIVATE "${_root}/Tests/Physics")
     target_link_libraries(${Target} PRIVATE ${CoreTarget})

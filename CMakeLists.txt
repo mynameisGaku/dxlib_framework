@@ -76,6 +76,8 @@ add_library(dxf_toolbox STATIC
     Source/Toolbox/Private/Complex.cpp
     Source/Toolbox/Private/CollisionShapes.cpp
     Source/Toolbox/Private/Collision2D.cpp
+    Source/Toolbox/Private/Contact2D.cpp
+    Source/Toolbox/Private/Contact3D.cpp
     Source/Toolbox/Private/ContinuousCollision.cpp
     Source/Toolbox/Private/FixedStepScheduler.cpp
     Source/Toolbox/Private/Mesh.cpp

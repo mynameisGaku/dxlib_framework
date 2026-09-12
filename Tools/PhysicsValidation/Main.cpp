@@ -39,5 +39,9 @@ int32 main()
 	Failed += RunGroup_Internal(Cases, Count);
 	Cases = PhysicsTest::GetRigidBodyCases(Count);
 	Failed += RunGroup_Internal(Cases, Count);
+	Cases = PhysicsTest::GetContactCases(Count);
+	Failed += RunGroup_Internal(Cases, Count);
+	Cases = PhysicsTest::GetSolverCases(Count);
+	Failed += RunGroup_Internal(Cases, Count);
 	return Failed == 0 ? 0 : 1;
 }
