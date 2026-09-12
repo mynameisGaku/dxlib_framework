@@ -1,0 +1,235 @@
+dxf-includes.cpp
+繝｡繝｢: 繧､繝ｳ繧ｯ繝ｫ繝ｼ繝・繝輔ぃ繧､繝ｫ:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\WindowsValidation\IncludeProbe\dxf-includes.h
+
+
+
+
+-- Configuring done (0.4s)
+-- Generating done (0.1s)
+-- Build files have been written to: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/windows-debug
+[0/2] Re-checking globbed directories...
+[1/4] Copying sample assets
+[2/4] Building CXX object CMakeFiles\dxf_physics_tests.dir\Tests\Physics\ContinuousTests.cpp.obj
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\TestCases.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Utility.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Compiler.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stddef.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\sal.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\concurrencysal.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vadefs.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\stdint.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\limits.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\float.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\math.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_math.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\new
+メモ: インクルード ファイル:     C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals_core.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xkeycheck.h
+メモ: インクルード ファイル:     C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\exception
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_doom_core.hpp
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\crtdbg.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new_debug.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\crtdefs.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\use_ansi.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdlib
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\math.h
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stdlib.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_malloc.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_search.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_wstdlib.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\type_traits
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstddef
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xtr1common
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdint
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\malloc.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_exception.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\eh.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_terminate.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\initializer_list
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody2D.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/BodyType.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Contact2D.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Collision2D.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Vector2.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Variant.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Optional.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/UniquePtr.h
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Contact3D.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/CollisionShapes.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Vector3.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\emmintrin.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xmmintrin.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\mmintrin.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Array.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Vector.h
+メモ: インクルード ファイル:     C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/SharedPtr.h
+メモ: インクルード ファイル:      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Atomic.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\intrin.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\intrin0.inl.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\setjmp.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\immintrin.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\wmmintrin.h
+メモ: インクルード ファイル:          C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\nmmintrin.h
+メモ: インクルード ファイル:           C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\smmintrin.h
+メモ: インクルード ファイル:            C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\tmmintrin.h
+メモ: インクルード ファイル:             C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\pmmintrin.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\zmmintrin.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\ammintrin.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Quaternion.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Matrix4.h
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(47): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(67): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+メモ: インクルード ファイル:  C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stdio.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_wstdio.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_stdio_config.h
+[3/4] Linking CXX executable dxf_physics_tests.exe
+Test project C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/windows-debug
+    Start 1: PhysicsContinuation
+1/4 Test #1: PhysicsContinuation ..............***Failed    0.17 sec
+PASS sphere touches 1734 face-grid positions in both orders
+PASS sphere corner separation uses Euclidean distance
+PASS sphere box tolerance band
+PASS zero-radius sphere and zero-thickness box
+PASS sphere OBB and cube contacts
+PASS finite large coordinates do not overflow distances
+PASS large offset preserves a small real gap
+PASS mesh surface regression
+PASS invalid collision inputs are rejected
+PASS constructibility constraints remain copyable
+RESULT 10/10 passed
+PASS continuous sphere pass-through
+PASS relative motion and swapped sweep normals
+PASS sweep tangent and near miss
+PASS initial overlap and exact endpoint contact
+PASS stationary receding late and co-moving misses
+PASS high speed keeps finite contact normals
+PASS sphere crosses a zero-thickness wall
+PASS sphere sweep uses rounded corners not expanded AABB
+PASS moving box and zero-radius point
+PASS 2D circle and thin wall sweeps
+PASS 2D static Euclidean distances
+PASS 2D and XY-3D sweep equivalence
+PASS invalid sweep inputs
+PASS 20000 sphere-box trajectories against a scalar search oracle
+PASS sweep tolerance and reversed 2D normal
+PASS tiny shapes preserve continuous contacts
+RESULT 16/16 passed
+PASS fractional frames accumulate fixed steps
+PASS 30 60 120 144 240 Hz produce the same 60 steps
+PASS large frame obeys a bounded catch-up budget
+PASS frame clamp retains interpolation remainder
+PASS discarded backlog time is explicit
+PASS invalid elapsed time does not mutate the scheduler
+PASS invalid scheduler settings are rejected
+PASS reset keeps configuration and clears time
+PASS huge elapsed and tiny steps avoid integer overflow
+PASS accumulator overflow leaves state unchanged
+PASS 10000-frame time accounting
+RESULT 11/11 passed
+PASS 2D body rests without gravity
+PASS 2D body moves uniformly without forces
+PASS 2D gravity acceleration ignores mass
+PASS 2D free fall converges linearly with step
+PASS 3D body rests without gravity
+PASS 3D body moves uniformly without forces
+PASS 3D gravity acceleration ignores mass
+PASS 2D force accelerates and clears after step
+PASS 2D force is held across sub steps
+PASS 2D impulse acts once regardless of sub steps
+PASS 2D off-center impulse rotates the body
+PASS 2D static and kinematic bodies behave
+PASS 2D invalid inputs throw without changing state
+PASS 3D force and torque accelerate the body
+PASS 3D off-center impulse rotates the body
+PASS 3D free rotation conserves angular momentum
+PASS 3D static and kinematic bodies behave
+PASS 3D invalid inputs throw without changing state
+PASS 2D damping and gravity scale behave
+PASS 3D damping reduces speeds
+RESULT 20/20 passed
+PASS circle pair reports separation and normal
+PASS circle pair reports negative penetration
+PASS circle and box face contact
+PASS circle and box corner contact
+PASS circle penetrating box face
+PASS circle center inside box
+PASS sphere pair reports separation and normal
+PASS sphere and box face contact
+PASS sphere penetrating box face
+PASS sphere and rotated box contact
+PASS invalid contact inputs throw
+RESULT 11/11 passed
+PASS ball rests on static floor
+PASS frictionless slide keeps tangential speed
+PASS friction decelerates sliding ball
+PASS ball slides down a slope
+PASS ball bounces with restitution
+PASS mass ratio collision matches analysis
+PASS initial penetration resolves safely
+PASS kinematic platform carries the ball
+PASS restitution mixing is symmetric
+PASS thin edge supports the ball
+PASS dynamic box lands flat on floor
+PASS sphere rests on static floor
+PASS sphere pair collides elastically
+PASS sphere friction decelerates sliding
+PASS sphere bounces with restitution
+PASS kinematic rotating box pushes the ball
+PASS collider lifetime is tracked
+PASS collider lifetime is tracked in 3D
+RESULT 18/18 passed
+PASS fast ball hits thin wall with CCD
+DIAG discrete x=-1.682333
+PASS discrete ball tunnels through thin wall
+PASS both moving bodies collide with CCD
+DIAG multi x=-1.866667 vx=-100.000000 hits=1 toi=2 unproc=0.000000
+FAIL multiple impacts resolve in one step: Rest.X > -0.6 && Rest.X < 0.6
+PASS grazing corner trajectory misses
+PASS separating contact leaves cleanly
+PASS initial overlap with CCD stays safe
+DIAG cap x=-1.100000 unproc=0.007667 hits=1 toi=1
+FAIL iteration cap reports unprocessed time: Rest.X > -0.8 && Rest.X < 0.8
+DIAG rot fallback=0 toi=1 x=-2.857046
+PASS rotated wall falls back to discrete
+PASS resting contact unaffected by CCD
+PASS fast sphere hits thin wall with CCD
+PASS both moving spheres collide with CCD
+RESULT 10/12 passed
+
+    Start 2: NoStl
+2/4 Test #2: NoStl ............................   Passed    0.15 sec
+    Start 3: Framework
+3/4 Test #3: Framework ........................   Passed    0.62 sec
+    Start 4: NativeContract
+4/4 Test #4: NativeContract ...................   Passed    0.01 sec
+
+75% tests passed, 1 tests failed out of 4
+
+Label Time Summary:
+contract         =   0.01 sec*proc (1 test)
+not-real-sdk     =   0.01 sec*proc (1 test)
+physics          =   0.17 sec*proc (1 test)
+portable         =   0.79 sec*proc (2 tests)
+source-policy    =   0.15 sec*proc (1 test)
+
+Total Test time (real) =   0.99 sec
+
+The following tests FAILED:
+	  1 - PhysicsContinuation (Failed)                      physics portable
+Errors while running CTest
+.\Tools\Build.cmd : C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tools\BuildWindows.ps1 : debug-ctest failed.
+See C:\Users\g0190\O
+発生場所 行:1 文字:1
++ .\Tools\Build.cmd -Configuration Debug 2>&1 | Out-File -FilePath "Doc ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (C:\Users\g0190\...:\Users\g0190\O:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+neDrive\Desktop\frame\dxlib_framework\Build\WindowsValidation\debug-ctest.log
+    + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException
+    + FullyQualifiedErrorId : Microsoft.PowerShell.Commands.WriteErrorException,BuildWindows.ps1

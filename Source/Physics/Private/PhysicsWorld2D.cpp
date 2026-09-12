@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: NOASSERTION
 #include "Dxf/RigidBody2D.h"
+#include "Toolbox/ContinuousCollision.h"
 #include "Toolbox/Vector.h"
 namespace Dxf
 {
@@ -30,11 +31,17 @@ struct FBodyRecord2D
 	Toolbox::f32 AngularDamping = 0;
 	// ワールド重力への追従倍率。
 	Toolbox::f32 GravityScale = 1;
+	// 移動区間の接触解決を行うか。
+	bool bUseContinuous = false;
 	// 次の更新で使う蓄積力。ニュートン単位。
 	Toolbox::FVector2 Force;
 	// 次の更新で使う蓄積トルク。ニュートンメートル単位。
 	Toolbox::f32 Torque = 0;
 };
+// 更新後の速度で位置と姿勢を進める。
+static void IntegratePosition_Internal(FBodyRecord2D& Record, Toolbox::f64 StepSeconds) noexcept;
+// 指定速度どおりに運動させる。外力と減衰は適用しない。
+static void IntegrateKinematic_Internal(FBodyRecord2D& Record, Toolbox::f64 StepSeconds) noexcept;
 // 剛体へ取り付けた形状と材質の登録。
 struct FColliderRecord2D
 {
@@ -313,6 +320,89 @@ static void FindBoxContacts_Internal(const Toolbox::FOrientedBox2D& A, const Too
 		Out.PushBack(Hit);
 	}
 }
+// 移動区間を覆う軸平行境界。
+struct FSweptBounds2D
+{
+	// 二軸の最小座標。
+	Toolbox::FVector2 Min;
+	// 二軸の最大座標。
+	Toolbox::FVector2 Max;
+};
+// 円の移動区間を覆う境界を求める。
+static FSweptBounds2D SweptCircle_Internal(Toolbox::FCircle2D Circle, Toolbox::FVector2 Displacement) noexcept
+{
+	FSweptBounds2D Bounds;
+	// 始点と終点の両端に半径を足す。
+	const Toolbox::f64 StartX = Circle.Center.X;
+	const Toolbox::f64 StartY = Circle.Center.Y;
+	const Toolbox::f64 EndX = StartX + Displacement.X;
+	const Toolbox::f64 EndY = StartY + Displacement.Y;
+	Bounds.Min = {static_cast<Toolbox::f32>((StartX < EndX ? StartX : EndX) - Circle.Radius),
+	              static_cast<Toolbox::f32>((StartY < EndY ? StartY : EndY) - Circle.Radius)};
+	Bounds.Max = {static_cast<Toolbox::f32>((StartX > EndX ? StartX : EndX) + Circle.Radius),
+	              static_cast<Toolbox::f32>((StartY > EndY ? StartY : EndY) + Circle.Radius)};
+	return Bounds;
+}
+// 矩形の移動区間を覆う境界を求める。
+static FSweptBounds2D SweptBox_Internal(Toolbox::FOrientedBox2D Box, Toolbox::FVector2 Displacement) noexcept
+{
+	// 回転角の余弦と正弦。
+	const Toolbox::f64 Cosine = Toolbox::Cos(Toolbox::f64(Box.Angle));
+	const Toolbox::f64 Sine = Toolbox::Sin(Toolbox::f64(Box.Angle));
+	FSweptBounds2D Bounds;
+	// 四隅の始点と終点で範囲を広げる。
+	bool bFirst = true;
+	for (Toolbox::int32 Corner = 0; Corner < 4; ++Corner)
+	{
+		const Toolbox::f64 SignX = (Corner & 1) == 0 ? -1 : 1;
+		const Toolbox::f64 SignY = (Corner & 2) == 0 ? -1 : 1;
+		const Toolbox::f64 LocalX = SignX * Box.HalfExtents.X;
+		const Toolbox::f64 LocalY = SignY * Box.HalfExtents.Y;
+		const Toolbox::f64 StartX = Toolbox::f64(Box.Center.X) + Cosine * LocalX - Sine * LocalY;
+		const Toolbox::f64 StartY = Toolbox::f64(Box.Center.Y) + Sine * LocalX + Cosine * LocalY;
+		const Toolbox::f64 PointsX[2] = {StartX, StartX + Displacement.X};
+		const Toolbox::f64 PointsY[2] = {StartY, StartY + Displacement.Y};
+		for (Toolbox::int32 Point = 0; Point < 2; ++Point)
+		{
+			if (bFirst)
+			{
+				Bounds.Min = {static_cast<Toolbox::f32>(PointsX[Point]), static_cast<Toolbox::f32>(PointsY[Point])};
+				Bounds.Max = Bounds.Min;
+				bFirst = false;
+			}
+			else
+			{
+				if (PointsX[Point] < Bounds.Min.X)
+				{
+					Bounds.Min.X = static_cast<Toolbox::f32>(PointsX[Point]);
+				}
+				if (PointsY[Point] < Bounds.Min.Y)
+				{
+					Bounds.Min.Y = static_cast<Toolbox::f32>(PointsY[Point]);
+				}
+				if (PointsX[Point] > Bounds.Max.X)
+				{
+					Bounds.Max.X = static_cast<Toolbox::f32>(PointsX[Point]);
+				}
+				if (PointsY[Point] > Bounds.Max.Y)
+				{
+					Bounds.Max.Y = static_cast<Toolbox::f32>(PointsY[Point]);
+				}
+			}
+		}
+	}
+	return Bounds;
+}
+// 二つの移動境界が重なるかを調べる。
+static bool SweptOverlaps_Internal(const FSweptBounds2D& A, const FSweptBounds2D& B) noexcept
+{
+	return A.Min.X <= B.Max.X && B.Min.X <= A.Max.X && A.Min.Y <= B.Max.Y && B.Min.Y <= A.Max.Y;
+}
+// 世界箱が軸平行かを調べる。箱の対称性から周期は180度。
+static bool IsAxisAligned_Internal(Toolbox::f32 Angle) noexcept
+{
+	return Toolbox::Abs(Toolbox::Sin(2.0 * Toolbox::f64(Angle))) < 1e-6;
+}
 // 平面剛体の登録スロットと接触解決をまとめた実装。
 struct FPhysicsWorld2D::FImpl
 {
@@ -332,6 +422,10 @@ struct FPhysicsWorld2D::FImpl
 	Toolbox::FVector2 Gravity{0, -9.8f};
 	// 接触拘束の解決設定。
 	FContactSettings2D Contact;
+	// 連続衝突の反復設定。
+	FContinuousSettings2D Continuous;
+	// 直近更新の連続衝突診断。
+	FContinuousDiagnostics2D Diagnostics;
 	// 新しいワールドへ重ならない識別子を発行する。
 	static Toolbox::uint64 NextWorld_Internal()
 	{
@@ -846,6 +940,286 @@ struct FPhysicsWorld2D::FImpl
 			}
 		}
 	}
+	// 移動区間の解決を行う剛体があるかを調べる。
+	bool HasContinuousBody_Internal() const noexcept
+	{
+		for (Toolbox::size_t Index = 0; Index < Slots.Size(); ++Index)
+		{
+			const FBodyRecord2D& Record = Slots[Index];
+			if (Record.bAlive && Record.Type == EBodyType::Dynamic && Record.bUseContinuous)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+	// コライダー組の線形CCD対応を調べる。
+	EContinuousSupport ClassifyPair_Internal(const FBodyRecord2D& BodyA, const FColliderRecord2D& RecordA,
+	                                         const FBodyRecord2D& BodyB, const FColliderRecord2D& RecordB) const
+	{
+		const Toolbox::size_t IndexA = RecordA.Shape.Index();
+		const Toolbox::size_t IndexB = RecordB.Shape.Index();
+		if (IndexA == 1 && IndexB == 1)
+		{
+			return EContinuousSupport::UnsupportedPair;
+		}
+		if (IndexA == 1 && !IsAxisAligned_Internal(ToWorld_Internal(BodyA, RecordA.Shape.Get<1>()).Angle))
+		{
+			return EContinuousSupport::UnsupportedRotation;
+		}
+		if (IndexB == 1 && !IsAxisAligned_Internal(ToWorld_Internal(BodyB, RecordB.Shape.Get<1>()).Angle))
+		{
+			return EContinuousSupport::UnsupportedRotation;
+		}
+		return EContinuousSupport::Supported;
+	}
+	// コライダーの移動境界を求める。
+	FSweptBounds2D SweptBoundsOf_Internal(const FBodyRecord2D& Body, const FColliderRecord2D& Record,
+	                                      Toolbox::FVector2 Displacement) const
+	{
+		if (Record.Shape.Index() == 0)
+		{
+			return SweptCircle_Internal(ToWorld_Internal(Body, Record.Shape.Get<0>()), Displacement);
+		}
+		return SweptBox_Internal(ToWorld_Internal(Body, Record.Shape.Get<1>()), Displacement);
+	}
+	// 全剛体を位置だけ進める。力の積分は繰り返さない。
+	void AdvanceAll_Internal(Toolbox::f64 Slice) noexcept
+	{
+		for (Toolbox::size_t Index = 0; Index < Slots.Size(); ++Index)
+		{
+			FBodyRecord2D& Record = Slots[Index];
+			if (!Record.bAlive)
+			{
+				continue;
+			}
+			if (Record.Type == EBodyType::Dynamic)
+			{
+				IntegratePosition_Internal(Record, Slice);
+			}
+			else if (Record.Type == EBodyType::Kinematic)
+			{
+				IntegrateKinematic_Internal(Record, Slice);
+			}
+		}
+	}
+	// 世界箱を軸平行境界へ変換する。
+	static Toolbox::FAABB2D ToBounds_Internal(const Toolbox::FOrientedBox2D& Box) noexcept
+	{
+		Toolbox::FVector2 U;
+		Toolbox::FVector2 V;
+		BoxAxes_Internal(Box, U, V);
+		Toolbox::FAABB2D Bounds;
+		bool bFirst = true;
+		for (Toolbox::int32 Corner = 0; Corner < 4; ++Corner)
+		{
+			const Toolbox::f64 SignX = (Corner & 1) == 0 ? -1 : 1;
+			const Toolbox::f64 SignY = (Corner & 2) == 0 ? -1 : 1;
+			const Toolbox::f64 X = Toolbox::f64(Box.Center.X) + SignX * Box.HalfExtents.X * U.X + SignY * Box.HalfExtents.Y * V.X;
+			const Toolbox::f64 Y = Toolbox::f64(Box.Center.Y) + SignX * Box.HalfExtents.X * U.Y + SignY * Box.HalfExtents.Y * V.Y;
+			if (bFirst)
+			{
+				Bounds.Min = {static_cast<Toolbox::f32>(X), static_cast<Toolbox::f32>(Y)};
+				Bounds.Max = Bounds.Min;
+				bFirst = false;
+			}
+			else
+			{
+				if (X < Bounds.Min.X)
+				{
+					Bounds.Min.X = static_cast<Toolbox::f32>(X);
+				}
+				if (Y < Bounds.Min.Y)
+				{
+					Bounds.Min.Y = static_cast<Toolbox::f32>(Y);
+				}
+				if (X > Bounds.Max.X)
+				{
+					Bounds.Max.X = static_cast<Toolbox::f32>(X);
+				}
+				if (Y > Bounds.Max.Y)
+				{
+					Bounds.Max.Y = static_cast<Toolbox::f32>(Y);
+				}
+			}
+		}
+		return Bounds;
+	}
+	// 現在位置の拘束をその場で解く。時刻は進めない。
+	void SolveNow_Internal()
+	{
+		Toolbox::TVector<FManifold2D> Manifolds;
+		GenerateManifolds_Internal(Manifolds);
+		for (Toolbox::size_t ManifoldIndex = 0; ManifoldIndex < Manifolds.Size(); ++ManifoldIndex)
+		{
+			WarmStart_Internal(Manifolds[ManifoldIndex]);
+		}
+		SolveVelocities_Internal(Manifolds);
+		StoreCache_Internal(Manifolds);
+	}
+	// 最初接触の解決まで位置を進める。残り時間は診断へ残す。
+	void AdvanceContinuous_Internal(Toolbox::f64 Slice)
+	{
+		Toolbox::f64 Remaining = Slice;
+		// 進行なし解決の繰り返しを防ぐ。
+		bool bStalled = false;
+		for (Toolbox::uint32 Iteration = 0; Iteration < Continuous.MaxIterations; ++Iteration)
+		{
+			// 最も早い接触時刻を探す。
+			Toolbox::f64 BestT = 1;
+			bool bFound = false;
+			// 時刻ゼロで接近中の組があるか。
+			bool bZeroApproach = false;
+			for (Toolbox::size_t First = 0; First < Colliders.Size(); ++First)
+			{
+				const FColliderRecord2D& RecordA = Colliders[First];
+				if (!RecordA.bAlive)
+				{
+					continue;
+				}
+				const FBodyRecord2D* BodyA = Find_Internal(RecordA.Body);
+				if (BodyA == nullptr)
+				{
+					continue;
+				}
+				for (Toolbox::size_t Second = First + 1; Second < Colliders.Size(); ++Second)
+				{
+					const FColliderRecord2D& RecordB = Colliders[Second];
+					if (!RecordB.bAlive)
+					{
+						continue;
+					}
+					const FBodyRecord2D* BodyB = Find_Internal(RecordB.Body);
+					if (BodyB == nullptr)
+					{
+						continue;
+					}
+					if (BodyA->Type != EBodyType::Dynamic && BodyB->Type != EBodyType::Dynamic)
+					{
+						continue;
+					}
+					// 残り時間の変位。
+					const bool bMoverA = BodyA->Type == EBodyType::Dynamic && BodyA->bUseContinuous;
+					const bool bMoverB = BodyB->Type == EBodyType::Dynamic && BodyB->bUseContinuous;
+					Toolbox::FVector2 DisplacementA;
+					Toolbox::FVector2 DisplacementB;
+					if (BodyA->Type != EBodyType::Static)
+					{
+						DisplacementA = {static_cast<Toolbox::f32>(Toolbox::f64(BodyA->Velocity.X) * Remaining),
+						                 static_cast<Toolbox::f32>(Toolbox::f64(BodyA->Velocity.Y) * Remaining)};
+					}
+					if (BodyB->Type != EBodyType::Static)
+					{
+						DisplacementB = {static_cast<Toolbox::f32>(Toolbox::f64(BodyB->Velocity.X) * Remaining),
+						                 static_cast<Toolbox::f32>(Toolbox::f64(BodyB->Velocity.Y) * Remaining)};
+					}
+					// 移動区間の長い連続剛体だけを走査する。
+					const Toolbox::f64 LengthA = Toolbox::Sqrt(Toolbox::f64(DisplacementA.X) * DisplacementA.X +
+					                                           Toolbox::f64(DisplacementA.Y) * DisplacementA.Y);
+					const Toolbox::f64 LengthB = Toolbox::Sqrt(Toolbox::f64(DisplacementB.X) * DisplacementB.X +
+					                                           Toolbox::f64(DisplacementB.Y) * DisplacementB.Y);
+					const bool bScanA = bMoverA && LengthA >= Contact.ContactSlop;
+					const bool bScanB = bMoverB && LengthB >= Contact.ContactSlop;
+					if (!bScanA && !bScanB)
+					{
+						continue;
+					}
+					if (!SweptOverlaps_Internal(SweptBoundsOf_Internal(*BodyA, RecordA, DisplacementA),
+					                            SweptBoundsOf_Internal(*BodyB, RecordB, DisplacementB)))
+					{
+						continue;
+					}
+					if (ClassifyPair_Internal(*BodyA, RecordA, *BodyB, RecordB) != EContinuousSupport::Supported)
+					{
+						if (Iteration == 0)
+						{
+							Diagnostics.FallbackPairs++;
+						}
+						continue;
+					}
+					// 正準順序のまま形状と変位を渡す。
+					const Toolbox::size_t IndexA = RecordA.Shape.Index();
+					const Toolbox::size_t IndexB = RecordB.Shape.Index();
+					Toolbox::FSweepHit2D Hit;
+					Hit.bHit = false;
+					if (IndexA == 0 && IndexB == 0)
+					{
+						Hit = Toolbox::Sweep(ToWorld_Internal(*BodyA, RecordA.Shape.Get<0>()), DisplacementA,
+						                     ToWorld_Internal(*BodyB, RecordB.Shape.Get<0>()), DisplacementB);
+					}
+					else if (IndexA == 0)
+					{
+						Hit = Toolbox::Sweep(ToWorld_Internal(*BodyA, RecordA.Shape.Get<0>()), DisplacementA,
+						                     ToBounds_Internal(ToWorld_Internal(*BodyB, RecordB.Shape.Get<1>())), DisplacementB);
+					}
+					else
+					{
+						Hit = Toolbox::Sweep(ToBounds_Internal(ToWorld_Internal(*BodyA, RecordA.Shape.Get<1>())), DisplacementA,
+						                     ToWorld_Internal(*BodyB, RecordB.Shape.Get<0>()), DisplacementB);
+					}
+					if (Hit.bHit && Hit.Time <= 0)
+					{
+						// 中心速度と法線で接近か離反かを区別する。
+						const Toolbox::f64 Approach =
+						    (Toolbox::f64(BodyA->Velocity.X) - BodyB->Velocity.X) * Hit.Normal.X +
+						    (Toolbox::f64(BodyA->Velocity.Y) - BodyB->Velocity.Y) * Hit.Normal.Y;
+						if (Approach < -1e-9)
+						{
+							bZeroApproach = true;
+						}
+						continue;
+					}
+					if (Hit.bHit && Hit.Time < BestT)
+					{
+						BestT = Hit.Time;
+						bFound = true;
+					}
+				}
+			}
+			Diagnostics.ToiIterations++;
+			if (bFound && BestT < 1 && BestT > 0)
+			{
+				const Toolbox::f64 Advance = BestT * Remaining;
+				if (Advance < Continuous.MinAdvanceSeconds)
+				{
+					// 残り時間を無条件に進めず保守停止する。
+					Diagnostics.UnprocessedSeconds += Remaining;
+					Remaining = 0;
+					break;
+				}
+				AdvanceAll_Internal(Advance);
+				Remaining -= Advance;
+				// 接触時刻の拘束を解く。
+				SolveNow_Internal();
+				Diagnostics.HitsResolved++;
+				bStalled = false;
+				continue;
+			}
+			if (bZeroApproach && !bStalled)
+			{
+				// 接近中の初期接触はその場で解いて走査し直す。
+				SolveNow_Internal();
+				bStalled = true;
+				continue;
+			}
+			if (bZeroApproach)
+			{
+				// 進行なし解決の繰り返しは保守停止する。
+				Diagnostics.UnprocessedSeconds += Remaining;
+				Remaining = 0;
+				break;
+			}
+			// 接触がなければ残りを進める。
+			AdvanceAll_Internal(Remaining);
+			Remaining = 0;
+			break;
+		}
+		if (Remaining > 0)
+		{
+			// 反復上限で残した時間を診断へ残す。
+			Diagnostics.UnprocessedSeconds += Remaining;
+		}
+	}
 };
 // Dynamicの速度だけを更新する。位置は呼び出し元が進める。
 static void IntegrateVelocity_Internal(FBodyRecord2D& Record, Toolbox::FVector2 Gravity, Toolbox::f64 StepSeconds)
@@ -924,6 +1298,7 @@ FBodyId2D FPhysicsWorld2D::CreateBody(const FBodyDescription2D& Description)
 	Record.LinearDamping = Description.LinearDamping;
 	Record.AngularDamping = Description.AngularDamping;
 	Record.GravityScale = Description.GravityScale;
+	Record.bUseContinuous = Description.bUseContinuous;
 	if (Description.Type == EBodyType::Dynamic)
 	{
 		if (!Toolbox::IsFinite(Description.Mass) || Description.Mass <= 0)
@@ -1226,6 +1601,51 @@ FContactSettings2D FPhysicsWorld2D::GetContactSettings() const noexcept
 {
 	return m_pImpl->Contact;
 }
+void FPhysicsWorld2D::SetContinuousSettings(const FContinuousSettings2D& Settings)
+{
+	if (Settings.MaxIterations < 1 || Settings.MaxIterations > 32)
+	{
+		throw Toolbox::FException("Invalid 2D continuous iterations");
+	}
+	if (!Toolbox::IsFinite(Settings.MinAdvanceSeconds) || Settings.MinAdvanceSeconds < 0)
+	{
+		throw Toolbox::FException("Invalid 2D continuous progress");
+	}
+	m_pImpl->Continuous = Settings;
+}
+FContinuousSettings2D FPhysicsWorld2D::GetContinuousSettings() const noexcept
+{
+	return m_pImpl->Continuous;
+}
+void FPhysicsWorld2D::SetContinuous(FBodyId2D Id, bool bEnabled)
+{
+	FBodyRecord2D& Record = m_pImpl->Resolve_Internal(Id);
+	Record.bUseContinuous = bEnabled;
+}
+bool FPhysicsWorld2D::IsContinuous(FBodyId2D Id) const
+{
+	return m_pImpl->Resolve_Internal(Id).bUseContinuous;
+}
+EContinuousSupport FPhysicsWorld2D::QueryContinuousSupport(FColliderId2D A, FColliderId2D B) const
+{
+	const FColliderRecord2D* RecordA = m_pImpl->FindCollider_Internal(A);
+	const FColliderRecord2D* RecordB = m_pImpl->FindCollider_Internal(B);
+	if (RecordA == nullptr || RecordB == nullptr)
+	{
+		throw Toolbox::FException("Invalid 2D collider id");
+	}
+	const FBodyRecord2D* BodyA = m_pImpl->Find_Internal(RecordA->Body);
+	const FBodyRecord2D* BodyB = m_pImpl->Find_Internal(RecordB->Body);
+	if (BodyA == nullptr || BodyB == nullptr)
+	{
+		throw Toolbox::FException("Invalid 2D collider body");
+	}
+	return m_pImpl->ClassifyPair_Internal(*BodyA, *RecordA, *BodyB, *RecordB);
+}
+FContinuousDiagnostics2D FPhysicsWorld2D::GetContinuousDiagnostics() const noexcept
+{
+	return m_pImpl->Diagnostics;
+}
 void FPhysicsWorld2D::SetBodyTransform(FBodyId2D Id, Toolbox::FVector2 Position, Toolbox::f32 Angle)
 {
 	if (!Position.IsValid() || !Toolbox::IsFinite(Angle))
@@ -1256,6 +1676,10 @@ void FPhysicsWorld2D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 	}
 	// 一回の更新を等分割し、蓄積力は全分割で保持する。
 	const Toolbox::f64 Slice = DeltaSeconds / static_cast<Toolbox::f64>(SubSteps);
+	// 診断は更新ごとに作り直す。
+	m_pImpl->Diagnostics = {};
+	// 移動区間の解決を行うか。
+	const bool bContinuous = m_pImpl->Continuous.bEnabled && m_pImpl->HasContinuousBody_Internal();
 	for (Toolbox::uint32 SliceIndex = 0; SliceIndex < SubSteps; ++SliceIndex)
 	{
 		// 力と重力を速度へ反映する。
@@ -1277,6 +1701,16 @@ void FPhysicsWorld2D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 		}
 		m_pImpl->SolveVelocities_Internal(Manifolds);
 		m_pImpl->StoreCache_Internal(Manifolds);
+		if (bContinuous)
+		{
+			// 最初接触まで進めて残りを解決する。
+			m_pImpl->AdvanceContinuous_Internal(Slice);
+			// 移動後の分離で貫通を補正する。
+			Toolbox::TVector<FManifold2D> Touched;
+			m_pImpl->GenerateManifolds_Internal(Touched);
+			m_pImpl->CorrectPositions_Internal(Touched);
+			continue;
+		}
 		// 更新後の速度で位置と姿勢を進める。
 		for (Toolbox::size_t Index = 0; Index < m_pImpl->Slots.Size(); ++Index)
 		{

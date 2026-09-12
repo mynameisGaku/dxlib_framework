@@ -43,5 +43,7 @@ int32 main()
 	Failed += RunGroup_Internal(Cases, Count);
 	Cases = PhysicsTest::GetSolverCases(Count);
 	Failed += RunGroup_Internal(Cases, Count);
+	Cases = PhysicsTest::GetContinuousCases(Count);
+	Failed += RunGroup_Internal(Cases, Count);
 	return Failed == 0 ? 0 : 1;
 }

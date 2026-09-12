@@ -71,10 +71,14 @@ struct FBodyDescription2D
 	 * 角速度の減衰率。1毎秒単位の有限な非負値。
 	 */
 	Toolbox::f32 AngularDamping = 0;
-	/**
-	 * ワールド重力への追従倍率。無次元の有限値。
-	 */
+/**
+ * ワールド重力への追従倍率。無次元の有限値。
+ */
 	Toolbox::f32 GravityScale = 1;
+	/**
+	 * 連続衝突で移動区間を調べるか。高速なDynamicに指定する。
+	 */
+	bool bUseContinuous = false;
 };
 /**
  * 平面コライダーを識別する、世代付きの非所有ハンドル。
@@ -141,6 +145,46 @@ struct FContactSettings2D
 	 * 速度拘束の反復数。1〜64。
 	 */
 	Toolbox::uint32 VelocityIterations = 8;
+};
+/**
+ * 連続衝突の反復設定。
+ */
+struct FContinuousSettings2D
+{
+	/**
+	 * 移動区間の接触解決を行うか。
+	 */
+	bool bEnabled = false;
+	/**
+	 * 一分割の接触解決回数。1〜32。
+	 */
+	Toolbox::uint32 MaxIterations = 4;
+	/**
+	 * 進行とみなす最小秒数。有限な非負値。
+	 */
+	Toolbox::f64 MinAdvanceSeconds = 1e-9;
+};
+/**
+ * 直近更新の連続衝突診断。未処理時間は保守停止で残した秒数。
+ */
+struct FContinuousDiagnostics2D
+{
+	/**
+	 * 接触走査の実行回数。
+	 */
+	Toolbox::uint32 ToiIterations = 0;
+	/**
+	 * 解決した最初接触の回数。
+	 */
+	Toolbox::uint32 HitsResolved = 0;
+	/**
+	 * 対象外で離散処理へ回した組数。
+	 */
+	Toolbox::uint32 FallbackPairs = 0;
+	/**
+	 * 保守停止で進めなかった秒数。
+	 */
+	Toolbox::f64 UnprocessedSeconds = 0;
 };
 /**
  * 力・重力・Impulseで動く平面剛体を所有し、接触拘束を解く。
@@ -278,6 +322,36 @@ public:
 	 * 接触拘束の解決設定を返す。
 	 */
 	FContactSettings2D GetContactSettings() const noexcept;
+	/**
+	 * 連続衝突の反復設定を変更する。不正な値は例外で通知する。
+	 * @param Settings 連続衝突の反復設定。
+	 */
+	void SetContinuousSettings(const FContinuousSettings2D& Settings);
+	/**
+	 * 連続衝突の反復設定を返す。
+	 */
+	FContinuousSettings2D GetContinuousSettings() const noexcept;
+	/**
+	 * 剛体の連続衝突の利用を切り替える。期限切れIDは例外で通知する。
+	 * @param Id 登録を識別する世代付きID。
+	 * @param bEnabled 移動区間の接触解決を行うか。
+	 */
+	void SetContinuous(FBodyId2D Id, bool bEnabled);
+	/**
+	 * 剛体が連続衝突を利用するかを調べる。期限切れIDは例外で通知する。
+	 * @param Id 登録を識別する世代付きID。
+	 */
+	bool IsContinuous(FBodyId2D Id) const;
+	/**
+	 * 二つのコライダー組の線形CCD対応を調べる。期限切れIDは例外で通知する。
+	 * @param A 一つ目のコライダー。
+	 * @param B 二つ目のコライダー。
+	 */
+	EContinuousSupport QueryContinuousSupport(FColliderId2D A, FColliderId2D B) const;
+	/**
+	 * 直近更新の連続衝突診断を返す。
+	 */
+	FContinuousDiagnostics2D GetContinuousDiagnostics() const noexcept;
 	/**
 	 * 剛体の姿勢を直接設定する。速度と蓄積力は変更しない。
 	 * テレポート後は接触キャッシュの消去と補間履歴の破棄を呼び出し元が行う。

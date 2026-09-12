@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: NOASSERTION
 #include "Dxf/RigidBody3D.h"
+#include "Toolbox/ContinuousCollision.h"
 #include "Toolbox/Vector.h"
 namespace Dxf
 {
@@ -107,11 +108,15 @@ struct FBodyRecord3D
 	Toolbox::f32 AngularDamping = 0;
 	// ワールド重力への追従倍率。
 	Toolbox::f32 GravityScale = 1;
+	// 移動区間の接触解決を行うか。
+	bool bUseContinuous = false;
 	// 次の更新で使う蓄積力。ニュートン単位。
 	Toolbox::FVector3 Force;
 	// 次の更新で使う蓄積トルク。ワールド軸回り。
 	Toolbox::FVector3 Torque;
 };
+// 更新後の速度で位置を進める。
+static void IntegratePosition_Internal(FBodyRecord3D& Record, Toolbox::f64 StepSeconds) noexcept;
 // 剛体へ取り付けた形状と材質の登録。
 struct FColliderRecord3D
 {
@@ -184,6 +189,141 @@ struct FCachedImpulse3D
 	// 保存した摩擦Impulse。
 	Toolbox::FVector3 FrictionImpulse;
 };
+// 移動区間を覆う軸平行境界。
+struct FSweptBounds3D
+{
+	// 三軸の最小座標。
+	Toolbox::FVector3 Min;
+	// 三軸の最大座標。
+	Toolbox::FVector3 Max;
+};
+// 球の移動区間を覆う境界を求める。
+static FSweptBounds3D SweptSphere_Internal(Toolbox::FSphere Sphere, Toolbox::FVector3 Displacement) noexcept
+{
+	FSweptBounds3D Bounds;
+	// 始点と終点の両端に半径を足す。
+	const Toolbox::f64 StartX = Sphere.Center.X;
+	const Toolbox::f64 StartY = Sphere.Center.Y;
+	const Toolbox::f64 StartZ = Sphere.Center.Z;
+	const Toolbox::f64 EndX = StartX + Displacement.X;
+	const Toolbox::f64 EndY = StartY + Displacement.Y;
+	const Toolbox::f64 EndZ = StartZ + Displacement.Z;
+	Bounds.Min = {static_cast<Toolbox::f32>((StartX < EndX ? StartX : EndX) - Sphere.Radius),
+	              static_cast<Toolbox::f32>((StartY < EndY ? StartY : EndY) - Sphere.Radius),
+	              static_cast<Toolbox::f32>((StartZ < EndZ ? StartZ : EndZ) - Sphere.Radius)};
+	Bounds.Max = {static_cast<Toolbox::f32>((StartX > EndX ? StartX : EndX) + Sphere.Radius),
+	              static_cast<Toolbox::f32>((StartY > EndY ? StartY : EndY) + Sphere.Radius),
+	              static_cast<Toolbox::f32>((StartZ > EndZ ? StartZ : EndZ) + Sphere.Radius)};
+	return Bounds;
+}
+// 箱の移動区間を覆う境界を求める。
+static FSweptBounds3D SweptBox_Internal(const Toolbox::FOBB& Box, Toolbox::FVector3 Displacement) noexcept
+{
+	FSweptBounds3D Bounds;
+	// 八隅の始点と終点で範囲を広げる。
+	bool bFirst = true;
+	for (Toolbox::size_t Corner = 0; Corner < 8; ++Corner)
+	{
+		const Toolbox::f64 SignX = (Corner & 1) == 0 ? -1 : 1;
+		const Toolbox::f64 SignY = (Corner & 2) == 0 ? -1 : 1;
+		const Toolbox::f64 SignZ = (Corner & 4) == 0 ? -1 : 1;
+		const Toolbox::f64 StartX = Toolbox::f64(Box.Center.X) + SignX * Box.HalfExtents.X * Box.Axes[0].X +
+		                            SignY * Box.HalfExtents.Y * Box.Axes[1].X + SignZ * Box.HalfExtents.Z * Box.Axes[2].X;
+		const Toolbox::f64 StartY = Toolbox::f64(Box.Center.Y) + SignX * Box.HalfExtents.X * Box.Axes[0].Y +
+		                            SignY * Box.HalfExtents.Y * Box.Axes[1].Y + SignZ * Box.HalfExtents.Z * Box.Axes[2].Y;
+		const Toolbox::f64 StartZ = Toolbox::f64(Box.Center.Z) + SignX * Box.HalfExtents.X * Box.Axes[0].Z +
+		                            SignY * Box.HalfExtents.Y * Box.Axes[1].Z + SignZ * Box.HalfExtents.Z * Box.Axes[2].Z;
+		const Toolbox::f64 PointsX[2] = {StartX, StartX + Displacement.X};
+		const Toolbox::f64 PointsY[2] = {StartY, StartY + Displacement.Y};
+		const Toolbox::f64 PointsZ[2] = {StartZ, StartZ + Displacement.Z};
+		for (Toolbox::int32 Point = 0; Point < 2; ++Point)
+		{
+			if (bFirst)
+			{
+				Bounds.Min = {static_cast<Toolbox::f32>(PointsX[Point]), static_cast<Toolbox::f32>(PointsY[Point]),
+				              static_cast<Toolbox::f32>(PointsZ[Point])};
+				Bounds.Max = Bounds.Min;
+				bFirst = false;
+			}
+			else
+			{
+				if (PointsX[Point] < Bounds.Min.X)
+				{
+					Bounds.Min.X = static_cast<Toolbox::f32>(PointsX[Point]);
+				}
+				if (PointsY[Point] < Bounds.Min.Y)
+				{
+					Bounds.Min.Y = static_cast<Toolbox::f32>(PointsY[Point]);
+				}
+				if (PointsZ[Point] < Bounds.Min.Z)
+				{
+					Bounds.Min.Z = static_cast<Toolbox::f32>(PointsZ[Point]);
+				}
+				if (PointsX[Point] > Bounds.Max.X)
+				{
+					Bounds.Max.X = static_cast<Toolbox::f32>(PointsX[Point]);
+				}
+				if (PointsY[Point] > Bounds.Max.Y)
+				{
+					Bounds.Max.Y = static_cast<Toolbox::f32>(PointsY[Point]);
+				}
+				if (PointsZ[Point] > Bounds.Max.Z)
+				{
+					Bounds.Max.Z = static_cast<Toolbox::f32>(PointsZ[Point]);
+				}
+			}
+		}
+	}
+	return Bounds;
+}
+// 二つの移動境界が重なるかを調べる。
+static bool SweptOverlaps_Internal(const FSweptBounds3D& A, const FSweptBounds3D& B) noexcept
+{
+	return A.Min.X <= B.Max.X && B.Min.X <= A.Max.X && A.Min.Y <= B.Max.Y && B.Min.Y <= A.Max.Y &&
+	       A.Min.Z <= B.Max.Z && B.Min.Z <= A.Max.Z;
+}
+// 世界箱の軸が符号付き単位軸の置換かを調べる。
+static bool IsAxisAlignedBox_Internal(const Toolbox::FOBB& Box) noexcept
+{
+	bool bUsed[3] = {false, false, false};
+	for (Toolbox::int32 Axis = 0; Axis < 3; ++Axis)
+	{
+		// 軸の長さで正規化する。
+		const Toolbox::f64 Length = Toolbox::Sqrt(Toolbox::f64(Box.Axes[Axis].X) * Box.Axes[Axis].X +
+		                                          Toolbox::f64(Box.Axes[Axis].Y) * Box.Axes[Axis].Y +
+		                                          Toolbox::f64(Box.Axes[Axis].Z) * Box.Axes[Axis].Z);
+		if (!(Length > 1e-12))
+		{
+			return false;
+		}
+		const Toolbox::f64 X = Toolbox::Abs(Toolbox::f64(Box.Axes[Axis].X) / Length);
+		const Toolbox::f64 Y = Toolbox::Abs(Toolbox::f64(Box.Axes[Axis].Y) / Length);
+		const Toolbox::f64 Z = Toolbox::Abs(Toolbox::f64(Box.Axes[Axis].Z) / Length);
+		Toolbox::int32 Dominant = -1;
+		if (X > 1 - 1e-6 && Y < 1e-6 && Z < 1e-6)
+		{
+			Dominant = 0;
+		}
+		else if (Y > 1 - 1e-6 && X < 1e-6 && Z < 1e-6)
+		{
+			Dominant = 1;
+		}
+		else if (Z > 1 - 1e-6 && X < 1e-6 && Y < 1e-6)
+		{
+			Dominant = 2;
+		}
+		else
+		{
+			return false;
+		}
+		if (bUsed[Dominant])
+		{
+			return false;
+		}
+		bUsed[Dominant] = true;
+	}
+	return true;
+}
 // 立体剛体の登録スロットと接触解決をまとめた実装。
 struct FPhysicsWorld3D::FImpl
 {
@@ -203,6 +343,10 @@ struct FPhysicsWorld3D::FImpl
 	Toolbox::FVector3 Gravity{0, -9.8f, 0};
 	// 接触拘束の解決設定。
 	FContactSettings3D Contact;
+	// 連続衝突の反復設定。
+	FContinuousSettings3D Continuous;
+	// 直近更新の連続衝突診断。
+	FContinuousDiagnostics3D Diagnostics;
 	// 新しいワールドへ重ならない識別子を発行する。
 	static Toolbox::uint64 NextWorld_Internal()
 	{
@@ -794,6 +938,299 @@ struct FPhysicsWorld3D::FImpl
 			}
 		}
 	}
+	// 移動区間の解決を行う剛体があるかを調べる。
+	bool HasContinuousBody_Internal() const noexcept
+	{
+		for (Toolbox::size_t Index = 0; Index < Slots.Size(); ++Index)
+		{
+			const FBodyRecord3D& Record = Slots[Index];
+			if (Record.bAlive && Record.Type == EBodyType::Dynamic && Record.bUseContinuous)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+	// コライダー組の線形CCD対応を調べる。箱は世界姿勢で判定する。
+	EContinuousSupport ClassifyPair_Internal(const FBodyRecord3D& BodyA, const FColliderRecord3D& RecordA,
+	                                         const FBodyRecord3D& BodyB, const FColliderRecord3D& RecordB) const
+	{
+		const Toolbox::size_t IndexA = RecordA.Shape.Index();
+		const Toolbox::size_t IndexB = RecordB.Shape.Index();
+		if (IndexA == 1 && IndexB == 1)
+		{
+			return EContinuousSupport::UnsupportedPair;
+		}
+		if (IndexA == 1 && !IsAxisAlignedBox_Internal(ToWorld_Internal(BodyA, RecordA.Shape.Get<1>())))
+		{
+			return EContinuousSupport::UnsupportedRotation;
+		}
+		if (IndexB == 1 && !IsAxisAlignedBox_Internal(ToWorld_Internal(BodyB, RecordB.Shape.Get<1>())))
+		{
+			return EContinuousSupport::UnsupportedRotation;
+		}
+		return EContinuousSupport::Supported;
+	}
+	// コライダーの移動境界を求める。
+	FSweptBounds3D SweptBoundsOf_Internal(const FBodyRecord3D& Body, const FColliderRecord3D& Record,
+	                                      Toolbox::FVector3 Displacement) const
+	{
+		if (Record.Shape.Index() == 0)
+		{
+			return SweptSphere_Internal(ToWorld_Internal(Body, Record.Shape.Get<0>()), Displacement);
+		}
+		return SweptBox_Internal(ToWorld_Internal(Body, Record.Shape.Get<1>()), Displacement);
+	}
+	// 全剛体を位置だけ進める。力の積分は繰り返さない。
+	void AdvanceAll_Internal(Toolbox::f64 Slice) noexcept
+	{
+		for (Toolbox::size_t Index = 0; Index < Slots.Size(); ++Index)
+		{
+			FBodyRecord3D& Record = Slots[Index];
+			if (!Record.bAlive)
+			{
+				continue;
+			}
+			if (Record.Type == EBodyType::Dynamic || Record.Type == EBodyType::Kinematic)
+			{
+				IntegratePosition_Internal(Record, Slice);
+				const FVector3D Angular = {Record.AngularVelocity.X, Record.AngularVelocity.Y,
+				                           Record.AngularVelocity.Z};
+				IntegrateOrientation_Internal(Record.Orientation, Angular, Slice);
+			}
+		}
+	}
+	// 世界箱を軸平行境界へ変換する。
+	static Toolbox::FAABB ToBounds_Internal(const Toolbox::FOBB& Box) noexcept
+	{
+		Toolbox::FAABB Bounds;
+		bool bFirst = true;
+		for (Toolbox::size_t Corner = 0; Corner < 8; ++Corner)
+		{
+			const Toolbox::f64 SignX = (Corner & 1) == 0 ? -1 : 1;
+			const Toolbox::f64 SignY = (Corner & 2) == 0 ? -1 : 1;
+			const Toolbox::f64 SignZ = (Corner & 4) == 0 ? -1 : 1;
+			const Toolbox::f64 X = Toolbox::f64(Box.Center.X) + SignX * Box.HalfExtents.X * Box.Axes[0].X +
+			                       SignY * Box.HalfExtents.Y * Box.Axes[1].X + SignZ * Box.HalfExtents.Z * Box.Axes[2].X;
+			const Toolbox::f64 Y = Toolbox::f64(Box.Center.Y) + SignX * Box.HalfExtents.X * Box.Axes[0].Y +
+			                       SignY * Box.HalfExtents.Y * Box.Axes[1].Y + SignZ * Box.HalfExtents.Z * Box.Axes[2].Y;
+			const Toolbox::f64 Z = Toolbox::f64(Box.Center.Z) + SignX * Box.HalfExtents.X * Box.Axes[0].Z +
+			                       SignY * Box.HalfExtents.Y * Box.Axes[1].Z + SignZ * Box.HalfExtents.Z * Box.Axes[2].Z;
+			if (bFirst)
+			{
+				Bounds.Min = {static_cast<Toolbox::f32>(X), static_cast<Toolbox::f32>(Y), static_cast<Toolbox::f32>(Z)};
+				Bounds.Max = Bounds.Min;
+				bFirst = false;
+			}
+			else
+			{
+				if (X < Bounds.Min.X)
+				{
+					Bounds.Min.X = static_cast<Toolbox::f32>(X);
+				}
+				if (Y < Bounds.Min.Y)
+				{
+					Bounds.Min.Y = static_cast<Toolbox::f32>(Y);
+				}
+				if (Z < Bounds.Min.Z)
+				{
+					Bounds.Min.Z = static_cast<Toolbox::f32>(Z);
+				}
+				if (X > Bounds.Max.X)
+				{
+					Bounds.Max.X = static_cast<Toolbox::f32>(X);
+				}
+				if (Y > Bounds.Max.Y)
+				{
+					Bounds.Max.Y = static_cast<Toolbox::f32>(Y);
+				}
+				if (Z > Bounds.Max.Z)
+				{
+					Bounds.Max.Z = static_cast<Toolbox::f32>(Z);
+				}
+			}
+		}
+		return Bounds;
+	}
+	// 現在位置の拘束をその場で解く。時刻は進めない。
+	void SolveNow_Internal()
+	{
+		Toolbox::TVector<FManifold3D> Manifolds;
+		GenerateManifolds_Internal(Manifolds);
+		for (Toolbox::size_t ManifoldIndex = 0; ManifoldIndex < Manifolds.Size(); ++ManifoldIndex)
+		{
+			WarmStart_Internal(Manifolds[ManifoldIndex]);
+		}
+		SolveVelocities_Internal(Manifolds);
+		StoreCache_Internal(Manifolds);
+	}
+	// 最初接触の解決まで位置を進める。残り時間は診断へ残す。
+	void AdvanceContinuous_Internal(Toolbox::f64 Slice)
+	{
+		Toolbox::f64 Remaining = Slice;
+		// 進行なし解決の繰り返しを防ぐ。
+		bool bStalled = false;
+		for (Toolbox::uint32 Iteration = 0; Iteration < Continuous.MaxIterations; ++Iteration)
+		{
+			// 最も早い接触時刻を探す。
+			Toolbox::f64 BestT = 1;
+			bool bFound = false;
+			// 時刻ゼロで接近中の組があるか。
+			bool bZeroApproach = false;
+			for (Toolbox::size_t First = 0; First < Colliders.Size(); ++First)
+			{
+				const FColliderRecord3D& RecordA = Colliders[First];
+				if (!RecordA.bAlive)
+				{
+					continue;
+				}
+				const FBodyRecord3D* BodyA = Find_Internal(RecordA.Body);
+				if (BodyA == nullptr)
+				{
+					continue;
+				}
+				for (Toolbox::size_t Second = First + 1; Second < Colliders.Size(); ++Second)
+				{
+					const FColliderRecord3D& RecordB = Colliders[Second];
+					if (!RecordB.bAlive)
+					{
+						continue;
+					}
+					const FBodyRecord3D* BodyB = Find_Internal(RecordB.Body);
+					if (BodyB == nullptr)
+					{
+						continue;
+					}
+					if (BodyA->Type != EBodyType::Dynamic && BodyB->Type != EBodyType::Dynamic)
+					{
+						continue;
+					}
+					// 残り時間の変位。
+					const bool bMoverA = BodyA->Type == EBodyType::Dynamic && BodyA->bUseContinuous;
+					const bool bMoverB = BodyB->Type == EBodyType::Dynamic && BodyB->bUseContinuous;
+					Toolbox::FVector3 DisplacementA;
+					Toolbox::FVector3 DisplacementB;
+					if (BodyA->Type != EBodyType::Static)
+					{
+						DisplacementA = {static_cast<Toolbox::f32>(Toolbox::f64(BodyA->Velocity.X) * Remaining),
+						                 static_cast<Toolbox::f32>(Toolbox::f64(BodyA->Velocity.Y) * Remaining),
+						                 static_cast<Toolbox::f32>(Toolbox::f64(BodyA->Velocity.Z) * Remaining)};
+					}
+					if (BodyB->Type != EBodyType::Static)
+					{
+						DisplacementB = {static_cast<Toolbox::f32>(Toolbox::f64(BodyB->Velocity.X) * Remaining),
+						                 static_cast<Toolbox::f32>(Toolbox::f64(BodyB->Velocity.Y) * Remaining),
+						                 static_cast<Toolbox::f32>(Toolbox::f64(BodyB->Velocity.Z) * Remaining)};
+					}
+					// 移動区間の長い連続剛体だけを走査する。
+					const Toolbox::f64 LengthA = Toolbox::Sqrt(Toolbox::f64(DisplacementA.X) * DisplacementA.X +
+					                                           Toolbox::f64(DisplacementA.Y) * DisplacementA.Y +
+					                                           Toolbox::f64(DisplacementA.Z) * DisplacementA.Z);
+					const Toolbox::f64 LengthB = Toolbox::Sqrt(Toolbox::f64(DisplacementB.X) * DisplacementB.X +
+					                                           Toolbox::f64(DisplacementB.Y) * DisplacementB.Y +
+					                                           Toolbox::f64(DisplacementB.Z) * DisplacementB.Z);
+					const bool bScanA = bMoverA && LengthA >= Contact.ContactSlop;
+					const bool bScanB = bMoverB && LengthB >= Contact.ContactSlop;
+					if (!bScanA && !bScanB)
+					{
+						continue;
+					}
+					if (!SweptOverlaps_Internal(SweptBoundsOf_Internal(*BodyA, RecordA, DisplacementA),
+					                            SweptBoundsOf_Internal(*BodyB, RecordB, DisplacementB)))
+					{
+						continue;
+					}
+					if (ClassifyPair_Internal(*BodyA, RecordA, *BodyB, RecordB) != EContinuousSupport::Supported)
+					{
+						if (Iteration == 0)
+						{
+							Diagnostics.FallbackPairs++;
+						}
+						continue;
+					}
+					const Toolbox::size_t IndexA = RecordA.Shape.Index();
+					const Toolbox::size_t IndexB = RecordB.Shape.Index();
+					Toolbox::FSweepHit3D Hit;
+					Hit.bHit = false;
+					if (IndexA == 0 && IndexB == 0)
+					{
+						Hit = Toolbox::Sweep(ToWorld_Internal(*BodyA, RecordA.Shape.Get<0>()), DisplacementA,
+						                     ToWorld_Internal(*BodyB, RecordB.Shape.Get<0>()), DisplacementB);
+					}
+					else if (IndexA == 0)
+					{
+						Hit = Toolbox::Sweep(ToWorld_Internal(*BodyA, RecordA.Shape.Get<0>()), DisplacementA,
+						                     ToBounds_Internal(ToWorld_Internal(*BodyB, RecordB.Shape.Get<1>())), DisplacementB);
+					}
+					else
+					{
+						Hit = Toolbox::Sweep(ToBounds_Internal(ToWorld_Internal(*BodyA, RecordA.Shape.Get<1>())), DisplacementA,
+						                     ToWorld_Internal(*BodyB, RecordB.Shape.Get<0>()), DisplacementB);
+					}
+					if (Hit.bHit && Hit.Time <= 0)
+					{
+						// 中心速度と法線で接近か離反かを区別する。
+						const Toolbox::f64 Approach =
+						    (Toolbox::f64(BodyA->Velocity.X) - BodyB->Velocity.X) * Hit.Normal.X +
+						    (Toolbox::f64(BodyA->Velocity.Y) - BodyB->Velocity.Y) * Hit.Normal.Y +
+						    (Toolbox::f64(BodyA->Velocity.Z) - BodyB->Velocity.Z) * Hit.Normal.Z;
+						if (Approach < -1e-9)
+						{
+							bZeroApproach = true;
+						}
+						continue;
+					}
+					if (Hit.bHit && Hit.Time < BestT)
+					{
+						BestT = Hit.Time;
+						bFound = true;
+					}
+				}
+			}
+			Diagnostics.ToiIterations++;
+			if (bFound && BestT < 1 && BestT > 0)
+			{
+				const Toolbox::f64 Advance = BestT * Remaining;
+				if (Advance < Continuous.MinAdvanceSeconds)
+				{
+					// 残り時間を無条件に進めず保守停止する。
+					Diagnostics.UnprocessedSeconds += Remaining;
+					Remaining = 0;
+					break;
+				}
+				AdvanceAll_Internal(Advance);
+				Remaining -= Advance;
+				// 接触時刻の拘束を解く。
+				SolveNow_Internal();
+				Diagnostics.HitsResolved++;
+				bStalled = false;
+				continue;
+			}
+			if (bZeroApproach && !bStalled)
+			{
+				// 接近中の初期接触はその場で解いて走査し直す。
+				SolveNow_Internal();
+				bStalled = true;
+				continue;
+			}
+			if (bZeroApproach)
+			{
+				// 進行なし解決の繰り返しは保守停止する。
+				Diagnostics.UnprocessedSeconds += Remaining;
+				Remaining = 0;
+				break;
+			}
+			// 接触がなければ残りを進める。
+			AdvanceAll_Internal(Remaining);
+			Remaining = 0;
+			break;
+		}
+		if (Remaining > 0)
+		{
+			// 反復上限で残した時間を診断へ残す。
+			Diagnostics.UnprocessedSeconds += Remaining;
+		}
+	}
 };
 // Dynamicの並進速度だけを更新する。位置は呼び出し元が進める。
 static void IntegrateVelocity_Internal(FBodyRecord3D& Record, Toolbox::FVector3 Gravity, Toolbox::f64 StepSeconds)
@@ -891,6 +1328,7 @@ FBodyId3D FPhysicsWorld3D::CreateBody(const FBodyDescription3D& Description)
 	Record.LinearDamping = Description.LinearDamping;
 	Record.AngularDamping = Description.AngularDamping;
 	Record.GravityScale = Description.GravityScale;
+	Record.bUseContinuous = Description.bUseContinuous;
 	if (Description.Type == EBodyType::Dynamic)
 	{
 		if (!Toolbox::IsFinite(Description.Mass) || Description.Mass <= 0)
@@ -1229,6 +1667,51 @@ FContactSettings3D FPhysicsWorld3D::GetContactSettings() const noexcept
 {
 	return m_pImpl->Contact;
 }
+void FPhysicsWorld3D::SetContinuousSettings(const FContinuousSettings3D& Settings)
+{
+	if (Settings.MaxIterations < 1 || Settings.MaxIterations > 32)
+	{
+		throw Toolbox::FException("Invalid 3D continuous iterations");
+	}
+	if (!Toolbox::IsFinite(Settings.MinAdvanceSeconds) || Settings.MinAdvanceSeconds < 0)
+	{
+		throw Toolbox::FException("Invalid 3D continuous progress");
+	}
+	m_pImpl->Continuous = Settings;
+}
+FContinuousSettings3D FPhysicsWorld3D::GetContinuousSettings() const noexcept
+{
+	return m_pImpl->Continuous;
+}
+void FPhysicsWorld3D::SetContinuous(FBodyId3D Id, bool bEnabled)
+{
+	FBodyRecord3D& Record = m_pImpl->Resolve_Internal(Id);
+	Record.bUseContinuous = bEnabled;
+}
+bool FPhysicsWorld3D::IsContinuous(FBodyId3D Id) const
+{
+	return m_pImpl->Resolve_Internal(Id).bUseContinuous;
+}
+EContinuousSupport FPhysicsWorld3D::QueryContinuousSupport(FColliderId3D A, FColliderId3D B) const
+{
+	const FColliderRecord3D* RecordA = m_pImpl->FindCollider_Internal(A);
+	const FColliderRecord3D* RecordB = m_pImpl->FindCollider_Internal(B);
+	if (RecordA == nullptr || RecordB == nullptr)
+	{
+		throw Toolbox::FException("Invalid 3D collider id");
+	}
+	const FBodyRecord3D* BodyA = m_pImpl->Find_Internal(RecordA->Body);
+	const FBodyRecord3D* BodyB = m_pImpl->Find_Internal(RecordB->Body);
+	if (BodyA == nullptr || BodyB == nullptr)
+	{
+		throw Toolbox::FException("Invalid 3D collider body");
+	}
+	return m_pImpl->ClassifyPair_Internal(*BodyA, *RecordA, *BodyB, *RecordB);
+}
+FContinuousDiagnostics3D FPhysicsWorld3D::GetContinuousDiagnostics() const noexcept
+{
+	return m_pImpl->Diagnostics;
+}
 void FPhysicsWorld3D::SetBodyTransform(FBodyId3D Id, Toolbox::FVector3 Position, Toolbox::FQuaternion Orientation)
 {
 	if (!Position.IsValid())
@@ -1268,6 +1751,10 @@ void FPhysicsWorld3D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 	}
 	// 一回の更新を等分割し、蓄積力は全分割で保持する。
 	const Toolbox::f64 Slice = DeltaSeconds / static_cast<Toolbox::f64>(SubSteps);
+	// 診断は更新ごとに作り直す。
+	m_pImpl->Diagnostics = {};
+	// 移動区間の解決を行うか。
+	const bool bContinuous = m_pImpl->Continuous.bEnabled && m_pImpl->HasContinuousBody_Internal();
 	for (Toolbox::uint32 SliceIndex = 0; SliceIndex < SubSteps; ++SliceIndex)
 	{
 		// 力と重力を速度へ反映する。
@@ -1289,6 +1776,16 @@ void FPhysicsWorld3D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 		}
 		m_pImpl->SolveVelocities_Internal(Manifolds);
 		m_pImpl->StoreCache_Internal(Manifolds);
+		if (bContinuous)
+		{
+			// 最初接触まで進めて残りを解決する。
+			m_pImpl->AdvanceContinuous_Internal(Slice);
+			// 移動後の分離で貫通を補正する。
+			Toolbox::TVector<FManifold3D> Touched;
+			m_pImpl->GenerateManifolds_Internal(Touched);
+			m_pImpl->CorrectPositions_Internal(Touched);
+			continue;
+		}
 		// 更新後の速度で位置を進める。
 		for (Toolbox::size_t Index = 0; Index < m_pImpl->Slots.Size(); ++Index)
 		{

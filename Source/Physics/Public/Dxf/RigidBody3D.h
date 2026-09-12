@@ -77,6 +77,10 @@ struct FBodyDescription3D
 	 * ワールド重力への追従倍率。無次元の有限値。
 	 */
 	Toolbox::f32 GravityScale = 1;
+	/**
+	 * 連続衝突で移動区間を調べるか。高速なDynamicに指定する。
+	 */
+	bool bUseContinuous = false;
 };
 /**
  * 立体コライダーを識別する、世代付きの非所有ハンドル。
@@ -148,6 +152,46 @@ struct FContactSettings3D
  * 力・重力・Impulseで動く立体剛体を所有し、接触拘束を解く。
  * 単一スレッドで使用し、DxLibや描画を知らない。箱同士の組は接触を生成しない。
  */
+/**
+ * 連続衝突の反復設定。
+ */
+struct FContinuousSettings3D
+{
+	/**
+	 * 移動区間の接触解決を行うか。
+	 */
+	bool bEnabled = false;
+	/**
+	 * 一分割の接触解決回数。1〜32。
+	 */
+	Toolbox::uint32 MaxIterations = 4;
+	/**
+	 * 進行とみなす最小秒数。有限な非負値。
+	 */
+	Toolbox::f64 MinAdvanceSeconds = 1e-9;
+};
+/**
+ * 直近更新の連続衝突診断。未処理時間は保守停止で残した秒数。
+ */
+struct FContinuousDiagnostics3D
+{
+	/**
+	 * 接触走査の実行回数。
+	 */
+	Toolbox::uint32 ToiIterations = 0;
+	/**
+	 * 解決した最初接触の回数。
+	 */
+	Toolbox::uint32 HitsResolved = 0;
+	/**
+	 * 対象外で離散処理へ回した組数。
+	 */
+	Toolbox::uint32 FallbackPairs = 0;
+	/**
+	 * 保守停止で進めなかった秒数。
+	 */
+	Toolbox::f64 UnprocessedSeconds = 0;
+};
 class FPhysicsWorld3D
 {
 public:
@@ -280,6 +324,36 @@ public:
 	 * 接触拘束の解決設定を返す。
 	 */
 	FContactSettings3D GetContactSettings() const noexcept;
+	/**
+	 * 連続衝突の反復設定を変更する。不正な値は例外で通知する。
+	 * @param Settings 連続衝突の反復設定。
+	 */
+	void SetContinuousSettings(const FContinuousSettings3D& Settings);
+	/**
+	 * 連続衝突の反復設定を返す。
+	 */
+	FContinuousSettings3D GetContinuousSettings() const noexcept;
+	/**
+	 * 剛体の連続衝突の利用を切り替える。期限切れIDは例外で通知する。
+	 * @param Id 登録を識別する世代付きID。
+	 * @param bEnabled 移動区間の接触解決を行うか。
+	 */
+	void SetContinuous(FBodyId3D Id, bool bEnabled);
+	/**
+	 * 剛体が連続衝突を利用するかを調べる。期限切れIDは例外で通知する。
+	 * @param Id 登録を識別する世代付きID。
+	 */
+	bool IsContinuous(FBodyId3D Id) const;
+	/**
+	 * 二つのコライダー組の線形CCD対応を調べる。期限切れIDは例外で通知する。
+	 * @param A 一つ目のコライダー。
+	 * @param B 二つ目のコライダー。
+	 */
+	EContinuousSupport QueryContinuousSupport(FColliderId3D A, FColliderId3D B) const;
+	/**
+	 * 直近更新の連続衝突診断を返す。
+	 */
+	FContinuousDiagnostics3D GetContinuousDiagnostics() const noexcept;
 	/**
 	 * 剛体の姿勢を直接設定する。速度と蓄積力は変更しない。
 	 * テレポート後は接触キャッシュの消去と補間履歴の破棄を呼び出し元が行う。

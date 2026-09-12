@@ -21,5 +21,23 @@ enum class EBodyType
 	 */
 	Dynamic
 };
+/**
+ * 線形CCDの対応状態。
+ */
+enum class EContinuousSupport
+{
+	/**
+	 * 直線移動の最初接触を求められる。
+	 */
+	Supported,
+	/**
+	 * 形状の組み合わせが対象外。
+	 */
+	UnsupportedPair,
+	/**
+	 * 回転を含むため直線Sweepでは扱わない。
+	 */
+	UnsupportedRotation
+};
 } // namespace Dxf
 #endif
