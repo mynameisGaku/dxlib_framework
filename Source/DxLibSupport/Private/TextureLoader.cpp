@@ -1,4 +1,5 @@
 #include "Dxf/TextureLoader.h"
+#include "Dxf/Utf8.h"
 
 namespace Dxf
 {
@@ -24,6 +25,10 @@ TResult<FTexture> FTextureLoader::Load(const std::string& Path, const FTextureLo
 	if (m_pRegistry->IsShutdown())
 	{
 		return TResult<FTexture>::Failure(EErrorCode::InvalidState, "Assets stopped");
+	}
+	if (!Detail::IsValidNativeString_Internal(Path))
+	{
+		return TResult<FTexture>::Failure(EErrorCode::InvalidArgument, "Path must be nonempty UTF-8 without NUL");
 	}
 	auto Allocation = m_pBackend->LoadTexture(Path, Options);
 	if (!Allocation)

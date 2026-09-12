@@ -12,6 +12,10 @@ TResult<FPlaybackHandle> FAudioPlayer::Play(const FSound& Sound, const FPlayback
 	{
 		return TResult<FPlaybackHandle>::Failure(EErrorCode::InvalidArgument, "Volume must be in [0, 1]");
 	}
+	if (Sound.GetResource_Internal()->GetBackendIdentity_Internal() != m_pBackend)
+	{
+		return TResult<FPlaybackHandle>::Failure(EErrorCode::InvalidArgument, "Sound belongs to a different backend");
+	}
 	const auto& Metadata = Sound.GetResource_Internal()->GetMetadata();
 	auto Loaded = Metadata.Options.Storage == ESoundStorage::Memory ? m_pBackend->DuplicateSound(Sound.GetNativeHandle_Internal()) : m_pBackend->LoadSound(Metadata.Path, Metadata.Options);
 	if (!Loaded)

@@ -37,6 +37,12 @@ TResult<bool> FSceneNavigator::Commit_Internal()
 		m_LastTransitionError = Prepared.Error();
 		return TResult<bool>::Failure(Prepared.Error());
 	}
+	if (Next->IsDestroyRequested())
+	{
+		Next->Shutdown_Internal();
+		m_LastTransitionError = FError{EErrorCode::InvalidState, "Scene destroyed during preparation"};
+		return TResult<bool>::Failure(*m_LastTransitionError);
+	}
 	if (WantsQuit() || m_bShutdownRequested)
 	{
 		// A prepared scene has not entered an audio scope; do not stop global scope 0.

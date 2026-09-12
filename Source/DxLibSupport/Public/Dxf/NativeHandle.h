@@ -38,6 +38,10 @@ public:
 	{
 		return m_Handle;
 	}
+	const void* GetBackendIdentity_Internal() const noexcept
+	{
+		return m_pContext;
+	}
 	void Reset() noexcept
 	{
 		const int Handle = std::exchange(m_Handle, -1);

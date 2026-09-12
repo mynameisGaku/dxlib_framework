@@ -1,4 +1,5 @@
 #include "Dxf/FontLoader.h"
+#include "Dxf/Utf8.h"
 
 namespace Dxf
 {
@@ -8,9 +9,9 @@ TResult<FFont> FFontLoader::Load(const FFontOptions& Options)
 	{
 		return TResult<FFont>::Failure(EErrorCode::InvalidState, "Assets stopped");
 	}
-	if (Options.Size <= 0 || Options.Thickness <= 0)
+	if (Options.Size <= 0 || Options.Thickness <= 0 || !Detail::IsValidNativeString_Internal(Options.Family, true))
 	{
-		return TResult<FFont>::Failure(EErrorCode::InvalidArgument, "Invalid font dimensions");
+		return TResult<FFont>::Failure(EErrorCode::InvalidArgument, "Invalid font dimensions or family name");
 	}
 	auto Loaded = m_pBackend->CreateFont(Options);
 	if (!Loaded)

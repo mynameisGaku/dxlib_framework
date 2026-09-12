@@ -25,6 +25,10 @@ public:
 	{
 		return m_Handle.Get();
 	}
+	const void* GetBackendIdentity_Internal() const noexcept
+	{
+		return m_Handle.GetBackendIdentity_Internal();
+	}
 	const TMetadata& GetMetadata() const noexcept
 	{
 		return m_Metadata;
@@ -45,6 +49,10 @@ public:
 	FResourceRegistry& operator=(const FResourceRegistry&) = delete;
 	bool Register(const std::shared_ptr<IResourceRecord>& Resource)
 	{
+		if (!Resource)
+		{
+			return false;
+		}
 		if (m_bShutdown)
 		{
 			Resource->Release_Internal();

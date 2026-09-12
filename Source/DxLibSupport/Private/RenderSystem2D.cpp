@@ -35,6 +35,7 @@ TResult<void> FRenderSystem2D::BeginFrame(int Width, int Height, FColor Color)
 	m_Height = Height;
 	m_Target = {};
 	m_bFrame = true;
+	m_FrameError.reset();
 	m_Queue.SetTarget_Internal(-1);
 	m_Queue.SetAccepting_Internal(true);
 	return {};
@@ -64,11 +65,38 @@ TResult<void> FRenderSystem2D::RestoreTarget_Internal()
 }
 TResult<void> FRenderSystem2D::Flush_Internal()
 {
-	if (m_Target.AsTexture().GetResource_Internal() && !m_Target.IsValid())
+	if (m_FrameError)
 	{
-		return TResult<void>::Failure(EErrorCode::InvalidState, "Target was invalidated");
+		return TResult<void>::Failure(*m_FrameError);
 	}
-	return m_Queue.Execute_Internal(*m_pBackend);
+	TResult<void> Result;
+	try
+	{
+		if (m_Target.AsTexture().GetResource_Internal() && !m_Target.IsValid())
+		{
+			Result = TResult<void>::Failure(EErrorCode::InvalidState, "Target was invalidated");
+		}
+		else
+		{
+			Result = m_Queue.Execute_Internal(*m_pBackend);
+		}
+	}
+	catch (const std::exception& Error)
+	{
+		Result = TResult<void>::Failure(EErrorCode::BackendFailure, Error.what());
+	}
+	catch (...)
+	{
+		Result = TResult<void>::Failure(EErrorCode::BackendFailure, "Unknown render backend exception");
+	}
+	if (!Result)
+	{
+		// Never present a partially executed frame even if a caller ignores this error.
+		m_FrameError = Result.Error();
+		m_Queue.Clear_Internal();
+		m_Queue.SetAccepting_Internal(false);
+	}
+	return Result;
 }
 TResult<void> FRenderSystem2D::Flush()
 {
@@ -215,6 +243,7 @@ void FRenderSystem2D::CancelFrame() noexcept
 	m_Queue.Clear_Internal();
 	m_Queue.SetAccepting_Internal(false);
 	m_Target = {};
+	m_FrameError.reset();
 	m_bFrame = false;
 }
 }

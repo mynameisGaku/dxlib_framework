@@ -2,6 +2,7 @@
 #include "Dxf/RenderContext.h"
 #include "Dxf/FramePresenter.h"
 #include <functional>
+#include <optional>
 namespace Dxf
 {
 class FRenderSystem2D final : public IRenderControl
@@ -30,6 +31,7 @@ private:
 	FRenderQueue2D m_Queue;
 	FRenderContext m_Context;
 	FRenderTarget m_Target;
+	std::optional<FError> m_FrameError;
 	int m_Width = 0;
 	int m_Height = 0;
 	bool m_bFrame = false;

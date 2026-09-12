@@ -1,5 +1,6 @@
 #include "Dxf/AssetService.h"
 #include <filesystem>
+#include "Dxf/Utf8.h"
 namespace Dxf
 {
 namespace
@@ -24,9 +25,9 @@ TResult<FTexture> FAssetService::LoadTexture(const std::string& Path, const FTex
 	{
 		return TResult<FTexture>::Failure(EErrorCode::InvalidState, "Assets stopped");
 	}
-	if (Path.empty())
+	if (!Detail::IsValidNativeString_Internal(Path))
 	{
-		return TResult<FTexture>::Failure(EErrorCode::InvalidArgument, "Empty texture path");
+		return TResult<FTexture>::Failure(EErrorCode::InvalidArgument, "Texture path must be nonempty UTF-8 without NUL");
 	}
 	const std::string Normalized = NormalizePath_Internal(Path);
 	const std::string Key = Normalized + (Options.bUse3D ? "|3d" : "|2d");
@@ -47,9 +48,9 @@ TResult<FSound> FAssetService::LoadSound(const std::string& Path, const FSoundLo
 	{
 		return TResult<FSound>::Failure(EErrorCode::InvalidState, "Assets stopped");
 	}
-	if (Path.empty())
+	if (!Detail::IsValidNativeString_Internal(Path))
 	{
-		return TResult<FSound>::Failure(EErrorCode::InvalidArgument, "Empty sound path");
+		return TResult<FSound>::Failure(EErrorCode::InvalidArgument, "Sound path must be nonempty UTF-8 without NUL");
 	}
 	const std::string Normalized = NormalizePath_Internal(Path);
 	const std::string Key = Normalized + (Options.Storage == ESoundStorage::Memory ? "|memory" : "|stream");
