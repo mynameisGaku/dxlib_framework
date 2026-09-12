@@ -47,7 +47,7 @@ set(DXF_NATIVE_SOURCES
 )
 if(DXF_BUILD_TESTS)
     enable_testing()
-    add_executable(dxf_tests Tests/TestMain.cpp Tests/FoundationTests.cpp Tests/SupportTests.cpp Tests/GameplayTests.cpp Tests/ApplicationTests.cpp Tests/SandboxTests.cpp Tests/HardeningTests.cpp Examples/Sandbox/SandboxGame.cpp)
+    add_executable(dxf_tests Tests/TestMain.cpp Tests/FoundationTests.cpp Tests/SupportTests.cpp Tests/GameplayTests.cpp Tests/ApplicationTests.cpp Tests/SandboxTests.cpp Tests/HardeningTests.cpp Tests/UsabilityTests.cpp Examples/Sandbox/SandboxGame.cpp)
     target_link_libraries(dxf_tests PRIVATE dxf::framework)
     target_include_directories(dxf_tests PRIVATE Tests Examples/Sandbox)
     dxf_warnings(dxf_tests)

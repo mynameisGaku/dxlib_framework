@@ -1,0 +1,14 @@
+[0/1] Re-running CMake...
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /mnt/data/build-dxf/debug
+[1/3] Building CXX object CMakeFiles/dxf_tests.dir/Tests/UsabilityTests.cpp.o
+FAILED: CMakeFiles/dxf_tests.dir/Tests/UsabilityTests.cpp.o 
+/usr/bin/c++  -I/mnt/data/work/dxlib_framework/Tests -I/mnt/data/work/dxlib_framework/Examples/Sandbox -I/mnt/data/work/dxlib_framework/Source/Foundation/Public -I/mnt/data/work/dxlib_framework/Source/DxLibSupport/Public -I/mnt/data/work/dxlib_framework/Source/Runtime/Public -I/mnt/data/work/dxlib_framework/Source/Gameplay/Public -g -std=gnu++20 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -MD -MT CMakeFiles/dxf_tests.dir/Tests/UsabilityTests.cpp.o -MF CMakeFiles/dxf_tests.dir/Tests/UsabilityTests.cpp.o.d -o CMakeFiles/dxf_tests.dir/Tests/UsabilityTests.cpp.o -c /mnt/data/work/dxlib_framework/Tests/UsabilityTests.cpp
+/mnt/data/work/dxlib_framework/Tests/UsabilityTests.cpp:6:10: fatal error: Dxf/SpriteRendererComponent.h: No such file or directory
+    6 | #include "Dxf/SpriteRendererComponent.h"
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+compilation terminated.
+ninja: build stopped: subcommand failed.
+
+EXIT_CODE=1
