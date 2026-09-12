@@ -205,3 +205,114 @@ TEST("Navigator quit during preparation retains current scene until shutdown")
 	REQUIRE(Next.Stop == 1);
 	Scenes.Shutdown();
 }
+
+TEST("Asset paths reject embedded NUL before reaching a backend")
+{
+	FFakeBackend Backend;
+	FAssetService Assets(Backend, Backend, Backend);
+	const std::string Invalid("visible.bmp\0different.bmp", 25);
+	REQUIRE(!Assets.LoadTexture(Invalid));
+	REQUIRE(!Assets.LoadSound(Invalid));
+	REQUIRE(Backend.GetTrace().TextureLoads == 0);
+	REQUIRE(Backend.GetTrace().SoundLoads == 0);
+}
+
+TEST("Asset paths reject overlong UTF8 surrogate and truncated sequences")
+{
+	FFakeBackend Backend;
+	FAssetService Assets(Backend, Backend, Backend);
+	for (const auto& Invalid : {std::string("\xc0\xaf"), std::string("\xed\xa0\x80"),
+		std::string("\xe3\x81"), std::string("\xf4\x90\x80\x80")})
+	{
+		REQUIRE(!Assets.LoadTexture(Invalid));
+		REQUIRE(!Assets.LoadSound(Invalid));
+	}
+	REQUIRE(Backend.GetTrace().TextureLoads == 0);
+	REQUIRE(Backend.GetTrace().SoundLoads == 0);
+}
+
+TEST("Asset paths accept valid Japanese and four byte UTF8")
+{
+	FFakeBackend Backend;
+	FAssetService Assets(Backend, Backend, Backend);
+	REQUIRE(Assets.LoadTexture("Assets/\xe7\x94\xbb\xe5\x83\x8f/\xf0\x9f\x90\xa6.bmp"));
+}
+
+TEST("Direct loaders reject empty paths and invalid sound storage enums")
+{
+	FFakeBackend Backend;
+	FResourceRegistry Registry;
+	FTextureLoader Textures(Backend, Registry);
+	FSoundLoader Sounds(Backend, Registry);
+	REQUIRE(!Textures.Load("", {}));
+	REQUIRE(!Sounds.Load("", {}));
+	FSoundLoadOptions Options;
+	Options.Storage = static_cast<ESoundStorage>(777);
+	REQUIRE(!Sounds.Load("a.wav", Options));
+}
+
+TEST("Font families reject embedded NUL and malformed UTF8")
+{
+	FFakeBackend Backend;
+	FAssetService Assets(Backend, Backend, Backend);
+	FFontOptions Options;
+	Options.Family = std::string("Meiryo\0X", 8);
+	REQUIRE(!Assets.LoadFont(Options));
+	Options.Family = "\xff";
+	REQUIRE(!Assets.LoadFont(Options));
+	REQUIRE(Backend.GetTrace().Fonts.empty());
+}
+
+TEST("Sound resources from another backend are rejected before duplication")
+{
+	FFakeBackend First;
+	FFakeBackend Second;
+	FAssetService Assets(First, First, First);
+	FAudioPlayer Audio(Second);
+	auto Sound = Assets.LoadSound("a.wav").Value();
+	REQUIRE(!Audio.Play(Sound));
+	REQUIRE(Second.GetTrace().Clones == 0);
+}
+
+TEST("Render execution failure prevents presenting a partial frame")
+{
+	FFakeBackend Backend;
+	FAssetService Assets(Backend, Backend, Backend);
+	FRenderSystem2D Renderer(Backend);
+	auto Texture = Assets.LoadTexture("a.bmp").Value();
+	REQUIRE(Renderer.BeginFrame(100, 100));
+	REQUIRE(Renderer.GetContext().Draw(Texture, {}));
+	Backend.GetTrace().bFailDraw = true;
+	REQUIRE(!Renderer.Flush());
+	Backend.GetTrace().bFailDraw = false;
+	REQUIRE(!Renderer.EndFrame());
+	REQUIRE(Backend.GetTrace().Presentations == 0);
+	REQUIRE(Renderer.BeginFrame(100, 100));
+	REQUIRE(Renderer.GetContext().Draw(Texture, {}));
+	REQUIRE(Renderer.EndFrame());
+	REQUIRE(Backend.GetTrace().Presentations == 1);
+}
+
+TEST("Resource registry rejects null records")
+{
+	FResourceRegistry Registry;
+	REQUIRE(!Registry.Register(nullptr));
+}
+
+TEST("A scene destroyed during preparation is never activated")
+{
+	FFakeBackend Backend;
+	FAssetService Assets(Backend, Backend, Backend);
+	FAudioPlayer Audio(Backend);
+	FHookCounts Counts;
+	FSceneNavigator Scenes(Assets, Audio);
+	DPreparationScene* Scene = nullptr;
+	auto Pending = std::make_unique<DPreparationScene>(Counts, [&]() { Scene->RequestDestroy_Internal(); });
+	Scene = Pending.get();
+	REQUIRE(Scenes.RequestChange(std::move(Pending)));
+	auto Result = Scenes.Commit();
+	REQUIRE(!Result);
+	REQUIRE(Counts.Enter == 0);
+	REQUIRE(Counts.Stop == 1);
+	REQUIRE(Scenes.GetCurrent() == nullptr);
+}
