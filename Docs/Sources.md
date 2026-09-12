@@ -22,3 +22,14 @@
   https://dxlib.xsrv.jp/dxdload.html
 
 DxLib SDK、DxLibソース、フォント、外部の画像・音声は同梱していません。AssetsのBMP・WAVは同梱スクリプトで生成したサンプルです。代替DxLibヘッダーは、公式SDKの配布物ではありません。
+
+## 0.2で追加参照した公式資料
+
+- DxLib 3.25a公式VCパッケージ: https://dxlib.xsrv.jp/DxLib/DxLib_VC3_25a.zip （URLの掲載を確認。作成環境へのダウンロードは失敗）
+- Microsoft: C++ command-line tools: https://learn.microsoft.com/en-us/cpp/build/building-on-the-command-line?view=msvc-170
+- Microsoft vswhere: https://github.com/microsoft/vswhere/wiki/Examples
+- CMake CMP0112: https://cmake.org/cmake/help/latest/policy/CMP0112.html
+- GitHub Actions checkout: https://github.com/actions/checkout
+- GitHub Actions upload-artifact: https://github.com/actions/upload-artifact
+
+公開APIの記述と実SDKへのコンパイルは別の検証です。Actionsの設定を同梱していますが、この作業でリモート実行したものではありません。

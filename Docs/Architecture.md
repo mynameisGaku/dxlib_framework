@@ -92,3 +92,9 @@ ContextからTarget切り替えやNative描画へ進む場合も、専用の `IR
 ## 終了順序
 
 Sceneとその子 → GameInstance → 音声再生の停止 → 未実行描画の破棄 → 全資源の解放・無効化 → DxLib終了、の順です。共有Textureなどの参照だけが外部に残っても、後からDxLib終了後の削除を行わないようにしています。
+
+## 層別のビルド対象
+
+FoundationはINTERFACEターゲット、SupportとRuntimeは独立した静的ライブラリ、Gameplayはテンプレートを含むINTERFACEターゲットです。利用窓口のdxf::frameworkはGameplayへ依存します。Nativeのバックエンド集合が参照するFBackendServicesはSupportに置き、NativeBackendsの利用にRuntimeを要求しません。
+
+DSpriteRendererComponentは任意に利用する具象Componentです。FInputMapは入力取得元ではなくSnapshotの消費側に置く割り当て・状態判定の部品です。いずれもApplicationへ新たな管理責務を集中させません。

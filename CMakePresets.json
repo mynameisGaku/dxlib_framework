@@ -42,7 +42,9 @@
         "CMAKE_CXX_COMPILER": "cl",
         "DXF_BUILD_NATIVE": "ON",
         "DXF_BUILD_EXAMPLE": "ON",
-        "DXLIB_ROOT": "$env{DXLIB_ROOT}"
+        "DXLIB_ROOT": "$env{DXLIB_ROOT}",
+        "DXF_BUILD_NATIVE_SMOKE": "ON",
+        "DXF_RUN_DEVICE_TESTS": "OFF"
       }
     },
     {

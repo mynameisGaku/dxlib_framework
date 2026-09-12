@@ -33,7 +33,7 @@ OnDeinitializeは、**初期化を一度でも試みた場合に、部分失敗�
 
 初期Sceneの失敗はApplication起動失敗です。差し替えSceneの準備失敗は現在のSceneを維持し、`GetLastTransitionError()`へ記録します。一方、実行中に追加したObjectの初期化が失敗し、`CommitObjects()`がエラーを返した場合、この版のApplicationは停止します。エラーを握りつぶして続行する方針にはしていません。
 
-OnTick／OnDrawから例外が出ると、Applicationがエラーに変換して終了処理を実行します。noexceptのフック、デストラクタ、バックエンドの解放処理から例外を出してはいけません。
+OnTick／OnDrawから例外が出ると、固定のライフサイクル入口がTResultのエラーへ変換します。Application経由では、そのエラーを受けて終了処理を実行します。noexceptのフック、デストラクタ、バックエンドの解放処理から例外を出してはいけません。
 
 ## 入力と時間
 
@@ -84,3 +84,39 @@ Native接続部のClearはRGBのみです。FColorのAは255固定で、それ�
 Scene所属の効果音には `FPlaybackOptions::Scope = Context.AudioScope` を指定します。0はApplication全体に属する音として扱い、Sceneの切り替えだけでは停止しません。Scopeを自動で推測する仕組みではありません。
 
 サービス／資源／Objectの操作はメインスレッド限定です。低レベル部品を自分で組み合わせる場合も、再生停止・要求破棄・資源無効化をDxLibSessionの終了前に済ませ、バックエンドが利用者より長く存在するようにしてください。
+
+## 0.2の追加API
+
+### 型付きの検索
+
+`FindComponent<T>()`／`GetComponents<T>()`、`FindObject<T>()`／`GetObjects<T>()` は非所有の型付きハンドルを返します。Findは最初の一致、Getは一致する全件のスナップショットです。Pending中の対象も含みますが、破棄要求済みの対象は除きます。順序はストレージ走査順であり、更新優先度順ではありません。
+
+### 再割り当て可能な入力
+
+```cpp
+Dxf::FInputMap Actions;
+Actions.Bind("Confirm", Dxf::EKey::Space);
+Actions.BindMouse("Confirm", Dxf::EMouseButton::Left);
+Actions.BindPad("Confirm", 0, 0); // Pad 0、ボタン0（PAD_INPUT_1）
+Actions.Bind("Left", Dxf::EKey::A);
+Actions.Bind("Right", Dxf::EKey::D);
+// 毎回の新しいInputSnapshotに対して、一度だけ更新します。
+Actions.Update(Context.Input);
+const float Direction = Actions.GetAxis("Left", "Right");
+```
+
+Bind系は妥当な割り当てでtrue、範囲外のキー／デバイス／ボタンや空のAction名ではfalseです。複数のボタンを同じActionへ割り当てるとORとして扱い、一つを押したまま別のボタンへ移っても二重にPressedを出しません。UnbindでAction全体を解除し、Clearで全割り当てと状態を除去します。Updateは一つのSnapshotにつき一度呼ぶ契約です。
+
+### スプライトComponent
+
+`DSpriteRendererComponent(Texture, Position, Options)` をAddComponentすると、基盤から自動的に描画します。Texture未設定の間は何も描きません。PositionとOptionsはこのComponentが持つ独立した2D値です。親GameObjectへ暗黙にTransformを追加したり、親座標へ自動追従したりはしません。
+
+### 入力検証と失敗後の扱い
+
+パス・フォント名・ウィンドウ名・描画文字はUTF-8です。埋め込みNUL・過長・不正なシーケンスを拒否します。空の文字列は文字描画・既定フォント・ウィンドウ名では許可、資源パスでは拒否します。
+
+音声保存形式の列挙値はキャッシュ参照より前に検証します。別のISoundBackendで作られたSoundをAudioPlayerへ渡すと拒否します。
+
+描画キューの実行が失敗したフレームでは、その後のEndFrameも失敗してPresentしません。次のフレームは改めてBeginFrameから開始できます。一方、無効な引数による要求の拒否や、状態復元に成功したNativeコールバックのエラーは、呼び出し元で結果を確認する契約です。すべてのAPIエラーを一律にフレーム全体の失敗へ変換するわけではありません。
+
+Objectのコンストラクタ中に所属Collectionへ終了が要求された場合、Spawnは失敗し、そのObjectを登録しません。終了要求を取り消して同じCollectionを再利用するAPIはありません。

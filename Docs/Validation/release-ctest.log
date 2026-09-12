@@ -13,6 +13,6 @@ contract        =   0.00 sec*proc (1 test)
 not-real-sdk    =   0.00 sec*proc (1 test)
 portable        =   0.10 sec*proc (1 test)
 
-Total Test time (real) =   0.10 sec
+Total Test time (real) =   0.11 sec
 
 EXIT_CODE=0

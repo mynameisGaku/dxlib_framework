@@ -1,56 +1,47 @@
 # dxlib_framework
 
-**DxLibを、資源管理・入力・描画・Scene・GameObject・Componentから使えるようにするC++20フレームワークです。** 内部は担当処理ごとに分け、ゲーム側は `Run<TScene>()`、`Spawn<T>()`、`AddComponent<T>()` とOn系フックを中心に実装します。
+**DxLibを、資源管理・入力・描画・Scene・GameObject・Componentから使えるようにするC++20フレームワークです。** 内部は担当処理ごとに分離し、ゲーム側は `Run<TScene>()`、`Spawn<T>()`、`AddComponent<T>()` とOn系フックを中心に実装します。Unreal Engineへの依存はありません。
 
-## 今回の配布について
+## 0.2.0について
 
-設計に基づいた実装初版（0.1.0）です。**Linuxでの基盤・回帰テスト84件と、手書きの代替DxLibヘッダーを使った接続部テスト11件が通過しています。実DxLib SDK・Windows・MSVC・実機の画面／音声／入力は未検証です。** 接続部のテスト成功を、Windows実機動作の保証とは扱わないでください。
+0.1.0を引き継ぎ、再入する生成・破棄、終了要求、描画失敗、UTF-8、キャッシュの境界処理を修正しました。入力のAction割り当て、型付きObject／Component検索、スプライトComponent、層別CMakeターゲット、インストール可能なパッケージ、Windows用セットアップ・検証入口も追加しています。
 
-前回のLibraryに保存されていたソースZIPは取得に失敗したため、この配布は提示された設計から構築したコードです。取得できなかった旧実装との差分やAPI互換性は検証していません。
+**GCC Debug／ReleaseとClangのASan／UBSanで、C++全127ケースが通過しています。** うち14件は手書きの代替DxLibヘッダーを使う契約テストです。**実DxLib SDK・Windows・MSVC・実画面・音声・入力機器の検証は、この配布の作成環境では実行できていません。** Windows用スクリプトやCIの同梱を、その実行成功とは扱っていません。
 
-[検証結果](Docs/ValidationReport.md) / [設計と責務](Docs/Architecture.md) / [APIの契約](Docs/API.md) / [命名規則](Docs/CodingStandard.md) / [制限事項](Docs/Limitations.md)
+[検証結果](Docs/ValidationReport.md) ／ [変更履歴](CHANGELOG.md) ／ [設計と責務](Docs/Architecture.md) ／ [API](Docs/API.md) ／ [命名規則](Docs/CodingStandard.md) ／ [制限事項](Docs/Limitations.md)
 
-## WindowsでSandboxをビルドする
+## Windowsで動かす
 
-C++20を扱えるMSVC x64、CMake 3.24以上、Ninja、公式のDxLib VC版が必要です。SDK・生成済み実行ファイル・フォントファイルは同梱していません。
-
-C++のx64環境が設定された **Developer PowerShell for VS** で、展開した `dxlib_framework` ディレクトリに移動して実行します。`DXLIB_ROOT` は自分の環境に合わせて変更してください。
+Visual Studioの「C++によるデスクトップ開発」、x64ツール、Windows SDK、CMake Toolsが必要です。通常のPowerShellで、展開したフォルダーへ移動して実行できます。スクリプトが `vswhere` と `VsDevCmd` でx64環境を設定し、Visual Studio同梱のCMake／Ninjaも探索します。
 
 ```powershell
-$env:DXLIB_ROOT = 'C:\Libraries\DxLib_VC\プロジェクトに追加すべきファイル_VC用'
-cmake --preset windows-debug
-cmake --build --preset windows-debug
-ctest --preset windows-debug
+# 初回だけ。公式DxLib VC 3.25aをThirdPartyへダウンロード・展開します。
+.\Setup.cmd
+
+# Debugの本体、Sandbox、NativeSmokeをビルドし、非実機テストを実行します。
+.\Build.cmd
+
+# サンプルを起動します。
 .\Build\windows-debug\Sandbox.exe
 ```
 
-`DxLib.h` と公式SDKの `.lib` が必要です。SDKルート直下に上記の日本語名ディレクトリがある構成も探索します。DxLibのMSVC自動リンク設定を利用し、Native有効時はDebugを `/MTd`、それ以外を `/MT` に揃えます。別のランタイムで作られたSDKを使用する構成は対象にしていません。
+すでにSDKがある場合、Setupは不要です。`$env:DXLIB_ROOT` を展開済みの公式VC版SDKルート、または `DxLib.h` と `.lib` があるディレクトリに設定してからBuildを実行してください。SDK・フォント・Windows実行ファイルは配布ZIPに含めていません。
 
-`Assets` はビルド時に実行ファイルの隣へコピーします。Sandboxは実行ファイルの場所からアセットを探すため、起動時のカレントディレクトリに依存しません。ただし、このWindows専用の起動処理も実機では未確認です。
+Releaseは `Build.cmd -Configuration Release`。両構成と、実機用の自動終了するAPIスモークテストを実行する入口は次です。
 
-Sandboxでは **WASDで移動、Spaceで効果音、Pでポーズ、EnterでScene切り替え、Escで終了**できます。Sceneが変わっても、GameInstanceが保持する訪問回数は残る設計です。サンプルのゲーム側コードは自動テストでも実際にコンパイル・実行しています。
-
-## DxLibなしでテストする
-
-```sh
-cmake --preset portable-debug
-cmake --build --preset portable-debug
-ctest --preset portable-debug
+```powershell
+.\Validate.cmd
 ```
 
-GCC／Clang／MSVCで扱える基盤を、実SDKなしでビルドする設定です。接続部テストは `Tests/FakeDxLib/DxLib.h` を使います。CTestの表示は2実行ファイルですが、その内部に95テストケースがあります。
+Validateはウィンドウを開き、画像・日本語パス・文字・RenderTarget・入力取得・独立した音声再生・終了処理を確認します。結果と失敗理由は `Build/WindowsValidation/Summary.json` と同ディレクトリのログに残します。**このプログラムは画素の正しさ・実際に聞こえた音・物理キー操作を自動判定するものではありません。** 詳細は[Windowsでの確認](Docs/WindowsValidation.md)を参照してください。
 
-Debug、Release、Clangのサニタイザー、公開ヘッダー単独、別プロジェクトからの組み込みまで再実行する場合は、Linuxで次を使います。
+音声の再生確認を省く場合は `Build.cmd -AllConfigurations -RunDeviceSmoke`。ただしDxLib自体の初期化設定から音声機能を無効化するわけではありません。ヘッドレス環境では実機テストを省き、`Build.cmd -AllConfigurations` を使います。
 
-```sh
-python Tools/Validate.py --with-sanitizers
-```
-
-Pythonは通常のフレームワーク／Sandboxのビルドには不要です。上の検証スクリプトと、同梱アセットの再生成に使用します。
+Sandboxは **WASDで移動、Spaceで効果音、Pでポーズ、EnterでScene切り替え、Escで終了**。Sceneを変更しても、GameInstanceの訪問回数が残ります。サンプルのゲーム側コード自体も回帰テストでコンパイル・実行しています。
 
 ## 小さなSceneから始める
 
-ゲームの構成にGameObjectを使うことは必須ではありません。Sceneに直接処理を書いて始められます。
+GameObjectを使うことは必須ではありません。Sceneへ直接処理を書いて始められます。
 
 ```cpp
 #include "Dxf/NativeRun.h"
@@ -58,66 +49,111 @@ Pythonは通常のフレームワーク／Sandboxのビルドには不要です�
 class DMyScene final : public Dxf::DScene
 {
 protected:
-    void OnTick(const Dxf::FTickContext& Context) override
-    {
-        if (Context.Input.WasPressed(Dxf::EKey::Escape))
-        {
-            Context.Scenes->RequestQuit();
-        }
-    }
+	void OnTick(const Dxf::FTickContext& Context) override
+	{
+		if (Context.Input.WasPressed(Dxf::EKey::Escape))
+		{
+			Context.Scenes->RequestQuit();
+		}
+	}
 };
 
-// WinMainなど、アプリケーションの入口から呼びます。
+// WinMainなどから呼び、失敗時はResult.Error()を表示します。
 Dxf::TResult<void> RunMyGame()
 {
-    Dxf::FApplicationSettings Settings;
-    Settings.Window.Title = "My Game";
-    return Dxf::Run<DMyScene>(Settings);
+	Dxf::FApplicationSettings Settings;
+	Settings.Window.Title = "My Game";
+	return Dxf::Run<DMyScene>(Settings);
 }
 ```
 
-独自のGameInstanceや初期設定が必要な場合は、[SandboxのWindowsMain.cpp](Examples/Sandbox/WindowsMain.cpp)のように `FDxLibBackends` → `FApplication` → `FAppRunner` を組み合わせます。Scene／Player／描画Componentの実装例は [SandboxGame.cpp](Examples/Sandbox/SandboxGame.cpp) です。
+独自のGameInstanceが必要な場合は、[WindowsMain.cpp](Examples/Sandbox/WindowsMain.cpp)の `FDxLibBackends` → `FApplication` → `FAppRunner` の構成を使用します。[SandboxGame.cpp](Examples/Sandbox/SandboxGame.cpp)にはScene／Player／Componentの例があります。
 
-## 実装しているもの
+## 実装範囲
 
 | 分野 | 内容 |
 |---|---|
-| Foundation | RTTI、結果型、世代付き非所有ハンドル、所有ストレージ、時間、RAII補助 |
-| 入力 | フレーム単位のSnapshot、押下／保持／解放、マウス、基本的なゲームパッド入力、キーのAction割り当て |
-| 資源 | 画像・音・フォントのLoader、弱参照キャッシュ、共有参照、終了時の強制無効化、RenderTarget |
+| Foundation | RTTI、結果型、世代付き非所有ハンドル、所有ストレージ、時間、RAII補助、UTF-8検証 |
+| 入力 | Snapshot、押下／保持／解放、マウス、最大4Pad、キーボード／マウス／PadのAction割り当て・変更・解除 |
+| 資源 | 画像・音・フォント、専任Loader、弱参照Cache、共有参照、終了時の強制無効化、RenderTarget |
 | 描画 | 画像・文字・矩形、安定した描画順、色／透明度、Target切り替え、明示的なNative区間 |
-| 音 | 音データと再生インスタンスの分離、独立した停止／音量、Scene単位の停止 |
-| 実行基盤 | メインループ、GameInstance、Scene切り替え、失敗時の巻き戻し、順序を守った終了 |
-| Gameplay | GameObject／Component、遅延生成・破棄、自動ライフサイクル実行、更新順、ポーズ |
+| 音 | 音データと再生の分離、独立した停止／音量、Scene単位の停止 |
+| 実行基盤 | メインループ、GameInstance、Scene切り替え、失敗時の後始末、終了順序 |
+| Gameplay | 遅延生成・破棄、自動ライフサイクル、更新順、ポーズ、型付き検索、任意利用のSpriteRendererComponent |
 
-衝突、物理、セーブ、エディター、3Dモデル、非同期ロードなどは含んでいません。何でも揃ったゲームエンジンではなく、DxLib上で繰り返し書く基盤をまとめた初版です。
+衝突・物理・3Dモデル・エディター・非同期ロードなどは、今回合意した2D基盤の範囲には含みません。
 
-## ディレクトリ
-
-```text
-Source/
-  Foundation/Public/Dxf/       型・所有・時間
-  DxLibSupport/Public/Dxf/     資源・入力・描画・音のAPI
-  DxLibSupport/Private/        担当クラスごとの実装
-  Runtime/Public/Dxf/          Application・Scene・汎用ライフサイクル
-  Runtime/Private/             実行とScene遷移
-  Gameplay/Public/Dxf/         GameObject・Component・GameScene
-  Native/Public/Dxf/           Windowsヘッダーを含まないDxLib接続API
-  Native/Private/              実際のDxLib呼び出し
-Examples/Sandbox/              操作できるサンプル
-Tests/                        基盤・接続部・サンプルのテスト
-Assets/                       再生成可能なBMP・WAVのみ
-Docs/                         設計・規約・検証結果・TDDログ
-Tools/                        検証・アセット生成
-```
-
-## 既存CMakeプロジェクトに組み込む
+## 既存CMakeプロジェクトへ組み込む
 
 ```cmake
 add_subdirectory(ThirdParty/dxlib_framework)
 target_link_libraries(MyGame PRIVATE dxf::framework)
 ```
 
-実DxLib接続が必要な場合は、追加前に `DXF_BUILD_NATIVE=ON` と `DXLIB_ROOT` を設定し、`dxf::native` へリンクします。Native利用時は利用側ターゲットもSDKと同じ `/MTd`・`/MT` に揃えてください。`DXF_BUILD_TESTS` と `DXF_BUILD_EXAMPLE` は、外部プロジェクトに組み込むだけでは有効になりません。
+実DxLibを使う場合は、追加前に `DXF_BUILD_NATIVE=ON` と `DXLIB_ROOT` を設定し、`dxf::native` へリンクします。利用側も `/MTd`・`/MT` に揃えます。
 
-この版では `add_subdirectory` が配布・組み込み方法です。`install()`／`find_package()` 用のパッケージは未提供です。
+```cmake
+set(DXF_BUILD_NATIVE ON CACHE BOOL "" FORCE)
+set(DXLIB_ROOT "C:/Libraries/DxLib_VC" CACHE PATH "" FORCE)
+add_subdirectory(ThirdParty/dxlib_framework)
+add_executable(MyGame WIN32 Main.cpp)
+target_link_libraries(MyGame PRIVATE dxf::native)
+set_property(TARGET MyGame PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+```
+
+必要な層だけを選べます。`dxf::foundation` → `dxf::support` → `dxf::runtime` → `dxf::gameplay` の順に依存し、`dxf::framework` は全体の入口です。`dxf::native_backends` はSupportと実SDKのみへ依存するため、Sceneを使わずにDxLibラッパーだけを利用できます。
+
+通常の外部組み込みではテスト・サンプル・インストールルールは既定でOFFです。Nativeを明示的にONにするとNativeSmokeも既定でONになります。不要なら `DXF_BUILD_NATIVE_SMOKE=OFF` に設定します。
+
+### インストールしたパッケージを使う
+
+```powershell
+cmake --install Build/windows-release --prefix C:/Libraries/dxlib_framework
+```
+
+```cmake
+find_package(dxlib_framework 0.2 CONFIG REQUIRED)
+add_executable(MyGame WIN32 Main.cpp)
+target_link_libraries(MyGame PRIVATE dxf::native)
+dxf_use_static_runtime(MyGame)
+```
+
+利用側のCMakeに `CMAKE_PREFIX_PATH` と `DXLIB_ROOT` を渡します。DxLib SDKをパッケージ内へコピーすることはありません。Nativeなしでインストールしたパッケージでは `dxf::framework` などを利用し、`dxf::native` は存在しません。
+
+## DxLibなしで検証する
+
+```sh
+cmake --preset portable-debug
+cmake --build --preset portable-debug
+ctest --preset portable-debug
+
+# Linux: Debug / Release / ASan / UBSan / 公開ヘッダー単独 / 外部組み込み
+python Tools/Validate.py --with-sanitizers
+
+# インストール → 別の場所へ移動 → find_package → リンク・実行
+python Tools/ValidatePackage.py
+
+# 配布用スクリプトの6テスト
+python -m unittest discover -s Tools/Tests -v
+```
+
+C++は113件の基盤テストと14件の接続部契約テストを、2つのCTest実行ファイルへ収録しています。接続部契約テストに使う `Tests/FakeDxLib/DxLib.h` は公式SDKではありません。
+
+Pythonは通常のWindowsビルドには不要です。`.github/workflows/ci.yml` はLinux検証とWindows／実SDKのコンパイル・リンクを行う設定です。この配布の作成時点ではリモートのCIは実行していません。
+
+## ソース構成と配布
+
+```text
+Source/Foundation/        型・所有・時間・UTF-8
+Source/DxLibSupport/      資源・入力・描画・音
+Source/Runtime/           Application・Scene・ライフサイクル
+Source/Gameplay/          GameObject・Component・GameScene
+Source/Native/            実DxLibへの接続
+Examples/Sandbox/        操作可能なサンプル
+Tests/                   基盤・回帰・接続契約・実機Smoke
+Docs/                    API・規約・検証結果・Red/Greenログ
+Tools/                   セットアップ・検証・配布
+Assets/                  再生成可能なBMP・WAVのみ
+```
+
+`python Tools/PackageRelease.py --output ../dxlib_framework_0.2.0.zip` で再配布用ZIPを生成できます。各ファイルのSHA-256はZIP内の `DistributionManifest.json` に、ZIP全体の値は隣の `.sha256` に記録されます。SDK・ビルド出力・Git内部情報・フォントファイルは含めません。

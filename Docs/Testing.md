@@ -2,7 +2,7 @@
 
 テストは外部ライブラリに依存しない小さなC++テストランナーで実行します。`REQUIRE`は失敗時に例外を投げるため、ReleaseのNDEBUGで消えるassertではありません。テストは表示名ごとに登録・集計します。
 
-## 今回の実装順
+## 0.1.0の実装順
 
 | 記録 | Redで先に固定した契約 | Greenの実装 |
 |---|---|---|
@@ -46,12 +46,32 @@ Linuxでの全検証は `python Tools/Validate.py --with-sanitizers` です。�
 
 ## Git履歴
 
-別配布の `dxlib_framework_history.bundle` には、この作業で実際に作ったRed／Green／Refactorのコミットを含めます。
+別配布の `dxlib_framework_0.2.0_history.bundle` には、この作業で実際に作ったRed／Green／Refactorのコミットを含めます。
 
 ```sh
-git clone dxlib_framework_history.bundle dxlib_framework_history
+git clone dxlib_framework_0.2.0_history.bundle dxlib_framework_history
 cd dxlib_framework_history
 git log --oneline
 ```
 
 古いRedコミットは意図的にビルドまたはテストに失敗します。履歴は作成順を示すものであり、各コミットが配布可能なリリースであることを意味しません。
+
+## 0.2.0の継続開発
+
+以下は `Tdd/Completion/` に記録した追加開発です。元の95ケースを先に再実行し、そのソースへ修正を積み上げています。
+
+| 記録 | Red／確認内容 | 修正・追加 |
+|---|---|---|
+| 01 | 7件の実行時失敗 | デストラクタの再入、終了要求、例外境界、Scene準備中の終了 |
+| 02 | 8件の実行時失敗と1件の既存成功回帰 | UTF-8、NUL、所有元、描画エラー、null登録、準備中の自己破棄 |
+| 03 | 未実装APIによるコンパイル失敗 | 複数デバイスのInputMap、型付き検索、SpriteComponent |
+| 04 | install先が存在しない統合検査の失敗 | 層別CMakeターゲット、再配置できるfind_package |
+| 05 | 2件の実行時失敗 | 文字描画・ウィンドウ名のネイティブ文字列検証 |
+| 06 | 未実装Smokeヘッダーによるコンパイル失敗 | 自動終了する共通Smokeコードと実SDK用ターゲット |
+| 07 | 2件の実行時失敗 | コンストラクタからの終了、キャッシュによる設定検証回避 |
+| 08 | 追加の成功回帰検査 | 2万操作・資源1,000周・全Unicodeコードポイント値 |
+| 09 | Python配布モジュール未実装の読込失敗 | 再現可能なZIP・SHA-256・除外規則の6テスト |
+
+08をRed→Greenの不具合修正とは扱っていません。Windows用スクリプトとCI設定には静的検査のみを行い、実機成功として数えていません。全コード行や全条件をテストしたという意味でもありません。
+
+最新版の通過件数はC++113＋14件、Python6件です。C++はGCC Debug／ReleaseとClang ASan／UBSanの3構成で実行しました。公開ヘッダー65個とSandboxヘッダー1個を独立した翻訳単位で検査しています。

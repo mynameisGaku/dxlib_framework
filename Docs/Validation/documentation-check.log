@@ -1,0 +1,11 @@
+PASS relative links: README.md
+PASS relative links: CHANGELOG.md
+PASS relative links: Docs/Architecture.md
+PASS relative links: Docs/ValidationReport.md
+PASS relative links: Docs/CodingStandard.md
+PASS relative links: Docs/Limitations.md
+PASS relative links: Docs/Sources.md
+PASS relative links: Docs/WindowsValidation.md
+PASS relative links: Docs/API.md
+PASS relative links: Docs/Testing.md
+PASS current documentation distinguishes actual SDK and contract test results

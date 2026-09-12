@@ -2,7 +2,7 @@ $ ctest --test-dir /mnt/data/build-dxf/final-validation/debug --output-on-failur
 Internal ctest changing into directory: /mnt/data/build-dxf/final-validation/debug
 Test project /mnt/data/build-dxf/final-validation/debug
     Start 1: Framework
-1/2 Test #1: Framework ........................   Passed    0.96 sec
+1/2 Test #1: Framework ........................   Passed    0.94 sec
     Start 2: NativeContract
 2/2 Test #2: NativeContract ...................   Passed    0.00 sec
 
@@ -11,8 +11,8 @@ Test project /mnt/data/build-dxf/final-validation/debug
 Label Time Summary:
 contract        =   0.00 sec*proc (1 test)
 not-real-sdk    =   0.00 sec*proc (1 test)
-portable        =   0.96 sec*proc (1 test)
+portable        =   0.94 sec*proc (1 test)
 
-Total Test time (real) =   0.96 sec
+Total Test time (real) =   0.95 sec
 
 EXIT_CODE=0

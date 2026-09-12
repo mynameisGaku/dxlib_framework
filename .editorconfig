@@ -14,3 +14,8 @@ tab_width = 4
 [*.{json,py,yml}]
 indent_style = space
 indent_size = 4
+
+[*.{cmd,ps1}]
+end_of_line = crlf
+indent_style = space
+indent_size = 4
