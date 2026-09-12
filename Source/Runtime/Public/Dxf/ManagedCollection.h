@@ -123,6 +123,11 @@ public:
 		if (m_bBusy)
 		{
 			m_bShutdownRequested = true;
+			// Suppress the remainder of the current dispatch without deleting its receiver.
+			m_Storage.ForEach_Internal([](T& Object)
+			{
+				Object.RequestDestroy_Internal();
+			});
 			return;
 		}
 		if (!m_bAccepting)

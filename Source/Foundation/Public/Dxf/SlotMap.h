@@ -65,7 +65,9 @@ public:
 		{
 			return false;
 		}
-		m_Slots[Id.Index].Object.reset();
+		// Publish the removal before invoking a user destructor. It may insert a new
+		// object into this slot or grow m_Slots, so no slot reference may survive it.
+		auto Removed = std::move(m_Slots[Id.Index].Object);
 		++m_Slots[Id.Index].Generation;
 		--m_Size;
 		return true;
@@ -95,13 +97,14 @@ public:
 	}
 	template <typename TPredicate> void RemoveIf_Internal(TPredicate Predicate) noexcept
 	{
-		for (auto& Slot : m_Slots)
+		const auto Count = m_Slots.size();
+		for (std::size_t Index = 0; Index < Count; ++Index)
 		{
-			if (Slot.Object && Predicate(*Slot.Object))
+			T* Object = m_Slots[Index].Object.get();
+			const auto Generation = m_Slots[Index].Generation;
+			if (Object && Predicate(*Object))
 			{
-				Slot.Object.reset();
-				++Slot.Generation;
-				--m_Size;
+				Remove(TObjectHandle<T>(m_pDomain, {m_Domain, Index, Generation}));
 			}
 		}
 	}

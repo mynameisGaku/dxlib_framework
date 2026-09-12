@@ -37,9 +37,20 @@ TResult<bool> FSceneNavigator::Commit_Internal()
 		m_LastTransitionError = Prepared.Error();
 		return TResult<bool>::Failure(Prepared.Error());
 	}
+	if (WantsQuit() || m_bShutdownRequested)
+	{
+		// A prepared scene has not entered an audio scope; do not stop global scope 0.
+		Next->Shutdown_Internal();
+		return TResult<bool>::Success(false);
+	}
 	if (auto* Current = m_Storage.GetCurrent())
 	{
 		m_Lifecycle.Stop_Internal(*Current);
+	}
+	if (WantsQuit() || m_bShutdownRequested)
+	{
+		Next->Shutdown_Internal();
+		return TResult<bool>::Success(false);
 	}
 	m_Storage.SetCurrent_Internal(std::move(Next));
 	m_LastTransitionError.reset();

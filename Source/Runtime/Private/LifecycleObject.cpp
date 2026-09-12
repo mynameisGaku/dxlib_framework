@@ -50,16 +50,27 @@ TResult<void> DLifecycleObject::Tick_Internal(const FTickContext& Context)
 	{
 		return {};
 	}
-	TGuardValue Guard(m_bBusy, true);
-	if (!Context.Time.bPaused || m_bTickWhenPaused)
+	try
 	{
-		OnTick(Context);
+		TGuardValue Guard(m_bBusy, true);
+		if (!Context.Time.bPaused || m_bTickWhenPaused)
+		{
+			OnTick(Context);
+		}
+		if (m_pChildren && !m_bDestroyRequested)
+		{
+			return m_pChildren->Tick_Internal(Context);
+		}
+		return {};
 	}
-	if (m_pChildren && !m_bDestroyRequested)
+	catch (const std::exception& Error)
 	{
-		return m_pChildren->Tick_Internal(Context);
+		return TResult<void>::Failure(EErrorCode::UserException, Error.what());
 	}
-	return {};
+	catch (...)
+	{
+		return TResult<void>::Failure(EErrorCode::UserException, "Unknown update exception");
+	}
 }
 TResult<void> DLifecycleObject::Draw_Internal(FRenderContext& Context)
 {
@@ -71,13 +82,24 @@ TResult<void> DLifecycleObject::Draw_Internal(FRenderContext& Context)
 	{
 		return {};
 	}
-	TGuardValue Guard(m_bBusy, true);
-	OnDraw(Context);
-	if (m_pChildren && !m_bDestroyRequested)
+	try
 	{
-		return m_pChildren->Draw_Internal(Context);
+		TGuardValue Guard(m_bBusy, true);
+		OnDraw(Context);
+		if (m_pChildren && !m_bDestroyRequested)
+		{
+			return m_pChildren->Draw_Internal(Context);
+		}
+		return {};
 	}
-	return {};
+	catch (const std::exception& Error)
+	{
+		return TResult<void>::Failure(EErrorCode::UserException, Error.what());
+	}
+	catch (...)
+	{
+		return TResult<void>::Failure(EErrorCode::UserException, "Unknown draw exception");
+	}
 }
 void DLifecycleObject::Shutdown_Internal() noexcept
 {

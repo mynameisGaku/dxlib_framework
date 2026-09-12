@@ -22,7 +22,10 @@ public:
 		Scene.Exit_Internal();
 		Scene.Shutdown_Internal();
 		// Stop after user cleanup too, so OnExit/OnDeinitialize cannot leave a scoped voice alive.
-		m_pAudio->StopScope(Scene.GetAudioScope());
+		if (Scene.GetAudioScope() != 0)
+		{
+			m_pAudio->StopScope(Scene.GetAudioScope());
+		}
 	}
 private:
 	FAudioPlayer* m_pAudio;
