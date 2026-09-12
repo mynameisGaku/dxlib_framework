@@ -37,5 +37,7 @@ int32 main()
 	Failed += RunGroup_Internal(Cases, Count);
 	Cases = PhysicsTest::GetFixedStepCases(Count);
 	Failed += RunGroup_Internal(Cases, Count);
+	Cases = PhysicsTest::GetRigidBodyCases(Count);
+	Failed += RunGroup_Internal(Cases, Count);
 	return Failed == 0 ? 0 : 1;
 }

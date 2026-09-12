@@ -1,0 +1,112 @@
+﻿dxf-includes.cpp
+繝｡繝｢: 繧､繝ｳ繧ｯ繝ｫ繝ｼ繝・繝輔ぃ繧､繝ｫ:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\WindowsValidation\IncludeProbe\dxf-includes.h
+
+
+
+
+-- Configuring done (0.5s)
+-- Generating done (0.1s)
+-- Build files have been written to: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/windows-debug
+[0/2] Re-checking globbed directories...
+[1/5] Copying sample assets
+[2/5] Building CXX object CMakeFiles\dxf_physics_tests.dir\Tests\Physics\RigidBodyTests.cpp.obj
+FAILED: [code=2] CMakeFiles/dxf_physics_tests.dir/Tests/Physics/RigidBodyTests.cpp.obj 
+C:\PROGRA~1\MICROS~1\18\COMMUN~1\VC\Tools\MSVC\1451~1.362\bin\Hostx64\x64\cl.exe  /nologo /TP  -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public /DWIN32 /D_WINDOWS /EHsc /Zi /Ob0 /Od /RTC1 -std:c++20 -MTd /W4 /permissive- /utf-8 /EHsc /GR /showIncludes /FoCMakeFiles\dxf_physics_tests.dir\Tests\Physics\RigidBodyTests.cpp.obj /FdCMakeFiles\dxf_physics_tests.dir\ /FS -c C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\RigidBodyTests.cpp
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\TestCases.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Utility.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Compiler.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stddef.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\sal.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\concurrencysal.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vadefs.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\stdint.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\limits.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\float.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\math.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_math.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\new
+メモ: インクルード ファイル:     C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals_core.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xkeycheck.h
+メモ: インクルード ファイル:     C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\exception
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_doom_core.hpp
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\crtdbg.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new_debug.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\crtdefs.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\use_ansi.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdlib
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\math.h
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stdlib.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_malloc.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_search.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_wstdlib.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\type_traits
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstddef
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xtr1common
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdint
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\malloc.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_exception.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\eh.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_terminate.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\initializer_list
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\RigidBodyTests.cpp(3): fatal error C1083: include ファイルを開けません。'Dxf/RigidBody2D.h':No such file or directory
+[3/5] Building CXX object CMakeFiles\dxf_physics_tests.dir\Tools\PhysicsValidation\Main.cpp.obj
+メモ: インクルード ファイル:  C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\Physics\TestCases.h
+メモ: インクルード ファイル:   C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Utility.h
+メモ: インクルード ファイル:    C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Compiler.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stddef.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\sal.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\concurrencysal.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vadefs.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\stdint.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\limits.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\float.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\math.h
+メモ: インクルード ファイル:     C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_math.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\new
+メモ: インクルード ファイル:     C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals_core.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xkeycheck.h
+メモ: インクルード ファイル:     C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\exception
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_doom_core.hpp
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\crtdbg.h
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new_debug.h
+メモ: インクルード ファイル:         C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\crtdefs.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\use_ansi.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdlib
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\math.h
+メモ: インクルード ファイル:       C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stdlib.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_malloc.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_search.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_wstdlib.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\type_traits
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstddef
+メモ: インクルード ファイル:        C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xtr1common
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdint
+メモ: インクルード ファイル:      C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\malloc.h
+メモ: インクルード ファイル:      C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_exception.h
+メモ: インクルード ファイル:       C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\eh.h
+メモ: インクルード ファイル:        C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_terminate.h
+メモ: インクルード ファイル:    C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\initializer_list
+メモ: インクルード ファイル:  C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\stdio.h
+メモ: インクルード ファイル:   C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_wstdio.h
+メモ: インクルード ファイル:    C:\Program Files (x86)\Windows Kits\10\include\10.0.28000.0\ucrt\corecrt_stdio_config.h
+ninja: build stopped: subcommand failed.
+.\Tools\Build.cmd : C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tools\BuildWindows.ps1 : debug-build failed. 
+See C:\Users\g0190\O
+発生場所 行:1 文字:74
++ ... sics" | Out-Null; .\Tools\Build.cmd -Configuration Debug 2>&1 | Out-F ...
++                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (C:\Users\g0190\...:\Users\g0190\O:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+neDrive\Desktop\frame\dxlib_framework\Build\WindowsValidation\debug-build.log
+    + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException
+    + FullyQualifiedErrorId : Microsoft.PowerShell.Commands.WriteErrorException,BuildWindows.ps1
+ 

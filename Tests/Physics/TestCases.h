@@ -45,6 +45,11 @@ const FCase* GetSweepCases(Toolbox::size_t& Count) noexcept;
  * @param Count 返す配列の要素数。
  */
 const FCase* GetFixedStepCases(Toolbox::size_t& Count) noexcept;
+/**
+ * 剛体の生成と自由運動の回帰ケースを返す。
+ * @param Count 返す配列の要素数。
+ */
+const FCase* GetRigidBodyCases(Toolbox::size_t& Count) noexcept;
 } // namespace PhysicsTest
 #define PHYSICS_REQUIRE(...) PhysicsTest::Require_Internal(static_cast<bool>((__VA_ARGS__)), #__VA_ARGS__)
 #endif
