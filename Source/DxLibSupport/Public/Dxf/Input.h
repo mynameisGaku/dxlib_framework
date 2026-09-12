@@ -1,5 +1,7 @@
 #pragma once
-// Optional convenience include. Each input responsibility has its own header.
+/**
+ * 入力関連のヘッダーをまとめて読み込む。必要な機能だけを個別に読み込むこともできる。
+ */
 #include "Dxf/InputTypes.h"
 #include "Dxf/InputSource.h"
 #include "Dxf/InputSnapshot.h"

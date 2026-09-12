@@ -63,7 +63,24 @@ function(dxf_public_headers Target Layer Visibility)
     dxf_ide_headers(${Target} "Source/${Layer}")
 endfunction()
 
+add_library(dxf_toolbox STATIC
+    Source/Toolbox/Private/Platform.cpp
+    Source/Toolbox/Private/Vector3.cpp
+    Source/Toolbox/Private/Matrix4.cpp
+    Source/Toolbox/Private/Quaternion.cpp
+    Source/Toolbox/Private/Complex.cpp
+    Source/Toolbox/Private/CollisionShapes.cpp
+    Source/Toolbox/Private/Mesh.cpp
+    Source/Toolbox/Private/CollisionWorld.cpp)
+add_library(dxf::toolbox ALIAS dxf_toolbox)
+set_target_properties(dxf_toolbox PROPERTIES EXPORT_NAME toolbox DEBUG_POSTFIX d)
+target_compile_features(dxf_toolbox PUBLIC cxx_std_20)
+target_include_directories(dxf_toolbox PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Source/Toolbox/Public>" "$<INSTALL_INTERFACE:include>")
+dxf_ide_headers(dxf_toolbox Source/Toolbox)
+dxf_warnings(dxf_toolbox)
+
 add_library(dxf_foundation INTERFACE)
+target_link_libraries(dxf_foundation INTERFACE dxf::toolbox)
 add_library(dxf::foundation ALIAS dxf_foundation)
 set_target_properties(dxf_foundation PROPERTIES EXPORT_NAME foundation)
 target_compile_features(dxf_foundation INTERFACE cxx_std_20)
@@ -73,6 +90,7 @@ if(DXF_SANITIZERS)
         message(FATAL_ERROR "The address+undefined sanitizer profile requires GCC or Clang on Linux")
     endif()
     target_compile_options(dxf_foundation INTERFACE -fsanitize=address,undefined -fno-omit-frame-pointer)
+    target_compile_options(dxf_toolbox PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
     target_link_options(dxf_foundation INTERFACE -fsanitize=address,undefined)
 endif()
 if(DXF_COVERAGE)
@@ -80,6 +98,7 @@ if(DXF_COVERAGE)
         message(FATAL_ERROR "DXF_COVERAGE requires GCC/gcov")
     endif()
     target_compile_options(dxf_foundation INTERFACE --coverage)
+    target_compile_options(dxf_toolbox PRIVATE --coverage)
     target_link_options(dxf_foundation INTERFACE --coverage)
 endif()
 
@@ -128,7 +147,12 @@ set(DXF_NATIVE_SOURCES
 
 if(DXF_BUILD_TESTS)
     enable_testing()
-    add_executable(dxf_tests Tests/TestMain.cpp Tests/FoundationTests.cpp Tests/SupportTests.cpp
+    find_package(Python3 QUIET COMPONENTS Interpreter)
+    if(Python3_Interpreter_FOUND)
+        add_test(NAME NoStl COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/Tools/CheckNoStl.py")
+        set_tests_properties(NoStl PROPERTIES LABELS "source-policy" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+    endif()
+    add_executable(dxf_tests Tests/TestMain.cpp Tests/ToolboxTests.cpp Tests/MathCollisionTests.cpp Tests/FoundationTests.cpp Tests/SupportTests.cpp
         Tests/GameplayTests.cpp Tests/ApplicationTests.cpp Tests/SandboxTests.cpp
         Tests/HardeningTests.cpp Tests/RenderFailureTests.cpp Tests/SceneContinuationTests.cpp Tests/ResourceShutdownTests.cpp Tests/UsabilityTests.cpp Tests/StressTests.cpp Examples/Sandbox/SandboxGame.cpp)
     target_link_libraries(dxf_tests PRIVATE dxf::framework)
@@ -148,7 +172,7 @@ if(DXF_BUILD_TESTS)
     set_tests_properties(NativeContract PROPERTIES TIMEOUT 60 LABELS "contract;not-real-sdk")
 endif()
 
-set(DXF_EXPORT_TARGETS dxlib_framework dxf_foundation dxf_support dxf_runtime dxf_gameplay)
+set(DXF_EXPORT_TARGETS dxlib_framework dxf_toolbox dxf_foundation dxf_support dxf_runtime dxf_gameplay)
 if(DXF_BUILD_NATIVE)
     if(NOT WIN32 OR NOT MSVC)
         message(FATAL_ERROR "DXF_BUILD_NATIVE requires Windows/MSVC x64. Portable tests do not need the SDK.")
@@ -201,6 +225,7 @@ if(DXF_BUILD_EXAMPLE)
     target_link_libraries(Sandbox PRIVATE dxf::native)
     dxf_warnings(Sandbox)
     set_property(TARGET Sandbox PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:Sandbox>")
+    set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT Sandbox)
 endif()
 
 # One writer for shared assets; parallel links must not copy into the same destination.
@@ -226,7 +251,7 @@ if(DXF_INSTALL)
     include(CMakePackageConfigHelpers)
     install(TARGETS ${DXF_EXPORT_TARGETS} EXPORT dxlib_frameworkTargets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-    foreach(Layer Foundation DxLibSupport Runtime Gameplay Native)
+    foreach(Layer Toolbox Foundation DxLibSupport Runtime Gameplay Native)
         install(DIRECTORY "Source/${Layer}/Public/" DESTINATION include FILES_MATCHING PATTERN "*.h")
     endforeach()
     set(DXF_CONFIG_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/dxlib_framework")

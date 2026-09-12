@@ -1,18 +1,30 @@
 #pragma once
+#include "Toolbox/UniquePtr.h"
 #include "Dxf/NativeBackends.h"
 #include "Dxf/AppRunner.h"
-#include <type_traits>
-#include <utility>
+#include "Toolbox/Utility.h"
 namespace Dxf
 {
-/** Convenience entry; use FApplication directly when supplying a custom GameInstance. */
-template <typename TScene, typename... TArgs>
-TResult<void> Run(FApplicationSettings Settings, TArgs&&... Args)
+/**
+ * 標準構成で起動する窓口。独自のGameInstanceにはFApplicationを直接使用する。
+ * @param Settings 初期化に使用する設定。
+ * @param Args 生成先へ転送する引数。
+ */
+template <typename TScene, typename... TArgs> TResult<void> Run(FApplicationSettings Settings, TArgs&&... Args)
 {
-	static_assert(std::is_base_of_v<DScene, TScene>);
+	static_assert(Toolbox::IsBaseOf<DScene, TScene>);
+	/**
+	 * 各ネイティブ機能の実装。
+	 */
 	FDxLibBackends Backends;
-	FApplication Application(Backends.GetServices(), std::move(Settings));
+	/**
+	 * サービスを結合した実行用のアプリケーション。
+	 */
+	FApplication Application(Backends.GetServices(), Toolbox::Move(Settings));
+	/**
+	 * アプリケーションの実行器。
+	 */
 	FAppRunner Runner;
-	return Runner.Run(Application, std::make_unique<TScene>(std::forward<TArgs>(Args)...));
+	return Runner.Run(Application, Toolbox::MakeUnique<TScene>(Toolbox::Forward<TArgs>(Args)...));
 }
-}
+} // namespace Dxf

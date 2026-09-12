@@ -16,6 +16,8 @@
 
 ### Visual Studioのソリューションを生成する
 
+通常の入口はルートの`dxlib_framework.slnx`（Visual Studioの世代によっては`.sln`）です。`dxf_toolbox`・`dxf_foundation`・`dxf_support`・`dxf_runtime`・`dxf_gameplay`・`dxf_native_backends`・`Sandbox`の7プロジェクトだけを表示します。Toolboxを含め、ユーザーが利用する型とヘッダーを各プロジェクトから参照できます。テストやCMake補助プロジェクトは開発用へ分離しています。
+
 初回は `Setup.cmd` でDxLib SDKを用意し、ルートの `GenerateProjectFiles.bat` をダブルクリックします。Visual StudioのC++開発ツールとCMakeを自動検出し、`dxlib_framework.sln`（環境によっては `.slnx`）を生成します。Visual Studioで開き、Debug／Release・x64を選択してビルドできます。生成だけではビルドしません。
 
 生成時はCMakeの構成キャッシュを作り直し、環境変数や過去のキャッシュにある外部ツールチェーン設定を無効化して、検出したMSVCを直接使います。システムの環境変数は変更しません。
@@ -23,10 +25,13 @@
 ```powershell
 .\GenerateProjectFiles.bat -Open       # 生成後にソリューションを開く
 .\GenerateProjectFiles.bat -NoPause    # キー入力を待たずに終了
-.\GenerateProjectFiles.bat -Portable   # DxLib不要のテスト用ソリューション
+.\GenerateProjectFiles.bat -Portable   # DxLib不要のソリューション
+.\GenerateProjectFiles.bat -Development # テスト・補助プロジェクトを含む開発用
 ```
 
 `-Portable` のソリューションはルートの `dxlib_framework-portable.sln`（または `.slnx`）です。プロジェクト・ビルド出力は通常版が `Build/VisualStudio`、Portable版が `Build/VisualStudio-portable` にまとまります。ヘッダーは各プロジェクト内にフォルダ構成に沿って表示されます。SDKは環境変数 `DXLIB_ROOT`、または `Setup.cmd` が作るマニフェストから検出します。引数なしの場合は結果を確認できるよう終了時にキー入力を待ちます。既存のNinjaビルドとは別のフォルダを使い、再実行でプロジェクトを更新できます。
+
+`-Development`はルートの`dxlib_framework-development.slnx`（または`.sln`）へ出力し、通常版と別の`Build/VisualStudio-development`で生成します。`-Portable -Development`も組み合わせられ、`Build/VisualStudio-portable-development`を使います。通常版と開発版は互いの生成結果を上書きしません。`Build`内のソリューションはCMake管理用の原本なので、普段はルートのソリューションを開いてください。ヘッダー追加や構成変更の後は`GenerateProjectFiles.bat`を再実行します。
 
 ### コマンドからビルド・検証する
 
@@ -93,6 +98,7 @@ Dxf::TResult<void> RunMyGame()
 
 | 分野 | 内容 |
 |---|---|
+| Toolbox | STL非依存の配列・文字列・所有ポインタ、SIMD数学、行列・複素数・Quaternion、形状判定と自動四分木／八分木 |
 | Foundation | RTTI、結果型、世代付き非所有ハンドル、所有ストレージ、時間、RAII補助、UTF-8検証 |
 | 入力 | Snapshot、押下／保持／解放、マウス、最大4Pad、キーボード／マウス／PadのAction割り当て・変更・解除 |
 | 資源 | 画像・音・フォント、専任Loader、弱参照Cache、共有参照、終了時の強制無効化、RenderTarget |
@@ -101,7 +107,9 @@ Dxf::TResult<void> RunMyGame()
 | 実行基盤 | メインループ、GameInstance、Scene切り替え、失敗時の後始末、終了順序 |
 | Gameplay | 遅延生成・破棄、自動ライフサイクル、更新順、ポーズ、型付き検索、任意利用のSpriteRendererComponent |
 
-衝突・物理・3Dモデル・エディター・非同期ロードなどは、この版の2D基盤の実装範囲には含みません。
+ToolboxにはAABB・OBB・Sphere・Cube・Convex・Meshの衝突判定と、自動選択する四分木／八分木を追加しています。剛体の物理応答・3Dモデル描画・エディター・非同期ロードは実装範囲に含みません。[Toolboxの使い方と制約](Docs/Toolbox.md)を参照してください。
+
+フレームワーク内とサンプル・テストのSTL依存はToolboxへ移行しています。公開APIもToolbox型に変わるため、既存利用コードの所有ポインタ・文字列・パス・コールバックを更新してください。数値型とコメント形式は[コーディング規則](Docs/CodingStandard.md)にまとめています。`python Tools/CheckNoStl.py`でSTL再混入を検査できます。
 
 ## 既存CMakeプロジェクトへ組み込む
 

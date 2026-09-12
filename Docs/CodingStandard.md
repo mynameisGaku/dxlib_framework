@@ -1,70 +1,73 @@
 # コーディング規則
 
-## 継続開発で優先する規約
+## 標準ライブラリとToolbox
 
-新規・変更箇所には現在のユーザー共通規約を適用します。所有される多態オブジェクトは `A`、値・ハンドル・サービスは `F`、テンプレートは `T`、列挙型は `E` を使用します。既存の `DScene` などは互換性のため維持し、一括改名は行いません。
+Source・Examples・TestsのC++コードではSTLを使用しません。コンテナ、文字列、スマートポインタ、アルゴリズム、関数オブジェクトなどが必要になった場合は、まずToolboxに実装し、利用側からその機能を使います。`std`の型を別名にするだけの実装や、STLを内部に隠すラッパーも禁止です。既存機能と移行例は[Toolbox](Toolbox.md)を参照してください。
 
-公開型は原則1主要型1ヘッダーとし、実装を持つ型は同名cpp、テンプレート実装は同名ヘッダーまたはinlへ置きます。新しいヘッダーの冒頭はSPDXとinclude guardのみとします。宣言直前には役割・入力・失敗条件が分かる日本語コメント、変数や列挙値にはその場所での役割を記述します。括弧や初期化子の内部は1行とし、Allmanの波括弧を維持します。
+C++言語の構築・破棄を支える`<new>`・`<initializer_list>`と、`std::align_val_t`・`std::initializer_list`のみ、Toolbox内部で例外として使用します。OS API、Cランタイム、SIMD intrinsicはToolboxの実装境界で使用できます。DxLibの呼び出しとWindowsのエントリーポイントはNative／プラットフォーム境界に置きます。C++20、標準RTTI、C++例外は引き続き使用します。
 
-既存の所有・入力・モジュール・ビルド機構を優先します。局所状態や単純な計算をsubsystemへ移しません。APIや構成変更では文書・参照と必要な検証を同時に更新します。以下は0.3.0までの既存コードの規約であり、上記と衝突する場合は上記を優先します。
+`python Tools/CheckNoStl.py`はSource・Examples・TestsのSTLヘッダーと`std`参照を検出します。テンプレートの品質、所有権、計算量まで保証する検査ではないため、追加する基盤機能には用途に応じた動作検証も行います。
 
-UE5の命名・可読性・レイアウトの考え方を基準にし、DxLibフレームワーク向けの接頭辞と、依頼されたメンバー／内部処理の規則を適用しています。Unreal Engine自体への依存はありません。
+## 数値型と命名
 
-## 型の接頭辞
+整数は`int8`・`int16`・`int32`・`int64`、符号なし整数は`uint8`・`uint16`・`uint32`・`uint64`を使います。浮動小数点は`f32`・`f64`を使い、`FInt`のような接頭辞は付けません。配列の要素数・添字にはToolboxの`size_t`を使います。`bool`、文字・文字列の`char`／`wchar_t`、`void`は役割どおりに使用します。基本型の定義とOS ABIが要求する宣言を除き、生の`int`・`long`・`float`・`double`を新たに使いません。
+
+数値型は`Toolbox/Utility.h`のToolbox名前空間で定義します。Toolbox外では`Toolbox::f32`のように修飾します。精度や表現範囲を考えて型を選び、境界での変換は明示します。
 
 | 接頭辞 | 用途 | 例 |
 |---|---|---|
-| `D` | `DObject`を継承するRTTI対象オブジェクト | `DScene`, `DGameObject`, `DGameObjectComponent` |
-| `F` | 通常のクラス、値型、設定・Contextなど | `FApplication`, `FAssetService`, `FFrameTime` |
-| `I` | 抽象インターフェース | `ITextureBackend`, `IInputSource`, `IRenderControl` |
-| `T` | テンプレート | `TResult<T>`, `TObjectHandle<T>`, `TManagedLifecycle<T>` |
-| `E` | `enum class` | `EKey`, `ELifecycleState` |
+| `A` | 新規の所有される多態オブジェクト | 既存の`DScene`等は互換性のため維持 |
+| `D` | 既存のDObject系公開型 | `DScene`, `DGameObject` |
+| `F` | 値、設定、ハンドル、サービス | `FApplication`, `FVector3` |
+| `I` | 抽象インターフェース | `ITextureBackend` |
+| `T` | テンプレート | `TVector<T>`, `TSharedPtr<T>` |
+| `E` | 列挙型 | `EKey`, `ESpatialIndex` |
 
-`U`・`A`など、Unreal固有の型体系を連想させる接頭辞は使用しません。`D`はこのフレームワークのオブジェクト系を区別するための規約であり、UObjectのGC・反射・シリアライズを備える意味ではありません。
+型・公開関数・引数・ローカル変数はPascalCaseにします。振る舞いを持つ型のメンバーは値を`m_`、所有／生ポインタを`m_p`、boolを`m_b`で始めます。設定・結果・Contextなどのデータ保持用フィールドには付けません。非所有の世代付きハンドルは値として扱います。
 
-## メンバー変数
+## コメント
 
-振る舞いや状態管理を持つクラスのメンバーには、値に `m_`、生ポインタ・スマートポインタ・関数ポインタに `m_p` を付けます。boolは `m_b` に続けて意味の分かる名前にします。
-
-```cpp
-FTexture m_Texture;
-FVector2 m_Position;
-bool m_bInitialized = false;
-ITextureBackend* m_pBackend = nullptr;
-std::unique_ptr<DGameInstance> m_pGame;
-```
-
-設定、要求、結果、Context、ID、メタデータなど、データ保持を主目的とする型のフィールドには付けません。宣言がclassかstructかだけでは判定しません。`TResult`の内部データもこの区分です。RAIIや資源の有効性を管理する型は振る舞い型として扱います。
+既存の日本語説明に合わせて、型、関数、引数、メンバー変数、ローカル変数、定数、列挙値の役割を短く説明します。形式は複数行の`/** ... */`に統一し、名前の読み替えだけでなく、その場所で何を表すかを記述します。関数の引数は関数コメント内の`@param`で説明できます。戻り値の意味、単位、所有権、失敗条件が自明でなければ一緒に記述します。
 
 ```cpp
+/**
+ * 再生要求に適用する音量と繰り返し設定。
+ */
 struct FPlaybackOptions
 {
-    bool bLoop = false;
-    float Volume = 1.0f;
-    std::uint64_t Scope = 0;
+	/**
+	 * 終端に達したら先頭から再生する。
+	 */
+	bool bLoop = false;
+	/**
+	 * 元の音量に掛ける0〜1の倍率。
+	 */
+	Toolbox::f32 Volume = 1.0f;
 };
+
+/**
+ * 経過時間を上限以内に収める。
+ * @param Elapsed 実際の経過秒数。
+ * @param Maximum 1回の更新へ渡す最大秒数。
+ */
+Toolbox::f64 ClampElapsed(Toolbox::f64 Elapsed, Toolbox::f64 Maximum)
+{
+	/**
+	 * 負の経過時間を除いた更新候補。
+	 */
+	const Toolbox::f64 NonNegative = Toolbox::Max(Elapsed, 0.0);
+	return Toolbox::Min(NonNegative, Maximum);
+}
 ```
 
-世代付きの `TObjectHandle<T>` はメモリの所有ポインタではなく、所有領域とIDを表す値型です。これを保持するメンバーは `m_Player` のように表記します。
+## レイアウトと設計
 
-## 関数
+波括弧はAllman、インデントはタブ（表示幅4）です。複数の処理・宣言を1行に詰めず、短い関数・if・ループも展開します。初期化リストや引数列のカンマは許容しますが、`f32 X = 0, Y = 0;`のような変数宣言は分けます。設定はルートの`.clang-format`と`.editorconfig`を使います。
 
-公開APIはPascalCase、boolの問い合わせは `IsDown`・`WasPressed`・`IsInitialized` のように意味を明確にします。内部の補助処理や、基盤だけが使うディスパッチ入口は末尾を `_Internal` にします。
+公開型は原則1主要型1ヘッダー、通常実装は同名cpp、テンプレート実装は同名ヘッダーまたはinlへ置きます。新しいヘッダーはSPDXとinclude guardで始め、PublicとPrivateを分離します。cppでは対応する公開ヘッダーを先頭にincludeします。
 
-```cpp
-TResult<void> Initialize_Internal(const FInitContext& Context);
-void FinishDispatch_Internal() noexcept;
-TResult<void> RestoreTarget_Internal();
-```
+コピーで所有関係が壊れる型はコピー禁止にします。基底経由で破棄する型にはvirtualデストラクタを置きます。個々のオブジェクトは基本的に単独所有、実際に共有する資源だけ共有所有にします。STL撤廃を理由に所有・入力・モジュール構成を不用意に変更しません。
 
-`_Internal` は公開／非公開の代わりではありません。複数の担当クラスから呼ぶためpublicに置く入口もありますが、ゲーム側から直接呼ぶ用途ではありません。公開された実用部品の `Load`・`Play`・`Update` などは通常のAPIなので、内部専用の接尾辞は付けません。
+基盤専用のディスパッチ入口は`_Internal`を付けます。`OnInitialize`・`OnTick`・`OnDraw`・`OnDeinitialize`・`OnEnter`・`OnExit`はユーザー拡張点なので付けません。コンストラクタ・デストラクタ・演算子にも付けません。
 
-ユーザー拡張点は `OnInitialize`・`OnTick`・`OnDraw`・`OnDeinitialize`・`OnEnter`・`OnExit` です。これらは内部処理ではなく、意図的にoverrideするフックです。コンストラクタ、デストラクタ、演算子にも `_Internal` は付けません。
-
-## レイアウトと実装
-
-波括弧はAllman、インデントはタブ（表示幅4）、型・関数・ローカル変数はPascalCaseです。設定は `.editorconfig` と `.clang-format` に含めています。ヘッダーは `#pragma once`、cppでは対応する公開ヘッダーを先頭にincludeし、PublicとPrivateを分離します。テンプレートと短いAPIはヘッダー内実装です。
-
-コピーで所有関係が壊れる型はコピー禁止にします。基底経由で破棄する型にはvirtualデストラクタを置きます。個々のオブジェクトは基本的に単独所有、画像など実際に共有する資源だけ共有所有にします。
-
-Unreal専用のコンテナ・マクロ・ビルドシステムは持ち込みません。C++20、標準RTTI、標準ライブラリ、C++例外を使用します。`OnDeinitialize`・`OnEnter`・`OnExit` はnoexcept契約です。それ以外のユーザーフックの例外はApplication境界などでエラーへ変換します。一般のC++構築やメモリ確保まで「絶対に例外を投げない」保証をするAPIではありません。
+`OnDeinitialize`・`OnEnter`・`OnExit`はnoexcept契約です。それ以外のユーザーフックの例外はApplication境界などでエラーへ変換します。一般の構築やメモリ確保まで例外を投げないAPIではありません。

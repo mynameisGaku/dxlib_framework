@@ -36,6 +36,7 @@ def main() -> int:
 
     with validation_report(logs, summary):
         summary["version"] = project_version(ROOT)
+        run("no-stl", [sys.executable, str(ROOT / "Tools" / "CheckNoStl.py")])
         profiles = [("debug", "Debug", []), ("release", "Release", [])]
         if args.with_sanitizers:
             if os.name == "nt" or not shutil.which("clang++"):
@@ -75,7 +76,7 @@ class DProbe final : public Dxf::DObject {};
 int main()
 {
     Dxf::TSlotMap<Dxf::DObject> Storage;
-    auto Handle = Storage.Insert(std::make_unique<DProbe>());
+    auto Handle = Storage.Insert(Toolbox::MakeUnique<DProbe>());
     Dxf::FFrameClock Clock;
     return Handle.Get() && Clock.Sample(0.0) ? 0 : 1;
 }

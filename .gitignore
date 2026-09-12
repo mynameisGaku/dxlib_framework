@@ -3,6 +3,11 @@
 /dxlib_framework.slnx
 /dxlib_framework-portable.sln
 /dxlib_framework-portable.slnx
+/dxlib_framework-development.sln
+/dxlib_framework-development.slnx
+/dxlib_framework-portable-development.sln
+/dxlib_framework-portable-development.slnx
+/x64/
 /.vs/
 /out/
 CMakeUserPresets.json

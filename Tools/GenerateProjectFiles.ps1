@@ -3,6 +3,7 @@
 param(
     [switch]$Portable,
     [switch]$Open,
+    [switch]$Development,
     [switch]$NoPause
 )
 Set-StrictMode -Version Latest
@@ -38,10 +39,14 @@ try {
     if ($Generators.Count -eq 0) { throw 'This CMake does not support the installed Visual Studio. Update CMake or install Visual Studio CMake tools.' }
 
     $Build = Join-Path $Root 'Build/VisualStudio'
+    if ($Development) { $Build += '-development' }
     $Native = 'ON'
+    $Tests = 'OFF'
+    if ($Development) { $Tests = 'ON' }
     $SdkRoot = $env:DXLIB_ROOT
     if ($Portable) {
         $Build = Join-Path $Root 'Build/VisualStudio-portable'
+        if ($Development) { $Build += '-development' }
         $Native = 'OFF'
     } else {
         $Manifest = Join-Path $Root 'ThirdParty/dxlib-sdk.json'
@@ -57,9 +62,9 @@ try {
         # Use the detected MSVC directly; override both environment and cached toolchains.
         '-DCMAKE_TOOLCHAIN_FILE:FILEPATH=',
         ('-DCMAKE_GENERATOR_INSTANCE=' + $Installation.installationPath),
-        '-DCMAKE_CONFIGURATION_TYPES=Debug;Release', '-DDXF_BUILD_TESTS=ON',
+        '-DCMAKE_CONFIGURATION_TYPES=Debug;Release', ('-DDXF_BUILD_TESTS=' + $Tests),
         ('-DDXF_BUILD_NATIVE=' + $Native), ('-DDXF_BUILD_EXAMPLE=' + $Native),
-        ('-DDXF_BUILD_NATIVE_SMOKE=' + $Native), '-DDXF_RUN_DEVICE_TESTS=OFF')
+        ('-DDXF_BUILD_NATIVE_SMOKE=' + $(if ($Development -and -not $Portable) { 'ON' } else { 'OFF' })), '-DDXF_RUN_DEVICE_TESTS=OFF')
     if (-not $Portable) { $Arguments += '-DDXLIB_ROOT=' + $SdkRoot }
     & $CMake @Arguments
     if ($LASTEXITCODE -ne 0) { throw 'Solution generation failed. See the CMake output above.' }
@@ -75,30 +80,14 @@ try {
         $BuildRelative = 'Build/VisualStudio-portable/'
         $SolutionName += '-portable'
     }
+    if ($Development) {
+        $SolutionName += '-development'
+        $BuildRelative = $BuildRelative.TrimEnd('/') + '-development/'
+    }
     $Extension = [IO.Path]::GetExtension($Solution)
     $RootSolution = Join-Path $Root ($SolutionName + $Extension)
-    if ($Extension -eq '.slnx') {
-        $Document = New-Object System.Xml.XmlDocument
-        $Document.PreserveWhitespace = $true
-        $Document.Load($Solution)
-        foreach ($Attribute in $Document.SelectNodes('//Project/@Path | //BuildDependency/@Project | //File/@Path')) {
-            if (-not [IO.Path]::IsPathRooted($Attribute.Value)) {
-                $Attribute.Value = $BuildRelative + $Attribute.Value.Replace('\', '/')
-            }
-        }
-        $Document.Save($RootSolution)
-    } else {
-        $Text = [IO.File]::ReadAllText($Solution)
-        $Text = [regex]::Replace($Text, '(?m)^(Project\("[^"\r\n]+"\) = "[^"\r\n]+", ")([^"\r\n]+)(",.*)$', {
-            param($Match)
-            $ProjectPath = $Match.Groups[2].Value
-            if ($ProjectPath -match '\.(vcxproj|csproj|fsproj)$' -and -not [IO.Path]::IsPathRooted($ProjectPath)) {
-                $ProjectPath = $BuildRelative.Replace('/', '\') + $ProjectPath
-            }
-            $Match.Groups[1].Value + $ProjectPath + $Match.Groups[3].Value
-        })
-        [IO.File]::WriteAllText($RootSolution, $Text, (New-Object System.Text.UTF8Encoding($true)))
-    }
+    . (Join-Path $PSScriptRoot 'SolutionHelpers.ps1')
+    Export-RootSolution -Source $Solution -Destination $RootSolution -BuildRelative $BuildRelative -Development:$Development
     $Solution = $RootSolution
     Write-Host ('Solution generated: ' + $Solution)
     if ($Open) { Invoke-Item -LiteralPath $Solution }

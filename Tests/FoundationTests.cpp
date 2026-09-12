@@ -1,40 +1,61 @@
+#include "Toolbox/UniquePtr.h"
 #include "Support/Test.h"
 #include "Dxf/Result.h"
 #include "Dxf/Object.h"
 #include "Dxf/SlotMap.h"
 #include "Dxf/Clock.h"
 #include "Dxf/Input.h"
-#include <cmath>
-#include <memory>
-#include <limits>
+#include "Toolbox/Utility.h"
+#include "Toolbox/SharedPtr.h"
 using namespace Dxf;
 namespace
 {
+/**
+ * オブジェクト登録と型判定を検証する最小実装。
+ */
 class DTestObject : public DObject
 {
 };
+/**
+ * 型変換を拒否すべき別種のオブジェクト。
+ */
 class DOtherObject : public DObject
 {
 };
-}
+} // namespace
 TEST("Result holds a move-only value")
 {
-	auto Result = TResult<std::unique_ptr<int>>::Success(std::make_unique<int>(42));
+	/**
+	 * 検証対象の操作が返した成否と値。
+	 */
+	auto Result = TResult<Toolbox::TUniquePtr<Toolbox::int32>>::Success(Toolbox::MakeUnique<Toolbox::int32>(42));
 	REQUIRE(Result);
 	REQUIRE(*Result.Value() == 42);
-	auto Value = std::move(Result).Value();
+	/**
+	 * 結果から取り出した値。
+	 */
+	auto Value = Toolbox::Move(Result).Value();
 	REQUIRE(*Value == 42);
 }
 TEST("Result preserves error and void success")
 {
-	auto Result = TResult<int>::Failure(EErrorCode::InvalidArgument, "bad input");
+	/**
+	 * 検証対象の操作が返した成否と値。
+	 */
+	auto Result = TResult<Toolbox::int32>::Failure(EErrorCode::InvalidArgument, "bad input");
 	REQUIRE(!Result);
 	REQUIRE(Result.Error().Message == "bad input");
 	REQUIRE(TResult<void>{});
 }
 TEST("RTTI supports safe derived checks")
 {
+	/**
+	 * 検証対象のオブジェクト。
+	 */
 	DTestObject Object;
+	/**
+	 * 基底型を通じた型判定の参照。
+	 */
 	DObject& Base = Object;
 	REQUIRE(Base.IsA<DTestObject>());
 	REQUIRE(!Base.IsA<DOtherObject>());
@@ -43,11 +64,20 @@ TEST("RTTI supports safe derived checks")
 }
 TEST("SlotMap invalidates removed handles and increments generation")
 {
+	/**
+	 * 検証対象を所有する世代付き格納先。
+	 */
 	TSlotMap<DObject> Storage;
-	auto Old = Storage.Insert(std::make_unique<DTestObject>());
+	/**
+	 * 削除または置換する前の登録。
+	 */
+	auto Old = Storage.Insert(Toolbox::MakeUnique<DTestObject>());
 	REQUIRE(Old.Get());
 	REQUIRE(Storage.Remove(Old));
-	auto New = Storage.Insert(std::make_unique<DTestObject>());
+	/**
+	 * 同じ格納先へ再登録した対象。
+	 */
+	auto New = Storage.Insert(Toolbox::MakeUnique<DTestObject>());
 	REQUIRE(!Old.Get());
 	REQUIRE(New.Get());
 	REQUIRE(Old.GetId().Index == New.GetId().Index);
@@ -57,34 +87,55 @@ TEST("Handles do not resolve against a different owner")
 {
 	TSlotMap<DObject> A;
 	TSlotMap<DObject> B;
-	auto First = A.Insert(std::make_unique<DTestObject>());
-	auto Second = B.Insert(std::make_unique<DTestObject>());
+	/**
+	 * 最初に生成または登録した対象。
+	 */
+	auto First = A.Insert(Toolbox::MakeUnique<DTestObject>());
+	/**
+	 * 二番目に生成または登録した対象。
+	 */
+	auto Second = B.Insert(Toolbox::MakeUnique<DTestObject>());
 	REQUIRE(!B.Remove(First));
 	REQUIRE(Second.Get());
 	REQUIRE(First.GetId().Domain != Second.GetId().Domain);
 }
 TEST("Handle outlives storage without dangling pointer")
 {
+	/**
+	 * 生存期間や世代を検証する登録ハンドル。
+	 */
 	TObjectHandle<DObject> Handle;
 	{
+		/**
+		 * 検証対象を所有する世代付き格納先。
+		 */
 		TSlotMap<DObject> Storage;
-		Handle = Storage.Insert(std::make_unique<DTestObject>());
+		Handle = Storage.Insert(Toolbox::MakeUnique<DTestObject>());
 	}
 	REQUIRE(!Handle.Get());
 }
 TEST("Typed handle rejects incorrect dynamic type")
 {
+	/**
+	 * 検証対象を所有する世代付き格納先。
+	 */
 	TSlotMap<DObject> Storage;
-	auto Handle = Storage.Insert(std::make_unique<DTestObject>());
+	/**
+	 * 生存期間や世代を検証する登録ハンドル。
+	 */
+	auto Handle = Storage.Insert(Toolbox::MakeUnique<DTestObject>());
 	REQUIRE(Handle.Cast<DTestObject>().Get());
 	REQUIRE(!Handle.Cast<DOtherObject>().Get());
 }
 TEST("SlotMap snapshot permits removal without iterator invalidation")
 {
+	/**
+	 * 検証対象を所有する世代付き格納先。
+	 */
 	TSlotMap<DObject> Storage;
-	for (int Index = 0; Index < 128; ++Index)
+	for (Toolbox::int32 Index = 0; Index < 128; ++Index)
 	{
-		Storage.Insert(std::make_unique<DTestObject>());
+		Storage.Insert(Toolbox::MakeUnique<DTestObject>());
 	}
 	for (auto Handle : Storage.Snapshot())
 	{
@@ -94,28 +145,43 @@ TEST("SlotMap snapshot permits removal without iterator invalidation")
 }
 TEST("FrameClock clamps simulation delta but retains real delta")
 {
+	/**
+	 * 実時間とシミュレーション時間を分ける時計。
+	 */
 	FFrameClock Clock(0.25);
 	REQUIRE(Clock.Sample(10.0).Value().DeltaSeconds == 0.0);
+	/**
+	 * サンプリングしたフレーム時刻。
+	 */
 	const auto Time = Clock.Sample(11.0).Value();
 	REQUIRE(Time.UnscaledDeltaSeconds == 1.0);
 	REQUIRE(Time.DeltaSeconds == 0.25);
 }
 TEST("FrameClock rejects negative and nonfinite elapsed inputs")
 {
+	/**
+	 * 実時間とシミュレーション時間を分ける時計。
+	 */
 	FFrameClock Clock;
 	REQUIRE(Clock.Sample(3.0));
 	REQUIRE(!Clock.Sample(2.0));
-	REQUIRE(!Clock.Sample(std::numeric_limits<double>::quiet_NaN()));
+	REQUIRE(!Clock.Sample(Toolbox::TNumericLimits<Toolbox::f64>::QuietNaN()));
 	REQUIRE(Clock.Sample(4.0).Value().UnscaledDeltaSeconds == 1.0);
 }
 TEST("SceneClock pause and scale preserve unscaled time")
 {
+	/**
+	 * 実時間とシミュレーション時間を分ける時計。
+	 */
 	FSceneClock Clock;
 	REQUIRE(Clock.SetTimeScale(0.5));
+	/**
+	 * サンプリングしたフレーム時刻。
+	 */
 	FFrameTime Time;
 	Time.DeltaSeconds = 0.1;
 	Time.UnscaledDeltaSeconds = 0.1;
-	REQUIRE(std::abs(Clock.Advance(Time).DeltaSeconds - 0.05) < 1e-9);
+	REQUIRE(Toolbox::Abs(Clock.Advance(Time).DeltaSeconds - 0.05) < 1e-9);
 	Clock.SetPaused(true);
 	auto Paused = Clock.Advance(Time);
 	REQUIRE(Paused.bPaused);
@@ -126,8 +192,11 @@ TEST("SceneClock pause and scale preserve unscaled time")
 TEST("Input edges are stable during a frame")
 {
 	FInputStateTracker Tracker;
+	/**
+	 * 検証する処理の状態。
+	 */
 	FRawInput State;
-	State.Keys[static_cast<std::size_t>(EKey::Space)] = true;
+	State.Keys[static_cast<Toolbox::size_t>(EKey::Space)] = true;
 	Tracker.Advance(State);
 	REQUIRE(Tracker.GetSnapshot().WasPressed(EKey::Space));
 	REQUIRE(Tracker.GetSnapshot().WasPressed(EKey::Space));
@@ -140,8 +209,11 @@ TEST("Input edges are stable during a frame")
 TEST("Focus loss releases keys and mouse buttons")
 {
 	FInputStateTracker Tracker;
+	/**
+	 * 検証する処理の状態。
+	 */
 	FRawInput State;
-	State.Keys[static_cast<std::size_t>(EKey::A)] = true;
+	State.Keys[static_cast<Toolbox::size_t>(EKey::A)] = true;
 	State.MouseButtons[0] = true;
 	Tracker.Advance(State);
 	State.bFocused = false;
@@ -153,6 +225,9 @@ TEST("Focus loss releases keys and mouse buttons")
 TEST("Gamepad disconnection emits release and clears axes")
 {
 	FInputStateTracker Tracker;
+	/**
+	 * 検証する処理の状態。
+	 */
 	FRawInput State;
 	State.Pads[0].bConnected = true;
 	State.Pads[0].Buttons[0] = true;
@@ -170,16 +245,19 @@ TEST("InputMap action is held until all bound keys release")
 	Map.Bind("Jump", EKey::Space);
 	Map.Bind("Jump", EKey::W);
 	FInputStateTracker Tracker;
+	/**
+	 * 正規化前の入力データ。
+	 */
 	FRawInput Raw;
-	Raw.Keys[static_cast<std::size_t>(EKey::Space)] = true;
+	Raw.Keys[static_cast<Toolbox::size_t>(EKey::Space)] = true;
 	Tracker.Advance(Raw);
 	Map.Update(Tracker.GetSnapshot());
 	REQUIRE(Map.WasPressed("Jump"));
-	Raw.Keys[static_cast<std::size_t>(EKey::W)] = true;
+	Raw.Keys[static_cast<Toolbox::size_t>(EKey::W)] = true;
 	Tracker.Advance(Raw);
 	Map.Update(Tracker.GetSnapshot());
 	REQUIRE(!Map.WasPressed("Jump"));
-	Raw.Keys[static_cast<std::size_t>(EKey::Space)] = false;
+	Raw.Keys[static_cast<Toolbox::size_t>(EKey::Space)] = false;
 	Tracker.Advance(Raw);
 	Map.Update(Tracker.GetSnapshot());
 	REQUIRE(Map.IsDown("Jump"));
@@ -192,6 +270,9 @@ TEST("Result can carry an error object as successful data without confusing the 
 {
 	auto Success = TResult<FError>::Success({EErrorCode::NotFound, "successful data"});
 	REQUIRE(Success && Success.Value().Message == "successful data");
+	/**
+	 * 失敗が記録された状態。
+	 */
 	auto Failure = TResult<FError>::Failure(EErrorCode::BackendFailure, "actual failure");
 	REQUIRE(!Failure && Failure.Error().Message == "actual failure");
 }

@@ -1,22 +1,43 @@
 #pragma once
+#include "Toolbox/UniquePtr.h"
 #include "Dxf/Application.h"
-#include <chrono>
+#include "Toolbox/Platform.h"
 namespace Dxf
 {
+/**
+ * 終了要求までフレーム処理を繰り返す実行器を管理する型。
+ */
 class FAppRunner
 {
 public:
-	TResult<void> Run(FApplication& Application, std::unique_ptr<DScene> InitialScene)
+	/**
+	 * 終了要求までアプリケーションを実行する。
+	 * @param Application アプリケーションの実行状態。
+	 * @param InitialScene 最初に開始するシーン。
+	 */
+	TResult<void> Run(FApplication& Application, Toolbox::TUniquePtr<DScene> InitialScene)
 	{
-		auto Started = Application.Start(std::move(InitialScene));
+		/**
+		 * 開始処理が完了しているか。
+		 */
+		auto Started = Application.Start(Toolbox::Move(InitialScene));
 		if (!Started)
 		{
 			return Started;
 		}
-		const auto Origin = std::chrono::steady_clock::now();
+		/**
+		 * 元の状態。
+		 */
+		const auto Origin = Toolbox::MonotonicNanoseconds();
 		while (Application.IsRunning())
 		{
-			const double Now = std::chrono::duration<double>(std::chrono::steady_clock::now() - Origin).count();
+			/**
+			 * 計測した現在時刻。
+			 */
+			const Toolbox::f64 Now = static_cast<Toolbox::f64>(Toolbox::MonotonicNanoseconds() - Origin) / 1000000000.0;
+			/**
+			 * 1フレームの実行結果。
+			 */
 			auto Step = Application.Step(Now);
 			if (!Step)
 			{
@@ -31,4 +52,4 @@ public:
 		return {};
 	}
 };
-}
+} // namespace Dxf

@@ -1,35 +1,62 @@
 #pragma once
+#include "Toolbox/UniquePtr.h"
 #include "Dxf/Scene.h"
-#include <memory>
+#include "Toolbox/SharedPtr.h"
 namespace Dxf
 {
-/** Owns only; preparation and transition policy belong to SceneNavigator/Lifecycle. */
+/**
+ * シーンの所有だけを担当する。準備と遷移の規則はNavigatorとLifecycleが管理する。
+ */
 class FSceneStorage
 {
 public:
+	/**
+	 * 現在の状態を取得する。
+	 */
 	DScene* GetCurrent() const noexcept
 	{
-		return m_pCurrent.get();
+		return m_pCurrent.Get();
 	}
-	void SetPending_Internal(std::unique_ptr<DScene> Scene)
+	/**
+	 * 次の境界で反映する要求を設定する。
+	 * @param Scene 対象のシーン。
+	 */
+	void SetPending_Internal(Toolbox::TUniquePtr<DScene> Scene)
 	{
-		m_pPending = std::move(Scene);
+		m_pPending = Toolbox::Move(Scene);
 	}
-	std::unique_ptr<DScene> TakePending_Internal() noexcept
+	/**
+	 * 待機中の対象の所有権を取り出す。
+	 */
+	Toolbox::TUniquePtr<DScene> TakePending_Internal() noexcept
 	{
-		return std::move(m_pPending);
+		return Toolbox::Move(m_pPending);
 	}
-	void SetCurrent_Internal(std::unique_ptr<DScene> Scene)
+	/**
+	 * 現在の状態を設定する。
+	 * @param Scene 対象のシーン。
+	 */
+	void SetCurrent_Internal(Toolbox::TUniquePtr<DScene> Scene)
 	{
-		m_pCurrent = std::move(Scene);
+		m_pCurrent = Toolbox::Move(Scene);
 	}
+	/**
+	 * 蓄積した内容を消去する。
+	 */
 	void Clear_Internal() noexcept
 	{
-		m_pPending.reset();
-		m_pCurrent.reset();
+		m_pPending.Reset();
+		m_pCurrent.Reset();
 	}
+
 private:
-	std::unique_ptr<DScene> m_pCurrent;
-	std::unique_ptr<DScene> m_pPending;
+	/**
+	 * 現在の状態。
+	 */
+	Toolbox::TUniquePtr<DScene> m_pCurrent;
+	/**
+	 * 次の境界で反映する要求。
+	 */
+	Toolbox::TUniquePtr<DScene> m_pPending;
 };
-}
+} // namespace Dxf

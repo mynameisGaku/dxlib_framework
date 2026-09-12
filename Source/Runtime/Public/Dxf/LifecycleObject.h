@@ -3,58 +3,126 @@
 #include "Dxf/LifecycleGroup.h"
 namespace Dxf
 {
+/**
+ * オブジェクトの初期化と停止の状態を管理する型。
+ */
 enum class ELifecycleState
 {
+	/**
+	 * 初期化を待機している。
+	 */
 	Pending,
+	/**
+	 * 初期化を実行している。
+	 */
 	Initializing,
+	/**
+	 * 更新と描画が可能。
+	 */
 	Active,
+	/**
+	 * 終了処理を待機している。
+	 */
 	Stopping,
+	/**
+	 * 終了処理が完了している。
+	 */
 	Stopped
 };
-/** Framework dispatch is fixed; user overrides only the On* hooks. */
+/**
+ * 通知の順序はフレームワークが管理し、利用者はOn系のフックだけを上書きする。
+ */
 class DLifecycleObject : public DObject
 {
 public:
+	/**
+	 * 現在の状態を取得する。
+	 */
 	ELifecycleState GetState() const noexcept
 	{
 		return m_State;
 	}
+	/**
+	 * 初期化が完了しているかを調べる。
+	 */
 	bool IsInitialized() const noexcept
 	{
 		return m_State == ELifecycleState::Active;
 	}
+	/**
+	 * 破棄が要求されているかを調べる。
+	 */
 	bool IsDestroyRequested() const noexcept
 	{
 		return m_bDestroyRequested;
 	}
-	void SetUpdateOrder(int Order) noexcept
+	/**
+	 * 更新の優先順位を設定する。
+	 * @param Order 同じレイヤー内の処理順序。
+	 */
+	void SetUpdateOrder(Toolbox::int32 Order) noexcept
 	{
 		m_UpdateOrder = Order;
 	}
-	int GetUpdateOrder() const noexcept
+	/**
+	 * 更新の優先順位を取得する。
+	 */
+	Toolbox::int32 GetUpdateOrder() const noexcept
 	{
 		return m_UpdateOrder;
 	}
+	/**
+	 * 一時停止中も更新するかを設定する。
+	 * @param bEnabled 機能を有効にするか。
+	 */
 	void SetTickWhenPaused(bool bEnabled) noexcept
 	{
 		m_bTickWhenPaused = bEnabled;
 	}
+	/**
+	 * 描画対象として表示するかを設定する。
+	 * @param bVisible 描画を有効にするか。
+	 */
 	void SetVisible(bool bVisible) noexcept
 	{
 		m_bVisible = bVisible;
 	}
+	/**
+	 * 描画対象として表示するかを調べる。
+	 */
 	bool IsVisible() const noexcept
 	{
 		return m_bVisible;
 	}
+	/**
+	 * ハンドルを通して参照できる状態かを調べる。
+	 */
 	bool IsHandleAccessible_Internal() const noexcept final
 	{
 		return !m_bDestroyRequested && m_State != ELifecycleState::Stopped && m_State != ELifecycleState::Stopping;
 	}
+	/**
+	 * 使用に必要な初期化を行う。
+	 * @param Context 処理に必要な実行環境。
+	 */
 	TResult<void> Initialize_Internal(const FInitContext& Context);
+	/**
+	 * 更新対象へフレーム更新を通知する。
+	 * @param Context 処理に必要な実行環境。
+	 */
 	TResult<void> Tick_Internal(const FTickContext& Context);
+	/**
+	 * 対象の描画を要求する。
+	 * @param Context 処理に必要な実行環境。
+	 */
 	TResult<void> Draw_Internal(FRenderContext& Context);
+	/**
+	 * 管理する処理とリソースを順序どおり終了する。
+	 */
 	void Shutdown_Internal() noexcept;
+	/**
+	 * 次の処理境界での破棄を要求する。
+	 */
 	void RequestDestroy_Internal() noexcept
 	{
 		m_bDestroyRequested = true;
@@ -63,47 +131,104 @@ public:
 			m_pChildren->RequestStop_Internal();
 		}
 	}
-	void SetCreationOrder_Internal(std::uint64_t Order) noexcept
+	/**
+	 * 生成された順序を設定する。
+	 * @param Order 同じレイヤー内の処理順序。
+	 */
+	void SetCreationOrder_Internal(Toolbox::uint64 Order) noexcept
 	{
 		m_CreationOrder = Order;
 	}
-	std::uint64_t GetCreationOrder_Internal() const noexcept
+	/**
+	 * 生成された順序を取得する。
+	 */
+	Toolbox::uint64 GetCreationOrder_Internal() const noexcept
 	{
 		return m_CreationOrder;
 	}
+	/**
+	 * 子のライフサイクルグループを取得する。
+	 */
 	ILifecycleGroup* GetChildren_Internal() noexcept
 	{
 		return m_pChildren;
 	}
+
 protected:
+	/**
+	 * 必要な依存関係を受け取り、初期状態を構築する。
+	 */
 	DLifecycleObject() = default;
+	/**
+	 * 派生型固有の初期化を行う。
+	 */
 	virtual TResult<void> OnInitialize(const FInitContext&)
 	{
 		return {};
 	}
+	/**
+	 * 現在のフレーム情報で状態を更新する。
+	 */
 	virtual void OnTick(const FTickContext&)
 	{
 	}
+	/**
+	 * 現在の状態を描画する。
+	 */
 	virtual void OnDraw(FRenderContext&) const
 	{
 	}
-	/** Called once after an attempted initialization, including partial failure. Must not throw. */
+	/**
+	 * 初期化を試行した場合は部分失敗でも一度だけ呼ばれる。例外を送出しないこと。
+	 */
 	virtual void OnDeinitialize() noexcept
 	{
 	}
+	/**
+	 * 子のライフサイクルグループを接続する。
+	 * @param Children 子のライフサイクルグループ。
+	 */
 	void AttachChildren_Internal(ILifecycleGroup& Children) noexcept
 	{
 		m_pChildren = &Children;
 	}
+
 private:
+	/**
+	 * 子のライフサイクルグループ。
+	 */
 	ILifecycleGroup* m_pChildren = nullptr;
+	/**
+	 * 現在の状態。
+	 */
 	ELifecycleState m_State = ELifecycleState::Pending;
-	std::uint64_t m_CreationOrder = 0;
-	int m_UpdateOrder = 0;
+	/**
+	 * 生成された順序。
+	 */
+	Toolbox::uint64 m_CreationOrder = 0;
+	/**
+	 * 更新の優先順位。
+	 */
+	Toolbox::int32 m_UpdateOrder = 0;
+	/**
+	 * 破棄が要求されているか。
+	 */
 	bool m_bDestroyRequested = false;
+	/**
+	 * 一時停止中も更新するか。
+	 */
 	bool m_bTickWhenPaused = false;
+	/**
+	 * 描画対象として表示するか。
+	 */
 	bool m_bVisible = true;
+	/**
+	 * 処理の実行中か。
+	 */
 	bool m_bBusy = false;
+	/**
+	 * 初期化を一度試行したか。
+	 */
 	bool m_bInitializationAttempted = false;
 };
-}
+} // namespace Dxf

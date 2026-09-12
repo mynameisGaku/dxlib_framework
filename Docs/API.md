@@ -102,7 +102,7 @@ Actions.Bind("Left", Dxf::EKey::A);
 Actions.Bind("Right", Dxf::EKey::D);
 // 毎回の新しいInputSnapshotに対して、一度だけ更新します。
 Actions.Update(Context.Input);
-const float Direction = Actions.GetAxis("Left", "Right");
+const Toolbox::f32 Direction = Actions.GetAxis("Left", "Right");
 ```
 
 Bind系は妥当な割り当てでtrue、範囲外のキー／デバイス／ボタンや空のAction名ではfalseです。複数のボタンを同じActionへ割り当てるとORとして扱い、一つを押したまま別のボタンへ移っても二重にPressedを出しません。UnbindでAction全体を解除し、Clearで全割り当てと状態を除去します。Updateは一つのSnapshotにつき一度呼ぶ契約です。

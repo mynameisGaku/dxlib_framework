@@ -3,24 +3,47 @@
 
 namespace Dxf
 {
-TResult<std::shared_ptr<FTextureResource>> FTextureLoader::Adopt_Internal(FTextureAllocation Allocation, bool bRenderTarget)
+/**
+ * ネイティブリソースの所有権を引き受ける。
+ * @param Allocation ネイティブリソースの確保結果。
+ * @param bRenderTarget 描画先として確保したリソースか。
+ */
+TResult<Toolbox::TSharedPtr<FTextureResource>> FTextureLoader::Adopt_Internal(FTextureAllocation Allocation,
+                                                                              bool bRenderTarget)
 {
-	FNativeHandle Handle(Allocation.NativeHandle, m_pBackend, [](void* Context, int Value) noexcept
-	{
-		static_cast<ITextureBackend*>(Context)->DeleteTexture(Value);
-	});
+	/**
+	 * ネイティブハンドルの解放を保証する所有者。
+	 * @param Context 処理に必要な実行環境。
+	 * @param Value 処理対象の値。
+	 */
+	FNativeHandle Handle(Allocation.NativeHandle, m_pBackend,
+	                     [](void* Context, Toolbox::int32 Value) noexcept
+	                     {
+		                     static_cast<ITextureBackend*>(Context)->DeleteTexture(Value);
+	                     });
 	if (Allocation.NativeHandle < 0 || Allocation.Width <= 0 || Allocation.Height <= 0)
 	{
-		return TResult<std::shared_ptr<FTextureResource>>::Failure(EErrorCode::BackendFailure, "Invalid texture allocation");
+		return TResult<Toolbox::TSharedPtr<FTextureResource>>::Failure(EErrorCode::BackendFailure,
+		                                                               "Invalid texture allocation");
 	}
-	auto Resource = std::make_shared<FTextureResource>(std::move(Handle), FTextureMetadata{Allocation.Width, Allocation.Height, bRenderTarget});
+	/**
+	 * 共有するリソース。
+	 */
+	auto Resource = Toolbox::MakeShared<FTextureResource>(
+	    Toolbox::Move(Handle), FTextureMetadata{Allocation.Width, Allocation.Height, bRenderTarget});
 	if (!m_pRegistry->Register(Resource))
 	{
-		return TResult<std::shared_ptr<FTextureResource>>::Failure(EErrorCode::InvalidState, "Resource registry stopped");
+		return TResult<Toolbox::TSharedPtr<FTextureResource>>::Failure(EErrorCode::InvalidState,
+		                                                               "Resource registry stopped");
 	}
-	return TResult<std::shared_ptr<FTextureResource>>::Success(std::move(Resource));
+	return TResult<Toolbox::TSharedPtr<FTextureResource>>::Success(Toolbox::Move(Resource));
 }
-TResult<FTexture> FTextureLoader::Load(const std::string& Path, const FTextureLoadOptions& Options)
+/**
+ * 対象のリソースを読み込む。
+ * @param Path 読み込むファイルのパス。
+ * @param Options 処理に適用する設定。
+ */
+TResult<FTexture> FTextureLoader::Load(const Toolbox::FString& Path, const FTextureLoadOptions& Options)
 {
 	if (m_pRegistry->IsShutdown())
 	{
@@ -30,15 +53,28 @@ TResult<FTexture> FTextureLoader::Load(const std::string& Path, const FTextureLo
 	{
 		return TResult<FTexture>::Failure(EErrorCode::InvalidArgument, "Path must be nonempty UTF-8 without NUL");
 	}
+	/**
+	 * ネイティブリソースの確保結果。
+	 */
 	auto Allocation = m_pBackend->LoadTexture(Path, Options);
 	if (!Allocation)
 	{
 		return TResult<FTexture>::Failure(Allocation.Error());
 	}
+	/**
+	 * 共有するリソース。
+	 */
 	auto Resource = Adopt_Internal(Allocation.Value(), false);
-	return Resource ? TResult<FTexture>::Success(FTexture(std::move(Resource).Value())) : TResult<FTexture>::Failure(Resource.Error());
+	return Resource ? TResult<FTexture>::Success(FTexture(Toolbox::Move(Resource).Value()))
+	                : TResult<FTexture>::Failure(Resource.Error());
 }
-TResult<FRenderTarget> FTextureLoader::CreateRenderTarget(int Width, int Height, bool bAlpha)
+/**
+ * 描画先として使うテクスチャを生成する。
+ * @param Width 幅。
+ * @param Height 高さ。
+ * @param bAlpha 透過を扱う描画先を生成するか。
+ */
+TResult<FRenderTarget> FTextureLoader::CreateRenderTarget(Toolbox::int32 Width, Toolbox::int32 Height, bool bAlpha)
 {
 	if (m_pRegistry->IsShutdown())
 	{
@@ -48,12 +84,19 @@ TResult<FRenderTarget> FTextureLoader::CreateRenderTarget(int Width, int Height,
 	{
 		return TResult<FRenderTarget>::Failure(EErrorCode::InvalidArgument, "Invalid target size");
 	}
+	/**
+	 * ネイティブリソースの確保結果。
+	 */
 	auto Allocation = m_pBackend->CreateRenderTarget(Width, Height, bAlpha);
 	if (!Allocation)
 	{
 		return TResult<FRenderTarget>::Failure(Allocation.Error());
 	}
+	/**
+	 * 共有するリソース。
+	 */
 	auto Resource = Adopt_Internal(Allocation.Value(), true);
-	return Resource ? TResult<FRenderTarget>::Success(FRenderTarget(std::move(Resource).Value())) : TResult<FRenderTarget>::Failure(Resource.Error());
+	return Resource ? TResult<FRenderTarget>::Success(FRenderTarget(Toolbox::Move(Resource).Value()))
+	                : TResult<FRenderTarget>::Failure(Resource.Error());
 }
-}
+} // namespace Dxf

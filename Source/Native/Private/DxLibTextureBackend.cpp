@@ -2,14 +2,30 @@
 #include "NativeApi.h"
 namespace Dxf
 {
-TResult<FTextureAllocation> FDxLibTextureBackend::LoadTexture(const std::string& Path, const FTextureLoadOptions& Options)
+/**
+ * 画像を読み込みテクスチャを取得する。
+ * @param Path 読み込むファイルのパス。
+ * @param Options 処理に適用する設定。
+ */
+TResult<FTextureAllocation> FDxLibTextureBackend::LoadTexture(const Toolbox::FString& Path,
+                                                              const FTextureLoadOptions& Options)
 {
-	const int Handle = DxLib::LoadGraph(Path.c_str(), Options.bUse3D ? FALSE : TRUE);
+	/**
+	 * ハンドル。
+	 */
+	const Toolbox::int32 Handle = DxLib::LoadGraph(Path.CStr(), Options.bUse3D ? FALSE : TRUE);
 	if (Handle < 0)
 	{
 		return TResult<FTextureAllocation>::Failure(EErrorCode::NotFound, "LoadGraph failed: " + Path);
 	}
-	int Width = 0, Height = 0;
+	/**
+	 * 幅。
+	 */
+	Toolbox::int32 Width = 0;
+	/**
+	 * テクスチャの高さ。
+	 */
+	Toolbox::int32 Height = 0;
 	if (DxLib::GetGraphSize(Handle, &Width, &Height) < 0 || Width <= 0 || Height <= 0)
 	{
 		DxLib::DeleteGraph(Handle);
@@ -17,24 +33,38 @@ TResult<FTextureAllocation> FDxLibTextureBackend::LoadTexture(const std::string&
 	}
 	return TResult<FTextureAllocation>::Success({Handle, Width, Height});
 }
-TResult<FTextureAllocation> FDxLibTextureBackend::CreateRenderTarget(int Width, int Height, bool bAlpha)
+/**
+ * 描画先として使うテクスチャを生成する。
+ * @param Width 幅。
+ * @param Height 高さ。
+ * @param bAlpha 透過を扱う描画先を生成するか。
+ */
+TResult<FTextureAllocation> FDxLibTextureBackend::CreateRenderTarget(Toolbox::int32 Width, Toolbox::int32 Height,
+                                                                     bool bAlpha)
 {
 	if (Width <= 0 || Height <= 0)
 	{
 		return TResult<FTextureAllocation>::Failure(EErrorCode::InvalidArgument, "Invalid render target dimensions");
 	}
-	const int Handle = DxLib::MakeScreen(Width, Height, bAlpha ? TRUE : FALSE);
+	/**
+	 * ハンドル。
+	 */
+	const Toolbox::int32 Handle = DxLib::MakeScreen(Width, Height, bAlpha ? TRUE : FALSE);
 	if (Handle < 0)
 	{
 		return TResult<FTextureAllocation>::Failure(EErrorCode::BackendFailure, "MakeScreen failed");
 	}
 	return TResult<FTextureAllocation>::Success({Handle, Width, Height});
 }
-void FDxLibTextureBackend::DeleteTexture(int Handle) noexcept
+/**
+ * ネイティブテクスチャを解放する。
+ * @param Handle ハンドル。
+ */
+void FDxLibTextureBackend::DeleteTexture(Toolbox::int32 Handle) noexcept
 {
 	if (Handle >= 0)
 	{
 		DxLib::DeleteGraph(Handle);
 	}
 }
-}
+} // namespace Dxf

@@ -1,23 +1,41 @@
 #pragma once
-#include <cstdint>
-#include <string_view>
+#include "Toolbox/Utility.h"
+#include "Toolbox/String.h"
 
 namespace Dxf
 {
-/** Validates Unicode scalar values without allocating or relying on the system locale. */
-inline bool IsValidUtf8(std::string_view Text) noexcept
+/**
+ * メモリ確保やシステムロケールに依存せずUnicodeスカラー値を検証する。
+ * @param Text 検証するUTF-8文字列。
+ */
+inline bool IsValidUtf8(Toolbox::FStringView Text) noexcept
 {
-	std::size_t Index = 0;
-	while (Index < Text.size())
+	/**
+	 * 要素の位置。
+	 */
+	Toolbox::size_t Index = 0;
+	while (Index < Text.Size())
 	{
+		/**
+		 * UTF-8シーケンスの先頭バイト。
+		 */
 		const auto Lead = static_cast<unsigned char>(Text[Index++]);
 		if (Lead < 0x80)
 		{
 			continue;
 		}
-		std::uint32_t Value = 0;
-		std::uint32_t Minimum = 0;
-		std::size_t Remaining = 0;
+		/**
+		 * 復号中のUnicodeコードポイント。
+		 */
+		Toolbox::uint32 Value = 0;
+		/**
+		 * 符号化長に対する最小コードポイント。
+		 */
+		Toolbox::uint32 Minimum = 0;
+		/**
+		 * 読み取りが残っているバイト数。
+		 */
+		Toolbox::size_t Remaining = 0;
 		if (Lead >= 0xC2 && Lead <= 0xDF)
 		{
 			Value = Lead & 0x1F;
@@ -40,12 +58,18 @@ inline bool IsValidUtf8(std::string_view Text) noexcept
 		{
 			return false;
 		}
-		if (Remaining > Text.size() - Index)
+		if (Remaining > Text.Size() - Index)
 		{
 			return false;
 		}
-		for (std::size_t Count = 0; Count < Remaining; ++Count)
+		/**
+		 * 要素の位置を進めて順に処理する。
+		 */
+		for (Toolbox::size_t Count = 0; Count < Remaining; ++Count)
 		{
+			/**
+			 * 現在検証するバイト。
+			 */
 			const auto Byte = static_cast<unsigned char>(Text[Index++]);
 			if ((Byte & 0xC0) != 0x80)
 			{
@@ -63,9 +87,14 @@ inline bool IsValidUtf8(std::string_view Text) noexcept
 
 namespace Detail
 {
-inline bool IsValidNativeString_Internal(std::string_view Text, bool bAllowEmpty = false) noexcept
+/**
+ * ネイティブAPIに渡せるUTF-8文字列かを検証する。
+ * @param Text 検証するUTF-8文字列。
+ * @param bAllowEmpty 空文字列を有効として扱うか。
+ */
+inline bool IsValidNativeString_Internal(Toolbox::FStringView Text, bool bAllowEmpty = false) noexcept
 {
-	return (bAllowEmpty || !Text.empty()) && Text.find('\0') == std::string_view::npos && IsValidUtf8(Text);
+	return (bAllowEmpty || !Text.IsEmpty()) && Text.Find('\0') == Toolbox::FStringView::NotFound && IsValidUtf8(Text);
 }
-}
-}
+} // namespace Detail
+} // namespace Dxf

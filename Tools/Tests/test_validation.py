@@ -51,7 +51,8 @@ class ValidationFailureTests(unittest.TestCase):
         module = load_script('Validate')
         self.seed_success(self.logs)
         with patch.object(module, 'ROOT', self.root), patch.object(sys, 'argv', ['Validate.py']), \
-             patch.object(subprocess, 'run', return_value=subprocess.CompletedProcess(['cmake'], 1, 'configure failed')):
+             patch.object(subprocess, 'run', side_effect=[subprocess.CompletedProcess(['python'], 0, 'no-stl passed'),
+                                                         subprocess.CompletedProcess(['cmake'], 1, 'configure failed')]):
             with self.assertRaises(RuntimeError):
                 module.main()
         self.assert_failed_current_run(self.logs)
@@ -71,7 +72,7 @@ class ValidationFailureTests(unittest.TestCase):
         self.seed_success(self.logs)
         error = subprocess.TimeoutExpired(['cmake'], 180, output=b'partial compiler output\n')
         with patch.object(module, 'ROOT', self.root), patch.object(sys, 'argv', ['Validate.py']), \
-             patch.object(subprocess, 'run', side_effect=error):
+             patch.object(subprocess, 'run', side_effect=[subprocess.CompletedProcess(['python'], 0, 'no-stl passed'), error]):
             with self.assertRaises(subprocess.TimeoutExpired):
                 module.main()
         log = self.logs / 'debug-configure.log'

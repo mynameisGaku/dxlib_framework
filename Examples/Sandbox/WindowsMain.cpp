@@ -1,3 +1,4 @@
+#include "Toolbox/UniquePtr.h"
 #include "Dxf/NativeBackends.h"
 #include "Dxf/AppRunner.h"
 #include "SandboxGame.h"
@@ -5,60 +6,105 @@
 #define NOMINMAX
 #endif
 #include <Windows.h>
-#include <filesystem>
-#include <limits>
-#include <vector>
+#include "Toolbox/Platform.h"
+#include "Toolbox/Utility.h"
+#include "Toolbox/Vector.h"
 namespace
 {
-std::string GetAssetRoot_Internal()
+/**
+ * 実行ファイルを基準にアセットの場所を求める。
+ */
+Toolbox::FString GetAssetRoot_Internal()
 {
-	std::vector<wchar_t> Buffer(512);
+	/**
+	 * 文字列を受け取る作業領域。
+	 */
+	Toolbox::TVector<wchar_t> Buffer(512);
 	for (;;)
 	{
-		const DWORD Size = GetModuleFileNameW(nullptr, Buffer.data(), static_cast<DWORD>(Buffer.size()));
+		/**
+		 * 有効な要素数。
+		 */
+		const DWORD Size = GetModuleFileNameW(nullptr, Buffer.Data(), static_cast<DWORD>(Buffer.Size()));
 		if (Size == 0)
 		{
-			throw std::runtime_error("GetModuleFileNameW failed");
+			throw Toolbox::FException("GetModuleFileNameW failed");
 		}
-		if (Size < Buffer.size())
+		if (Size < Buffer.Size())
 		{
-			const auto Root = (std::filesystem::path(std::wstring(Buffer.data(), Size)).parent_path() / L"Assets").generic_u8string();
-			return {reinterpret_cast<const char*>(Root.data()), Root.size()};
+			/**
+			 * 基準ディレクトリ。
+			 */
+			const auto Root = (Toolbox::FPath(Toolbox::FWideString(Buffer.Data(), Size)).Parent() / L"Assets").ToUtf8();
+			return {reinterpret_cast<const char*>(Root.Data()), Root.Size()};
 		}
-		if (Buffer.size() >= 32768)
+		if (Buffer.Size() >= 32768)
 		{
-			throw std::runtime_error("Executable path is too long");
+			throw Toolbox::FException("Executable path is too long");
 		}
-		Buffer.resize(Buffer.size() * 2);
+		Buffer.Resize(Buffer.Size() * 2);
 	}
 }
-void ShowError_Internal(const std::string& Message)
+/**
+ * 起動または実行時のエラーを表示する。
+ * @param Message エラーの説明。
+ */
+void ShowError_Internal(const Toolbox::FString& Message)
 {
-	if (Message.size() > static_cast<std::size_t>(std::numeric_limits<int>::max()))
+	if (Message.Size() > static_cast<Toolbox::size_t>(Toolbox::TNumericLimits<Toolbox::int32>::Max()))
 	{
 		return;
 	}
-	const int Length = static_cast<int>(Message.size());
-	const int Count = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, Message.data(), Length, nullptr, 0);
-	std::wstring Text = L"Application failed. Inspect the DxLib Log.txt file.";
+	/**
+	 * ベクトルまたは文字列の長さ。
+	 */
+	const Toolbox::int32 Length = static_cast<Toolbox::int32>(Message.Size());
+	/**
+	 * 要素数。
+	 */
+	const Toolbox::int32 Count = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, Message.Data(), Length, nullptr, 0);
+	/**
+	 * 描画する文字列。
+	 */
+	Toolbox::FWideString Text = L"Application failed. Inspect the DxLib Log.txt file.";
 	if (Count > 0)
 	{
-		Text.resize(static_cast<std::size_t>(Count));
-		MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, Message.data(), Length, Text.data(), Count);
+		Text.Resize(static_cast<Toolbox::size_t>(Count));
+		MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, Message.Data(), Length, Text.Data(), Count);
 	}
-	MessageBoxW(nullptr, Text.c_str(), L"dxlib_framework", MB_OK | MB_ICONERROR);
+	MessageBoxW(nullptr, Text.CStr(), L"dxlib_framework", MB_OK | MB_ICONERROR);
 }
-}
-int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
+} // namespace
+/**
+ * Windowsアプリケーションを起動し、終了までサンプルを実行する。
+ */
+Toolbox::int32 WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, Toolbox::int32)
 {
 	try
 	{
+		/**
+		 * 各ネイティブ機能の実装。
+		 */
 		Dxf::FDxLibBackends Backends;
+		/**
+		 * 初期化に使用する設定。
+		 */
 		Dxf::FApplicationSettings Settings;
 		Settings.Window.Title = "dxlib_framework - Sandbox";
-		Dxf::FApplication Application(Backends.GetServices(), Settings, std::make_unique<Dxf::Sandbox::DSandboxGameInstance>());
+		/**
+		 * サービスを結合した実行用のアプリケーション。
+		 */
+		Dxf::FApplication Application(Backends.GetServices(), Settings,
+		                              Toolbox::MakeUnique<Dxf::Sandbox::DSandboxGameInstance>());
+		/**
+		 * アプリケーションの実行器。
+		 */
 		Dxf::FAppRunner Runner;
-		auto Result = Runner.Run(Application, std::make_unique<Dxf::Sandbox::DSandboxScene>(GetAssetRoot_Internal()));
+		/**
+		 * 処理結果。
+		 */
+		auto Result =
+		    Runner.Run(Application, Toolbox::MakeUnique<Dxf::Sandbox::DSandboxScene>(GetAssetRoot_Internal()));
 		if (!Result)
 		{
 			ShowError_Internal(Result.Error().Message);
@@ -66,9 +112,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		}
 		return 0;
 	}
-	catch (const std::exception& Error)
+	/**
+	 * 捕捉した例外の内容をダイアログへ表示する。
+	 */
+	catch (const Toolbox::FException& Error)
 	{
-		ShowError_Internal(Error.what());
+		ShowError_Internal(Error.What());
 		return 1;
 	}
 	catch (...)

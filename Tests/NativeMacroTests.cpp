@@ -20,6 +20,9 @@ TEST("Native API preserves framework member names after Windows macros")
 	// 代替SDKに対するフォント作成を担当する接続部。
 	Dxf::FDxLibFontBackend Fonts;
 	// 作成したフォントのハンドルと成否。
+	/**
+	 * 検証で使用するフォント資源。
+	 */
 	auto Font = Fonts.CreateFont({});
 	REQUIRE(Font);
 	Fonts.DeleteFont(Font.Value());
