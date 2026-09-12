@@ -7,7 +7,7 @@
 - Windowsビルドへ `-Clean` を追加し、ZIP復元時の古い日時によるビルド結果の混在を防ぎます。
 - MSVCの実際のインクルード表示を採取してNinjaに渡し、日本語の依存ファイル行の文字化けを回避します。
 - CMake CMP0144を対応版で有効にしました。
-- [Windows検証の結果と残る制限](Docs/WindowsIntegration.md)を記録しました。
+- [Windows検証の結果と残る制限](WindowsIntegration.md)を記録しました。
 
 ## 0.3.0 — 2026-09-12
 
@@ -40,7 +40,7 @@
 - バージョンは検証時にCMakeLists.txtから取得します。
 - Native失敗時の動作変更と、ILifecycleGroupへのRequestStop_Internal追加のため、マイナーバージョンを更新しました。ABI互換を保証するものではありません。
 
-実Windows・MSVC・実DxLib SDK・実デバイスの確認結果は含みません。実行した構成・件数は[検証結果](Docs/ValidationReport.md)に記載します。
+実Windows・MSVC・実DxLib SDK・実デバイスの確認結果は含みません。実行した構成・件数は[検証結果](ValidationReport.md)に記載します。
 
 ## 0.2.0 — 2026-09-12
 

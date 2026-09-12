@@ -2,7 +2,7 @@
 
 この文書はWindowsで実行する手順です。受領した配布版のLinux記録と、今回の[Windows統合検証](WindowsIntegration.md)は分けて扱います。
 
-ZIPから更新した後やツールチェーンを変更した後は `Build.cmd -Clean` を使います。構成キャッシュとオブジェクトを作り直し、古い更新日時のソースが以前のバイナリと混在するのを防ぎます。通常のビルドでは `-Clean` は不要です。
+ZIPから更新した後やツールチェーンを変更した後は `Tools\Build.cmd -Clean` を使います。構成キャッシュとオブジェクトを作り直し、古い更新日時のソースが以前のバイナリと混在するのを防ぎます。通常のビルドでは `-Clean` は不要です。
 
 ## 必要な環境
 
@@ -14,8 +14,8 @@ Windows x64、Visual StudioのC++デスクトップ開発、Windows SDK、CMake 
 
 ```powershell
 .\Setup.cmd
-.\Build.cmd
-.\Validate.cmd
+.\Tools\Build.cmd
+.\Tools\Validate.cmd
 ```
 
 Setupは公式VC版3.25aをHTTPSで取得します。既存のSDKを使う場合はSetupの代わりに `DXLIB_ROOT` を設定します。SDKはGit対象外のThirdPartyだけに置き、システムのPATHや恒久的な実行ポリシーを変更しません。cmdのExecutionPolicy Bypassは、その起動プロセスだけに指定します。
@@ -26,16 +26,16 @@ Setupは公式VC版3.25aをHTTPSで取得します。既存のSDKを使う場合
 
 ## BuildとValidateの違い
 
-`Build.cmd` はコンパイラ環境の準備、CMake設定、Debugビルド、非実機CTest、ケース数集計、installを行います。Sandbox.exeとNativeSmoke.exeが実SDKでリンクされていることも検査します。
+`Tools\Build.cmd` はコンパイラ環境の準備、CMake設定、Debugビルド、非実機CTest、ケース数集計、installを行います。Sandbox.exeとNativeSmoke.exeが実SDKでリンクされていることも検査します。
 
-`Validate.cmd` は同じ処理をDebug／Release両方で行い、それぞれNativeSmokeを音声込みで実行します。すべて成功するまでSummaryのpassedはfalseです。
+`Tools\Validate.cmd` は同じ処理をDebug／Release両方で行い、それぞれNativeSmokeを音声込みで実行します。すべて成功するまでSummaryのpassedはfalseです。
 
 ```powershell
 # 音声再生のAPI検査なし。DxLib自体の音声初期化は無効化しません。
-.\Build.cmd -AllConfigurations -RunDeviceSmoke
+.\Tools\Build.cmd -AllConfigurations -RunDeviceSmoke
 
 # CIなどの非対話環境。実SDKコンパイル・リンクと非実機テストのみ。
-.\Build.cmd -AllConfigurations
+.\Tools\Build.cmd -AllConfigurations
 ```
 
 ## NativeSmokeの内容

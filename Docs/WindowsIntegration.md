@@ -25,8 +25,8 @@ NativeApi.hでSDK取り込み後のCreateFont／DrawTextマクロを除去しま
 BuildWindows.ps1の `-Clean` は既存オブジェクトを削除してCMakeを再検出します。ZIPの古いファイル日時による旧版との混在を防ぎます。Ninjaの依存追跡には、実ビルドと同じ `/utf-8` を指定したコンパイラから採取した表示接頭辞を渡します。PowerShell 5.1で日本語コメントを読めるよう、変更したスクリプトはUTF-8 BOM付きです。
 
 ```powershell
-.\Build.cmd -Configuration Debug -Clean -RunDeviceSmoke
-.\Build.cmd -Configuration Release -Clean
+.\Tools\Build.cmd -Configuration Debug -Clean -RunDeviceSmoke
+.\Tools\Build.cmd -Configuration Release -Clean
 
 cmake -S . -B Build/portable-msvc -G "Visual Studio 18 2026" -A x64 -DDXF_BUILD_NATIVE=OFF -DDXF_BUILD_TESTS=ON -DDXF_WARNINGS_AS_ERRORS=ON
 cmake --build Build/portable-msvc --config Release --parallel 4

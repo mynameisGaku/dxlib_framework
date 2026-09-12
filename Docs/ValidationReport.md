@@ -71,6 +71,6 @@ python -m unittest discover -s Tools/Tests -v
 
 作成環境はLinuxです。この作業でも公式SDKの取得を試しましたが、コンテナの名前解決が失敗し、SDK取得・実SDKコンパイルは行えていません。[取得試行の実測ログ](Validation/sdk-availability.log)に失敗を保存しています。これはDxLib配布サイト自体が停止しているという意味ではありません。
 
-Windowsでの入口はBuild.cmd／Validate.cmdで、結果はBuild/WindowsValidationへ出力します。[WindowsValidation.md](WindowsValidation.md)を参照してください。手順の同梱、代替ヘッダーによるテスト、Linuxサニタイザーの成功を、実機動作の確認済みとして読み替えないでください。
+Windowsでの入口はTools\Build.cmd／Tools\Validate.cmdで、結果はBuild/WindowsValidationへ出力します。[WindowsValidation.md](WindowsValidation.md)を参照してください。手順の同梱、代替ヘッダーによるテスト、Linuxサニタイザーの成功を、実機動作の確認済みとして読み替えないでください。
 
 本検査は実行した経路を対象とし、すべての条件での正しさ・性能・不具合不存在や、カバレッジ100%を保証するものではありません。

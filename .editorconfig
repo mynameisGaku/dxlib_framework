@@ -15,7 +15,7 @@ tab_width = 4
 indent_style = space
 indent_size = 4
 
-[*.{cmd,ps1}]
+[*.{cmd,bat,ps1}]
 end_of_line = crlf
 indent_style = space
 indent_size = 4

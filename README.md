@@ -10,9 +10,23 @@
 
 **0.2からの注意：** Nativeコールバックが失敗した場合、状態を復元できても、そのフレームは表示しません。低レベルの独自ライフサイクル拡張にも変更があります。[移行時の注意](Docs/Migration_0.3.md)を確認してください。
 
-[検証結果](Docs/ValidationReport.md) ／ [変更履歴](CHANGELOG.md) ／ [設計と責務](Docs/Architecture.md) ／ [API](Docs/API.md) ／ [命名規則](Docs/CodingStandard.md) ／ [制限事項](Docs/Limitations.md)
+[検証結果](Docs/ValidationReport.md) ／ [変更履歴](Docs/CHANGELOG.md) ／ [設計と責務](Docs/Architecture.md) ／ [API](Docs/API.md) ／ [命名規則](Docs/CodingStandard.md) ／ [制限事項](Docs/Limitations.md)
 
 ## Windowsで動かす
+
+### Visual Studioのソリューションを生成する
+
+初回は `Setup.cmd` でDxLib SDKを用意し、ルートの `GenerateProjectFiles.bat` をダブルクリックします。Visual StudioのC++開発ツールとCMakeを自動検出し、`Build/VisualStudio/dxlib_framework.sln` を生成します。Visual Studioで開き、Debug／Release・x64を選択してビルドできます。生成だけではビルドしません。
+
+```powershell
+.\GenerateProjectFiles.bat -Open       # 生成後にソリューションを開く
+.\GenerateProjectFiles.bat -NoPause    # キー入力を待たずに終了
+.\GenerateProjectFiles.bat -Portable   # DxLib不要のテスト用ソリューション
+```
+
+`-Portable` の生成先は `Build/VisualStudio-portable` です。SDKは環境変数 `DXLIB_ROOT`、または `Setup.cmd` が作るマニフェストから検出します。引数なしの場合は結果を確認できるよう終了時にキー入力を待ちます。既存のNinjaビルドとは別のフォルダを使い、再実行でプロジェクトを更新できます。
+
+### コマンドからビルド・検証する
 
 2026-09-12の追加検証では、MSVC Debugで153件のテストと実SDKの12フレーム動作確認が通過しました。MSVC Releaseの非実機テストも153件通過しています。ただし、DxLib VC 3.25aのReleaseリンクにはFBX関連の未解決参照が残っています。[現在のWindows検証結果](Docs/WindowsIntegration.md)を確認してください。
 
@@ -23,7 +37,7 @@ Visual Studioの「C++によるデスクトップ開発」、x64ツール、Wind
 .\Setup.cmd
 
 # Debugの本体、Sandbox、NativeSmokeをビルドし、非実機テストを実行します。
-.\Build.cmd
+.\Tools\Build.cmd
 
 # サンプルを起動します。
 .\Build\windows-debug\Sandbox.exe
@@ -31,15 +45,15 @@ Visual Studioの「C++によるデスクトップ開発」、x64ツール、Wind
 
 すでにSDKがある場合、Setupは不要です。`$env:DXLIB_ROOT` を展開済みの公式VC版SDKルート、または `DxLib.h` と `.lib` があるディレクトリに設定してからBuildを実行してください。SDK・フォント・Windows実行ファイルは配布ZIPに含めていません。
 
-Releaseは `Build.cmd -Configuration Release`。両構成と、実機用の自動終了するAPIスモークテストを実行する入口は次です。
+Releaseは `Tools\Build.cmd -Configuration Release`。両構成と、実機用の自動終了するAPIスモークテストを実行する入口は次です。
 
 ```powershell
-.\Validate.cmd
+.\Tools\Validate.cmd
 ```
 
 Validateはウィンドウを開き、画像・日本語パス・文字・RenderTarget・入力取得・独立した音声再生・終了処理を確認します。結果と失敗理由は `Build/WindowsValidation/Summary.json` と同ディレクトリのログに残します。**このプログラムは画素の正しさ・実際に聞こえた音・物理キー操作を自動判定するものではありません。** 詳細は[Windowsでの確認](Docs/WindowsValidation.md)を参照してください。
 
-音声の再生確認を省く場合は `Build.cmd -AllConfigurations -RunDeviceSmoke`。ただしDxLib自体の初期化設定から音声機能を無効化するわけではありません。ヘッドレス環境では実機テストを省き、`Build.cmd -AllConfigurations` を使います。
+音声の再生確認を省く場合は `Tools\Build.cmd -AllConfigurations -RunDeviceSmoke`。ただしDxLib自体の初期化設定から音声機能を無効化するわけではありません。ヘッドレス環境では実機テストを省き、`Tools\Build.cmd -AllConfigurations` を使います。
 
 Sandboxは **WASDで移動、Spaceで効果音、Pでポーズ、EnterでScene切り替え、Escで終了**。Sceneを変更しても、GameInstanceの訪問回数が残ります。サンプルのゲーム側コード自体も回帰テストでコンパイル・実行しています。
 

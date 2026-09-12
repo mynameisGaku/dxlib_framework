@@ -8,8 +8,8 @@ import sys
 import zipfile
 
 DIRECTORIES = ('Source', 'Tests', 'Examples', 'Assets', 'CMake', 'Tools', 'Docs', '.github')
-ROOT_FILES = ('CMakeLists.txt', 'CMakePresets.json', 'README.md', 'CHANGELOG.md', 'LICENSE',
-              'Setup.cmd', 'Build.cmd', 'Validate.cmd', '.editorconfig', '.clang-format',
+ROOT_FILES = ('CMakeLists.txt', 'CMakePresets.json', 'README.md', 'LICENSE',
+              'Setup.cmd', 'GenerateProjectFiles.bat', '.editorconfig', '.clang-format',
               '.gitignore', '.gitattributes')
 FONT_SUFFIXES = {'.ttf', '.otf', '.ttc', '.woff', '.woff2', '.eot', '.fon'}
 EXCLUDED_SUFFIXES = {'.pyc', '.pyo', '.obj', '.o', '.pdb', '.gcda', '.gcno'}
@@ -62,7 +62,7 @@ def make_archive(root: Path, output: Path) -> dict:
                 relative = path.relative_to(root).as_posix()
                 data = path.read_bytes()
                 # Stable line endings and cmd compatibility across Git checkouts.
-                if path.suffix.lower() in {'.cmd', '.ps1'}:
+                if path.suffix.lower() in {'.cmd', '.bat', '.ps1'}:
                     data = data.replace(b'\r\n', b'\n').replace(b'\n', b'\r\n')
                 add(archive, relative, data)
                 records.append({'path': relative, 'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()})

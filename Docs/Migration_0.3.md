@@ -28,4 +28,4 @@ ILifecycleGroupを自作している場合、`void RequestStop_Internal() noexce
 
 `Docs/Validation/Summary.json`と`Docs/Validation/Package/Summary.json`は、開始時にstatusがrunningになり、終了時にpassedまたはfailedになります。run_id・started_utc・finished_utcも確認してください。途中で落ちた検証の横に古いログが残っていても、その古いログを現在の成功として扱わないでください。
 
-実SDK・Windows・実機の確認は、引き続き別のBuild.cmd／Validate.cmdの対象です。この版を受け取っただけで、その確認が完了するわけではありません。
+実SDK・Windows・実機の確認は、引き続き別のTools\Build.cmd／Tools\Validate.cmdの対象です。この版を受け取っただけで、その確認が完了するわけではありません。
