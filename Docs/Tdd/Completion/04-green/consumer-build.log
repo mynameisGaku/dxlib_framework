@@ -1,0 +1,5 @@
+$ cmake --build /mnt/data/build-dxf/package-green/run-0661opw2/ConsumerBuild --parallel 4
+[1/2] Building CXX object CMakeFiles/Consumer.dir/Main.cpp.o
+[2/2] Linking CXX executable Consumer
+
+EXIT_CODE=0

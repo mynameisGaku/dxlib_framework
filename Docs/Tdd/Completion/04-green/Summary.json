@@ -1,0 +1,6 @@
+{
+  "install": true,
+  "relocation": true,
+  "external_consumer": true,
+  "real_dxlib_sdk": false
+}

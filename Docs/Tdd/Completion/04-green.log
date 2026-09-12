@@ -1,0 +1,6 @@
+build-configure: PASS
+build: PASS
+install: PASS
+consumer-configure: PASS
+consumer-build: PASS
+consumer-run: PASS

@@ -1,0 +1,15 @@
+$ cmake --build /mnt/data/build-dxf/package-green/run-0661opw2/Build --parallel 4
+[1/12] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/SoundLoader.cpp.o
+[2/12] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/TextureLoader.cpp.o
+[3/12] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/FontLoader.cpp.o
+[4/12] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/RenderSystem2D.cpp.o
+[5/12] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/RenderQueue2D.cpp.o
+[6/12] Building CXX object CMakeFiles/dxf_runtime.dir/Source/Runtime/Private/LifecycleObject.cpp.o
+[7/12] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/AssetService.cpp.o
+[8/12] Building CXX object CMakeFiles/dxf_support.dir/Source/DxLibSupport/Private/AudioPlayer.cpp.o
+[9/12] Linking CXX static library libdxf_supportd.a
+[10/12] Building CXX object CMakeFiles/dxf_runtime.dir/Source/Runtime/Private/SceneNavigator.cpp.o
+[11/12] Building CXX object CMakeFiles/dxf_runtime.dir/Source/Runtime/Private/Application.cpp.o
+[12/12] Linking CXX static library libdxf_runtimed.a
+
+EXIT_CODE=0
