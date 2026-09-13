@@ -1,0 +1,41 @@
+// SPDX-License-Identifier: NOASSERTION
+// G1 Red記録（接触・休止の契約修正、TDD先行の失敗確認）
+// 基準SHA: 26b41afa439a6d52a28d414a92f899b6cfd7549b
+// コマンド: .\Tools\Build.cmd -Configuration Debug（Windows/MSVC Debug）
+// いずれもテスト追加のみの状態で確認し、実装の修正は含まない。
+
+// --- Red R1: SolverTests RESULT 33/37 passed ---
+// FAIL self contacts do not put body to sleep: !World.IsSleeping(Id)
+// FAIL self contacts do not put body to sleep reversed: !World.IsSleeping(Id)
+// FAIL self contacts do not put body to sleep in 3D: !World.IsSleeping(Id)
+// FAIL self contacts do not put body to sleep reversed in 3D: !World.IsSleeping(Id)
+// 失敗理由: 重なる自己接触が休止判定の接触扱いになり、外部接触のない
+// 漂流体が眠って微速を失う。4件とも休止フラグの assertion で失敗した。
+// 回転・混合・分離のガード6件はこの段階でも通過した。
+
+// --- Red R2: SolverTests RESULT 41/49 passed ---
+// PASS recontact does not inherit stale impulse（一致ガード）
+// PASS recontact does not inherit stale impulse in 3D（一致ガード）
+// 単一接触の再接近は新旧で収束が一致するため、変更前後とも一致する。
+// キャッシュ再構築の回帰ガードとして残す。
+// FAIL sleeping box wakes when platform moves: !World.IsSleeping(Id)
+// FAIL sleeping box wakes when platform spins: !World.IsSleeping(Id)
+// FAIL sleeping stack wakes through contacts: !World.IsSleeping(LowerId)
+// FAIL sleeping sphere wakes when platform moves in 3D: !World.IsSleeping(Id)
+// 失敗理由: 既知接触は起床しないため、動き出した台に運ばれず眠ったままになる。
+// FAIL disabling sleep wakes sleeping body: !World.IsSleeping(Ball)
+// FAIL changing gravity wakes sleeping body: !World.IsSleeping(Ball)
+// PASS setting same gravity keeps sleep（ガード）
+// FAIL disabling sleep wakes sleeping body in 3D: !World.IsSleeping(Ball)
+// FAIL changing gravity wakes sleeping body in 3D: !World.IsSleeping(Ball)
+// PASS setting same gravity keeps sleep in 3D（ガード）
+// 失敗理由: SetSleepSettingsとSetGravityが条件を置くだけで凍結を解かない。
+// 上記8件が失敗し、41/49 passed だった。
+
+// --- ContinuousTests: self box pair 4件はすべてPASS（ガード） ---
+// 同一剛体の組は相対運動がないためCCD走査の対象外になり、診断も増えない。
+// 除外実装後も同じ結果になる不変ガードとして残す。
+
+// --- 注意: 物理CTest全体はこの段階で失敗（PhysicsContinuation） ---
+// 上記の失敗が原因。他の群（collision/sweep/fixed/rigid/contact）と
+// Framework・NativeContract・NoStlはすべて通過した。

@@ -1,0 +1,34 @@
+// SPDX-License-Identifier: NOASSERTION
+// G1 Green記録（接触・休止の契約修正、最小修正後の通過確認）
+// コマンド: .\Tools\Build.cmd -Configuration Debug（Windows/MSVC Debug）、exit 0
+// 修正1: 両Worldの多様体生成とCCD走査で同一剛体の組を除外する。
+// 修正2: 両Worldの StoreCache を今の多様体に属する組だけに保つ再構築方式にし、
+//   分離中の組の記録を捨てる。特徴点の出入りでは捨てない。
+// 修正3: 両Worldの WarmStart へ前回確定の接触点相対運動による起床を追加する。
+//   Kinematicは力積分を受けないため現在速度で見て同刻みに起こし、Dynamicは
+//   今刻みの重力・外力分を除くため前回確定値で見る。休止中は止まっている
+//   ものとして扱い、静止物との接触では起こさない。位置更新の末尾で前回値を
+//   保存する（PrevVelocity／PrevAngularVelocity）。
+// 修正4: SetSleepSettings の無効化への遷移と SetGravity の値の変化で全登録を
+//   起こす。同値の再設定では起こさない。
+
+// --- CTest: 100% tests passed, 0 tests failed out of 4 ---
+// 1/4 Test #1: PhysicsContinuation ..............   Passed
+// 2/4 Test #2: NoStl ............................   Passed
+// 3/4 Test #3: Framework ........................   Passed
+// 4/4 Test #4: NativeContract ...................   Passed
+
+// --- physics内部件数（CTest登録数とは合算しない） ---
+// RESULT 10/10 passed（collision）
+// RESULT 16/16 passed（sweep）
+// RESULT 11/11 passed（fixed step）
+// RESULT 20/20 passed（rigid body）
+// RESULT 11/11 passed（contact）
+// RESULT 49/49 passed（solver、新規22件を含む）
+// RESULT 21/21 passed（continuous）
+// RESULT 8/8 passed（stability）
+
+// --- その他 ---
+// dxf_tests.exe 194/194 passed
+// dxf_native_contract_tests 15/15 passed
+// python Tools/CheckNoStl.py: 171 files, 0 violations
