@@ -1602,16 +1602,18 @@ struct FPhysicsWorld3D::FImpl
 						                 static_cast<Toolbox::f32>(Toolbox::f64(BodyB->Velocity.Y) * Remaining),
 						                 static_cast<Toolbox::f32>(Toolbox::f64(BodyB->Velocity.Z) * Remaining)};
 					}
-					// 移動区間の長い連続剛体だけを走査する。
-					const Toolbox::f64 LengthA = Toolbox::Sqrt(Toolbox::f64(DisplacementA.X) * DisplacementA.X +
-					                                           Toolbox::f64(DisplacementA.Y) * DisplacementA.Y +
-					                                           Toolbox::f64(DisplacementA.Z) * DisplacementA.Z);
-					const Toolbox::f64 LengthB = Toolbox::Sqrt(Toolbox::f64(DisplacementB.X) * DisplacementB.X +
-					                                           Toolbox::f64(DisplacementB.Y) * DisplacementB.Y +
-					                                           Toolbox::f64(DisplacementB.Z) * DisplacementB.Z);
-					const bool bScanA = bMoverA && LengthA >= Contact.ContactSlop;
-					const bool bScanB = bMoverB && LengthB >= Contact.ContactSlop;
-					if (!bScanA && !bScanB)
+					// CCD対象自身が止まっていても相手の移動で交差するため、要求と相対運動を分けて判定する。
+					const bool bRequireCCD = bMoverA || bMoverB;
+					if (!bRequireCCD)
+					{
+						continue;
+					}
+					const Toolbox::f64 RelativeX = Toolbox::f64(DisplacementA.X) - DisplacementB.X;
+					const Toolbox::f64 RelativeY = Toolbox::f64(DisplacementA.Y) - DisplacementB.Y;
+					const Toolbox::f64 RelativeZ = Toolbox::f64(DisplacementA.Z) - DisplacementB.Z;
+					const Toolbox::f64 RelativeLength =
+					    Toolbox::Sqrt(RelativeX * RelativeX + RelativeY * RelativeY + RelativeZ * RelativeZ);
+					if (RelativeLength < Contact.ContactSlop)
 					{
 						continue;
 					}

@@ -406,6 +406,179 @@ void BothSpheresMovingCollide_Internal()
 	PHYSICS_REQUIRE(Near_Internal(World.GetVelocity(LeftId).X, -10, 0, 0.1));
 	PHYSICS_REQUIRE(Near_Internal(World.GetVelocity(RightId).X, 10, 0, 0.1));
 }
+// 静止したCCD円と、一分割で横切るKinematic壁の組を作る。壁を先に作るかで登録順を変える。
+void PlaceStillBallAndRushingWall_Internal(FPhysicsWorld2D& World, bool bWallFirst, FBodyId2D& OutBall, FBodyId2D& OutWall)
+{
+	FContactSettings2D Contact = World.GetContactSettings();
+	Contact.ContactSlop = 0.001f;
+	World.SetContactSettings(Contact);
+	FContinuousSettings2D Settings;
+	Settings.bEnabled = true;
+	World.SetContinuousSettings(Settings);
+	FBodyDescription2D Still;
+	Still.Position = {0, 0};
+	Still.bUseContinuous = true;
+	FBodyDescription2D Rush;
+	Rush.Type = EBodyType::Kinematic;
+	Rush.Position = {-2, 0};
+	Rush.Velocity = {240, 0};
+	OutBall = {};
+	OutWall = {};
+	if (bWallFirst)
+	{
+		OutWall = World.CreateBody(Rush);
+		OutBall = World.CreateBody(Still);
+	}
+	else
+	{
+		OutBall = World.CreateBody(Still);
+		OutWall = World.CreateBody(Rush);
+	}
+	FColliderDescription2D Disc;
+	FCircle2D Circle;
+	Circle.Center = {0, 0};
+	Circle.Radius = 0.5f;
+	Disc.Shape = Circle;
+	Disc.Restitution = 1;
+	World.AttachCollider(OutBall, Disc);
+	FColliderDescription2D Slab;
+	FOrientedBox2D WallShape;
+	WallShape.Center = {0, 0};
+	WallShape.HalfExtents = {0.05f, 2};
+	WallShape.Angle = 0;
+	Slab.Shape = WallShape;
+	Slab.Restitution = 1;
+	World.AttachCollider(OutWall, Slab);
+}
+void StillBallHitByKinematicWall_Internal()
+{
+	FPhysicsWorld2D World;
+	World.SetGravity({0, 0});
+	FBodyId2D Ball;
+	FBodyId2D Wall;
+	PlaceStillBallAndRushingWall_Internal(World, false, Ball, Wall);
+	// 壁は-2から+2へ一分割で横切り、始終端とも円から離れている。
+	World.Step(1.0 / 60.0);
+	PHYSICS_REQUIRE(Near_Internal(World.GetPosition(Wall).X, 2.0, 0.01, 0));
+	// 中間時刻の交差で円が弾き飛ばされる。見落とすと円は止まったままになる。
+	PHYSICS_REQUIRE(World.GetVelocity(Ball).X > 10);
+	PHYSICS_REQUIRE(World.GetPosition(Ball).X > 0.5);
+}
+void StillBallHitByKinematicWallReversedOrder_Internal()
+{
+	FPhysicsWorld2D World;
+	World.SetGravity({0, 0});
+	FBodyId2D Ball;
+	FBodyId2D Wall;
+	PlaceStillBallAndRushingWall_Internal(World, true, Ball, Wall);
+	World.Step(1.0 / 60.0);
+	PHYSICS_REQUIRE(Near_Internal(World.GetPosition(Wall).X, 2.0, 0.01, 0));
+	PHYSICS_REQUIRE(World.GetVelocity(Ball).X > 10);
+	PHYSICS_REQUIRE(World.GetPosition(Ball).X > 0.5);
+}
+void CoMovingWallAndBallStaySeparated_Internal()
+{
+	FPhysicsWorld2D World;
+	World.SetGravity({0, 0});
+	FContinuousSettings2D Settings;
+	Settings.bEnabled = true;
+	World.SetContinuousSettings(Settings);
+	// 同じ速度で並走する円と壁。相対運動がないのでCCD走査は不要。
+	FBodyDescription2D Ride;
+	Ride.Position = {0, 0};
+	Ride.Velocity = {240, 0};
+	Ride.bUseContinuous = true;
+	const FBodyId2D Ball = World.CreateBody(Ride);
+	FColliderDescription2D Disc;
+	FCircle2D Circle;
+	Circle.Center = {0, 0};
+	Circle.Radius = 0.5f;
+	Disc.Shape = Circle;
+	World.AttachCollider(Ball, Disc);
+	FBodyDescription2D Escort;
+	Escort.Type = EBodyType::Kinematic;
+	Escort.Position = {-2, 0};
+	Escort.Velocity = {240, 0};
+	const FBodyId2D Wall = World.CreateBody(Escort);
+	FColliderDescription2D Slab;
+	FOrientedBox2D WallShape;
+	WallShape.Center = {0, 0};
+	WallShape.HalfExtents = {0.05f, 2};
+	WallShape.Angle = 0;
+	Slab.Shape = WallShape;
+	World.AttachCollider(Wall, Slab);
+	World.Step(1.0 / 60.0);
+	PHYSICS_REQUIRE(Near_Internal(World.GetPosition(Ball).X, 4.0, 0.01, 0));
+	PHYSICS_REQUIRE(Near_Internal(World.GetPosition(Wall).X, 2.0, 0.01, 0));
+	PHYSICS_REQUIRE(Near_Internal(World.GetVelocity(Ball).X, 240, 0, 0.01));
+}
+// 静止したCCD球と、一分割で横切るKinematic壁の組を作る。壁を先に作るかで登録順を変える。
+void PlaceStillSphereAndRushingWall_Internal(FPhysicsWorld3D& World, bool bWallFirst, FBodyId3D& OutBall, FBodyId3D& OutWall)
+{
+	FContactSettings3D Contact = World.GetContactSettings();
+	Contact.ContactSlop = 0.001f;
+	World.SetContactSettings(Contact);
+	FContinuousSettings3D Settings;
+	Settings.bEnabled = true;
+	World.SetContinuousSettings(Settings);
+	FBodyDescription3D Still;
+	Still.Position = {0, 0, 0};
+	Still.bUseContinuous = true;
+	FBodyDescription3D Rush;
+	Rush.Type = EBodyType::Kinematic;
+	Rush.Position = {-2, 0, 0};
+	Rush.Velocity = {240, 0, 0};
+	OutBall = {};
+	OutWall = {};
+	if (bWallFirst)
+	{
+		OutWall = World.CreateBody(Rush);
+		OutBall = World.CreateBody(Still);
+	}
+	else
+	{
+		OutBall = World.CreateBody(Still);
+		OutWall = World.CreateBody(Rush);
+	}
+	FColliderDescription3D Globe;
+	FSphere Sphere;
+	Sphere.Center = {0, 0, 0};
+	Sphere.Radius = 0.5f;
+	Globe.Shape = Sphere;
+	Globe.Restitution = 1;
+	World.AttachCollider(OutBall, Globe);
+	FColliderDescription3D Slab;
+	FOBB WallShape;
+	WallShape.Center = {0, 0, 0};
+	WallShape.HalfExtents = {0.05f, 2, 2};
+	Slab.Shape = WallShape;
+	Slab.Restitution = 1;
+	World.AttachCollider(OutWall, Slab);
+}
+void StillSphereHitByKinematicWall_Internal()
+{
+	FPhysicsWorld3D World;
+	World.SetGravity({0, 0, 0});
+	FBodyId3D Ball;
+	FBodyId3D Wall;
+	PlaceStillSphereAndRushingWall_Internal(World, false, Ball, Wall);
+	World.Step(1.0 / 60.0);
+	PHYSICS_REQUIRE(Near_Internal(World.GetPosition(Wall).X, 2.0, 0.01, 0));
+	PHYSICS_REQUIRE(World.GetVelocity(Ball).X > 10);
+	PHYSICS_REQUIRE(World.GetPosition(Ball).X > 0.5);
+}
+void StillSphereHitByKinematicWallReversedOrder_Internal()
+{
+	FPhysicsWorld3D World;
+	World.SetGravity({0, 0, 0});
+	FBodyId3D Ball;
+	FBodyId3D Wall;
+	PlaceStillSphereAndRushingWall_Internal(World, true, Ball, Wall);
+	World.Step(1.0 / 60.0);
+	PHYSICS_REQUIRE(Near_Internal(World.GetPosition(Wall).X, 2.0, 0.01, 0));
+	PHYSICS_REQUIRE(World.GetVelocity(Ball).X > 10);
+	PHYSICS_REQUIRE(World.GetPosition(Ball).X > 0.5);
+}
 const PhysicsTest::FCase ContinuousCases_Internal[] = {
     {"fast ball hits thin wall with CCD", &FastBallHitsThinWall_Internal},
     {"discrete ball tunnels through thin wall", &DiscreteBallTunnelThroughWall_Internal},
@@ -419,6 +592,11 @@ const PhysicsTest::FCase ContinuousCases_Internal[] = {
     {"resting contact unaffected by CCD", &RestingUnaffectedByCcd_Internal},
     {"fast sphere hits thin wall with CCD", &FastSphereHitsThinWall_Internal},
     {"both moving spheres collide with CCD", &BothSpheresMovingCollide_Internal},
+    {"still ball is hit by kinematic wall with CCD", &StillBallHitByKinematicWall_Internal},
+    {"still ball is hit by kinematic wall in reversed order", &StillBallHitByKinematicWallReversedOrder_Internal},
+    {"co-moving wall and ball stay separated", &CoMovingWallAndBallStaySeparated_Internal},
+    {"still sphere is hit by kinematic wall with CCD", &StillSphereHitByKinematicWall_Internal},
+    {"still sphere is hit by kinematic wall in reversed order", &StillSphereHitByKinematicWallReversedOrder_Internal},
 };
 } // namespace
 const PhysicsTest::FCase* PhysicsTest::GetContinuousCases(Toolbox::size_t& Count) noexcept
