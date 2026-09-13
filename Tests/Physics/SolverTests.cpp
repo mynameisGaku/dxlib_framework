@@ -759,6 +759,675 @@ void SeparatedBoxesStayPut_Internal()
 	PHYSICS_REQUIRE(Near_Internal(World.GetPosition(Id).X, 0, 1e-6, 0));
 	PHYSICS_REQUIRE(Near_Internal(World.GetPosition(Id).Y, 5, 1e-6, 0));
 }
+// 同一剛体の自由回転を乱さないか調べる。重なる箱を二枚付ける。
+void SelfCollidersDoNotDisturbFreeRotation_Internal()
+{
+	FPhysicsWorld2D World;
+	World.SetGravity({0, 0});
+	FBodyDescription2D Spin;
+	Spin.AngularVelocity = 2;
+	const FBodyId2D Id = World.CreateBody(Spin);
+	FColliderDescription2D Left;
+	FOrientedBox2D LeftShape;
+	LeftShape.Center = {-0.25f, 0};
+	LeftShape.HalfExtents = {0.5f, 0.5f};
+	LeftShape.Angle = 0;
+	Left.Shape = LeftShape;
+	Left.Friction = 0;
+	World.AttachCollider(Id, Left);
+	FColliderDescription2D Right;
+	FOrientedBox2D RightShape;
+	RightShape.Center = {0.25f, 0};
+	RightShape.HalfExtents = {0.5f, 0.5f};
+	RightShape.Angle = 0;
+	Right.Shape = RightShape;
+	Right.Friction = 0;
+	World.AttachCollider(Id, Right);
+	for (int32 Step = 0; Step < 240; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	// 自分自身への接触で外力なしに回転が変わらない。
+	PHYSICS_REQUIRE(Near_Internal(World.GetAngularVelocity(Id), 2, 0.05, 0));
+	PHYSICS_REQUIRE(Near_Internal(World.GetAngle(Id), 4, 0.05, 0));
+	PHYSICS_REQUIRE(Abs(World.GetPosition(Id).X) < 0.01);
+	PHYSICS_REQUIRE(Abs(World.GetPosition(Id).Y) < 0.01);
+}
+// 円と箱の混合でも同一剛体の自由回転を乱さないか調べる。
+void SelfMixedCollidersDoNotDisturbFreeRotation_Internal()
+{
+	FPhysicsWorld2D World;
+	World.SetGravity({0, 0});
+	FBodyDescription2D Spin;
+	Spin.AngularVelocity = 2;
+	const FBodyId2D Id = World.CreateBody(Spin);
+	FColliderDescription2D Disc;
+	FCircle2D Circle;
+	Circle.Center = {-0.2f, 0};
+	Circle.Radius = 0.5f;
+	Disc.Shape = Circle;
+	Disc.Friction = 0;
+	World.AttachCollider(Id, Disc);
+	FColliderDescription2D Crate;
+	FOrientedBox2D BoxShape;
+	BoxShape.Center = {0.2f, 0};
+	BoxShape.HalfExtents = {0.5f, 0.5f};
+	BoxShape.Angle = 0;
+	Crate.Shape = BoxShape;
+	Crate.Friction = 0;
+	World.AttachCollider(Id, Crate);
+	for (int32 Step = 0; Step < 240; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	PHYSICS_REQUIRE(Near_Internal(World.GetAngularVelocity(Id), 2, 0.05, 0));
+	PHYSICS_REQUIRE(Near_Internal(World.GetAngle(Id), 4, 0.05, 0));
+}
+// 離れた二枚の同一剛体は等速を保つか調べる。
+void SelfSeparatedCollidersKeepUniformMotion_Internal()
+{
+	FPhysicsWorld2D World;
+	World.SetGravity({0, 0});
+	FBodyDescription2D Glide;
+	Glide.Velocity = {1, 0};
+	const FBodyId2D Id = World.CreateBody(Glide);
+	FColliderDescription2D Left;
+	FOrientedBox2D LeftShape;
+	LeftShape.Center = {-2, 0};
+	LeftShape.HalfExtents = {0.5f, 0.5f};
+	LeftShape.Angle = 0;
+	Left.Shape = LeftShape;
+	World.AttachCollider(Id, Left);
+	FColliderDescription2D Right;
+	FOrientedBox2D RightShape;
+	RightShape.Center = {2, 0};
+	RightShape.HalfExtents = {0.5f, 0.5f};
+	RightShape.Angle = 0;
+	Right.Shape = RightShape;
+	World.AttachCollider(Id, Right);
+	for (int32 Step = 0; Step < 120; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	PHYSICS_REQUIRE(Near_Internal(World.GetPosition(Id).X, 1.0, 0.01, 0));
+	PHYSICS_REQUIRE(Near_Internal(World.GetPosition(Id).Y, 0, 0.01, 0));
+	PHYSICS_REQUIRE(Near_Internal(World.GetAngularVelocity(Id), 0, 0.01, 0));
+}
+// 同一剛体の自由回転を乱さないか調べる（立体）。
+void SelfCollidersDoNotDisturbFreeRotation3D_Internal()
+{
+	FPhysicsWorld3D World;
+	World.SetGravity({0, 0, 0});
+	FBodyDescription3D Spin;
+	Spin.AngularVelocity = {0, 0, 2};
+	const FBodyId3D Id = World.CreateBody(Spin);
+	FColliderDescription3D Left;
+	FOBB LeftShape;
+	LeftShape.Center = {-0.25f, 0, 0};
+	LeftShape.HalfExtents = {0.5f, 0.5f, 0.5f};
+	Left.Shape = LeftShape;
+	Left.Friction = 0;
+	World.AttachCollider(Id, Left);
+	FColliderDescription3D Right;
+	FOBB RightShape;
+	RightShape.Center = {0.25f, 0, 0};
+	RightShape.HalfExtents = {0.5f, 0.5f, 0.5f};
+	Right.Shape = RightShape;
+	Right.Friction = 0;
+	World.AttachCollider(Id, Right);
+	for (int32 Step = 0; Step < 240; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	const FVector3 SpinAfter = World.GetAngularVelocity(Id);
+	PHYSICS_REQUIRE(Near_Internal(SpinAfter.X, 0, 0.05, 0));
+	PHYSICS_REQUIRE(Near_Internal(SpinAfter.Y, 0, 0.05, 0));
+	PHYSICS_REQUIRE(Near_Internal(SpinAfter.Z, 2, 0.05, 0));
+	PHYSICS_REQUIRE(Length(World.GetVelocity(Id)) < 0.01f);
+}
+// 球と箱の混合でも同一剛体の自由回転を乱さないか調べる（立体）。
+void SelfMixedCollidersDoNotDisturbFreeRotation3D_Internal()
+{
+	FPhysicsWorld3D World;
+	World.SetGravity({0, 0, 0});
+	FBodyDescription3D Spin;
+	Spin.AngularVelocity = {0, 0, 2};
+	const FBodyId3D Id = World.CreateBody(Spin);
+	FColliderDescription3D Globe;
+	FSphere Sphere;
+	Sphere.Center = {-0.2f, 0, 0};
+	Sphere.Radius = 0.5f;
+	Globe.Shape = Sphere;
+	Globe.Friction = 0;
+	World.AttachCollider(Id, Globe);
+	FColliderDescription3D Crate;
+	FOBB BoxShape;
+	BoxShape.Center = {0.2f, 0, 0};
+	BoxShape.HalfExtents = {0.5f, 0.5f, 0.5f};
+	Crate.Shape = BoxShape;
+	Crate.Friction = 0;
+	World.AttachCollider(Id, Crate);
+	for (int32 Step = 0; Step < 240; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	const FVector3 SpinAfter = World.GetAngularVelocity(Id);
+	PHYSICS_REQUIRE(Near_Internal(SpinAfter.Z, 2, 0.05, 0));
+	PHYSICS_REQUIRE(Length(World.GetVelocity(Id)) < 0.01f);
+}
+// 離れた二枚の同一剛体は等速を保つか調べる（立体）。
+void SelfSeparatedCollidersKeepUniformMotion3D_Internal()
+{
+	FPhysicsWorld3D World;
+	World.SetGravity({0, 0, 0});
+	FBodyDescription3D Glide;
+	Glide.Velocity = {1, 0, 0};
+	const FBodyId3D Id = World.CreateBody(Glide);
+	FColliderDescription3D Left;
+	FOBB LeftShape;
+	LeftShape.Center = {-2, 0, 0};
+	LeftShape.HalfExtents = {0.5f, 0.5f, 0.5f};
+	Left.Shape = LeftShape;
+	World.AttachCollider(Id, Left);
+	FColliderDescription3D Right;
+	FOBB RightShape;
+	RightShape.Center = {2, 0, 0};
+	RightShape.HalfExtents = {0.5f, 0.5f, 0.5f};
+	Right.Shape = RightShape;
+	World.AttachCollider(Id, Right);
+	for (int32 Step = 0; Step < 120; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	PHYSICS_REQUIRE(Near_Internal(World.GetPosition(Id).X, 1.0, 0.01, 0));
+	PHYSICS_REQUIRE(Near_Internal(World.GetVelocity(Id).X, 1.0, 0.01, 0));
+}
+// 重なる自己接触だけでは剛体を眠らせないか調べる。付着順を変えて試す。
+void RequireSelfContactsDoNotPutBodyToSleep_Internal(bool bReversed)
+{
+	FPhysicsWorld2D World;
+	World.SetGravity({0, 0});
+	FBodyDescription2D Drift;
+	Drift.Velocity = {0.01f, 0};
+	const FBodyId2D Id = World.CreateBody(Drift);
+	FColliderDescription2D Left;
+	FOrientedBox2D LeftShape;
+	LeftShape.Center = {-0.25f, 0};
+	LeftShape.HalfExtents = {0.5f, 0.5f};
+	LeftShape.Angle = 0;
+	Left.Shape = LeftShape;
+	Left.Friction = 0;
+	FColliderDescription2D Right;
+	FOrientedBox2D RightShape;
+	RightShape.Center = {0.25f, 0};
+	RightShape.HalfExtents = {0.5f, 0.5f};
+	RightShape.Angle = 0;
+	Right.Shape = RightShape;
+	Right.Friction = 0;
+	if (bReversed)
+	{
+		World.AttachCollider(Id, Right);
+		World.AttachCollider(Id, Left);
+	}
+	else
+	{
+		World.AttachCollider(Id, Left);
+		World.AttachCollider(Id, Right);
+	}
+	for (int32 Step = 0; Step < 240; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	// 外部接触がないため休止せず、微速を保って漂う。
+	PHYSICS_REQUIRE(!World.IsSleeping(Id));
+	PHYSICS_REQUIRE(Near_Internal(World.GetVelocity(Id).X, 0.01, 1e-6, 0));
+}
+void SelfContactsDoNotPutBodyToSleep_Internal()
+{
+	RequireSelfContactsDoNotPutBodyToSleep_Internal(false);
+}
+void SelfContactsDoNotPutBodyToSleepReversed_Internal()
+{
+	RequireSelfContactsDoNotPutBodyToSleep_Internal(true);
+}
+// 重なる自己接触だけでは剛体を眠らせないか調べる（立体）。
+void RequireSelfContactsDoNotPutBodyToSleep3D_Internal(bool bReversed)
+{
+	FPhysicsWorld3D World;
+	World.SetGravity({0, 0, 0});
+	FBodyDescription3D Drift;
+	Drift.Velocity = {0.01f, 0, 0};
+	const FBodyId3D Id = World.CreateBody(Drift);
+	FColliderDescription3D Left;
+	FOBB LeftShape;
+	LeftShape.Center = {-0.25f, 0, 0};
+	LeftShape.HalfExtents = {0.5f, 0.5f, 0.5f};
+	Left.Shape = LeftShape;
+	Left.Friction = 0;
+	FColliderDescription3D Right;
+	FOBB RightShape;
+	RightShape.Center = {0.25f, 0, 0};
+	RightShape.HalfExtents = {0.5f, 0.5f, 0.5f};
+	Right.Shape = RightShape;
+	Right.Friction = 0;
+	if (bReversed)
+	{
+		World.AttachCollider(Id, Right);
+		World.AttachCollider(Id, Left);
+	}
+	else
+	{
+		World.AttachCollider(Id, Left);
+		World.AttachCollider(Id, Right);
+	}
+	for (int32 Step = 0; Step < 240; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	PHYSICS_REQUIRE(!World.IsSleeping(Id));
+	PHYSICS_REQUIRE(Near_Internal(World.GetVelocity(Id).X, 0.01, 1e-6, 0));
+}
+void SelfContactsDoNotPutBodyToSleep3D_Internal()
+{
+	RequireSelfContactsDoNotPutBodyToSleep3D_Internal(false);
+}
+void SelfContactsDoNotPutBodyToSleepReversed3D_Internal()
+{
+	RequireSelfContactsDoNotPutBodyToSleep3D_Internal(true);
+}
+// 静止・分離・再接近の筋書きを走らせ、最初の再接触終了時の応答を返す。
+void RunRestSeparateRecontact_Internal(FPhysicsWorld2D& World, bool bClearDuringFlight, f64& OutY, f64& OutVy)
+{
+	StaticFloor_Internal(World);
+	FBodyDescription2D Fall;
+	Fall.Position = {0, 5};
+	const FBodyId2D Id = World.CreateBody(Fall);
+	World.AttachCollider(Id, BallDescription_Internal(0.4f, 0));
+	// キャッシュがたまるまで静止させる。
+	for (int32 Step = 0; Step < 300; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	// テレポートや消去なしで打ち上げて分離させる。
+	World.ApplyLinearImpulse(Id, {0, 5});
+	if (bClearDuringFlight)
+	{
+		World.ClearContactCache();
+	}
+	bool bDetected = false;
+	f64 PreviousVy = 5;
+	for (int32 Step = 0; Step < 400 && !bDetected; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+		const f64 Vy = World.GetVelocity(Id).Y;
+		if (PreviousVy < -1.0 && Vy > -0.5)
+		{
+			OutY = World.GetPosition(Id).Y;
+			OutVy = Vy;
+			bDetected = true;
+		}
+		PreviousVy = Vy;
+	}
+	// 再接触を検出できなければ試験自体が壊れている。
+	PHYSICS_REQUIRE(bDetected);
+}
+// 新しい接触の初回応答が古いImpulseを引き継がないか調べる。
+void RecontactDoesNotInheritStaleImpulse_Internal()
+{
+	FPhysicsWorld2D Stale;
+	Stale.SetGravity({0, -9.8f});
+	f64 StaleY = 0;
+	f64 StaleVy = 0;
+	RunRestSeparateRecontact_Internal(Stale, false, StaleY, StaleVy);
+	FPhysicsWorld2D Fresh;
+	Fresh.SetGravity({0, -9.8f});
+	f64 FreshY = 0;
+	f64 FreshVy = 0;
+	RunRestSeparateRecontact_Internal(Fresh, true, FreshY, FreshVy);
+	PHYSICS_REQUIRE(Near_Internal(StaleY, FreshY, 1e-6, 0));
+	PHYSICS_REQUIRE(Near_Internal(StaleVy, FreshVy, 1e-6, 0));
+}
+// 静止・分離・再接近の筋書きを走らせる（立体）。
+void RunRestSeparateRecontact3D_Internal(FPhysicsWorld3D& World, bool bClearDuringFlight, f64& OutY, f64& OutVy)
+{
+	FBodyDescription3D Ground;
+	Ground.Type = EBodyType::Static;
+	const FBodyId3D FloorId = World.CreateBody(Ground);
+	World.AttachCollider(FloorId, FloorDescription3D_Internal());
+	FBodyDescription3D Fall;
+	Fall.Position = {0, 5, 0};
+	const FBodyId3D Id = World.CreateBody(Fall);
+	FColliderDescription3D Ball;
+	FSphere Shape;
+	Shape.Center = {0, 0, 0};
+	Shape.Radius = 0.5f;
+	Ball.Shape = Shape;
+	Ball.Friction = 0.4f;
+	Ball.Restitution = 0;
+	World.AttachCollider(Id, Ball);
+	for (int32 Step = 0; Step < 300; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	World.ApplyLinearImpulse(Id, {0, 5, 0});
+	if (bClearDuringFlight)
+	{
+		World.ClearContactCache();
+	}
+	bool bDetected = false;
+	f64 PreviousVy = 5;
+	for (int32 Step = 0; Step < 400 && !bDetected; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+		const f64 Vy = World.GetVelocity(Id).Y;
+		if (PreviousVy < -1.0 && Vy > -0.5)
+		{
+			OutY = World.GetPosition(Id).Y;
+			OutVy = Vy;
+			bDetected = true;
+		}
+		PreviousVy = Vy;
+	}
+	PHYSICS_REQUIRE(bDetected);
+}
+// 新しい接触の初回応答が古いImpulseを引き継がないか調べる（立体）。
+void RecontactDoesNotInheritStaleImpulse3D_Internal()
+{
+	FPhysicsWorld3D Stale;
+	Stale.SetGravity({0, -9.8f, 0});
+	f64 StaleY = 0;
+	f64 StaleVy = 0;
+	RunRestSeparateRecontact3D_Internal(Stale, false, StaleY, StaleVy);
+	FPhysicsWorld3D Fresh;
+	Fresh.SetGravity({0, -9.8f, 0});
+	f64 FreshY = 0;
+	f64 FreshVy = 0;
+	RunRestSeparateRecontact3D_Internal(Fresh, true, FreshY, FreshVy);
+	PHYSICS_REQUIRE(Near_Internal(StaleY, FreshY, 1e-6, 0));
+	PHYSICS_REQUIRE(Near_Internal(StaleVy, FreshVy, 1e-6, 0));
+}
+// 1m箱の形状と材質を作る。
+FColliderDescription2D UnitBoxDescription_Internal()
+{
+	FColliderDescription2D Crate;
+	FOrientedBox2D Shape;
+	Shape.Center = {0, 0};
+	Shape.HalfExtents = {0.5f, 0.5f};
+	Shape.Angle = 0;
+	Crate.Shape = Shape;
+	Crate.Friction = 0.6f;
+	Crate.Restitution = 0;
+	return Crate;
+}
+// Kinematic台の上で箱を眠らせる。台も箱も静止から始める。
+FBodyId2D RestBoxOnStillPlatform_Internal(FPhysicsWorld2D& World, FBodyId2D& OutPlatform)
+{
+	FBodyDescription2D Deck;
+	Deck.Type = EBodyType::Kinematic;
+	Deck.Position = {0, 0};
+	OutPlatform = World.CreateBody(Deck);
+	FColliderDescription2D Slab;
+	FOrientedBox2D SlabShape;
+	SlabShape.Center = {0, 0};
+	SlabShape.HalfExtents = {2, 0.5f};
+	SlabShape.Angle = 0;
+	Slab.Shape = SlabShape;
+	Slab.Friction = 0.6f;
+	Slab.Restitution = 0;
+	World.AttachCollider(OutPlatform, Slab);
+	FBodyDescription2D Fall;
+	Fall.Position = {0, 1.0f};
+	const FBodyId2D Id = World.CreateBody(Fall);
+	World.AttachCollider(Id, UnitBoxDescription_Internal());
+	for (int32 Step = 0; Step < 600; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	return Id;
+}
+// 既知接触のまま動き出すKinematic台で休止体が起きるか調べる。
+void SleepingBoxWakesWhenPlatformMoves_Internal()
+{
+	FPhysicsWorld2D World;
+	FBodyId2D Platform;
+	const FBodyId2D Id = RestBoxOnStillPlatform_Internal(World, Platform);
+	PHYSICS_REQUIRE(World.IsSleeping(Id));
+	World.SetVelocity(Platform, {1, 0});
+	World.Step(1.0 / 120.0);
+	// 同じ接触対でも相対運動が生じればその刻みで起きる。
+	PHYSICS_REQUIRE(!World.IsSleeping(Id));
+	for (int32 Step = 0; Step < 30; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	PHYSICS_REQUIRE(World.GetVelocity(Id).X > 0.02f);
+}
+// 回転し出す台でも休止体が起きるか調べる。
+void SleepingBoxWakesWhenPlatformSpins_Internal()
+{
+	FPhysicsWorld2D World;
+	FBodyId2D Platform;
+	const FBodyId2D Id = RestBoxOnStillPlatform_Internal(World, Platform);
+	PHYSICS_REQUIRE(World.IsSleeping(Id));
+	World.SetAngularVelocity(Platform, 1);
+	World.Step(1.0 / 120.0);
+	PHYSICS_REQUIRE(!World.IsSleeping(Id));
+	for (int32 Step = 0; Step < 30; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	const FVector2 Moved = World.GetVelocity(Id);
+	PHYSICS_REQUIRE(Sqrt(f64(Moved.X) * Moved.X + f64(Moved.Y) * Moved.Y) > 0.01);
+}
+// 短い積み重ねの下段起床が上段へ伝わるか調べる。
+void SleepingStackWakesThroughContacts_Internal()
+{
+	FPhysicsWorld2D World;
+	FBodyDescription2D Deck;
+	Deck.Type = EBodyType::Kinematic;
+	Deck.Position = {0, 0};
+	const FBodyId2D Platform = World.CreateBody(Deck);
+	FColliderDescription2D Slab;
+	FOrientedBox2D SlabShape;
+	SlabShape.Center = {0, 0};
+	SlabShape.HalfExtents = {2, 0.5f};
+	SlabShape.Angle = 0;
+	Slab.Shape = SlabShape;
+	Slab.Friction = 0.6f;
+	Slab.Restitution = 0;
+	World.AttachCollider(Platform, Slab);
+	FBodyDescription2D Lower;
+	Lower.Position = {0, 1.0f};
+	const FBodyId2D LowerId = World.CreateBody(Lower);
+	World.AttachCollider(LowerId, UnitBoxDescription_Internal());
+	FBodyDescription2D Upper;
+	Upper.Position = {0, 2.0f};
+	const FBodyId2D UpperId = World.CreateBody(Upper);
+	World.AttachCollider(UpperId, UnitBoxDescription_Internal());
+	for (int32 Step = 0; Step < 600; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	PHYSICS_REQUIRE(World.IsSleeping(LowerId));
+	PHYSICS_REQUIRE(World.IsSleeping(UpperId));
+	World.SetVelocity(Platform, {1, 0});
+	World.Step(1.0 / 120.0);
+	PHYSICS_REQUIRE(!World.IsSleeping(LowerId));
+	for (int32 Step = 0; Step < 4; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	// 下段の運動が接触を通じて上段を起こす。
+	PHYSICS_REQUIRE(!World.IsSleeping(UpperId));
+}
+// Kinematic台の上で球を眠らせる（立体）。
+FBodyId3D RestSphereOnStillPlatform3D_Internal(FPhysicsWorld3D& World, FBodyId3D& OutPlatform)
+{
+	FBodyDescription3D Deck;
+	Deck.Type = EBodyType::Kinematic;
+	Deck.Position = {0, 0, 0};
+	OutPlatform = World.CreateBody(Deck);
+	FColliderDescription3D Slab;
+	FOBB SlabShape;
+	SlabShape.Center = {0, 0, 0};
+	SlabShape.HalfExtents = {2, 0.5f, 2};
+	Slab.Shape = SlabShape;
+	Slab.Friction = 0.6f;
+	Slab.Restitution = 0;
+	World.AttachCollider(OutPlatform, Slab);
+	FBodyDescription3D Fall;
+	Fall.Position = {0, 1.0f, 0};
+	const FBodyId3D Id = World.CreateBody(Fall);
+	FColliderDescription3D Globe;
+	FSphere Sphere;
+	Sphere.Center = {0, 0, 0};
+	Sphere.Radius = 0.5f;
+	Globe.Shape = Sphere;
+	Globe.Friction = 0.6f;
+	Globe.Restitution = 0;
+	World.AttachCollider(Id, Globe);
+	for (int32 Step = 0; Step < 600; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	return Id;
+}
+// 既知接触のまま動き出す台で休止体が起きるか調べる（立体）。
+void SleepingSphereWakesWhenPlatformMoves3D_Internal()
+{
+	FPhysicsWorld3D World;
+	FBodyId3D Platform;
+	const FBodyId3D Id = RestSphereOnStillPlatform3D_Internal(World, Platform);
+	PHYSICS_REQUIRE(World.IsSleeping(Id));
+	World.SetVelocity(Platform, {1, 0, 0});
+	World.Step(1.0 / 120.0);
+	PHYSICS_REQUIRE(!World.IsSleeping(Id));
+	for (int32 Step = 0; Step < 30; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	PHYSICS_REQUIRE(World.GetVelocity(Id).X > 0.02f);
+}
+// 床で円を眠らせる。床と円のIDを返す。
+void RestBallOnFloorAsleep_Internal(FPhysicsWorld2D& World, FBodyId2D& OutFloor, FBodyId2D& OutBall)
+{
+	OutFloor = StaticFloor_Internal(World);
+	FBodyDescription2D Fall;
+	Fall.Position = {0, 3};
+	OutBall = World.CreateBody(Fall);
+	World.AttachCollider(OutBall, BallDescription_Internal(0.4f, 0));
+	for (int32 Step = 0; Step < 600; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+}
+// 休止の無効化が眠った剛体を起こすか調べる。
+void DisablingSleepWakesSleepingBody_Internal()
+{
+	FPhysicsWorld2D World;
+	FBodyId2D Floor;
+	FBodyId2D Ball;
+	RestBallOnFloorAsleep_Internal(World, Floor, Ball);
+	PHYSICS_REQUIRE(World.IsSleeping(Ball));
+	FSleepSettings2D Sleep = World.GetSleepSettings();
+	Sleep.bEnabled = false;
+	World.SetSleepSettings(Sleep);
+	// 設定変更の直後に起きており、明示のWakeUpを要しない。
+	PHYSICS_REQUIRE(!World.IsSleeping(Ball));
+	// 支持を外すと重力が運動を再開させる。
+	PHYSICS_REQUIRE(World.DestroyBody(Floor));
+	for (int32 Step = 0; Step < 60; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	PHYSICS_REQUIRE(World.GetPosition(Ball).Y < 0.4);
+}
+// 重力の変更が眠った剛体を起こすか調べる。
+void ChangingGravityWakesSleepingBody_Internal()
+{
+	FPhysicsWorld2D World;
+	FBodyId2D Floor;
+	FBodyId2D Ball;
+	RestBallOnFloorAsleep_Internal(World, Floor, Ball);
+	PHYSICS_REQUIRE(World.IsSleeping(Ball));
+	World.SetGravity({0, -1.0f});
+	PHYSICS_REQUIRE(!World.IsSleeping(Ball));
+}
+// 同じ重力の設定し直しでは起こさないか調べる。
+void SettingSameGravityKeepsSleep_Internal()
+{
+	FPhysicsWorld2D World;
+	FBodyId2D Floor;
+	FBodyId2D Ball;
+	RestBallOnFloorAsleep_Internal(World, Floor, Ball);
+	PHYSICS_REQUIRE(World.IsSleeping(Ball));
+	World.SetGravity(World.GetGravity());
+	PHYSICS_REQUIRE(World.IsSleeping(Ball));
+}
+// 床で球を眠らせる（立体）。
+void RestSphereOnFloorAsleep3D_Internal(FPhysicsWorld3D& World, FBodyId3D& OutFloor, FBodyId3D& OutBall)
+{
+	FBodyDescription3D Ground;
+	Ground.Type = EBodyType::Static;
+	OutFloor = World.CreateBody(Ground);
+	World.AttachCollider(OutFloor, FloorDescription3D_Internal());
+	FBodyDescription3D Fall;
+	Fall.Position = {0, 5, 0};
+	OutBall = World.CreateBody(Fall);
+	FColliderDescription3D Globe;
+	FSphere Sphere;
+	Sphere.Center = {0, 0, 0};
+	Sphere.Radius = 0.5f;
+	Globe.Shape = Sphere;
+	Globe.Friction = 0.4f;
+	Globe.Restitution = 0;
+	World.AttachCollider(OutBall, Globe);
+	for (int32 Step = 0; Step < 600; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+}
+// 休止の無効化が眠った剛体を起こすか調べる（立体）。
+void DisablingSleepWakesSleepingBody3D_Internal()
+{
+	FPhysicsWorld3D World;
+	FBodyId3D Floor;
+	FBodyId3D Ball;
+	RestSphereOnFloorAsleep3D_Internal(World, Floor, Ball);
+	PHYSICS_REQUIRE(World.IsSleeping(Ball));
+	FSleepSettings3D Sleep = World.GetSleepSettings();
+	Sleep.bEnabled = false;
+	World.SetSleepSettings(Sleep);
+	PHYSICS_REQUIRE(!World.IsSleeping(Ball));
+	PHYSICS_REQUIRE(World.DestroyBody(Floor));
+	for (int32 Step = 0; Step < 60; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	PHYSICS_REQUIRE(World.GetPosition(Ball).Y < 0.4);
+}
+// 重力の変更が眠った剛体を起こすか調べる（立体）。
+void ChangingGravityWakesSleepingBody3D_Internal()
+{
+	FPhysicsWorld3D World;
+	FBodyId3D Floor;
+	FBodyId3D Ball;
+	RestSphereOnFloorAsleep3D_Internal(World, Floor, Ball);
+	PHYSICS_REQUIRE(World.IsSleeping(Ball));
+	World.SetGravity({0, -1.0f, 0});
+	PHYSICS_REQUIRE(!World.IsSleeping(Ball));
+}
+// 同じ重力の設定し直しでは起こさないか調べる（立体）。
+void SettingSameGravityKeepsSleep3D_Internal()
+{
+	FPhysicsWorld3D World;
+	FBodyId3D Floor;
+	FBodyId3D Ball;
+	RestSphereOnFloorAsleep3D_Internal(World, Floor, Ball);
+	PHYSICS_REQUIRE(World.IsSleeping(Ball));
+	World.SetGravity(World.GetGravity());
+	PHYSICS_REQUIRE(World.IsSleeping(Ball));
+}
 const PhysicsTest::FCase SolverCases_Internal[] = {
     {"ball rests on static floor", &BallRestsOnFloor_Internal},
     {"frictionless slide keeps tangential speed", &FrictionlessSlideKeepsSpeed_Internal},
@@ -787,6 +1456,28 @@ const PhysicsTest::FCase SolverCases_Internal[] = {
     {"narrow column supports box", &NarrowColumnSupportsBox_Internal},
     {"rotated floor supports offset box", &RotatedFloorSupportsOffsetBox_Internal},
     {"separated boxes stay put", &SeparatedBoxesStayPut_Internal},
+    {"self colliders do not disturb free rotation", &SelfCollidersDoNotDisturbFreeRotation_Internal},
+    {"self mixed colliders do not disturb free rotation", &SelfMixedCollidersDoNotDisturbFreeRotation_Internal},
+    {"self separated colliders keep uniform motion", &SelfSeparatedCollidersKeepUniformMotion_Internal},
+    {"self colliders do not disturb free rotation in 3D", &SelfCollidersDoNotDisturbFreeRotation3D_Internal},
+    {"self mixed colliders do not disturb free rotation in 3D", &SelfMixedCollidersDoNotDisturbFreeRotation3D_Internal},
+    {"self separated colliders keep uniform motion in 3D", &SelfSeparatedCollidersKeepUniformMotion3D_Internal},
+    {"self contacts do not put body to sleep", &SelfContactsDoNotPutBodyToSleep_Internal},
+    {"self contacts do not put body to sleep reversed", &SelfContactsDoNotPutBodyToSleepReversed_Internal},
+    {"self contacts do not put body to sleep in 3D", &SelfContactsDoNotPutBodyToSleep3D_Internal},
+    {"self contacts do not put body to sleep reversed in 3D", &SelfContactsDoNotPutBodyToSleepReversed3D_Internal},
+    {"recontact does not inherit stale impulse", &RecontactDoesNotInheritStaleImpulse_Internal},
+    {"recontact does not inherit stale impulse in 3D", &RecontactDoesNotInheritStaleImpulse3D_Internal},
+    {"sleeping box wakes when platform moves", &SleepingBoxWakesWhenPlatformMoves_Internal},
+    {"sleeping box wakes when platform spins", &SleepingBoxWakesWhenPlatformSpins_Internal},
+    {"sleeping stack wakes through contacts", &SleepingStackWakesThroughContacts_Internal},
+    {"sleeping sphere wakes when platform moves in 3D", &SleepingSphereWakesWhenPlatformMoves3D_Internal},
+    {"disabling sleep wakes sleeping body", &DisablingSleepWakesSleepingBody_Internal},
+    {"changing gravity wakes sleeping body", &ChangingGravityWakesSleepingBody_Internal},
+    {"setting same gravity keeps sleep", &SettingSameGravityKeepsSleep_Internal},
+    {"disabling sleep wakes sleeping body in 3D", &DisablingSleepWakesSleepingBody3D_Internal},
+    {"changing gravity wakes sleeping body in 3D", &ChangingGravityWakesSleepingBody3D_Internal},
+    {"setting same gravity keeps sleep in 3D", &SettingSameGravityKeepsSleep3D_Internal},
 };
 } // namespace
 const PhysicsTest::FCase* PhysicsTest::GetSolverCases(Toolbox::size_t& Count) noexcept

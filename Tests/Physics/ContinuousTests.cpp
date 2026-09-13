@@ -579,6 +579,105 @@ void StillSphereHitByKinematicWallReversedOrder_Internal()
 	PHYSICS_REQUIRE(World.GetVelocity(Ball).X > 10);
 	PHYSICS_REQUIRE(World.GetPosition(Ball).X > 0.5);
 }
+// 同一剛体へ重なる箱を二枚付ける。左右の順番を変えて登録する。
+FBodyId2D SelfOverlappingBoxes_Internal(FPhysicsWorld2D& World, bool bReversed)
+{
+	FContinuousSettings2D Settings;
+	Settings.bEnabled = true;
+	World.SetContinuousSettings(Settings);
+	FBodyDescription2D Mover;
+	Mover.Velocity = {10, 0};
+	Mover.bUseContinuous = true;
+	const FBodyId2D Id = World.CreateBody(Mover);
+	FColliderDescription2D Left;
+	FOrientedBox2D LeftShape;
+	LeftShape.Center = {-0.25f, 0};
+	LeftShape.HalfExtents = {0.5f, 0.5f};
+	LeftShape.Angle = 0;
+	Left.Shape = LeftShape;
+	FColliderDescription2D Right;
+	FOrientedBox2D RightShape;
+	RightShape.Center = {0.25f, 0};
+	RightShape.HalfExtents = {0.5f, 0.5f};
+	RightShape.Angle = 0;
+	Right.Shape = RightShape;
+	if (bReversed)
+	{
+		World.AttachCollider(Id, Right);
+		World.AttachCollider(Id, Left);
+	}
+	else
+	{
+		World.AttachCollider(Id, Left);
+		World.AttachCollider(Id, Right);
+	}
+	return Id;
+}
+void SelfBoxPairExcludedFromCcdFallback_Internal()
+{
+	FPhysicsWorld2D World;
+	World.SetGravity({0, 0});
+	SelfOverlappingBoxes_Internal(World, false);
+	World.Step(1.0 / 120.0);
+	// 同一剛体の組は相対運動がないためCCD走査の対象外になる。診断の不変を守る。
+	PHYSICS_REQUIRE(World.GetContinuousDiagnostics().FallbackPairs == 0);
+}
+void SelfBoxPairExcludedFromCcdFallbackReversed_Internal()
+{
+	FPhysicsWorld2D World;
+	World.SetGravity({0, 0});
+	SelfOverlappingBoxes_Internal(World, true);
+	World.Step(1.0 / 120.0);
+	PHYSICS_REQUIRE(World.GetContinuousDiagnostics().FallbackPairs == 0);
+}
+// 同一剛体へ重なる箱を二枚付ける（立体）。左右の順番を変えて登録する。
+FBodyId3D SelfOverlappingBoxes3D_Internal(FPhysicsWorld3D& World, bool bReversed)
+{
+	FContinuousSettings3D Settings;
+	Settings.bEnabled = true;
+	World.SetContinuousSettings(Settings);
+	FBodyDescription3D Mover;
+	Mover.Velocity = {10, 0, 0};
+	Mover.bUseContinuous = true;
+	const FBodyId3D Id = World.CreateBody(Mover);
+	FColliderDescription3D Left;
+	FOBB LeftShape;
+	LeftShape.Center = {-0.25f, 0, 0};
+	LeftShape.HalfExtents = {0.5f, 0.5f, 0.5f};
+	Left.Shape = LeftShape;
+	FColliderDescription3D Right;
+	FOBB RightShape;
+	RightShape.Center = {0.25f, 0, 0};
+	RightShape.HalfExtents = {0.5f, 0.5f, 0.5f};
+	Right.Shape = RightShape;
+	if (bReversed)
+	{
+		World.AttachCollider(Id, Right);
+		World.AttachCollider(Id, Left);
+	}
+	else
+	{
+		World.AttachCollider(Id, Left);
+		World.AttachCollider(Id, Right);
+	}
+	return Id;
+}
+void SelfBoxPairExcludedFromCcdFallback3D_Internal()
+{
+	FPhysicsWorld3D World;
+	World.SetGravity({0, 0, 0});
+	SelfOverlappingBoxes3D_Internal(World, false);
+	World.Step(1.0 / 120.0);
+	PHYSICS_REQUIRE(World.GetContinuousDiagnostics().FallbackPairs == 0);
+}
+void SelfBoxPairExcludedFromCcdFallbackReversed3D_Internal()
+{
+	FPhysicsWorld3D World;
+	World.SetGravity({0, 0, 0});
+	SelfOverlappingBoxes3D_Internal(World, true);
+	World.Step(1.0 / 120.0);
+	PHYSICS_REQUIRE(World.GetContinuousDiagnostics().FallbackPairs == 0);
+}
 const PhysicsTest::FCase ContinuousCases_Internal[] = {
     {"fast ball hits thin wall with CCD", &FastBallHitsThinWall_Internal},
     {"discrete ball tunnels through thin wall", &DiscreteBallTunnelThroughWall_Internal},
@@ -597,6 +696,10 @@ const PhysicsTest::FCase ContinuousCases_Internal[] = {
     {"co-moving wall and ball stay separated", &CoMovingWallAndBallStaySeparated_Internal},
     {"still sphere is hit by kinematic wall with CCD", &StillSphereHitByKinematicWall_Internal},
     {"still sphere is hit by kinematic wall in reversed order", &StillSphereHitByKinematicWallReversedOrder_Internal},
+    {"self box pair is excluded from CCD fallback", &SelfBoxPairExcludedFromCcdFallback_Internal},
+    {"self box pair is excluded from CCD fallback reversed", &SelfBoxPairExcludedFromCcdFallbackReversed_Internal},
+    {"self box pair is excluded from CCD fallback in 3D", &SelfBoxPairExcludedFromCcdFallback3D_Internal},
+    {"self box pair is excluded from CCD fallback reversed in 3D", &SelfBoxPairExcludedFromCcdFallbackReversed3D_Internal},
 };
 } // namespace
 const PhysicsTest::FCase* PhysicsTest::GetContinuousCases(Toolbox::size_t& Count) noexcept
