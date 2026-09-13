@@ -530,6 +530,235 @@ void ColliderLifetimeIsTracked3D_Internal()
 	}
 	PHYSICS_REQUIRE(bThrown);
 }
+// 横長床の上に箱を置く。箱の初期中心位置を指定する。
+FBodyId2D PlaceBoxOnWideFloor_Internal(FPhysicsWorld2D& World, f32 X, f32 Y)
+{
+	FBodyDescription2D Fall;
+	Fall.Position = {X, Y};
+	const FBodyId2D Id = World.CreateBody(Fall);
+	FColliderDescription2D Crate;
+	FOrientedBox2D Shape;
+	Shape.Center = {0, 0};
+	Shape.HalfExtents = {0.5f, 0.5f};
+	Shape.Angle = 0;
+	Crate.Shape = Shape;
+	Crate.Friction = 0.6f;
+	Crate.Restitution = 0;
+	World.AttachCollider(Id, Crate);
+	return Id;
+}
+// 箱が床上面の高さで静止しているか調べる。
+void RequireBoxRestsOnFloor_Internal(FPhysicsWorld2D& World, FBodyId2D Id, f32 X)
+{
+	// 床上面はY=0なので箱中心の理想高さは0.5。
+	PHYSICS_REQUIRE(Near_Internal(World.GetPosition(Id).Y, 0.5, 0.08, 0));
+	PHYSICS_REQUIRE(Near_Internal(World.GetPosition(Id).X, X, 0.12, 0));
+	PHYSICS_REQUIRE(Abs(World.GetVelocity(Id).X) < 0.3);
+	PHYSICS_REQUIRE(Abs(World.GetVelocity(Id).Y) < 0.3);
+}
+void WideFloorSupportsCenteredBox_Internal()
+{
+	FPhysicsWorld2D World;
+	StaticFloor_Internal(World);
+	const FBodyId2D Id = PlaceBoxOnWideFloor_Internal(World, 0, 0.5f);
+	for (int32 Step = 0; Step < 360; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	// 中央では接線座標が床半幅より十分小さい。
+	RequireBoxRestsOnFloor_Internal(World, Id, 0);
+}
+void WideFloorSupportsOffsetBox_Internal()
+{
+	FPhysicsWorld2D World;
+	StaticFloor_Internal(World);
+	const FBodyId2D Id = PlaceBoxOnWideFloor_Internal(World, 3, 0.5f);
+	for (int32 Step = 0; Step < 360; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	// 床上面の接線範囲は半幅5なので端が3.5でも接触が残る。
+	RequireBoxRestsOnFloor_Internal(World, Id, 3);
+}
+void WideFloorSupportsOffsetBoxReversedOrder_Internal()
+{
+	FPhysicsWorld2D World;
+	const FBodyId2D Id = PlaceBoxOnWideFloor_Internal(World, 3, 0.5f);
+	StaticFloor_Internal(World);
+	for (int32 Step = 0; Step < 360; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	// 登録順を反転しても正準順序の接触が床支持する。
+	RequireBoxRestsOnFloor_Internal(World, Id, 3);
+}
+void WideFloorSupportsBoxNearEnd_Internal()
+{
+	FPhysicsWorld2D World;
+	StaticFloor_Internal(World);
+	const FBodyId2D Id = PlaceBoxOnWideFloor_Internal(World, 4, 0.5f);
+	for (int32 Step = 0; Step < 360; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	// 箱の右端4.5は床の右端5の内側にある。
+	RequireBoxRestsOnFloor_Internal(World, Id, 4);
+}
+// 縦長壁の側面で箱の初期貫通を解く。壁面付近のY座標を指定する。
+FBodyId2D PlacePenetratingBoxNearWall_Internal(FPhysicsWorld2D& World, f32 Y)
+{
+	FBodyDescription2D WallGround;
+	WallGround.Type = EBodyType::Static;
+	WallGround.Position = {1.5f, 2};
+	const FBodyId2D WallId = World.CreateBody(WallGround);
+	FColliderDescription2D Wall;
+	FOrientedBox2D WallShape;
+	WallShape.Center = {0, 0};
+	WallShape.HalfExtents = {0.5f, 3};
+	WallShape.Angle = 0;
+	Wall.Shape = WallShape;
+	Wall.Friction = 0.6f;
+	Wall.Restitution = 0;
+	World.AttachCollider(WallId, Wall);
+	// 箱の右端1.05は壁の左面1.0へ0.05だけ貫通する。
+	FBodyDescription2D Push;
+	Push.Position = {0.55f, Y};
+	const FBodyId2D Id = World.CreateBody(Push);
+	FColliderDescription2D Crate;
+	FOrientedBox2D BoxShape;
+	BoxShape.Center = {0, 0};
+	BoxShape.HalfExtents = {0.5f, 0.5f};
+	BoxShape.Angle = 0;
+	Crate.Shape = BoxShape;
+	Crate.Friction = 0.6f;
+	Crate.Restitution = 0;
+	World.AttachCollider(Id, Crate);
+	return Id;
+}
+void TallWallPushesOutBoxNearTop_Internal()
+{
+	FPhysicsWorld2D World;
+	World.SetGravity({0, 0});
+	const FBodyId2D Id = PlacePenetratingBoxNearWall_Internal(World, 4.5f);
+	for (int32 Step = 0; Step < 120; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	// 壁側面の接線範囲は高さ半分3なので上端付近の接触が残り押し戻す。
+	PHYSICS_REQUIRE(Near_Internal(World.GetPosition(Id).X, 0.5, 0.04, 0));
+	PHYSICS_REQUIRE(Abs(World.GetVelocity(Id).X) < 0.1);
+	PHYSICS_REQUIRE(Abs(World.GetVelocity(Id).Y) < 0.1);
+}
+void TallWallPushesOutBoxNearBottom_Internal()
+{
+	FPhysicsWorld2D World;
+	World.SetGravity({0, 0});
+	const FBodyId2D Id = PlacePenetratingBoxNearWall_Internal(World, -0.5f);
+	for (int32 Step = 0; Step < 120; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	// 下端付近でも同じく押し戻す。
+	PHYSICS_REQUIRE(Near_Internal(World.GetPosition(Id).X, 0.5, 0.04, 0));
+	PHYSICS_REQUIRE(Abs(World.GetVelocity(Id).X) < 0.1);
+	PHYSICS_REQUIRE(Abs(World.GetVelocity(Id).Y) < 0.1);
+}
+void NarrowColumnSupportsBox_Internal()
+{
+	FPhysicsWorld2D World;
+	FBodyDescription2D Ground;
+	Ground.Type = EBodyType::Static;
+	Ground.Position = {0, -2};
+	const FBodyId2D ColumnId = World.CreateBody(Ground);
+	FColliderDescription2D Column;
+	FOrientedBox2D ColumnShape;
+	ColumnShape.Center = {0, 0};
+	ColumnShape.HalfExtents = {1, 5};
+	ColumnShape.Angle = 0;
+	Column.Shape = ColumnShape;
+	Column.Friction = 0.6f;
+	Column.Restitution = 0;
+	World.AttachCollider(ColumnId, Column);
+	// 柱上面はY=3なので箱中心の理想高さは3.5。
+	const FBodyId2D Id = PlaceBoxOnWideFloor_Internal(World, 0, 3.5f);
+	for (int32 Step = 0; Step < 360; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	PHYSICS_REQUIRE(Near_Internal(World.GetPosition(Id).Y, 3.5, 0.08, 0));
+	PHYSICS_REQUIRE(Abs(World.GetVelocity(Id).X) < 0.3);
+	PHYSICS_REQUIRE(Abs(World.GetVelocity(Id).Y) < 0.3);
+}
+void RotatedFloorSupportsOffsetBox_Internal()
+{
+	FPhysicsWorld2D World;
+	const f64 Angle = 0.5;
+	const f64 Sine = Sin(Angle);
+	const f64 Cosine = Cos(Angle);
+	FBodyDescription2D Ground;
+	Ground.Type = EBodyType::Static;
+	Ground.Position = {0, -1};
+	Ground.Angle = static_cast<f32>(Angle);
+	const FBodyId2D FloorId = World.CreateBody(Ground);
+	FColliderDescription2D Slope;
+	FOrientedBox2D SlopeShape;
+	SlopeShape.Center = {0, 0};
+	SlopeShape.HalfExtents = {5, 1};
+	SlopeShape.Angle = 0;
+	Slope.Shape = SlopeShape;
+	Slope.Friction = 0.6f;
+	Slope.Restitution = 0;
+	World.AttachCollider(FloorId, Slope);
+	// 床上面の中心と法線・接線を回転から求める。
+	const f64 NormalX = -Sine;
+	const f64 NormalY = Cosine;
+	const f64 TangentX = Cosine;
+	const f64 TangentY = Sine;
+	const f64 FaceX = NormalX * 1.0;
+	const f64 FaceY = -1.0 + NormalY * 1.0;
+	// 接線方向へ3だけずらし、法線方向へ箱半分と隙間を空ける。
+	FBodyDescription2D Fall;
+	Fall.Position = {static_cast<f32>(FaceX + NormalX * 0.52 + TangentX * 3.0),
+	                 static_cast<f32>(FaceY + NormalY * 0.52 + TangentY * 3.0)};
+	Fall.Angle = static_cast<f32>(Angle);
+	const FBodyId2D Id = World.CreateBody(Fall);
+	FColliderDescription2D Crate;
+	FOrientedBox2D BoxShape;
+	BoxShape.Center = {0, 0};
+	BoxShape.HalfExtents = {0.5f, 0.5f};
+	BoxShape.Angle = 0;
+	Crate.Shape = BoxShape;
+	Crate.Friction = 0.6f;
+	Crate.Restitution = 0;
+	World.AttachCollider(Id, Crate);
+	for (int32 Step = 0; Step < 360; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	// 法線距離は箱半分、接線位置はほぼ動かない。
+	const f64 GapX = f64(World.GetPosition(Id).X) - FaceX;
+	const f64 GapY = f64(World.GetPosition(Id).Y) - FaceY;
+	const f64 NormalGap = GapX * NormalX + GapY * NormalY;
+	const f64 TangentShift = GapX * TangentX + GapY * TangentY;
+	PHYSICS_REQUIRE(Near_Internal(NormalGap, 0.5, 0.10, 0));
+	PHYSICS_REQUIRE(Near_Internal(TangentShift, 3.0, 0.30, 0));
+	PHYSICS_REQUIRE(Abs(World.GetVelocity(Id).X) < 0.4);
+	PHYSICS_REQUIRE(Abs(World.GetVelocity(Id).Y) < 0.4);
+}
+void SeparatedBoxesStayPut_Internal()
+{
+	FPhysicsWorld2D World;
+	World.SetGravity({0, 0});
+	StaticFloor_Internal(World);
+	const FBodyId2D Id = PlaceBoxOnWideFloor_Internal(World, 0, 5);
+	for (int32 Step = 0; Step < 60; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	// 離れた箱に偽の接触は生まれない。
+	PHYSICS_REQUIRE(Near_Internal(World.GetPosition(Id).X, 0, 1e-6, 0));
+	PHYSICS_REQUIRE(Near_Internal(World.GetPosition(Id).Y, 5, 1e-6, 0));
+}
 const PhysicsTest::FCase SolverCases_Internal[] = {
     {"ball rests on static floor", &BallRestsOnFloor_Internal},
     {"frictionless slide keeps tangential speed", &FrictionlessSlideKeepsSpeed_Internal},
@@ -549,6 +778,15 @@ const PhysicsTest::FCase SolverCases_Internal[] = {
     {"kinematic rotating box pushes the ball", &KinematicRotatingBoxPushesBall_Internal},
     {"collider lifetime is tracked", &ColliderLifetimeIsTracked_Internal},
     {"collider lifetime is tracked in 3D", &ColliderLifetimeIsTracked3D_Internal},
+    {"wide floor supports centered box", &WideFloorSupportsCenteredBox_Internal},
+    {"wide floor supports offset box", &WideFloorSupportsOffsetBox_Internal},
+    {"wide floor supports offset box with reversed creation order", &WideFloorSupportsOffsetBoxReversedOrder_Internal},
+    {"wide floor supports box near its end", &WideFloorSupportsBoxNearEnd_Internal},
+    {"tall wall pushes out box near its top", &TallWallPushesOutBoxNearTop_Internal},
+    {"tall wall pushes out box near its bottom", &TallWallPushesOutBoxNearBottom_Internal},
+    {"narrow column supports box", &NarrowColumnSupportsBox_Internal},
+    {"rotated floor supports offset box", &RotatedFloorSupportsOffsetBox_Internal},
+    {"separated boxes stay put", &SeparatedBoxesStayPut_Internal},
 };
 } // namespace
 const PhysicsTest::FCase* PhysicsTest::GetSolverCases(Toolbox::size_t& Count) noexcept

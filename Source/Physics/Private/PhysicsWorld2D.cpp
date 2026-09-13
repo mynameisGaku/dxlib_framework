@@ -199,14 +199,14 @@ static void FindBoxContacts_Internal(const Toolbox::FOrientedBox2D& A, const Too
 	{
 		FaceNormal = {-FaceNormal.X, -FaceNormal.Y};
 	}
-	// 基準面の接線と半辺長。
+	// 基準面の接線と接線方向の半辺長。
 	Toolbox::FVector2 Tangent = {-FaceNormal.Y, FaceNormal.X};
 	Toolbox::FVector2 ReferenceU;
 	Toolbox::FVector2 ReferenceV;
 	BoxAxes_Internal(Reference, ReferenceU, ReferenceV);
 	const Toolbox::int32 FaceAxis = ReferenceFace / 2;
 	const Toolbox::f32 ReferenceHalf =
-	    FaceAxis == 0 ? Reference.HalfExtents.X : Reference.HalfExtents.Y;
+	    FaceAxis == 0 ? Reference.HalfExtents.Y : Reference.HalfExtents.X;
 	// 基準面の中心。
 	Toolbox::FVector2 FaceCenter = Reference.Center;
 	if (ReferenceFace == 1)
