@@ -347,13 +347,12 @@ void BoxStaysOnGentleSlope_Internal()
 	PHYSICS_REQUIRE(Abs(Position.Y - 0.9848f) < 0.25f);
 	PHYSICS_REQUIRE(Sqrt(f64(Velocity.X) * Velocity.X + f64(Velocity.Y) * Velocity.Y) < 0.35);
 }
-// 両側の静止壁に挟まれても箱が飛び出さず有限に留まる。
-void BoxSqueezedByWalls_Internal()
+// 両側の静止壁で箱を挟む。壁内側の面位置を指定する。
+void PlaceSqueezingWalls_Internal(FPhysicsWorld2D& World, f32 InnerFace)
 {
-	FPhysicsWorld2D World;
 	FBodyDescription2D LeftGround;
 	LeftGround.Type = EBodyType::Static;
-	LeftGround.Position = {-1.1f, 1};
+	LeftGround.Position = {-InnerFace - 0.5f, 1};
 	const FBodyId2D LeftId = World.CreateBody(LeftGround);
 	FColliderDescription2D LeftWall;
 	FOrientedBox2D LeftShape;
@@ -366,7 +365,7 @@ void BoxSqueezedByWalls_Internal()
 	World.AttachCollider(LeftId, LeftWall);
 	FBodyDescription2D RightGround;
 	RightGround.Type = EBodyType::Static;
-	RightGround.Position = {1.1f, 1};
+	RightGround.Position = {InnerFace + 0.5f, 1};
 	const FBodyId2D RightId = World.CreateBody(RightGround);
 	FColliderDescription2D RightWall;
 	FOrientedBox2D RightShape;
@@ -377,6 +376,13 @@ void BoxSqueezedByWalls_Internal()
 	RightWall.Friction = 0.6f;
 	RightWall.Restitution = 0;
 	World.AttachCollider(RightId, RightWall);
+}
+// 両側の壁に同時に接しながら箱が床に静止する。
+void BoxSqueezedByWalls_Internal()
+{
+	FPhysicsWorld2D World;
+	// 壁内側±0.48は箱の両端±0.5へ0.02ずつ食い込む。左右の接触が初刻みから生まれる。
+	PlaceSqueezingWalls_Internal(World, 0.48f);
 	// 落下を支える床を作る。
 	FBodyDescription2D FloorGround;
 	FloorGround.Type = EBodyType::Static;
@@ -390,14 +396,62 @@ void BoxSqueezedByWalls_Internal()
 	{
 		World.Step(1.0 / 120.0);
 	}
-	// 同時接触でも爆発や貫通落下がない。
+	// 同時接触でも爆発や貫通落下がなく、中央付近に留まる。
 	const FVector2 Position = World.GetPosition(Id);
 	const FVector2 Velocity = World.GetVelocity(Id);
 	PHYSICS_REQUIRE(IsFinite(Position.X) && IsFinite(Position.Y));
 	PHYSICS_REQUIRE(IsFinite(Velocity.X) && IsFinite(Velocity.Y));
-	PHYSICS_REQUIRE(Abs(Position.X) < 0.20f);
+	PHYSICS_REQUIRE(Abs(Position.X) < 0.10f);
 	PHYSICS_REQUIRE(Near_Internal(Position.Y, 0.5, 0.12, 0));
 	PHYSICS_REQUIRE(Sqrt(f64(Velocity.X) * Velocity.X + f64(Velocity.Y) * Velocity.Y) < 0.40);
+}
+// 両側の壁に同時に接しながら立体箱が床に静止する。
+void BoxSqueezedByWalls3D_Internal()
+{
+	FPhysicsWorld3D World;
+	FBodyDescription3D LeftGround;
+	LeftGround.Type = EBodyType::Static;
+	LeftGround.Position = {-0.98f, 1, 0};
+	const FBodyId3D LeftId = World.CreateBody(LeftGround);
+	FColliderDescription3D LeftWall;
+	FOBB LeftShape;
+	LeftShape.Center = {0, 0, 0};
+	LeftShape.HalfExtents = {0.5f, 2, 2};
+	LeftWall.Shape = LeftShape;
+	LeftWall.Friction = 0.6f;
+	LeftWall.Restitution = 0;
+	World.AttachCollider(LeftId, LeftWall);
+	FBodyDescription3D RightGround;
+	RightGround.Type = EBodyType::Static;
+	RightGround.Position = {0.98f, 1, 0};
+	const FBodyId3D RightId = World.CreateBody(RightGround);
+	FColliderDescription3D RightWall;
+	FOBB RightShape;
+	RightShape.Center = {0, 0, 0};
+	RightShape.HalfExtents = {0.5f, 2, 2};
+	RightWall.Shape = RightShape;
+	RightWall.Friction = 0.6f;
+	RightWall.Restitution = 0;
+	World.AttachCollider(RightId, RightWall);
+	FBodyDescription3D FloorGround;
+	FloorGround.Type = EBodyType::Static;
+	const FBodyId3D FloorId = World.CreateBody(FloorGround);
+	World.AttachCollider(FloorId, StackFloorDescription3D_Internal());
+	FBodyDescription3D Middle;
+	Middle.Position = {0, 0.5f, 0};
+	const FBodyId3D Id = World.CreateBody(Middle);
+	World.AttachCollider(Id, StackBoxDescription3D_Internal());
+	for (int32 Step = 0; Step < 360; ++Step)
+	{
+		World.Step(1.0 / 120.0);
+	}
+	const FVector3 Position = World.GetPosition(Id);
+	const FVector3 Velocity = World.GetVelocity(Id);
+	PHYSICS_REQUIRE(IsFinite(Position.X) && IsFinite(Position.Y) && IsFinite(Position.Z));
+	PHYSICS_REQUIRE(IsFinite(Velocity.X) && IsFinite(Velocity.Y) && IsFinite(Velocity.Z));
+	PHYSICS_REQUIRE(Abs(Position.X) < 0.10f);
+	PHYSICS_REQUIRE(Near_Internal(Position.Y, 0.5, 0.12, 0));
+	PHYSICS_REQUIRE(Length(Velocity) < 0.40f);
 }
 void BoxLandsFlat3D_Internal()
 {
@@ -440,6 +494,7 @@ const PhysicsTest::FCase StabilityCases_Internal[] = {
     {"stack sleeps in 3D", &StackSleeps3D_Internal},
     {"box stays on gentle slope", &BoxStaysOnGentleSlope_Internal},
     {"box squeezed by walls", &BoxSqueezedByWalls_Internal},
+    {"box squeezed by walls in 3D", &BoxSqueezedByWalls3D_Internal},
 };
 } // namespace
 const PhysicsTest::FCase* PhysicsTest::GetStabilityCases(Toolbox::size_t& Count) noexcept

@@ -1,0 +1,32 @@
+// SPDX-License-Identifier: NOASSERTION
+// F1 Red記録（レビュー指摘の追補、TDD先行の失敗確認）
+// 基準SHA: 762771d2fc5480e8a60807b81879998724db482b
+// コマンド: .\Tools\Build.cmd -Configuration Debug（Windows/MSVC Debug）
+// 変更内容: テスト追加のみ（Tests/Physics/SolverTests.cpp 9件、Tests/Physics/ContinuousTests.cpp 5件）。
+// 実装の修正は含まない。
+
+// --- SolverTests: RESULT 21/27 passed（接触欠落の6件が失敗） ---
+// PASS wide floor supports centered box
+// FAIL wide floor supports offset box: Near_Internal(World.GetPosition(Id).Y, 0.5, 0.08, 0)
+// FAIL wide floor supports offset box with reversed creation order: Near_Internal(World.GetPosition(Id).Y, 0.5, 0.08, 0)
+// FAIL wide floor supports box near its end: Near_Internal(World.GetPosition(Id).Y, 0.5, 0.08, 0)
+// FAIL tall wall pushes out box near its top: Near_Internal(World.GetPosition(Id).X, 0.5, 0.04, 0)
+// FAIL tall wall pushes out box near its bottom: Near_Internal(World.GetPosition(Id).X, 0.5, 0.04, 0)
+// PASS narrow column supports box
+// FAIL rotated floor supports offset box: Near_Internal(NormalGap, 0.5, 0.10, 0)
+// PASS separated boxes stay put
+// RESULT 21/27 passed
+// 失敗理由: 横長床・縦長壁・回転床で側方クリップ幅が法線側半辺長のため、
+// 面領域内の接触点が捨てられて床支持・押出しが起きない。中央・柱・分離の
+// ガード3件は通過し、失敗が欠落箇所と一致することを確認した。
+
+// --- ContinuousTests: RESULT 13/17 passed（CCD見落としの4件が失敗） ---
+// FAIL still ball is hit by kinematic wall with CCD: World.GetVelocity(Ball).X > 10
+// FAIL still ball is hit by kinematic wall in reversed order: World.GetVelocity(Ball).X > 10
+// PASS co-moving wall and ball stay separated
+// FAIL still sphere is hit by kinematic wall with CCD: World.GetVelocity(Ball).X > 10
+// FAIL still sphere is hit by kinematic wall in reversed order: World.GetVelocity(Ball).X > 10
+// RESULT 13/17 passed
+// 失敗理由: CCD対象自身が静止し相手だけが動く組が候補選別で落ち、壁が
+// 素通りして円／球の速度・位置が変わらない。同速並走のガードは通過し、
+// 失敗が選別条件と一致することを確認した。

@@ -1,0 +1,48 @@
+// SPDX-License-Identifier: NOASSERTION
+// F1 Green記録（レビュー指摘の追補、最小修正後の通過確認）
+// コマンド: .\Tools\Build.cmd -Configuration Debug（Windows/MSVC Debug）、exit 0
+// 修正1: Source/Physics/Private/PhysicsWorld2D.cpp の側方クリップ幅を
+//   接線側半辺長に変更（FaceAxis == 0 ? HalfExtents.Y : HalfExtents.X）。
+// 修正2: 両Worldの AdvanceContinuous_Internal の候補選別を「CCD要求」と
+//   「相対運動」に分離（相対変位が ContactSlop 未満の組だけ除外）。
+// 壁試験: Tests/Physics/StabilityTests.cpp の壁挟みを両壁へ0.02食い込む
+//   初期配置に変更し、3D版を追加。
+
+// --- CTest: 100% tests passed, 0 tests failed out of 4 ---
+// 1/4 Test #1: PhysicsContinuation ..............   Passed
+// 2/4 Test #2: NoStl ............................   Passed
+// 3/4 Test #3: Framework ........................   Passed
+// 4/4 Test #4: NativeContract ...................   Passed
+
+// --- physics内部件数（CTest登録数とは合算しない） ---
+// RESULT 10/10 passed（collision）
+// RESULT 16/16 passed（sweep）
+// RESULT 11/11 passed（fixed step）
+// RESULT 20/20 passed（rigid body）
+// RESULT 11/11 passed（contact）
+// RESULT 27/27 passed（solver、9件の新規を含む）
+// RESULT 17/17 passed（continuous、5件の新規を含む）
+// RESULT 8/8 passed（stability、3D壁挟みを含む）
+
+// --- 追加回帰の抜粋 ---
+// PASS wide floor supports centered box
+// PASS wide floor supports offset box
+// PASS wide floor supports offset box with reversed creation order
+// PASS wide floor supports box near its end
+// PASS tall wall pushes out box near its top
+// PASS tall wall pushes out box near its bottom
+// PASS narrow column supports box
+// PASS rotated floor supports offset box
+// PASS separated boxes stay put
+// PASS still ball is hit by kinematic wall with CCD
+// PASS still ball is hit by kinematic wall in reversed order
+// PASS co-moving wall and ball stay separated
+// PASS still sphere is hit by kinematic wall with CCD
+// PASS still sphere is hit by kinematic wall in reversed order
+// PASS box squeezed by walls
+// PASS box squeezed by walls in 3D
+
+// --- その他 ---
+// dxf_tests.exe 194/194 passed
+// dxf_native_contract_tests 15/15 passed
+// python Tools/CheckNoStl.py: 171 files, 0 violations
