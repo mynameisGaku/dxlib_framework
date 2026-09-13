@@ -96,6 +96,10 @@ struct FBodyRecord3D
 	Toolbox::FVector3 Velocity;
 	// 角速度。ワールド軸回りのラジアン毎秒。
 	Toolbox::FVector3 AngularVelocity;
+	// 直前の位置更新が終わった時点の速度。起床判定の相対運動に使う。
+	Toolbox::FVector3 PrevVelocity;
+	// 直前の位置更新が終わった時点の角速度。起床判定の相対運動に使う。
+	Toolbox::FVector3 PrevAngularVelocity;
 	// 質量の逆数。StaticとKinematicはゼロ。
 	Toolbox::f32 InverseMass = 1;
 	// ボディ座標の対角慣性の逆数。StaticとKinematicはゼロ。
@@ -1002,6 +1006,11 @@ struct FPhysicsWorld3D::FImpl
 				{
 					continue;
 				}
+				// 同一剛体の組は自分自身へ接触しない。
+				if (RecordA.Body == RecordB.Body)
+				{
+					continue;
+				}
 				// 両方が非Dynamicの組は応答も運動もしない。
 				if (BodyA->Type != EBodyType::Dynamic && BodyB->Type != EBodyType::Dynamic)
 				{
@@ -1060,6 +1069,57 @@ struct FPhysicsWorld3D::FImpl
 		Record.bSleeping = false;
 		Record.SleepTimer = 0;
 	}
+	// 全登録の休止を解く。設定変更で凍結を残さない。
+	void WakeAll_Internal() noexcept
+	{
+		for (Toolbox::size_t Index = 0; Index < Slots.Size(); ++Index)
+		{
+			FBodyRecord3D& Record = Slots[Index];
+			if (Record.bAlive)
+			{
+				Wake_Internal(Record);
+			}
+		}
+	}
+	// 前回確定の接触点相対運動で起床が必要か調べる。島伝播の第一段階。
+	// Kinematicは力積分を受けないため現在速度を使い、Dynamicは今刻みの
+	// 重力・外力分を除くため前回確定値を使う。休止中は止まっている。
+	bool ShouldWakeForMotion_Internal(const FBodyRecord3D& BodyA, const FBodyRecord3D& BodyB,
+	                                  Toolbox::FVector3 Point) const noexcept
+	{
+		if (!BodyA.bSleeping && !BodyB.bSleeping)
+		{
+			return false;
+		}
+		Toolbox::FVector3 PrevVelA = BodyA.Type == EBodyType::Kinematic ? BodyA.Velocity : BodyA.PrevVelocity;
+		Toolbox::FVector3 PrevSpinA = BodyA.Type == EBodyType::Kinematic ? BodyA.AngularVelocity : BodyA.PrevAngularVelocity;
+		Toolbox::FVector3 PrevVelB = BodyB.Type == EBodyType::Kinematic ? BodyB.Velocity : BodyB.PrevVelocity;
+		Toolbox::FVector3 PrevSpinB = BodyB.Type == EBodyType::Kinematic ? BodyB.AngularVelocity : BodyB.PrevAngularVelocity;
+		if (BodyA.bSleeping)
+		{
+			PrevVelA = {};
+			PrevSpinA = {};
+		}
+		if (BodyB.bSleeping)
+		{
+			PrevVelB = {};
+			PrevSpinB = {};
+		}
+		const FVector3D ArmA = {Toolbox::f64(Point.X) - BodyA.Position.X, Toolbox::f64(Point.Y) - BodyA.Position.Y,
+		                        Toolbox::f64(Point.Z) - BodyA.Position.Z};
+		const FVector3D ArmB = {Toolbox::f64(Point.X) - BodyB.Position.X, Toolbox::f64(Point.Y) - BodyB.Position.Y,
+		                        Toolbox::f64(Point.Z) - BodyB.Position.Z};
+		const FVector3D VelA = {Toolbox::f64(PrevVelA.X) + Toolbox::f64(PrevSpinA.Y) * ArmA.Z - Toolbox::f64(PrevSpinA.Z) * ArmA.Y,
+		                        Toolbox::f64(PrevVelA.Y) + Toolbox::f64(PrevSpinA.Z) * ArmA.X - Toolbox::f64(PrevSpinA.X) * ArmA.Z,
+		                        Toolbox::f64(PrevVelA.Z) + Toolbox::f64(PrevSpinA.X) * ArmA.Y - Toolbox::f64(PrevSpinA.Y) * ArmA.X};
+		const FVector3D VelB = {Toolbox::f64(PrevVelB.X) + Toolbox::f64(PrevSpinB.Y) * ArmB.Z - Toolbox::f64(PrevSpinB.Z) * ArmB.Y,
+		                        Toolbox::f64(PrevVelB.Y) + Toolbox::f64(PrevSpinB.Z) * ArmB.X - Toolbox::f64(PrevSpinB.X) * ArmB.Z,
+		                        Toolbox::f64(PrevVelB.Z) + Toolbox::f64(PrevSpinB.X) * ArmB.Y - Toolbox::f64(PrevSpinB.Y) * ArmB.X};
+		const Toolbox::f64 GapX = VelA.X - VelB.X;
+		const Toolbox::f64 GapY = VelA.Y - VelB.Y;
+		const Toolbox::f64 GapZ = VelA.Z - VelB.Z;
+		return Toolbox::Sqrt(GapX * GapX + GapY * GapY + GapZ * GapZ) > Sleep.LinearSpeedLimit;
+	}
 	// 休止中は無限質量として扱う逆質量を返す。
 	static Toolbox::f32 EffectiveInverseMass_Internal(const FBodyRecord3D& Record) noexcept
 	{
@@ -1094,6 +1154,11 @@ struct FPhysicsWorld3D::FImpl
 			const Toolbox::FVector3 Relative = RelativeVelocity_Internal(*BodyA, *BodyB, Point.Position);
 			Point.ApproachSpeed = Toolbox::f64(Relative.X) * Point.Normal.X + Toolbox::f64(Relative.Y) * Point.Normal.Y +
 			                      Toolbox::f64(Relative.Z) * Point.Normal.Z;
+			if (ShouldWakeForMotion_Internal(*BodyA, *BodyB, Point.Position))
+			{
+				Wake_Internal(*BodyA);
+				Wake_Internal(*BodyB);
+			}
 			Point.NormalImpulse = 0;
 			Point.FrictionImpulse = {};
 			for (Toolbox::size_t CacheIndex = 0; CacheIndex < Cache.Size(); ++CacheIndex)
@@ -1264,6 +1329,30 @@ struct FPhysicsWorld3D::FImpl
 	// 解決結果を再利用記録へ保存する。
 	void StoreCache_Internal(const Toolbox::TVector<FManifold3D>& Manifolds)
 	{
+		// どの多様体にも属さない組の記録は捨てる。分離後の再接触へ
+		// 古いImpulseを持ち越さない。特徴点の出入りでは捨てない。
+		for (Toolbox::size_t CacheIndex = 0; CacheIndex < Cache.Size();)
+		{
+			const FCachedImpulse3D& Cached = Cache[CacheIndex];
+			bool bActive = false;
+			for (Toolbox::size_t ManifoldIndex = 0; ManifoldIndex < Manifolds.Size() && !bActive; ++ManifoldIndex)
+			{
+				const FManifold3D& Manifold = Manifolds[ManifoldIndex];
+				if (Cached.ColliderA == Manifold.ColliderA && Cached.ColliderB == Manifold.ColliderB)
+				{
+					bActive = true;
+				}
+			}
+			if (bActive)
+			{
+				++CacheIndex;
+			}
+			else
+			{
+				Cache[CacheIndex] = Cache[Cache.Size() - 1];
+				Cache.PopBack();
+			}
+		}
 		for (Toolbox::size_t ManifoldIndex = 0; ManifoldIndex < Manifolds.Size(); ++ManifoldIndex)
 		{
 			const FManifold3D& Manifold = Manifolds[ManifoldIndex];
@@ -1581,6 +1670,11 @@ struct FPhysicsWorld3D::FImpl
 					{
 						continue;
 					}
+					// 同一剛体の組は自分自身へ接触しない。
+					if (RecordA.Body == RecordB.Body)
+					{
+						continue;
+					}
 					if (BodyA->Type != EBodyType::Dynamic && BodyB->Type != EBodyType::Dynamic)
 					{
 						continue;
@@ -1760,6 +1854,8 @@ static void IntegrateVelocity_Internal(FBodyRecord3D& Record, Toolbox::FVector3 
 // 更新後の速度で位置を進める。
 static void IntegratePosition_Internal(FBodyRecord3D& Record, Toolbox::f64 StepSeconds) noexcept
 {
+	Record.PrevVelocity = Record.Velocity;
+	Record.PrevAngularVelocity = Record.AngularVelocity;
 	Record.Position += {static_cast<Toolbox::f32>(static_cast<Toolbox::f64>(Record.Velocity.X) * StepSeconds),
 	                    static_cast<Toolbox::f32>(static_cast<Toolbox::f64>(Record.Velocity.Y) * StepSeconds),
 	                    static_cast<Toolbox::f32>(static_cast<Toolbox::f64>(Record.Velocity.Z) * StepSeconds)};
@@ -2063,7 +2159,12 @@ void FPhysicsWorld3D::SetGravity(Toolbox::FVector3 Gravity)
 	{
 		throw Toolbox::FException("Invalid 3D gravity");
 	}
-	m_pImpl->Gravity = Gravity;
+	// 重力の変化は休止島へ影響するため起こす。同じ値は起こさない。
+	if (!(m_pImpl->Gravity == Gravity))
+	{
+		m_pImpl->Gravity = Gravity;
+		m_pImpl->WakeAll_Internal();
+	}
 }
 Toolbox::FVector3 FPhysicsWorld3D::GetGravity() const noexcept
 {
@@ -2230,7 +2331,13 @@ void FPhysicsWorld3D::SetSleepSettings(const FSleepSettings3D& Settings)
 	{
 		throw Toolbox::FException("Invalid 3D sleep spin");
 	}
+	// 無効化で凍結した剛体を残さない。
+	const bool bWasEnabled = m_pImpl->Sleep.bEnabled;
 	m_pImpl->Sleep = Settings;
+	if (bWasEnabled && !Settings.bEnabled)
+	{
+		m_pImpl->WakeAll_Internal();
+	}
 }
 FSleepSettings3D FPhysicsWorld3D::GetSleepSettings() const noexcept
 {
