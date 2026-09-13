@@ -120,15 +120,31 @@ TDD記録は Docs/Tdd/Physics/D-*.log。複数接触の失敗はテストの初�
 壁の外側だったためで、内側へ修正した。走査2回目の見逃しは離反中の時刻ゼロ
 接触が真のTOIを塞いだためで、接近・離反の区別を実装して直した。
 
-## 次に着手する失敗テスト（段階E）
+## 実装済み（段階E: 安定化と休止の初期回帰）
 
-- 1m箱の10段積み重ね、質量差、同時接触、斜面の静止摩擦、長時間静止
-- Sleep ON／OFF両方で沈み込み・振動・ドリフト・NaN測定
+- `Tests/Physics/StabilityTests.cpp`（7ケース）
+- 固定長ID配列 `Toolbox::TArray` とSleep ON／OFF共用の五段積みヘルパー
+- 貫通・浮き・水平ずれ・傾き・残留速度・非有限の指標と初期上限
+- 2DはSleep時に全段休止を要求、3Dは島休止伝播が将来課題のため指標のみで判定
+- 緩斜面の静止摩擦と両側壁同時接触の回帰を追加
+- 2D／3D箱同士接触で基準面がB側の場合に法線が反転する不具合を修正
+- 以前は五段積みが上下入替まで貫通し、2段でも再現した
+
+## 検証結果（自環境、Windows/MSVC Debug、段階E初期回帰時）
+
+- CTest 4/4、dxf_tests.exe 194/194
+- physicsは10/10・16/16・11/11・20/20・11/11・18/18・12/12・7/7
+- `python Tools/CheckNoStl.py` は171ファイル、違反0
+
+## 次に着手する失敗テスト（段階Eの残り）
+
+- 1m箱の10段積み重ね、質量差、長時間静止
+- 島全体の休止伝播と起床範囲の明確化
 - ContactとTriggerの区別、Begin／Stay／Endの通知方針
 
 ## 残課題
 
-- 接触イベント（Begin／Stay／End）とTrigger、Sleep／Island、CCD接続は未実装
-- 3D箱同士の接触多様体、Joint、Mesh動的対応は未実装
+- 接触イベント（Begin／Stay／End）とTrigger、Sleep／Islandの完成、CCD接続は未実装
+- Joint、Mesh動的対応は未実装
 - Linux sanitizer、Release、実DxLib SDKでの検証は未実行
 - 性能測定は未実施

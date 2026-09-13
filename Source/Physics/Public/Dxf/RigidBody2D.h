@@ -79,6 +79,10 @@ struct FBodyDescription2D
 	 * 連続衝突で移動区間を調べるか。高速なDynamicに指定する。
 	 */
 	bool bUseContinuous = false;
+	/**
+	 * 速度が落ちた休止を許可するか。
+	 */
+	bool bAllowSleep = true;
 };
 /**
  * 平面コライダーを識別する、世代付きの非所有ハンドル。
@@ -185,6 +189,28 @@ struct FContinuousDiagnostics2D
 	 * 保守停止で進めなかった秒数。
 	 */
 	Toolbox::f64 UnprocessedSeconds = 0;
+};
+/**
+ * 休止の条件。プロジェクトの試験条件に合わせた初期値。
+ */
+struct FSleepSettings2D
+{
+	/**
+	 * 速度低下による休止を行うか。
+	 */
+	bool bEnabled = true;
+	/**
+	 * 休止までの接触継続秒数。有限な正値。
+	 */
+	Toolbox::f32 TimeoutSeconds = 0.5f;
+	/**
+	 * 休止可能な速度。メートル毎秒単位の有限な非負値。
+	 */
+	Toolbox::f32 LinearSpeedLimit = 0.05f;
+	/**
+	 * 休止可能な角速度。ラジアン毎秒単位の有限な非負値。
+	 */
+	Toolbox::f32 AngularSpeedLimit = 0.05f;
 };
 /**
  * 力・重力・Impulseで動く平面剛体を所有し、接触拘束を解く。
@@ -352,6 +378,25 @@ public:
 	 * 直近更新の連続衝突診断を返す。
 	 */
 	FContinuousDiagnostics2D GetContinuousDiagnostics() const noexcept;
+	/**
+	 * 休止の条件を変更する。不正な値は例外で通知する。
+	 * @param Settings 休止の条件。
+	 */
+	void SetSleepSettings(const FSleepSettings2D& Settings);
+	/**
+	 * 休止の条件を返す。
+	 */
+	FSleepSettings2D GetSleepSettings() const noexcept;
+	/**
+	 * 剛体が休止しているかを調べる。期限切れIDは例外で通知する。
+	 * @param Id 登録を識別する世代付きID。
+	 */
+	bool IsSleeping(FBodyId2D Id) const;
+	/**
+	 * 剛体を起こす。期限切れIDはfalseを返す。
+	 * @param Id 登録を識別する世代付きID。
+	 */
+	bool WakeUp(FBodyId2D Id) noexcept;
 	/**
 	 * 剛体の姿勢を直接設定する。速度と蓄積力は変更しない。
 	 * テレポート後は接触キャッシュの消去と補間履歴の破棄を呼び出し元が行う。

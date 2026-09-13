@@ -81,6 +81,10 @@ struct FBodyDescription3D
 	 * 連続衝突で移動区間を調べるか。高速なDynamicに指定する。
 	 */
 	bool bUseContinuous = false;
+	/**
+	 * 速度が落ちた休止を許可するか。
+	 */
+	bool bAllowSleep = true;
 };
 /**
  * 立体コライダーを識別する、世代付きの非所有ハンドル。
@@ -192,6 +196,32 @@ struct FContinuousDiagnostics3D
 	 */
 	Toolbox::f64 UnprocessedSeconds = 0;
 };
+/**
+ * 休止の条件。プロジェクトの試験条件に合わせた初期値。
+ */
+struct FSleepSettings3D
+{
+	/**
+	 * 速度低下による休止を行うか。
+	 */
+	bool bEnabled = true;
+	/**
+	 * 休止までの接触継続秒数。有限な正値。
+	 */
+	Toolbox::f32 TimeoutSeconds = 0.5f;
+	/**
+	 * 休止可能な速度。メートル毎秒単位の有限な非負値。
+	 */
+	Toolbox::f32 LinearSpeedLimit = 0.05f;
+	/**
+	 * 休止可能な角速度。ラジアン毎秒単位の有限な非負値。
+	 */
+	Toolbox::f32 AngularSpeedLimit = 0.05f;
+};
+/**
+ * 力・重力・Impulseで動く立体剛体を所有し、接触拘束を解く。
+ * 単一スレッドで使用し、DxLibや描画を知らない。
+ */
 class FPhysicsWorld3D
 {
 public:
@@ -355,6 +385,25 @@ public:
 	 */
 	FContinuousDiagnostics3D GetContinuousDiagnostics() const noexcept;
 	/**
+	 * 休止の条件を変更する。不正な値は例外で通知する。
+	 * @param Settings 休止の条件。
+	 */
+	void SetSleepSettings(const FSleepSettings3D& Settings);
+	/**
+	 * 休止の条件を返す。
+	 */
+	FSleepSettings3D GetSleepSettings() const noexcept;
+	/**
+	 * 剛体が休止しているかを調べる。期限切れIDは例外で通知する。
+	 * @param Id 登録を識別する世代付きID。
+	 */
+	bool IsSleeping(FBodyId3D Id) const;
+	/**
+	 * 剛体を起こす。期限切れIDはfalseを返す。
+	 * @param Id 登録を識別する世代付きID。
+	 */
+	bool WakeUp(FBodyId3D Id) noexcept;
+	/**
 	 * 剛体の姿勢を直接設定する。速度と蓄積力は変更しない。
 	 * テレポート後は接触キャッシュの消去と補間履歴の破棄を呼び出し元が行う。
 	 * 期限切れIDと非有限値は例外で通知する。
@@ -374,7 +423,7 @@ public:
 	bool IsColliderAlive(FColliderId3D Id) const noexcept;
 	/**
 	 * 指定秒数だけ物理状態を進める。力とトルクは更新後に一度だけ消去する。
-	 * 取り付け済みのコライダー同士の接触拘束も解く。箱同士の組は接触を生成しない。
+	 * 取り付け済みのコライダー同士の接触拘束も解く。箱同士は最大四点の多様体になる。
 	 * 非有限・非正の秒数と範囲外の分割数は例外で通知し、状態を変更しない。
 	 * @param DeltaSeconds 有限な正の秒数。
 	 * @param SubSteps 1〜1024の分割数。

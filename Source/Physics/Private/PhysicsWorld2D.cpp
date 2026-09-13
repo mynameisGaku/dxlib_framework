@@ -33,6 +33,14 @@ struct FBodyRecord2D
 	Toolbox::f32 GravityScale = 1;
 	// 移動区間の接触解決を行うか。
 	bool bUseContinuous = false;
+	// 速度低下による休止を許可するか。
+	bool bAllowSleep = true;
+	// 低速接触の継続秒数。
+	Toolbox::f32 SleepTimer = 0;
+	// 休止しているか。
+	bool bSleeping = false;
+	// 今回分割で接触したか。
+	bool bTouched = false;
 	// 次の更新で使う蓄積力。ニュートン単位。
 	Toolbox::FVector2 Force;
 	// 次の更新で使う蓄積トルク。ニュートンメートル単位。
@@ -287,27 +295,31 @@ static void FindBoxContacts_Internal(const Toolbox::FOrientedBox2D& A, const Too
 				++KeptCount;
 			}
 		}
-		Clipped[0] = Kept[0];
-		if (KeptCount > 1)
-		{
-			Clipped[1] = Kept[1];
-		}
 		ClippedCount = KeptCount;
 		if (ClippedCount == 0)
 		{
 			return;
 		}
+		Clipped[0] = Kept[0];
+		if (KeptCount > 1)
+		{
+			Clipped[1] = Kept[1];
+		}
 	}
-	// 法線はBからAへ向ける。
-	Toolbox::FVector2 Normal = {-FaceNormal.X, -FaceNormal.Y};
+	// 法線はBからAへ向ける。最良軸はA→Bで作るため反転して保つ。
+	Toolbox::FVector2 Normal = {static_cast<Toolbox::f32>(-BestX), static_cast<Toolbox::f32>(-BestY)};
 	// 特徴IDは基準面側の面番号に切り取り順を足す。
 	const Toolbox::uint32 Base =
 	    static_cast<Toolbox::uint32>((bBestOnA ? ReferenceFace : 8 + ReferenceFace) * 2);
 	for (Toolbox::int32 Index = 0; Index < ClippedCount && Index < 2; ++Index)
 	{
 		// A面からB表面への符号付き距離。B→A法線では貫通が負になる。
-		const Toolbox::f64 Separation = (Toolbox::f64(FaceCenter.X) - Clipped[Index].X) * Normal.X +
-		                                (Toolbox::f64(FaceCenter.Y) - Clipped[Index].Y) * Normal.Y;
+		// 基準面がB側の場合は入射側がAになるため差の向きを入れ替える。
+		const Toolbox::f64 GapX = bBestOnA ? Toolbox::f64(FaceCenter.X) - Clipped[Index].X
+		                                   : Toolbox::f64(Clipped[Index].X) - FaceCenter.X;
+		const Toolbox::f64 GapY = bBestOnA ? Toolbox::f64(FaceCenter.Y) - Clipped[Index].Y
+		                                   : Toolbox::f64(Clipped[Index].Y) - FaceCenter.Y;
+		const Toolbox::f64 Separation = GapX * Normal.X + GapY * Normal.Y;
 		if (Separation > Slop)
 		{
 			continue;
@@ -426,6 +438,8 @@ struct FPhysicsWorld2D::FImpl
 	FContinuousSettings2D Continuous;
 	// 直近更新の連続衝突診断。
 	FContinuousDiagnostics2D Diagnostics;
+	// 休止の条件。
+	FSleepSettings2D Sleep;
 	// 新しいワールドへ重ならない識別子を発行する。
 	static Toolbox::uint64 NextWorld_Internal()
 	{
@@ -699,6 +713,22 @@ struct FPhysicsWorld2D::FImpl
 		return {static_cast<Toolbox::f32>(VelocityAX - VelocityBX),
 		        static_cast<Toolbox::f32>(VelocityAY - VelocityBY)};
 	}
+	// 休止中の剛体を起こす。
+	static void Wake_Internal(FBodyRecord2D& Record) noexcept
+	{
+		Record.bSleeping = false;
+		Record.SleepTimer = 0;
+	}
+	// 休止中は無限質量として扱う逆質量を返す。
+	static Toolbox::f32 EffectiveInverseMass_Internal(const FBodyRecord2D& Record) noexcept
+	{
+		return Record.bSleeping ? 0 : Record.InverseMass;
+	}
+	// 休止中は無限慣性として扱う逆慣性を返す。
+	static Toolbox::f32 EffectiveInverseInertia_Internal(const FBodyRecord2D& Record) noexcept
+	{
+		return Record.bSleeping ? 0 : Record.InverseInertia;
+	}
 	// 前回Impulseを適用し、反発目標の基準速度を保存する。
 	void WarmStart_Internal(FManifold2D& Manifold)
 	{
@@ -708,6 +738,8 @@ struct FPhysicsWorld2D::FImpl
 		{
 			return;
 		}
+		// 新しい接触は休止中の剛体を起こす。一方向ずつの伝播で島へ広がる。
+		bool bKnownPair = false;
 		for (Toolbox::size_t Index = 0; Index < Manifold.Points.Size(); ++Index)
 		{
 			FSolvePoint2D& Point = Manifold.Points[Index];
@@ -741,14 +773,26 @@ struct FPhysicsWorld2D::FImpl
 				const Toolbox::FVector2 Push = {Point.Normal.X * Point.NormalImpulse + Tangent.X * Point.TangentImpulse,
 				                                Point.Normal.Y * Point.NormalImpulse + Tangent.Y * Point.TangentImpulse};
 				ApplyImpulse_Internal(*BodyA, *BodyB, Point.Position, Push);
+				bKnownPair = true;
 				break;
 			}
+		}
+		if (!bKnownPair)
+		{
+			// 未知の接触は両側を起こす。
+			Wake_Internal(*BodyA);
+			Wake_Internal(*BodyB);
 		}
 	}
 	// 速度へImpulseを適用する。一つ目に足し、二つ目から引く。
 	static void ApplyImpulse_Internal(FBodyRecord2D& BodyA, FBodyRecord2D& BodyB, Toolbox::FVector2 Point,
 	                                  Toolbox::FVector2 Push) noexcept
 	{
+		// 休止中は無限質量として扱う。
+		const Toolbox::f32 InverseMassA = EffectiveInverseMass_Internal(BodyA);
+		const Toolbox::f32 InverseMassB = EffectiveInverseMass_Internal(BodyB);
+		const Toolbox::f32 InverseInertiaA = EffectiveInverseInertia_Internal(BodyA);
+		const Toolbox::f32 InverseInertiaB = EffectiveInverseInertia_Internal(BodyB);
 		// 腕とImpulseの外積。
 		const Toolbox::f64 ArmAX = Toolbox::f64(Point.X) - BodyA.Position.X;
 		const Toolbox::f64 ArmAY = Toolbox::f64(Point.Y) - BodyA.Position.Y;
@@ -756,19 +800,24 @@ struct FPhysicsWorld2D::FImpl
 		const Toolbox::f64 ArmBY = Toolbox::f64(Point.Y) - BodyB.Position.Y;
 		const Toolbox::f64 PushX = Push.X;
 		const Toolbox::f64 PushY = Push.Y;
-		BodyA.Velocity += {static_cast<Toolbox::f32>(PushX * BodyA.InverseMass),
-		                   static_cast<Toolbox::f32>(PushY * BodyA.InverseMass)};
+		BodyA.Velocity += {static_cast<Toolbox::f32>(PushX * InverseMassA),
+		                   static_cast<Toolbox::f32>(PushY * InverseMassA)};
 		BodyA.AngularVelocity = static_cast<Toolbox::f32>(Toolbox::f64(BodyA.AngularVelocity) +
-		                                                   (ArmAX * PushY - ArmAY * PushX) * BodyA.InverseInertia);
-		BodyB.Velocity += {static_cast<Toolbox::f32>(-PushX * BodyB.InverseMass),
-		                   static_cast<Toolbox::f32>(-PushY * BodyB.InverseMass)};
+		                                                   (ArmAX * PushY - ArmAY * PushX) * InverseInertiaA);
+		BodyB.Velocity += {static_cast<Toolbox::f32>(-PushX * InverseMassB),
+		                   static_cast<Toolbox::f32>(-PushY * InverseMassB)};
 		BodyB.AngularVelocity = static_cast<Toolbox::f32>(Toolbox::f64(BodyB.AngularVelocity) -
-		                                                   (ArmBX * PushY - ArmBY * PushX) * BodyB.InverseInertia);
+		                                                   (ArmBX * PushY - ArmBY * PushX) * InverseInertiaB);
 	}
 	// 単一接触点の速度拘束を解く。
 	static void SolvePoint_Internal(FBodyRecord2D& BodyA, FBodyRecord2D& BodyB, FSolvePoint2D& Point,
 	                                Toolbox::f32 RestitutionThreshold) noexcept
 	{
+		// 休止中は無限質量として扱う。
+		const Toolbox::f64 InverseMassA = EffectiveInverseMass_Internal(BodyA);
+		const Toolbox::f64 InverseMassB = EffectiveInverseMass_Internal(BodyB);
+		const Toolbox::f64 InverseInertiaA = EffectiveInverseInertia_Internal(BodyA);
+		const Toolbox::f64 InverseInertiaB = EffectiveInverseInertia_Internal(BodyB);
 		// 腕。
 		const Toolbox::f64 ArmAX = Toolbox::f64(Point.Position.X) - BodyA.Position.X;
 		const Toolbox::f64 ArmAY = Toolbox::f64(Point.Position.Y) - BodyA.Position.Y;
@@ -777,9 +826,8 @@ struct FPhysicsWorld2D::FImpl
 		// 法線の有効質量。
 		const Toolbox::f64 CrossNA = ArmAX * Point.Normal.Y - ArmAY * Point.Normal.X;
 		const Toolbox::f64 CrossNB = ArmBX * Point.Normal.Y - ArmBY * Point.Normal.X;
-		const Toolbox::f64 NormalMass = Toolbox::f64(BodyA.InverseMass) + BodyB.InverseMass +
-		                                Toolbox::f64(BodyA.InverseInertia) * CrossNA * CrossNA +
-		                                Toolbox::f64(BodyB.InverseInertia) * CrossNB * CrossNB;
+		const Toolbox::f64 NormalMass = InverseMassA + InverseMassB + InverseInertiaA * CrossNA * CrossNA +
+		                                InverseInertiaB * CrossNB * CrossNB;
 		if (NormalMass <= 0)
 		{
 			return;
@@ -804,9 +852,8 @@ struct FPhysicsWorld2D::FImpl
 		const Toolbox::f64 TangentY = Toolbox::f64(Point.Normal.X);
 		const Toolbox::f64 CrossTA = ArmAX * TangentY - ArmAY * TangentX;
 		const Toolbox::f64 CrossTB = ArmBX * TangentY - ArmBY * TangentX;
-		const Toolbox::f64 TangentMass = Toolbox::f64(BodyA.InverseMass) + BodyB.InverseMass +
-		                                 Toolbox::f64(BodyA.InverseInertia) * CrossTA * CrossTA +
-		                                 Toolbox::f64(BodyB.InverseInertia) * CrossTB * CrossTB;
+		const Toolbox::f64 TangentMass = InverseMassA + InverseMassB + InverseInertiaA * CrossTA * CrossTA +
+		                                 InverseInertiaB * CrossTB * CrossTB;
 		if (TangentMass <= 0)
 		{
 			return;
@@ -898,6 +945,64 @@ struct FPhysicsWorld2D::FImpl
 			}
 		}
 	}
+	// 低速接触の継続で休止し、支持を失ったら起こす。
+	void UpdateSleep_Internal(const Toolbox::TVector<FManifold2D>& Manifolds, Toolbox::f64 Slice) noexcept
+	{
+		if (!Sleep.bEnabled)
+		{
+			return;
+		}
+		for (Toolbox::size_t ManifoldIndex = 0; ManifoldIndex < Manifolds.Size(); ++ManifoldIndex)
+		{
+			const FManifold2D& Manifold = Manifolds[ManifoldIndex];
+			FBodyRecord2D* BodyA = Find_Internal(Manifold.BodyA);
+			FBodyRecord2D* BodyB = Find_Internal(Manifold.BodyB);
+			if (BodyA != nullptr)
+			{
+				BodyA->bTouched = true;
+			}
+			if (BodyB != nullptr)
+			{
+				BodyB->bTouched = true;
+			}
+		}
+		for (Toolbox::size_t Index = 0; Index < Slots.Size(); ++Index)
+		{
+			FBodyRecord2D& Record = Slots[Index];
+			if (!Record.bAlive || Record.Type != EBodyType::Dynamic || !Record.bAllowSleep)
+			{
+				Record.bTouched = false;
+				continue;
+			}
+			if (!Record.bTouched)
+			{
+				// 支持を失ったら起こす。
+				Record.SleepTimer = 0;
+				Record.bSleeping = false;
+				continue;
+			}
+			// 速度の大きさ。
+			const Toolbox::f64 Speed = Toolbox::Sqrt(Toolbox::f64(Record.Velocity.X) * Record.Velocity.X +
+			                                         Toolbox::f64(Record.Velocity.Y) * Record.Velocity.Y);
+			const Toolbox::f64 Spin =
+			    Record.AngularVelocity < 0 ? -Toolbox::f64(Record.AngularVelocity) : Record.AngularVelocity;
+			if (Speed <= Sleep.LinearSpeedLimit && Spin <= Sleep.AngularSpeedLimit)
+			{
+				Record.SleepTimer = static_cast<Toolbox::f32>(Toolbox::f64(Record.SleepTimer) + Slice);
+				if (Record.SleepTimer >= Sleep.TimeoutSeconds)
+				{
+					Record.bSleeping = true;
+					Record.Velocity = {};
+					Record.AngularVelocity = 0;
+				}
+			}
+			else
+			{
+				Record.SleepTimer = 0;
+			}
+			Record.bTouched = false;
+		}
+	}
 	// 許容幅を超える貫通を位置で補正する。運動エネルギーは注入しない。
 	void CorrectPositions_Internal(const Toolbox::TVector<FManifold2D>& Manifolds) noexcept
 	{
@@ -910,9 +1015,9 @@ struct FPhysicsWorld2D::FImpl
 			{
 				continue;
 			}
-			// 逆質量の合計。
+			// 逆質量の合計。休止中は無限質量として扱う。
 			const Toolbox::f64 TotalInverse =
-			    Toolbox::f64(BodyA->InverseMass) + BodyB->InverseMass;
+			    Toolbox::f64(EffectiveInverseMass_Internal(*BodyA)) + EffectiveInverseMass_Internal(*BodyB);
 			if (TotalInverse <= 0)
 			{
 				continue;
@@ -931,8 +1036,8 @@ struct FPhysicsWorld2D::FImpl
 				{
 					Correction = Contact.MaxCorrection;
 				}
-				const Toolbox::f64 WeightA = Toolbox::f64(BodyA->InverseMass) / TotalInverse;
-				const Toolbox::f64 WeightB = Toolbox::f64(BodyB->InverseMass) / TotalInverse;
+				const Toolbox::f64 WeightA = Toolbox::f64(EffectiveInverseMass_Internal(*BodyA)) / TotalInverse;
+				const Toolbox::f64 WeightB = Toolbox::f64(EffectiveInverseMass_Internal(*BodyB)) / TotalInverse;
 				BodyA->Position += {static_cast<Toolbox::f32>(Point.Normal.X * Correction * WeightA),
 				                    static_cast<Toolbox::f32>(Point.Normal.Y * Correction * WeightA)};
 				BodyB->Position += {static_cast<Toolbox::f32>(-Point.Normal.X * Correction * WeightB),
@@ -983,13 +1088,13 @@ struct FPhysicsWorld2D::FImpl
 		}
 		return SweptBox_Internal(ToWorld_Internal(Body, Record.Shape.Get<1>()), Displacement);
 	}
-	// 全剛体を位置だけ進める。力の積分は繰り返さない。
+	// 全剛体を位置だけ進める。力の積分は繰り返さない。休止中は動かさない。
 	void AdvanceAll_Internal(Toolbox::f64 Slice) noexcept
 	{
 		for (Toolbox::size_t Index = 0; Index < Slots.Size(); ++Index)
 		{
 			FBodyRecord2D& Record = Slots[Index];
-			if (!Record.bAlive)
+			if (!Record.bAlive || Record.bSleeping)
 			{
 				continue;
 			}
@@ -1299,6 +1404,7 @@ FBodyId2D FPhysicsWorld2D::CreateBody(const FBodyDescription2D& Description)
 	Record.AngularDamping = Description.AngularDamping;
 	Record.GravityScale = Description.GravityScale;
 	Record.bUseContinuous = Description.bUseContinuous;
+	Record.bAllowSleep = Description.bAllowSleep;
 	if (Description.Type == EBodyType::Dynamic)
 	{
 		if (!Toolbox::IsFinite(Description.Mass) || Description.Mass <= 0)
@@ -1407,6 +1513,9 @@ void FPhysicsWorld2D::SetVelocity(FBodyId2D Id, Toolbox::FVector2 Velocity)
 	{
 		throw Toolbox::FException("Static 2D body has no velocity");
 	}
+	// 外力は休止中の剛体を起こす。
+	Record.bSleeping = false;
+	Record.SleepTimer = 0;
 	Record.Velocity = Velocity;
 }
 void FPhysicsWorld2D::SetAngularVelocity(FBodyId2D Id, Toolbox::f32 AngularVelocity)
@@ -1420,6 +1529,9 @@ void FPhysicsWorld2D::SetAngularVelocity(FBodyId2D Id, Toolbox::f32 AngularVeloc
 	{
 		throw Toolbox::FException("Static 2D body has no angular velocity");
 	}
+	// 外力は休止中の剛体を起こす。
+	Record.bSleeping = false;
+	Record.SleepTimer = 0;
 	Record.AngularVelocity = AngularVelocity;
 }
 void FPhysicsWorld2D::ApplyForce(FBodyId2D Id, Toolbox::FVector2 Force)
@@ -1433,6 +1545,9 @@ void FPhysicsWorld2D::ApplyForce(FBodyId2D Id, Toolbox::FVector2 Force)
 	{
 		throw Toolbox::FException("Only dynamic 2D bodies accept forces");
 	}
+	// 外力は休止中の剛体を起こす。
+	Record.bSleeping = false;
+	Record.SleepTimer = 0;
 	Record.Force += Force;
 }
 void FPhysicsWorld2D::ApplyTorque(FBodyId2D Id, Toolbox::f32 Torque)
@@ -1446,6 +1561,9 @@ void FPhysicsWorld2D::ApplyTorque(FBodyId2D Id, Toolbox::f32 Torque)
 	{
 		throw Toolbox::FException("Only dynamic 2D bodies accept torques");
 	}
+	// 外力は休止中の剛体を起こす。
+	Record.bSleeping = false;
+	Record.SleepTimer = 0;
 	Record.Torque += Torque;
 }
 void FPhysicsWorld2D::ApplyLinearImpulse(FBodyId2D Id, Toolbox::FVector2 Impulse)
@@ -1459,6 +1577,9 @@ void FPhysicsWorld2D::ApplyLinearImpulse(FBodyId2D Id, Toolbox::FVector2 Impulse
 	{
 		throw Toolbox::FException("Only dynamic 2D bodies accept impulses");
 	}
+	// 外力は休止中の剛体を起こす。
+	Record.bSleeping = false;
+	Record.SleepTimer = 0;
 	// 力積は速度へ即時反映し、分割数に依存しない。
 	Record.Velocity += {Impulse.X * Record.InverseMass, Impulse.Y * Record.InverseMass};
 }
@@ -1473,6 +1594,9 @@ void FPhysicsWorld2D::ApplyAngularImpulse(FBodyId2D Id, Toolbox::f32 Impulse)
 	{
 		throw Toolbox::FException("Only dynamic 2D bodies accept impulses");
 	}
+	// 外力は休止中の剛体を起こす。
+	Record.bSleeping = false;
+	Record.SleepTimer = 0;
 	Record.AngularVelocity += Impulse * Record.InverseInertia;
 }
 void FPhysicsWorld2D::ApplyImpulseAtPoint(FBodyId2D Id, Toolbox::FVector2 Impulse, Toolbox::FVector2 WorldPoint)
@@ -1486,6 +1610,9 @@ void FPhysicsWorld2D::ApplyImpulseAtPoint(FBodyId2D Id, Toolbox::FVector2 Impuls
 	{
 		throw Toolbox::FException("Only dynamic 2D bodies accept impulses");
 	}
+	// 外力は休止中の剛体を起こす。
+	Record.bSleeping = false;
+	Record.SleepTimer = 0;
 	// 重心からの腕と力積の外積が回転を生む。
 	const Toolbox::f64 ArmX = static_cast<Toolbox::f64>(WorldPoint.X) - Record.Position.X;
 	const Toolbox::f64 ArmY = static_cast<Toolbox::f64>(WorldPoint.Y) - Record.Position.Y;
@@ -1646,6 +1773,41 @@ FContinuousDiagnostics2D FPhysicsWorld2D::GetContinuousDiagnostics() const noexc
 {
 	return m_pImpl->Diagnostics;
 }
+void FPhysicsWorld2D::SetSleepSettings(const FSleepSettings2D& Settings)
+{
+	if (!Toolbox::IsFinite(Settings.TimeoutSeconds) || Settings.TimeoutSeconds <= 0)
+	{
+		throw Toolbox::FException("Invalid 2D sleep timeout");
+	}
+	if (!Toolbox::IsFinite(Settings.LinearSpeedLimit) || Settings.LinearSpeedLimit < 0)
+	{
+		throw Toolbox::FException("Invalid 2D sleep speed");
+	}
+	if (!Toolbox::IsFinite(Settings.AngularSpeedLimit) || Settings.AngularSpeedLimit < 0)
+	{
+		throw Toolbox::FException("Invalid 2D sleep spin");
+	}
+	m_pImpl->Sleep = Settings;
+}
+FSleepSettings2D FPhysicsWorld2D::GetSleepSettings() const noexcept
+{
+	return m_pImpl->Sleep;
+}
+bool FPhysicsWorld2D::IsSleeping(FBodyId2D Id) const
+{
+	return m_pImpl->Resolve_Internal(Id).bSleeping;
+}
+bool FPhysicsWorld2D::WakeUp(FBodyId2D Id) noexcept
+{
+	FBodyRecord2D* Record = m_pImpl->Find_Internal(Id);
+	if (Record == nullptr || Record->Type != EBodyType::Dynamic)
+	{
+		return false;
+	}
+	Record->bSleeping = false;
+	Record->SleepTimer = 0;
+	return true;
+}
 void FPhysicsWorld2D::SetBodyTransform(FBodyId2D Id, Toolbox::FVector2 Position, Toolbox::f32 Angle)
 {
 	if (!Position.IsValid() || !Toolbox::IsFinite(Angle))
@@ -1653,6 +1815,9 @@ void FPhysicsWorld2D::SetBodyTransform(FBodyId2D Id, Toolbox::FVector2 Position,
 		throw Toolbox::FException("Invalid 2D body transform");
 	}
 	FBodyRecord2D& Record = m_pImpl->Resolve_Internal(Id);
+	// 外力は休止中の剛体を起こす。
+	Record.bSleeping = false;
+	Record.SleepTimer = 0;
 	Record.Position = Position;
 	Record.Angle = Angle;
 }
@@ -1686,7 +1851,7 @@ void FPhysicsWorld2D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 		for (Toolbox::size_t Index = 0; Index < m_pImpl->Slots.Size(); ++Index)
 		{
 			FBodyRecord2D& Record = m_pImpl->Slots[Index];
-			if (!Record.bAlive || Record.Type != EBodyType::Dynamic)
+			if (!Record.bAlive || Record.Type != EBodyType::Dynamic || Record.bSleeping)
 			{
 				continue;
 			}
@@ -1709,6 +1874,7 @@ void FPhysicsWorld2D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 			Toolbox::TVector<FManifold2D> Touched;
 			m_pImpl->GenerateManifolds_Internal(Touched);
 			m_pImpl->CorrectPositions_Internal(Touched);
+			m_pImpl->UpdateSleep_Internal(Touched, Slice);
 			continue;
 		}
 		// 更新後の速度で位置と姿勢を進める。
@@ -1730,6 +1896,7 @@ void FPhysicsWorld2D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 		}
 		// 許容幅を超える貫通を位置で補正する。
 		m_pImpl->CorrectPositions_Internal(Manifolds);
+		m_pImpl->UpdateSleep_Internal(Manifolds, Slice);
 	}
 	// 蓄積した力とトルクを一度だけ消去する。
 	for (Toolbox::size_t Index = 0; Index < m_pImpl->Slots.Size(); ++Index)

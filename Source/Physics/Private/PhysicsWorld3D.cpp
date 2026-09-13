@@ -110,6 +110,14 @@ struct FBodyRecord3D
 	Toolbox::f32 GravityScale = 1;
 	// 移動区間の接触解決を行うか。
 	bool bUseContinuous = false;
+	// 速度低下による休止を許可するか。
+	bool bAllowSleep = true;
+	// 低速接触の継続秒数。
+	Toolbox::f32 SleepTimer = 0;
+	// 休止しているか。
+	bool bSleeping = false;
+	// 今回分割で接触したか。
+	bool bTouched = false;
 	// 次の更新で使う蓄積力。ニュートン単位。
 	Toolbox::FVector3 Force;
 	// 次の更新で使う蓄積トルク。ワールド軸回り。
@@ -324,6 +332,352 @@ static bool IsAxisAlignedBox_Internal(const Toolbox::FOBB& Box) noexcept
 	}
 	return true;
 }
+// 箱軸を倍精度へ写す。
+static FVector3D AxisD_Internal(Toolbox::FVector3 Axis) noexcept
+{
+	FVector3D Result;
+	Result.X = Axis.X;
+	Result.Y = Axis.Y;
+	Result.Z = Axis.Z;
+	return Result;
+}
+// 箱の支持点を求める。方向へ最も進んだ頂点。
+static FVector3D Support_Internal(const Toolbox::FOBB& Box, FVector3D Direction) noexcept
+{
+	FVector3D Point = {Box.Center.X, Box.Center.Y, Box.Center.Z};
+	const Toolbox::f64 Half[3] = {Box.HalfExtents.X, Box.HalfExtents.Y, Box.HalfExtents.Z};
+	for (Toolbox::int32 Axis = 0; Axis < 3; ++Axis)
+	{
+		const FVector3D AxisVector = AxisD_Internal(Box.Axes[Axis]);
+		const Toolbox::f64 Sign =
+		    AxisVector.X * Direction.X + AxisVector.Y * Direction.Y + AxisVector.Z * Direction.Z >= 0 ? 1 : -1;
+		Point.X += AxisVector.X * Sign * Half[Axis];
+		Point.Y += AxisVector.Y * Sign * Half[Axis];
+		Point.Z += AxisVector.Z * Sign * Half[Axis];
+	}
+	return Point;
+}
+// 箱の指定面の四隅を求める。面番号は軸*2に正方向で1を足す。
+static void FaceVertices_Internal(const Toolbox::FOBB& Box, Toolbox::int32 Face, FVector3D Vertices[4]) noexcept
+{
+	const Toolbox::int32 Axis = Face / 2;
+	const Toolbox::f64 Sign = (Face & 1) == 0 ? -1 : 1;
+	const Toolbox::int32 Other[2] = {Axis == 0 ? 1 : 0, Axis == 2 ? 1 : 2};
+	for (Toolbox::int32 Corner = 0; Corner < 4; ++Corner)
+	{
+		const Toolbox::f64 SignA = (Corner & 1) == 0 ? -1 : 1;
+		const Toolbox::f64 SignB = (Corner & 2) == 0 ? -1 : 1;
+		const FVector3D AxisN = AxisD_Internal(Box.Axes[Axis]);
+		const FVector3D AxisA = AxisD_Internal(Box.Axes[Other[0]]);
+		const FVector3D AxisB = AxisD_Internal(Box.Axes[Other[1]]);
+		const Toolbox::f64 HalfN =
+		    Axis == 0 ? Box.HalfExtents.X : (Axis == 1 ? Box.HalfExtents.Y : Box.HalfExtents.Z);
+		const Toolbox::f64 HalfA =
+		    Other[0] == 0 ? Box.HalfExtents.X : (Other[0] == 1 ? Box.HalfExtents.Y : Box.HalfExtents.Z);
+		const Toolbox::f64 HalfB =
+		    Other[1] == 0 ? Box.HalfExtents.X : (Other[1] == 1 ? Box.HalfExtents.Y : Box.HalfExtents.Z);
+		Vertices[Corner].X = Box.Center.X + AxisN.X * Sign * HalfN + AxisA.X * SignA * HalfA + AxisB.X * SignB * HalfB;
+		Vertices[Corner].Y = Box.Center.Y + AxisN.Y * Sign * HalfN + AxisA.Y * SignA * HalfA + AxisB.Y * SignB * HalfB;
+		Vertices[Corner].Z = Box.Center.Z + AxisN.Z * Sign * HalfN + AxisA.Z * SignA * HalfA + AxisB.Z * SignB * HalfB;
+	}
+}
+// 世界箱同士の接触を最大四点求める。分離時は空。法線はB→A。辺同士は近似一点。
+static void FindBoxBoxContacts_Internal(const Toolbox::FOBB& A, const Toolbox::FOBB& B, Toolbox::f32 Slop,
+                                        Toolbox::TVector<Toolbox::FContactPoint3D>& Out)
+{
+	// 中心差。
+	const FVector3D Delta = {Toolbox::f64(B.Center.X) - A.Center.X, Toolbox::f64(B.Center.Y) - A.Center.Y,
+	                         Toolbox::f64(B.Center.Z) - A.Center.Z};
+	// 最大分離とその軸の情報。
+	Toolbox::f64 BestSeparation = -1e30;
+	FVector3D BestDirection = {0, 1, 0};
+	bool bBestOnA = true;
+	Toolbox::int32 BestFaceAxis = 0;
+	bool bBestIsFace = true;
+	for (Toolbox::int32 Owner = 0; Owner < 2; ++Owner)
+	{
+		const Toolbox::FOBB& Self = Owner == 0 ? A : B;
+		for (Toolbox::int32 Axis = 0; Axis < 3; ++Axis)
+		{
+			// 軸の長さで正規化する。
+			FVector3D Raw = AxisD_Internal(Self.Axes[Axis]);
+			const Toolbox::f64 Length = Toolbox::Sqrt(Raw.X * Raw.X + Raw.Y * Raw.Y + Raw.Z * Raw.Z);
+			if (!(Length > 1e-9))
+			{
+				continue;
+			}
+			Raw.X /= Length;
+			Raw.Y /= Length;
+			Raw.Z /= Length;
+			// 軸方向の中心距離。
+			const Toolbox::f64 Distance = Delta.X * Raw.X + Delta.Y * Raw.Y + Delta.Z * Raw.Z;
+			// 両箱の軸への投影半径。
+			Toolbox::f64 ProjectA = 0;
+			Toolbox::f64 ProjectB = 0;
+			for (Toolbox::int32 Other = 0; Other < 3; ++Other)
+			{
+				const FVector3D AxisA = AxisD_Internal(A.Axes[Other]);
+				const FVector3D AxisB = AxisD_Internal(B.Axes[Other]);
+				const Toolbox::f64 HalfA =
+				    Other == 0 ? A.HalfExtents.X : (Other == 1 ? A.HalfExtents.Y : A.HalfExtents.Z);
+				const Toolbox::f64 HalfB =
+				    Other == 0 ? B.HalfExtents.X : (Other == 1 ? B.HalfExtents.Y : B.HalfExtents.Z);
+				ProjectA += HalfA * Toolbox::Abs(AxisA.X * Raw.X + AxisA.Y * Raw.Y + AxisA.Z * Raw.Z);
+				ProjectB += HalfB * Toolbox::Abs(AxisB.X * Raw.X + AxisB.Y * Raw.Y + AxisB.Z * Raw.Z);
+			}
+			const Toolbox::f64 Separation = Toolbox::Abs(Distance) - ProjectA - ProjectB;
+			if (Separation > BestSeparation)
+			{
+				BestSeparation = Separation;
+				// AからBへ向く軸方向。
+				const Toolbox::f64 Sign = Distance >= 0 ? 1 : -1;
+				BestDirection = {Raw.X * Sign, Raw.Y * Sign, Raw.Z * Sign};
+				bBestOnA = Owner == 0;
+				BestFaceAxis = Axis;
+				bBestIsFace = true;
+			}
+		}
+	}
+	// 辺同士の軸。
+	for (Toolbox::int32 AxisA = 0; AxisA < 3; ++AxisA)
+	{
+		for (Toolbox::int32 AxisB = 0; AxisB < 3; ++AxisB)
+		{
+			const FVector3D RawA = AxisD_Internal(A.Axes[AxisA]);
+			const FVector3D RawB = AxisD_Internal(B.Axes[AxisB]);
+			FVector3D Cross = {RawA.Y * RawB.Z - RawA.Z * RawB.Y, RawA.Z * RawB.X - RawA.X * RawB.Z,
+			                   RawA.X * RawB.Y - RawA.Y * RawB.X};
+			const Toolbox::f64 Length = Toolbox::Sqrt(Cross.X * Cross.X + Cross.Y * Cross.Y + Cross.Z * Cross.Z);
+			if (!(Length > 1e-9))
+			{
+				continue;
+			}
+			Cross.X /= Length;
+			Cross.Y /= Length;
+			Cross.Z /= Length;
+			// 軸方向の中心距離。
+			const Toolbox::f64 Distance = Delta.X * Cross.X + Delta.Y * Cross.Y + Delta.Z * Cross.Z;
+			// 両箱の軸への投影半径。
+			Toolbox::f64 ProjectA = 0;
+			Toolbox::f64 ProjectB = 0;
+			for (Toolbox::int32 Other = 0; Other < 3; ++Other)
+			{
+				const FVector3D AxisA = AxisD_Internal(A.Axes[Other]);
+				const FVector3D AxisB = AxisD_Internal(B.Axes[Other]);
+				const Toolbox::f64 HalfA =
+				    Other == 0 ? A.HalfExtents.X : (Other == 1 ? A.HalfExtents.Y : A.HalfExtents.Z);
+				const Toolbox::f64 HalfB =
+				    Other == 0 ? B.HalfExtents.X : (Other == 1 ? B.HalfExtents.Y : B.HalfExtents.Z);
+				ProjectA += HalfA * Toolbox::Abs(AxisA.X * Cross.X + AxisA.Y * Cross.Y + AxisA.Z * Cross.Z);
+				ProjectB += HalfB * Toolbox::Abs(AxisB.X * Cross.X + AxisB.Y * Cross.Y + AxisB.Z * Cross.Z);
+			}
+			const Toolbox::f64 Separation = Toolbox::Abs(Distance) - ProjectA - ProjectB;
+			if (Separation > BestSeparation)
+			{
+				BestSeparation = Separation;
+				// AからBへ向く軸方向。
+				const Toolbox::f64 Sign = Distance >= 0 ? 1 : -1;
+				BestDirection = {Cross.X * Sign, Cross.Y * Sign, Cross.Z * Sign};
+				bBestIsFace = false;
+			}
+		}
+	}
+	if (BestSeparation > Slop)
+	{
+		return;
+	}
+	if (!bBestIsFace)
+	{
+		// 辺同士は両支持点の中点を近似接触にする。
+		const FVector3D Negative = {-BestDirection.X, -BestDirection.Y, -BestDirection.Z};
+		const FVector3D PointA = Support_Internal(A, BestDirection);
+		const FVector3D PointB = Support_Internal(B, Negative);
+		Toolbox::FContactPoint3D Hit;
+		Hit.Position = {static_cast<Toolbox::f32>((PointA.X + PointB.X) * 0.5),
+		                static_cast<Toolbox::f32>((PointA.Y + PointB.Y) * 0.5),
+		                static_cast<Toolbox::f32>((PointA.Z + PointB.Z) * 0.5)};
+		Hit.Normal = {static_cast<Toolbox::f32>(-BestDirection.X), static_cast<Toolbox::f32>(-BestDirection.Y),
+		              static_cast<Toolbox::f32>(-BestDirection.Z)};
+		Hit.Separation = static_cast<Toolbox::f32>(BestSeparation);
+		Hit.FeatureId = 64;
+		Out.PushBack(Hit);
+		return;
+	}
+	// 基準面を持つ箱と入射面を持つ箱を決める。
+	const Toolbox::FOBB& Reference = bBestOnA ? A : B;
+	const Toolbox::FOBB& Incident = bBestOnA ? B : A;
+	// 基準面の外向き法線はAからBへ向く。
+	FVector3D FaceNormal = BestDirection;
+	if (!bBestOnA)
+	{
+		FaceNormal = {-BestDirection.X, -BestDirection.Y, -BestDirection.Z};
+	}
+	// 基準面の番号。所有箱の軸番号に符号を足す。
+	const FVector3D OwnerAxis = AxisD_Internal((bBestOnA ? A : B).Axes[BestFaceAxis]);
+	const Toolbox::f64 Outward = OwnerAxis.X * FaceNormal.X + OwnerAxis.Y * FaceNormal.Y + OwnerAxis.Z * FaceNormal.Z;
+	const Toolbox::int32 ReferenceFace = BestFaceAxis * 2 + (Outward > 0 ? 1 : 0);
+	// 基準面の中心と接線。
+	const FVector3D AxisN = AxisD_Internal(Reference.Axes[ReferenceFace / 2]);
+	const Toolbox::f64 HalfN = ReferenceFace / 2 == 0 ? Reference.HalfExtents.X
+	                           : (ReferenceFace / 2 == 1 ? Reference.HalfExtents.Y : Reference.HalfExtents.Z);
+	FVector3D FaceCenter = {Reference.Center.X, Reference.Center.Y, Reference.Center.Z};
+	FaceCenter.X += AxisN.X * (Outward > 0 ? HalfN : -HalfN);
+	FaceCenter.Y += AxisN.Y * (Outward > 0 ? HalfN : -HalfN);
+	FaceCenter.Z += AxisN.Z * (Outward > 0 ? HalfN : -HalfN);
+	// 接線になる二軸。
+	const Toolbox::int32 TangentA = (ReferenceFace / 2 + 1) % 3;
+	const Toolbox::int32 TangentB = (ReferenceFace / 2 + 2) % 3;
+	const FVector3D AxisA = AxisD_Internal(Reference.Axes[TangentA]);
+	const FVector3D AxisB = AxisD_Internal(Reference.Axes[TangentB]);
+	const Toolbox::f64 HalfA =
+	    TangentA == 0 ? Reference.HalfExtents.X : (TangentA == 1 ? Reference.HalfExtents.Y : Reference.HalfExtents.Z);
+	const Toolbox::f64 HalfB =
+	    TangentB == 0 ? Reference.HalfExtents.X : (TangentB == 1 ? Reference.HalfExtents.Y : Reference.HalfExtents.Z);
+	// 入射面は基準法線に最も逆らう面の四隅。
+	Toolbox::f64 BestDot = 1e30;
+	Toolbox::int32 IncidentFace = 0;
+	for (Toolbox::int32 Face = 0; Face < 6; ++Face)
+	{
+		const FVector3D Axis = AxisD_Internal(Incident.Axes[Face / 2]);
+		const Toolbox::f64 Sign = (Face & 1) == 0 ? -1 : 1;
+		const Toolbox::f64 Alignment = (Axis.X * Sign) * FaceNormal.X + (Axis.Y * Sign) * FaceNormal.Y +
+		                               (Axis.Z * Sign) * FaceNormal.Z;
+		if (Alignment < BestDot)
+		{
+			BestDot = Alignment;
+			IncidentFace = Face;
+		}
+	}
+	(void)IncidentFace;
+	FVector3D Quad[4];
+	FaceVertices_Internal(Incident, IncidentFace, Quad);
+	// 基準面の四つの側方平面で切り取る。頂点の環状順序を保つ単一走査。
+	FVector3D Kept[8];
+	FVector3D Spare[8];
+	for (Toolbox::int32 Vertex = 0; Vertex < 4; ++Vertex)
+	{
+		Kept[Vertex] = Quad[Vertex];
+	}
+	Toolbox::int32 KeptCount = 4;
+	for (Toolbox::int32 Side = 0; Side < 4; ++Side)
+	{
+		// 側方平面の法線と境界。
+		const FVector3D PlaneAxis = (Side & 2) == 0 ? AxisA : AxisB;
+		const Toolbox::f64 PlaneHalf = (Side & 2) == 0 ? HalfA : HalfB;
+		const Toolbox::f64 PlaneSign = (Side & 1) == 0 ? 1 : -1;
+		Toolbox::int32 SpareCount = 0;
+		for (Toolbox::int32 Index = 0; Index < KeptCount; ++Index)
+		{
+			const Toolbox::int32 Next = (Index + 1) % KeptCount;
+			// 面中心からの側方距離。
+			const Toolbox::f64 LateralA = (Kept[Index].X - FaceCenter.X) * PlaneAxis.X * PlaneSign +
+			                              (Kept[Index].Y - FaceCenter.Y) * PlaneAxis.Y * PlaneSign +
+			                              (Kept[Index].Z - FaceCenter.Z) * PlaneAxis.Z * PlaneSign;
+			const Toolbox::f64 LateralB = (Kept[Next].X - FaceCenter.X) * PlaneAxis.X * PlaneSign +
+			                              (Kept[Next].Y - FaceCenter.Y) * PlaneAxis.Y * PlaneSign +
+			                              (Kept[Next].Z - FaceCenter.Z) * PlaneAxis.Z * PlaneSign;
+			const bool bInsideA = LateralA <= PlaneHalf;
+			const bool bInsideB = LateralB <= PlaneHalf;
+			if (bInsideA && SpareCount < 8)
+			{
+				Spare[SpareCount] = Kept[Index];
+				++SpareCount;
+			}
+			if (bInsideA != bInsideB && SpareCount < 8)
+			{
+				const Toolbox::f64 Fraction = (PlaneHalf - LateralA) / (LateralB - LateralA);
+				Spare[SpareCount].X = Kept[Index].X + (Kept[Next].X - Kept[Index].X) * Fraction;
+				Spare[SpareCount].Y = Kept[Index].Y + (Kept[Next].Y - Kept[Index].Y) * Fraction;
+				Spare[SpareCount].Z = Kept[Index].Z + (Kept[Next].Z - Kept[Index].Z) * Fraction;
+				++SpareCount;
+			}
+		}
+		for (Toolbox::int32 Index = 0; Index < SpareCount && Index < 8; ++Index)
+		{
+			Kept[Index] = Spare[Index];
+		}
+		KeptCount = SpareCount;
+		if (KeptCount == 0)
+		{
+			return;
+		}
+	}
+	// 法線はBからAへ向ける。最良軸はA→Bで作るため反転して保つ。
+	const FVector3D Normal = {-BestDirection.X, -BestDirection.Y, -BestDirection.Z};
+	// 特徴IDは基準面側の面番号に切り取り順を足す。
+	const Toolbox::uint32 Base =
+	    static_cast<Toolbox::uint32>((bBestOnA ? ReferenceFace : 8 + ReferenceFace) * 4);
+	// 深い順に最大四点を選び、切り取り順で出す。
+	Toolbox::int32 Chosen[4] = {-1, -1, -1, -1};
+	Toolbox::int32 ChosenCount = 0;
+	for (Toolbox::int32 Round = 0; Round < 4; ++Round)
+	{
+		Toolbox::f64 BestDepth = 1e30;
+		Toolbox::int32 BestVertex = -1;
+		for (Toolbox::int32 Index = 0; Index < KeptCount && Index < 8; ++Index)
+		{
+			bool bUsed = false;
+			for (Toolbox::int32 Used = 0; Used < ChosenCount; ++Used)
+			{
+				if (Chosen[Used] == Index)
+				{
+					bUsed = true;
+				}
+			}
+			if (bUsed)
+			{
+				continue;
+			}
+			// A面からB表面への符号付き距離。基準面がB側の場合は差の向きを入れ替える。
+			const Toolbox::f64 DeltaX = bBestOnA ? FaceCenter.X - Kept[Index].X : Kept[Index].X - FaceCenter.X;
+			const Toolbox::f64 DeltaY = bBestOnA ? FaceCenter.Y - Kept[Index].Y : Kept[Index].Y - FaceCenter.Y;
+			const Toolbox::f64 DeltaZ = bBestOnA ? FaceCenter.Z - Kept[Index].Z : Kept[Index].Z - FaceCenter.Z;
+			const Toolbox::f64 Separation = DeltaX * Normal.X + DeltaY * Normal.Y + DeltaZ * Normal.Z;
+			if (Separation <= Slop && Separation < BestDepth)
+			{
+				BestDepth = Separation;
+				BestVertex = Index;
+			}
+		}
+		if (BestVertex < 0)
+		{
+			break;
+		}
+		Chosen[ChosenCount] = BestVertex;
+		++ChosenCount;
+	}
+	// 切り取り順に並べ直して安定させる。
+	for (Toolbox::int32 Slot = 0; Slot < ChosenCount; ++Slot)
+	{
+		for (Toolbox::int32 Other = Slot + 1; Other < ChosenCount; ++Other)
+		{
+			if (Chosen[Other] < Chosen[Slot])
+			{
+				const Toolbox::int32 Temporary = Chosen[Slot];
+				Chosen[Slot] = Chosen[Other];
+				Chosen[Other] = Temporary;
+			}
+		}
+	}
+	for (Toolbox::int32 Slot = 0; Slot < ChosenCount; ++Slot)
+	{
+		const FVector3D& Point = Kept[Chosen[Slot]];
+		// A面からB表面への符号付き距離。B→A法線では貫通が負になる。
+		// 基準面がB側の場合は差の向きを入れ替える。
+		const Toolbox::f64 DeltaX = bBestOnA ? FaceCenter.X - Point.X : Point.X - FaceCenter.X;
+		const Toolbox::f64 DeltaY = bBestOnA ? FaceCenter.Y - Point.Y : Point.Y - FaceCenter.Y;
+		const Toolbox::f64 DeltaZ = bBestOnA ? FaceCenter.Z - Point.Z : Point.Z - FaceCenter.Z;
+		const Toolbox::f64 Separation = DeltaX * Normal.X + DeltaY * Normal.Y + DeltaZ * Normal.Z;
+		Toolbox::FContactPoint3D Hit;
+		Hit.Position = {static_cast<Toolbox::f32>(Point.X), static_cast<Toolbox::f32>(Point.Y),
+		                static_cast<Toolbox::f32>(Point.Z)};
+		Hit.Normal = {static_cast<Toolbox::f32>(Normal.X), static_cast<Toolbox::f32>(Normal.Y),
+		              static_cast<Toolbox::f32>(Normal.Z)};
+		Hit.Separation = static_cast<Toolbox::f32>(Separation);
+		Hit.FeatureId = Base + static_cast<Toolbox::uint32>(Chosen[Slot]);
+		Out.PushBack(Hit);
+	}
+}
 // 立体剛体の登録スロットと接触解決をまとめた実装。
 struct FPhysicsWorld3D::FImpl
 {
@@ -347,6 +701,8 @@ struct FPhysicsWorld3D::FImpl
 	FContinuousSettings3D Continuous;
 	// 直近更新の連続衝突診断。
 	FContinuousDiagnostics3D Diagnostics;
+	// 休止の条件。
+	FSleepSettings3D Sleep;
 	// 新しいワールドへ重ならない識別子を発行する。
 	static Toolbox::uint64 NextWorld_Internal()
 	{
@@ -501,31 +857,38 @@ struct FPhysicsWorld3D::FImpl
 	static void ApplyImpulse_Internal(FBodyRecord3D& BodyA, FBodyRecord3D& BodyB, Toolbox::FVector3 Point,
 	                                  FVector3D Push) noexcept
 	{
+		// 休止中は無限質量として扱う。
+		const Toolbox::f32 InverseMassA = EffectiveInverseMass_Internal(BodyA);
+		const Toolbox::f32 InverseMassB = EffectiveInverseMass_Internal(BodyB);
+		const FVector3D InverseDiagonalA = EffectiveInverseDiagonal_Internal(BodyA);
+		const FVector3D InverseDiagonalB = EffectiveInverseDiagonal_Internal(BodyB);
 		// 腕。
 		const FVector3D ArmA = {Toolbox::f64(Point.X) - BodyA.Position.X, Toolbox::f64(Point.Y) - BodyA.Position.Y,
 		                        Toolbox::f64(Point.Z) - BodyA.Position.Z};
 		const FVector3D ArmB = {Toolbox::f64(Point.X) - BodyB.Position.X, Toolbox::f64(Point.Y) - BodyB.Position.Y,
 		                        Toolbox::f64(Point.Z) - BodyB.Position.Z};
 		// 並進への反映。
-		BodyA.Velocity += {static_cast<Toolbox::f32>(Push.X * BodyA.InverseMass),
-		                   static_cast<Toolbox::f32>(Push.Y * BodyA.InverseMass),
-		                   static_cast<Toolbox::f32>(Push.Z * BodyA.InverseMass)};
-		BodyB.Velocity += {static_cast<Toolbox::f32>(-Push.X * BodyB.InverseMass),
-		                   static_cast<Toolbox::f32>(-Push.Y * BodyB.InverseMass),
-		                   static_cast<Toolbox::f32>(-Push.Z * BodyB.InverseMass)};
+		BodyA.Velocity += {static_cast<Toolbox::f32>(Push.X * InverseMassA),
+		                   static_cast<Toolbox::f32>(Push.Y * InverseMassA),
+		                   static_cast<Toolbox::f32>(Push.Z * InverseMassA)};
+		BodyB.Velocity += {static_cast<Toolbox::f32>(-Push.X * InverseMassB),
+		                   static_cast<Toolbox::f32>(-Push.Y * InverseMassB),
+		                   static_cast<Toolbox::f32>(-Push.Z * InverseMassB)};
 		// 腕とImpulseの外積をワールド逆慣性で角速度へ変換する。
 		const FVector3D MomentA = {ArmA.Y * Push.Z - ArmA.Z * Push.Y, ArmA.Z * Push.X - ArmA.X * Push.Z,
 		                           ArmA.X * Push.Y - ArmA.Y * Push.X};
 		const FVector3D MomentB = {ArmB.Y * Push.Z - ArmB.Z * Push.Y, ArmB.Z * Push.X - ArmB.X * Push.Z,
 		                           ArmB.X * Push.Y - ArmB.Y * Push.X};
-		const FVector3D DeltaA = WorldInverseInertia_Internal(BodyA, MomentA);
-		const FVector3D DeltaB = WorldInverseInertia_Internal(BodyB, MomentB);
+		const FQuaternionD QuaternionA = ToDouble_Internal(BodyA.Orientation);
+		const FQuaternionD QuaternionB = ToDouble_Internal(BodyB.Orientation);
+		const FVector3D DeltaA = TransformDiagonal_Internal(QuaternionA, InverseDiagonalA, MomentA);
+		const FVector3D DeltaB = TransformDiagonal_Internal(QuaternionB, InverseDiagonalB, MomentB);
 		BodyA.AngularVelocity += {static_cast<Toolbox::f32>(DeltaA.X), static_cast<Toolbox::f32>(DeltaA.Y),
 		                          static_cast<Toolbox::f32>(DeltaA.Z)};
 		BodyB.AngularVelocity += {static_cast<Toolbox::f32>(-DeltaB.X), static_cast<Toolbox::f32>(-DeltaB.Y),
 		                          static_cast<Toolbox::f32>(-DeltaB.Z)};
 	}
-	// 二つのコライダー組から接触点列を作る。箱同士は生成しない。
+	// 二つのコライダー組から接触点列を作る。
 	void AppendPairManifold_Internal(const FColliderRecord3D& RecordA, const FColliderId3D& IdA,
 	                                 const FColliderRecord3D& RecordB, const FColliderId3D& IdB,
 	                                 const FBodyRecord3D& BodyA, const FBodyRecord3D& BodyB, FManifold3D& Manifold)
@@ -593,6 +956,23 @@ struct FPhysicsWorld3D::FImpl
 			Point.Friction = Friction;
 			Point.Restitution = Restitution;
 			Manifold.Points.PushBack(Point);
+		}
+		else
+		{
+			Toolbox::TVector<Toolbox::FContactPoint3D> Hits;
+			FindBoxBoxContacts_Internal(ToWorld_Internal(BodyA, RecordA.Shape.Get<1>()),
+			                            ToWorld_Internal(BodyB, RecordB.Shape.Get<1>()), Contact.ContactSlop, Hits);
+			for (Toolbox::size_t Index = 0; Index < Hits.Size(); ++Index)
+			{
+				FSolvePoint3D Point;
+				Point.Position = Hits[Index].Position;
+				Point.Normal = Hits[Index].Normal;
+				Point.Separation = Hits[Index].Separation;
+				Point.FeatureId = Hits[Index].FeatureId;
+				Point.Friction = Friction;
+				Point.Restitution = Restitution;
+				Manifold.Points.PushBack(Point);
+			}
 		}
 	}
 	// 全コライダー組から多様体列を作る。
@@ -674,6 +1054,29 @@ struct FPhysicsWorld3D::FImpl
 		U = Cross;
 		V = {Normal.Y * U.Z - Normal.Z * U.Y, Normal.Z * U.X - Normal.X * U.Z, Normal.X * U.Y - Normal.Y * U.X};
 	}
+	// 休止中の剛体を起こす。
+	static void Wake_Internal(FBodyRecord3D& Record) noexcept
+	{
+		Record.bSleeping = false;
+		Record.SleepTimer = 0;
+	}
+	// 休止中は無限質量として扱う逆質量を返す。
+	static Toolbox::f32 EffectiveInverseMass_Internal(const FBodyRecord3D& Record) noexcept
+	{
+		return Record.bSleeping ? 0 : Record.InverseMass;
+	}
+	// 休止中は無限慣性として扱う逆対角慣性を返す。
+	static FVector3D EffectiveInverseDiagonal_Internal(const FBodyRecord3D& Record) noexcept
+	{
+		if (Record.bSleeping)
+		{
+			FVector3D Zero = {0, 0, 0};
+			return Zero;
+		}
+		FVector3D Inverse = {Record.InverseDiagonalInertia.X, Record.InverseDiagonalInertia.Y,
+		                     Record.InverseDiagonalInertia.Z};
+		return Inverse;
+	}
 	// 前回Impulseを適用し、反発目標の基準速度を保存する。
 	void WarmStart_Internal(FManifold3D& Manifold)
 	{
@@ -683,6 +1086,8 @@ struct FPhysicsWorld3D::FImpl
 		{
 			return;
 		}
+		// 新しい接触は休止中の剛体を起こす。一方向ずつの伝播で島へ広がる。
+		bool bKnownPair = false;
 		for (Toolbox::size_t Index = 0; Index < Manifold.Points.Size(); ++Index)
 		{
 			FSolvePoint3D& Point = Manifold.Points[Index];
@@ -718,8 +1123,15 @@ struct FPhysicsWorld3D::FImpl
 				                        Toolbox::f64(Point.Normal.Y) * Point.NormalImpulse + Cached.FrictionImpulse.Y,
 				                        Toolbox::f64(Point.Normal.Z) * Point.NormalImpulse + Cached.FrictionImpulse.Z};
 				ApplyImpulse_Internal(*BodyA, *BodyB, Point.Position, Push);
+				bKnownPair = true;
 				break;
 			}
+		}
+		if (!bKnownPair)
+		{
+			// 未知の接触は両側を起こす。
+			Wake_Internal(*BodyA);
+			Wake_Internal(*BodyB);
 		}
 	}
 	// 単一接触点の速度拘束を解く。
@@ -727,6 +1139,13 @@ struct FPhysicsWorld3D::FImpl
 	                                Toolbox::f32 RestitutionThreshold) noexcept
 	{
 		const FVector3D Normal = {Point.Normal.X, Point.Normal.Y, Point.Normal.Z};
+		// 休止中は無限質量として扱う。
+		const Toolbox::f64 InverseMassA = EffectiveInverseMass_Internal(BodyA);
+		const Toolbox::f64 InverseMassB = EffectiveInverseMass_Internal(BodyB);
+		const FQuaternionD QuaternionA = ToDouble_Internal(BodyA.Orientation);
+		const FQuaternionD QuaternionB = ToDouble_Internal(BodyB.Orientation);
+		const FVector3D InverseDiagonalA = EffectiveInverseDiagonal_Internal(BodyA);
+		const FVector3D InverseDiagonalB = EffectiveInverseDiagonal_Internal(BodyB);
 		// 腕。
 		const FVector3D ArmA = {Toolbox::f64(Point.Position.X) - BodyA.Position.X,
 		                        Toolbox::f64(Point.Position.Y) - BodyA.Position.Y,
@@ -740,9 +1159,9 @@ struct FPhysicsWorld3D::FImpl
 		const FVector3D CrossNB = {ArmB.Y * Normal.Z - ArmB.Z * Normal.Y, ArmB.Z * Normal.X - ArmB.X * Normal.Z,
 		                           ArmB.X * Normal.Y - ArmB.Y * Normal.X};
 		// 法線の有効質量。
-		const FVector3D WeightedA = WorldInverseInertia_Internal(BodyA, CrossNA);
-		const FVector3D WeightedB = WorldInverseInertia_Internal(BodyB, CrossNB);
-		const Toolbox::f64 NormalMass = Toolbox::f64(BodyA.InverseMass) + BodyB.InverseMass +
+		const FVector3D WeightedA = TransformDiagonal_Internal(QuaternionA, InverseDiagonalA, CrossNA);
+		const FVector3D WeightedB = TransformDiagonal_Internal(QuaternionB, InverseDiagonalB, CrossNB);
+		const Toolbox::f64 NormalMass = InverseMassA + InverseMassB +
 		                                CrossNA.X * WeightedA.X + CrossNA.Y * WeightedA.Y + CrossNA.Z * WeightedA.Z +
 		                                CrossNB.X * WeightedB.X + CrossNB.Y * WeightedB.Y + CrossNB.Z * WeightedB.Z;
 		if (NormalMass <= 0)
@@ -776,14 +1195,14 @@ struct FPhysicsWorld3D::FImpl
 		const FVector3D CrossUB = {ArmB.Y * U.Z - ArmB.Z * U.Y, ArmB.Z * U.X - ArmB.X * U.Z, ArmB.X * U.Y - ArmB.Y * U.X};
 		const FVector3D CrossVA = {ArmA.Y * V.Z - ArmA.Z * V.Y, ArmA.Z * V.X - ArmA.X * V.Z, ArmA.X * V.Y - ArmA.Y * V.X};
 		const FVector3D CrossVB = {ArmB.Y * V.Z - ArmB.Z * V.Y, ArmB.Z * V.X - ArmB.X * V.Z, ArmB.X * V.Y - ArmB.Y * V.X};
-		const FVector3D WeightedUA = WorldInverseInertia_Internal(BodyA, CrossUA);
-		const FVector3D WeightedUB = WorldInverseInertia_Internal(BodyB, CrossUB);
-		const FVector3D WeightedVA = WorldInverseInertia_Internal(BodyA, CrossVA);
-		const FVector3D WeightedVB = WorldInverseInertia_Internal(BodyB, CrossVB);
-		const Toolbox::f64 MassU = Toolbox::f64(BodyA.InverseMass) + BodyB.InverseMass + CrossUA.X * WeightedUA.X +
+		const FVector3D WeightedUA = TransformDiagonal_Internal(QuaternionA, InverseDiagonalA, CrossUA);
+		const FVector3D WeightedUB = TransformDiagonal_Internal(QuaternionB, InverseDiagonalB, CrossUB);
+		const FVector3D WeightedVA = TransformDiagonal_Internal(QuaternionA, InverseDiagonalA, CrossVA);
+		const FVector3D WeightedVB = TransformDiagonal_Internal(QuaternionB, InverseDiagonalB, CrossVB);
+		const Toolbox::f64 MassU = InverseMassA + InverseMassB + CrossUA.X * WeightedUA.X +
 		                           CrossUA.Y * WeightedUA.Y + CrossUA.Z * WeightedUA.Z + CrossUB.X * WeightedUB.X +
 		                           CrossUB.Y * WeightedUB.Y + CrossUB.Z * WeightedUB.Z;
-		const Toolbox::f64 MassV = Toolbox::f64(BodyA.InverseMass) + BodyB.InverseMass + CrossVA.X * WeightedVA.X +
+		const Toolbox::f64 MassV = InverseMassA + InverseMassB + CrossVA.X * WeightedVA.X +
 		                           CrossVA.Y * WeightedVA.Y + CrossVA.Z * WeightedVA.Z + CrossVB.X * WeightedVB.X +
 		                           CrossVB.Y * WeightedVB.Y + CrossVB.Z * WeightedVB.Z;
 		if (MassU <= 0 || MassV <= 0)
@@ -895,6 +1314,66 @@ struct FPhysicsWorld3D::FImpl
 			}
 		}
 	}
+	// 低速接触の継続で休止し、支持を失ったら起こす。
+	void UpdateSleep_Internal(const Toolbox::TVector<FManifold3D>& Manifolds, Toolbox::f64 Slice) noexcept
+	{
+		if (!Sleep.bEnabled)
+		{
+			return;
+		}
+		for (Toolbox::size_t ManifoldIndex = 0; ManifoldIndex < Manifolds.Size(); ++ManifoldIndex)
+		{
+			const FManifold3D& Manifold = Manifolds[ManifoldIndex];
+			FBodyRecord3D* BodyA = Find_Internal(Manifold.BodyA);
+			FBodyRecord3D* BodyB = Find_Internal(Manifold.BodyB);
+			if (BodyA != nullptr)
+			{
+				BodyA->bTouched = true;
+			}
+			if (BodyB != nullptr)
+			{
+				BodyB->bTouched = true;
+			}
+		}
+		for (Toolbox::size_t Index = 0; Index < Slots.Size(); ++Index)
+		{
+			FBodyRecord3D& Record = Slots[Index];
+			if (!Record.bAlive || Record.Type != EBodyType::Dynamic || !Record.bAllowSleep)
+			{
+				Record.bTouched = false;
+				continue;
+			}
+			if (!Record.bTouched)
+			{
+				// 支持を失ったら起こす。
+				Record.SleepTimer = 0;
+				Record.bSleeping = false;
+				continue;
+			}
+			// 速度の大きさ。
+			const Toolbox::f64 Speed = Toolbox::Sqrt(Toolbox::f64(Record.Velocity.X) * Record.Velocity.X +
+			                                         Toolbox::f64(Record.Velocity.Y) * Record.Velocity.Y +
+			                                         Toolbox::f64(Record.Velocity.Z) * Record.Velocity.Z);
+			const Toolbox::f64 Spin = Toolbox::Sqrt(Toolbox::f64(Record.AngularVelocity.X) * Record.AngularVelocity.X +
+			                                        Toolbox::f64(Record.AngularVelocity.Y) * Record.AngularVelocity.Y +
+			                                        Toolbox::f64(Record.AngularVelocity.Z) * Record.AngularVelocity.Z);
+			if (Speed <= Sleep.LinearSpeedLimit && Spin <= Sleep.AngularSpeedLimit)
+			{
+				Record.SleepTimer = static_cast<Toolbox::f32>(Toolbox::f64(Record.SleepTimer) + Slice);
+				if (Record.SleepTimer >= Sleep.TimeoutSeconds)
+				{
+					Record.bSleeping = true;
+					Record.Velocity = {};
+					Record.AngularVelocity = {};
+				}
+			}
+			else
+			{
+				Record.SleepTimer = 0;
+			}
+			Record.bTouched = false;
+		}
+	}
 	// 許容幅を超える貫通を位置で補正する。運動エネルギーは注入しない。
 	void CorrectPositions_Internal(const Toolbox::TVector<FManifold3D>& Manifolds) noexcept
 	{
@@ -907,8 +1386,9 @@ struct FPhysicsWorld3D::FImpl
 			{
 				continue;
 			}
-			// 逆質量の合計。
-			const Toolbox::f64 TotalInverse = Toolbox::f64(BodyA->InverseMass) + BodyB->InverseMass;
+			// 逆質量の合計。休止中は無限質量として扱う。
+			const Toolbox::f64 TotalInverse =
+			    Toolbox::f64(EffectiveInverseMass_Internal(*BodyA)) + EffectiveInverseMass_Internal(*BodyB);
 			if (TotalInverse <= 0)
 			{
 				continue;
@@ -927,8 +1407,8 @@ struct FPhysicsWorld3D::FImpl
 				{
 					Correction = Contact.MaxCorrection;
 				}
-				const Toolbox::f64 WeightA = Toolbox::f64(BodyA->InverseMass) / TotalInverse;
-				const Toolbox::f64 WeightB = Toolbox::f64(BodyB->InverseMass) / TotalInverse;
+			const Toolbox::f64 WeightA = Toolbox::f64(EffectiveInverseMass_Internal(*BodyA)) / TotalInverse;
+			const Toolbox::f64 WeightB = Toolbox::f64(EffectiveInverseMass_Internal(*BodyB)) / TotalInverse;
 				BodyA->Position += {static_cast<Toolbox::f32>(Point.Normal.X * Correction * WeightA),
 				                    static_cast<Toolbox::f32>(Point.Normal.Y * Correction * WeightA),
 				                    static_cast<Toolbox::f32>(Point.Normal.Z * Correction * WeightA)};
@@ -981,13 +1461,13 @@ struct FPhysicsWorld3D::FImpl
 		}
 		return SweptBox_Internal(ToWorld_Internal(Body, Record.Shape.Get<1>()), Displacement);
 	}
-	// 全剛体を位置だけ進める。力の積分は繰り返さない。
+	// 全剛体を位置だけ進める。力の積分は繰り返さない。休止中は動かさない。
 	void AdvanceAll_Internal(Toolbox::f64 Slice) noexcept
 	{
 		for (Toolbox::size_t Index = 0; Index < Slots.Size(); ++Index)
 		{
 			FBodyRecord3D& Record = Slots[Index];
-			if (!Record.bAlive)
+			if (!Record.bAlive || Record.bSleeping)
 			{
 				continue;
 			}
@@ -1329,6 +1809,7 @@ FBodyId3D FPhysicsWorld3D::CreateBody(const FBodyDescription3D& Description)
 	Record.AngularDamping = Description.AngularDamping;
 	Record.GravityScale = Description.GravityScale;
 	Record.bUseContinuous = Description.bUseContinuous;
+	Record.bAllowSleep = Description.bAllowSleep;
 	if (Description.Type == EBodyType::Dynamic)
 	{
 		if (!Toolbox::IsFinite(Description.Mass) || Description.Mass <= 0)
@@ -1452,6 +1933,9 @@ void FPhysicsWorld3D::SetVelocity(FBodyId3D Id, Toolbox::FVector3 Velocity)
 	{
 		throw Toolbox::FException("Static 3D body has no velocity");
 	}
+	// 外力は休止中の剛体を起こす。
+	Record.bSleeping = false;
+	Record.SleepTimer = 0;
 	Record.Velocity = Velocity;
 }
 void FPhysicsWorld3D::SetAngularVelocity(FBodyId3D Id, Toolbox::FVector3 AngularVelocity)
@@ -1465,6 +1949,9 @@ void FPhysicsWorld3D::SetAngularVelocity(FBodyId3D Id, Toolbox::FVector3 Angular
 	{
 		throw Toolbox::FException("Static 3D body has no angular velocity");
 	}
+	// 外力は休止中の剛体を起こす。
+	Record.bSleeping = false;
+	Record.SleepTimer = 0;
 	Record.AngularVelocity = AngularVelocity;
 }
 void FPhysicsWorld3D::ApplyForce(FBodyId3D Id, Toolbox::FVector3 Force)
@@ -1478,6 +1965,9 @@ void FPhysicsWorld3D::ApplyForce(FBodyId3D Id, Toolbox::FVector3 Force)
 	{
 		throw Toolbox::FException("Only dynamic 3D bodies accept forces");
 	}
+	// 外力は休止中の剛体を起こす。
+	Record.bSleeping = false;
+	Record.SleepTimer = 0;
 	Record.Force += Force;
 }
 void FPhysicsWorld3D::ApplyTorque(FBodyId3D Id, Toolbox::FVector3 Torque)
@@ -1491,6 +1981,9 @@ void FPhysicsWorld3D::ApplyTorque(FBodyId3D Id, Toolbox::FVector3 Torque)
 	{
 		throw Toolbox::FException("Only dynamic 3D bodies accept torques");
 	}
+	// 外力は休止中の剛体を起こす。
+	Record.bSleeping = false;
+	Record.SleepTimer = 0;
 	Record.Torque += Torque;
 }
 void FPhysicsWorld3D::ApplyLinearImpulse(FBodyId3D Id, Toolbox::FVector3 Impulse)
@@ -1504,6 +1997,9 @@ void FPhysicsWorld3D::ApplyLinearImpulse(FBodyId3D Id, Toolbox::FVector3 Impulse
 	{
 		throw Toolbox::FException("Only dynamic 3D bodies accept impulses");
 	}
+	// 外力は休止中の剛体を起こす。
+	Record.bSleeping = false;
+	Record.SleepTimer = 0;
 	// 力積は速度へ即時反映し、分割数に依存しない。
 	Record.Velocity += Impulse * Record.InverseMass;
 }
@@ -1518,6 +2014,9 @@ void FPhysicsWorld3D::ApplyAngularImpulse(FBodyId3D Id, Toolbox::FVector3 Impuls
 	{
 		throw Toolbox::FException("Only dynamic 3D bodies accept impulses");
 	}
+	// 外力は休止中の剛体を起こす。
+	Record.bSleeping = false;
+	Record.SleepTimer = 0;
 	// 力積モーメントをワールド逆慣性で角速度へ変換する。
 	const FQuaternionD Q = ToDouble_Internal(Record.Orientation);
 	const FVector3D Vector = {Impulse.X, Impulse.Y, Impulse.Z};
@@ -1538,6 +2037,9 @@ void FPhysicsWorld3D::ApplyImpulseAtPoint(FBodyId3D Id, Toolbox::FVector3 Impuls
 	{
 		throw Toolbox::FException("Only dynamic 3D bodies accept impulses");
 	}
+	// 外力は休止中の剛体を起こす。
+	Record.bSleeping = false;
+	Record.SleepTimer = 0;
 	// 重心からの腕と力積の外積が回転を生む。
 	const FVector3D Arm = {static_cast<Toolbox::f64>(WorldPoint.X) - Record.Position.X,
 	                       static_cast<Toolbox::f64>(WorldPoint.Y) - Record.Position.Y,
@@ -1712,6 +2214,41 @@ FContinuousDiagnostics3D FPhysicsWorld3D::GetContinuousDiagnostics() const noexc
 {
 	return m_pImpl->Diagnostics;
 }
+void FPhysicsWorld3D::SetSleepSettings(const FSleepSettings3D& Settings)
+{
+	if (!Toolbox::IsFinite(Settings.TimeoutSeconds) || Settings.TimeoutSeconds <= 0)
+	{
+		throw Toolbox::FException("Invalid 3D sleep timeout");
+	}
+	if (!Toolbox::IsFinite(Settings.LinearSpeedLimit) || Settings.LinearSpeedLimit < 0)
+	{
+		throw Toolbox::FException("Invalid 3D sleep speed");
+	}
+	if (!Toolbox::IsFinite(Settings.AngularSpeedLimit) || Settings.AngularSpeedLimit < 0)
+	{
+		throw Toolbox::FException("Invalid 3D sleep spin");
+	}
+	m_pImpl->Sleep = Settings;
+}
+FSleepSettings3D FPhysicsWorld3D::GetSleepSettings() const noexcept
+{
+	return m_pImpl->Sleep;
+}
+bool FPhysicsWorld3D::IsSleeping(FBodyId3D Id) const
+{
+	return m_pImpl->Resolve_Internal(Id).bSleeping;
+}
+bool FPhysicsWorld3D::WakeUp(FBodyId3D Id) noexcept
+{
+	FBodyRecord3D* Record = m_pImpl->Find_Internal(Id);
+	if (Record == nullptr || Record->Type != EBodyType::Dynamic)
+	{
+		return false;
+	}
+	Record->bSleeping = false;
+	Record->SleepTimer = 0;
+	return true;
+}
 void FPhysicsWorld3D::SetBodyTransform(FBodyId3D Id, Toolbox::FVector3 Position, Toolbox::FQuaternion Orientation)
 {
 	if (!Position.IsValid())
@@ -1728,6 +2265,9 @@ void FPhysicsWorld3D::SetBodyTransform(FBodyId3D Id, Toolbox::FVector3 Position,
 		throw Toolbox::FException("Invalid 3D body transform");
 	}
 	FBodyRecord3D& Record = m_pImpl->Resolve_Internal(Id);
+	// 外力は休止中の剛体を起こす。
+	Record.bSleeping = false;
+	Record.SleepTimer = 0;
 	Record.Position = Position;
 	Record.Orientation = Normalized;
 }
@@ -1761,7 +2301,7 @@ void FPhysicsWorld3D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 		for (Toolbox::size_t Index = 0; Index < m_pImpl->Slots.Size(); ++Index)
 		{
 			FBodyRecord3D& Record = m_pImpl->Slots[Index];
-			if (!Record.bAlive || Record.Type != EBodyType::Dynamic)
+			if (!Record.bAlive || Record.Type != EBodyType::Dynamic || Record.bSleeping)
 			{
 				continue;
 			}
@@ -1784,6 +2324,7 @@ void FPhysicsWorld3D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 			Toolbox::TVector<FManifold3D> Touched;
 			m_pImpl->GenerateManifolds_Internal(Touched);
 			m_pImpl->CorrectPositions_Internal(Touched);
+			m_pImpl->UpdateSleep_Internal(Touched, Slice);
 			continue;
 		}
 		// 更新後の速度で位置を進める。
@@ -1813,6 +2354,7 @@ void FPhysicsWorld3D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 		}
 		// 許容幅を超える貫通を位置で補正する。
 		m_pImpl->CorrectPositions_Internal(Manifolds);
+		m_pImpl->UpdateSleep_Internal(Manifolds, Slice);
 	}
 	// 蓄積した力とトルクを一度だけ消去する。
 	for (Toolbox::size_t Index = 0; Index < m_pImpl->Slots.Size(); ++Index)

@@ -6,7 +6,7 @@ function Export-RootSolution {
         [Parameter(Mandatory = $true)][string]$BuildRelative,
         [switch]$Development
     )
-    $VisibleProjects = @('dxf_toolbox', 'dxf_foundation', 'dxf_support', 'dxf_runtime', 'dxf_gameplay', 'dxf_native_backends', 'Sandbox', 'Starter')
+    $VisibleProjects = @('dxf_toolbox', 'dxf_foundation', 'dxf_support', 'dxf_runtime', 'dxf_gameplay', 'dxf_physics', 'dxf_native_backends', 'Sandbox', 'Starter')
     if ([IO.Path]::GetExtension($Source) -eq '.slnx') {
         $Document = New-Object System.Xml.XmlDocument
         $Document.PreserveWhitespace = $true
