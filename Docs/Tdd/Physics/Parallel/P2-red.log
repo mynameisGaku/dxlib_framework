@@ -1,0 +1,8 @@
+// SPDX-License-Identifier: NOASSERTION
+// Parallel Stage-2 P2 Red audit.
+// 1) Packaging path: PhysicsExecution.h could be present while Toolbox/JobSystem.h was absent when users copied only Stage2 Source/Physics.
+//    Observed user failure: cannot open source file "Toolbox/JobSystem.h" / Toolbox::FJobSystem missing.
+// 2) GCC low-optimization sanitizer compile: EntryLess_Internal / PairLess_Internal were FORCEINLINE but passed as comparator function pointers.
+//    GCC rejected the indirect call because always_inline could not be satisfied.
+// 3) World-to-broad-phase conversion rounded AABB endpoints back to f32 even though FBroadPhaseBounds stores f64.
+//    Large coordinates could therefore lose small half extents before Sweep-and-Prune.

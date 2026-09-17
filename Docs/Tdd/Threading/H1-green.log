@@ -1,0 +1,11 @@
+// SPDX-License-Identifier: NOASSERTION
+// Threading H1 Green: Wait now synchronizes with the final Complete critical section.
+// Fix: external and worker Wait paths call FJobFence::Wait_Internal() as the lifetime synchronization
+// point even when Pending has already reached zero. IsComplete remains a polling observation only.
+// Regression: 2,000 submit/wait/fence-destruction cycles were added to ThreadingTests.
+// Local isolated Toolbox validation in this environment:
+// - GCC -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror: PASS
+// - GCC AddressSanitizer + UndefinedBehaviorSanitizer + leak detection: PASS
+// - GCC ThreadSanitizer with halt_on_error=1: PASS
+// - 100 repeated normal stress executions: PASS
+// Full repository and Windows/MSVC builds were not executable in this environment and are not claimed here.

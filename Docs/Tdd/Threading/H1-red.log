@@ -1,0 +1,10 @@
+// SPDX-License-Identifier: NOASSERTION
+// Threading H1 Red: Fence completion lifetime race found by self-audit.
+// Base implementation: multithreading Stage1 working copy based on c75e7bb85a33865ba6b4d07c0064646d2c402408.
+// Command: g++ -std=c++20 -pthread -fsanitize=thread ... && ./thread_tests
+// Result: ThreadSanitizer reported a data race between FJobFence destruction on the waiting thread
+// and FJobFence::Complete_Internal() / FConditionVariable::NotifyAll() on a worker.
+// Root cause: FJobSystem::Wait_Internal() had an IsComplete() fast path. Pending became zero before
+// the final worker finished the fence notification/mutex critical section, so Wait could return and
+// permit fence destruction too early.
+// This log records the sanitizer failure rather than treating the earlier non-sanitized pass as Green.

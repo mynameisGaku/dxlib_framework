@@ -1,0 +1,12 @@
+PASS broad phase filters and canonicalizes pairs
+PASS broad phase expands bounds by contact margin
+PASS parallel 2D broad phase matches brute force
+PASS parallel 3D broad phase matches brute force
+PASS island manager separates dynamic components across static bodies
+PASS island roots and bodies are deterministic
+PASS broad phase handles 5000 sparse colliders
+PASS broad phase emits all dense unique pairs in stable order
+PASS broad phase rejects invalid bounds and margin
+PASS island manager handles a 10000 body chain
+PASS island manager rejects out of range bodies
+RESULT 11/11 passed

@@ -1,0 +1,8 @@
+Base: c75e7bb85a33865ba6b4d07c0064646d2c402408
+RED classification: compile-time API absence
+Expected APIs/modules did not exist at the base commit:
+- Dxf/PhysicsExecution.h
+- PhysicsPrivate::FBroadPhase
+- PhysicsPrivate::FIslandManager
+- FPhysicsWorld2D/3D::SetExecutionSettings
+Focused parallel-physics tests therefore could not compile before implementation.

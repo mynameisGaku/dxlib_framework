@@ -1,0 +1,9 @@
+Stage-2 focused core validation after implementation:
+- GCC Debug, -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror: 11/11
+- GCC Release -O2/NDEBUG: 11/11
+- ASan + UBSan + leak detection: 11/11
+- GCC ThreadSanitizer: 11/11, no reported data race
+- Release test executable repeated 100 times: all pass
+- No-STL focused scan: 35 files, 0 violations
+- Deterministic random 2D/3D BroadPhase output matched brute-force AABB reference.
+This is focused validation, not a claim that Windows/MSVC or the entire repository was rerun here.

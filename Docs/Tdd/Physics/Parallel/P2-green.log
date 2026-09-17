@@ -1,0 +1,12 @@
+// SPDX-License-Identifier: NOASSERTION
+// Parallel Stage-2 P2 Green audit.
+// Fixes:
+// - corrected bundle ships Stage1 implementation directly and has a dirty-worktree repair path;
+// - sort comparator helpers are ordinary functions rather than FORCEINLINE function-pointer targets;
+// - Circle/Sphere/OBB broad-phase endpoints convert the f32 center to f64 before +/- radius/extent;
+// - large-coordinate broad-phase regression added.
+// Focused local verification:
+// - GCC Release + warnings-as-errors: PASS
+// - GCC AddressSanitizer + UndefinedBehaviorSanitizer + leak detection: PASS
+// - GCC ThreadSanitizer with halt_on_error=1: PASS
+// Full c75e7bb repository + Windows/MSVC build still requires applying the bundle in the live checkout.
