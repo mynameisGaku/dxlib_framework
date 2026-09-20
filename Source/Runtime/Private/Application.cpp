@@ -35,6 +35,15 @@ TResult<void> FApplication::Start_Internal(Toolbox::TUniquePtr<DScene> InitialSc
 	{
 		return SessionResult;
 	}
+	if (!m_Settings.ProjectRoot.IsEmpty())
+	{
+		// アセット使用より先に一度だけ確定する基準ディレクトリ。
+		if (!m_Assets.SetProjectRoot(Toolbox::FPath(m_Settings.ProjectRoot)))
+		{
+			return TResult<void>::Failure(EErrorCode::InvalidArgument,
+			                              "ProjectRoot must be an absolute directory");
+		}
+	}
 	if (m_pGame)
 	{
 		// ゲーム更新の結果。

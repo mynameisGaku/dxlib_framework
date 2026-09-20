@@ -26,6 +26,10 @@ struct FApplicationSettings
 	 * 一度に進める時間の上限秒数。
 	 */
 	Toolbox::f64 MaxDeltaSeconds = 0.25;
+	/**
+	 * アセット解決の基準にするProjectRoot。空なら従来の相対パスのまま使う。
+	 */
+	Toolbox::FString ProjectRoot;
 };
 /**
  * メインスレッドで一度だけ起動する。コールバック中の終了処理は復帰後へ遅延する。

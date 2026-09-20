@@ -92,6 +92,10 @@ FString FromWide(const FWideString& Text);
  */
 FPath CurrentDirectory();
 /**
+ * 実行ファイルが配置されているディレクトリを取得する。
+ */
+FPath ExecutableDirectory();
+/**
  * OSの一時ディレクトリを取得する。
  */
 FPath TemporaryDirectory();
@@ -105,6 +109,11 @@ bool CreateDirectory(const FPath& Path);
  * @param Path 操作対象のパス。
  */
 bool IsRegularFile(const FPath& Path);
+/**
+ * 指定パスがディレクトリを指しているか調べる。
+ * @param Path 操作対象のパス。
+ */
+bool IsDirectory(const FPath& Path);
 /**
  * ファイルを新規コピーする。既存のコピー先は上書きしない。
  * @param Source 読み取り元のパス。

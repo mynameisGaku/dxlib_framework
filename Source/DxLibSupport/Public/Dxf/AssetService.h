@@ -3,6 +3,7 @@
 #include "Dxf/SoundLoader.h"
 #include "Dxf/FontLoader.h"
 #include "Dxf/ResourceCache.h"
+#include "Toolbox/ProjectPaths.h"
 namespace Dxf
 {
 /**
@@ -43,17 +44,28 @@ public:
 	 */
 	FAssetService& operator=(const FAssetService&) = delete;
 	/**
-	 * 画像を読み込みテクスチャを取得する。
+	 * 画像を読み込みテクスチャを取得する。Root設定時は解決済み絶対パスで読み込む。
 	 * @param Path 読み込むファイルのパス。
 	 * @param Options 処理に適用する設定。
 	 */
 	TResult<FTexture> LoadTexture(const Toolbox::FString& Path, const FTextureLoadOptions& Options = {});
 	/**
-	 * 音声ファイルを読み込む。
+	 * 音声ファイルを読み込む。Root設定時は解決済み絶対パスで読み込む。
 	 * @param Path 読み込むファイルのパス。
 	 * @param Options 処理に適用する設定。
 	 */
 	TResult<FSound> LoadSound(const Toolbox::FString& Path, const FSoundLoadOptions& Options = {});
+	/**
+	 * ProjectRootを一度だけ設定する。以後の要求はこのRootを基準に解決する。
+	 * 未設定のままなら従来どおり呼び出し側の相対パスをそのまま使う。
+	 * @param Root sln配置先の完全修飾ディレクトリ。
+	 * @return 初回かつ有効なRootならtrue。
+	 */
+	bool SetProjectRoot(const Toolbox::FPath& Root);
+	/**
+	 * 設定済みのProjectRootを返す。未設定なら空。
+	 */
+	Toolbox::FPath GetProjectRoot() const;
 	/**
 	 * 指定設定のフォントを取得する。
 	 * @param Options 処理に適用する設定。
@@ -104,5 +116,9 @@ private:
 	 * フォントの再利用キャッシュ。
 	 */
 	FFontCache m_FontCache;
+	/**
+	 * 要求パスをProjectRoot基準で解決する。未設定なら素通し。
+	 */
+	Toolbox::FAssetPathResolver m_Resolver;
 };
 } // namespace Dxf

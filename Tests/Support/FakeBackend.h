@@ -38,6 +38,14 @@ struct FBackendTrace
 	 */
 	Toolbox::int32 Resets = 0;
 	/**
+	 * 画像読み込みへ渡されたパスの記録。
+	 */
+	Toolbox::TVector<Toolbox::FString> TexturePaths;
+	/**
+	 * 音声読み込みへ渡されたパスの記録。
+	 */
+	Toolbox::TVector<Toolbox::FString> SoundPaths;
+	/**
 	 * 現在の描画先の疑似資源番号。
 	 */
 	Toolbox::int32 CurrentTarget = -1;
@@ -151,9 +159,10 @@ public:
 	/**
 	 * 画像の疑似資源番号を発行し読み込みを記録する。
 	 */
-	TResult<FTextureAllocation> LoadTexture(const Toolbox::FString&, const FTextureLoadOptions&) override
+	TResult<FTextureAllocation> LoadTexture(const Toolbox::FString& Path, const FTextureLoadOptions&) override
 	{
 		++m_Trace.TextureLoads;
+		m_Trace.TexturePaths.PushBack(Path);
 		if (m_Trace.bFailTexture)
 		{
 			return TResult<FTextureAllocation>::Failure(EErrorCode::NotFound, "missing texture");
@@ -189,9 +198,10 @@ public:
 	/**
 	 * 音声資源の読み込みを記録する。
 	 */
-	TResult<Toolbox::int32> LoadSound(const Toolbox::FString&, const FSoundLoadOptions&) override
+	TResult<Toolbox::int32> LoadSound(const Toolbox::FString& Path, const FSoundLoadOptions&) override
 	{
 		++m_Trace.SoundLoads;
+		m_Trace.SoundPaths.PushBack(Path);
 		if (m_Trace.bFailSound)
 		{
 			return TResult<Toolbox::int32>::Failure(EErrorCode::NotFound, "missing sound");

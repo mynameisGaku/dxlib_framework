@@ -13,6 +13,29 @@ Toolbox::FString NormalizePath_Internal(const Toolbox::FString& Path)
 	auto Normalized = Toolbox::FPath(Path).Normalize().ToUtf8();
 	return Toolbox::FString(reinterpret_cast<const char*>(Normalized.Data()), Normalized.Size());
 }
+// 要求パスをProjectRoot基準で解決する。未設定なら正規化だけ行う。
+// @param Resolver 設定済みかもしれない解決器。
+// @param Path 読み込むファイルのパス。
+// @param Resolved 解決したパスの格納先。
+bool ResolveAssetPath_Internal(const Toolbox::FAssetPathResolver& Resolver, const Toolbox::FString& Path,
+                               Toolbox::FString& Resolved)
+{
+	if (!Resolver.IsSet())
+	{
+		Resolved = NormalizePath_Internal(Path);
+		return true;
+	}
+	// 解決した絶対パス。
+	Toolbox::FPath Absolute;
+	if (!Resolver.Resolve(Path, Absolute))
+	{
+		return false;
+	}
+	// 正規化した解決結果。
+	auto Normalized = Absolute.Normalize().ToUtf8();
+	Resolved = Toolbox::FString(reinterpret_cast<const char*>(Normalized.Data()), Normalized.Size());
+	return true;
+}
 } // namespace
 // 必要な依存関係を受け取り、初期状態を構築する。
 // @param Textures 管理するテクスチャ群。
@@ -41,8 +64,16 @@ TResult<FTexture> FAssetService::LoadTexture(const Toolbox::FString& Path, const
 		return TResult<FTexture>::Failure(EErrorCode::InvalidArgument,
 		                                  "Texture path must be nonempty UTF-8 without NUL");
 	}
+	// 解決した読み込みパス。
+	Toolbox::FString Resolved;
+	if (!ResolveAssetPath_Internal(m_Resolver, Path, Resolved))
+	{
+		return TResult<FTexture>::Failure(
+		    EErrorCode::InvalidArgument,
+		    Toolbox::FString("Texture path cannot resolve against root ") + m_Resolver.GetRoot().ToUtf8() + ": " + Path);
+	}
 	// 正規化したパス。
-	const Toolbox::FString Normalized = NormalizePath_Internal(Path);
+	const Toolbox::FString Normalized = Resolved;
 	// 検索または入力のキー。
 	const Toolbox::FString Key = Normalized + (Options.bUse3D ? "|3d" : "|2d");
 	// 再利用可能なキャッシュを取得して有効性を確認する。
@@ -73,8 +104,16 @@ TResult<FSound> FAssetService::LoadSound(const Toolbox::FString& Path, const FSo
 		return TResult<FSound>::Failure(EErrorCode::InvalidArgument,
 		                                "Sound requires a valid storage mode and nonempty UTF-8 path without NUL");
 	}
+	// 解決した読み込みパス。
+	Toolbox::FString Resolved;
+	if (!ResolveAssetPath_Internal(m_Resolver, Path, Resolved))
+	{
+		return TResult<FSound>::Failure(
+		    EErrorCode::InvalidArgument,
+		    Toolbox::FString("Sound path cannot resolve against root ") + m_Resolver.GetRoot().ToUtf8() + ": " + Path);
+	}
 	// 正規化したパス。
-	const Toolbox::FString Normalized = NormalizePath_Internal(Path);
+	const Toolbox::FString Normalized = Resolved;
 	// 検索または入力のキー。
 	const Toolbox::FString Key = Normalized + (Options.Storage == ESoundStorage::Memory ? "|memory" : "|stream");
 	// 再利用可能なキャッシュを取得して有効性を確認する。
@@ -138,5 +177,16 @@ void FAssetService::Shutdown() noexcept
 	m_SoundCache.Clear();
 	m_FontCache.Clear();
 	m_Registry.Shutdown();
+}
+// ProjectRootを一度だけ設定する。以後の要求はこのRootを基準に解決する。
+// @param Root sln配置先の完全修飾ディレクトリ。
+bool FAssetService::SetProjectRoot(const Toolbox::FPath& Root)
+{
+	return m_Resolver.SetRoot(Root);
+}
+// 設定済みのProjectRootを返す。未設定なら空。
+Toolbox::FPath FAssetService::GetProjectRoot() const
+{
+	return m_Resolver.GetRoot();
 }
 } // namespace Dxf

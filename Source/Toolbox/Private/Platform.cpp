@@ -370,9 +370,53 @@ FPath CurrentDirectory()
 	return FPath(Buffer.Data());
 #endif
 }
-// OSの一時ディレクトリを取得する。
-FPath TemporaryDirectory()
+// 実行ファイルが配置されているディレクトリを取得する。
+FPath ExecutableDirectory()
 {
+#if defined(_WIN32)
+	// 実行ファイル名を受け取る作業領域。
+	TVector<wchar_t> Buffer(512);
+	for (;;)
+	{
+		// 有効な要素数。
+		const DWORD Size = GetModuleFileNameW(nullptr, Buffer.Data(), static_cast<DWORD>(Buffer.Size()));
+		if (Size == 0)
+		{
+			throw FException("GetModuleFileNameW failed");
+		}
+		if (Size < Buffer.Size())
+		{
+			return FPath(FWideString(Buffer.Data(), Size)).Parent();
+		}
+		if (Buffer.Size() >= 32768)
+		{
+			throw FException("Executable path is too long");
+		}
+		Buffer.Resize(Buffer.Size() * 2);
+	}
+#else
+	// 実行ファイルの配置を読む符号付きの読み取り結果。
+	char Self[32] = "/proc/self/exe";
+	// OS呼び出しや変換に使う一時領域。
+	TVector<char> Buffer(256);
+	for (;;)
+	{
+		// 解決したバイト数。
+		const ssize_t Count = readlink(Self, Buffer.Data(), Buffer.Size());
+		if (Count < 0)
+		{
+			throw FException("Cannot read executable directory");
+		}
+		if (static_cast<size_t>(Count) < Buffer.Size())
+		{
+			return FPath(FString(Buffer.Data(), static_cast<size_t>(Count))).Parent();
+		}
+		Buffer.Resize(Buffer.Size() * 2);
+	}
+#endif
+}
+// OSの一時ディレクトリを取得する。
+FPath TemporaryDirectory(){
 #if defined(_WIN32)
 	// OS呼び出しや変換に使う一時領域。
 	TVector<wchar_t> Buffer(32768);
@@ -426,6 +470,20 @@ bool IsRegularFile(const FPath& Path)
 	// ファイル種別を含むPOSIXの属性情報。
 	struct stat Info{};
 	return stat(Path.ToUtf8().CStr(), &Info) == 0 && S_ISREG(Info.st_mode);
+#endif
+}
+// 指定パスがディレクトリを指しているか調べる。
+// @param Path 操作対象のパス。
+bool IsDirectory(const FPath& Path)
+{
+#if defined(_WIN32)
+	// 対象がディレクトリかどうかを示す属性。
+	const DWORD Attributes = GetFileAttributesW(ToWide(Path.ToUtf8()).CStr());
+	return Attributes != INVALID_FILE_ATTRIBUTES && (Attributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+#else
+	// ファイル種別を含むPOSIXの属性情報。
+	struct stat Info{};
+	return stat(Path.ToUtf8().CStr(), &Info) == 0 && S_ISDIR(Info.st_mode);
 #endif
 }
 // ファイルを新規コピーする。既存のコピー先は上書きしない。

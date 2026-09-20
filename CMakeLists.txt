@@ -74,6 +74,7 @@ add_library(dxf_toolbox STATIC
     Source/Toolbox/Private/Threading.cpp
     Source/Toolbox/Private/JobSystem.cpp
     Source/Toolbox/Private/Platform.cpp
+    Source/Toolbox/Private/ProjectPaths.cpp
     Source/Toolbox/Private/Vector3.cpp
     Source/Toolbox/Private/Matrix4.cpp
     Source/Toolbox/Private/Quaternion.cpp
@@ -181,7 +182,7 @@ if(DXF_BUILD_TESTS)
         set_tests_properties(NoStl PROPERTIES LABELS "source-policy" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
     endif()
     add_executable(dxf_tests Tests/TestMain.cpp Tests/ToolboxTests.cpp Tests/MathCollisionTests.cpp Tests/FoundationTests.cpp Tests/SupportTests.cpp
-        Tests/GameplayTests.cpp Tests/ApplicationTests.cpp Tests/SandboxTests.cpp Tests/FixedTickTests.cpp Tests/PhysicsSceneTests.cpp Tests/ThreadingTests.cpp
+        Tests/GameplayTests.cpp Tests/ApplicationTests.cpp Tests/SandboxTests.cpp Tests/FixedTickTests.cpp Tests/PhysicsSceneTests.cpp Tests/ThreadingTests.cpp Tests/AssetRootTests.cpp
         Tests/HardeningTests.cpp Tests/RenderFailureTests.cpp Tests/SceneContinuationTests.cpp Tests/ResourceShutdownTests.cpp Tests/UsabilityTests.cpp Tests/StressTests.cpp Tests/StarterTests.cpp Examples/Starter/Source/BootScene.cpp Examples/Sandbox/SandboxGame.cpp)
     target_link_libraries(dxf_tests PRIVATE dxf::framework)
     target_include_directories(dxf_tests PRIVATE Tests Examples/Sandbox Examples/Starter/Source)
@@ -252,7 +253,7 @@ if(DXF_BUILD_EXAMPLE)
     dxf_ide_headers(Sandbox Examples/Sandbox)
     target_link_libraries(Sandbox PRIVATE dxf::native)
     dxf_warnings(Sandbox)
-    set_property(TARGET Sandbox PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:Sandbox>")
+    set_property(TARGET Sandbox PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
     set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT Sandbox)
 endif()
 
@@ -264,9 +265,24 @@ if(DXF_BUILD_STARTER)
     dxf_ide_headers(Starter Examples/Starter/Source)
     target_link_libraries(Starter PRIVATE dxf::native)
     dxf_warnings(Starter)
-    set_property(TARGET Starter PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:Starter>")
+    set_property(TARGET Starter PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
     set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT Starter)
 endif()
+
+# Writes a per-exe development path settings file next to the executable.
+# The relative ProjectRoot keeps working after moving the whole folder.
+function(dxf_runtime_paths Target ExeName)
+    add_custom_command(TARGET ${Target} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -DEXE_DIR="$<TARGET_FILE_DIR:${Target}>" -DROOT="${CMAKE_CURRENT_SOURCE_DIR}"
+            -DOUTPUT="$<TARGET_FILE_DIR:${Target}>/${ExeName}.dxfpaths"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/CMake/WriteDxfPaths.cmake"
+        COMMENT "Writing ${ExeName}.dxfpaths")
+endfunction()
+foreach(_dxf_pathed_target Sandbox Starter)
+    if(TARGET ${_dxf_pathed_target})
+        dxf_runtime_paths(${_dxf_pathed_target} ${_dxf_pathed_target})
+    endif()
+endforeach()
 
 # One writer for shared assets; parallel links must not copy into the same destination.
 if(TARGET NativeSmoke OR TARGET Sandbox)

@@ -2,6 +2,7 @@
 #include "Dxf/NativeBackends.h"
 #include "Dxf/AppRunner.h"
 #include "SandboxGame.h"
+#include "../Shared/ProjectRootEntry.h"
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -11,32 +12,6 @@
 #include "Toolbox/Vector.h"
 namespace
 {
-// 実行ファイルを基準にアセットの場所を求める。
-Toolbox::FString GetAssetRoot_Internal()
-{
-	// 文字列を受け取る作業領域。
-	Toolbox::TVector<wchar_t> Buffer(512);
-	for (;;)
-	{
-		// 有効な要素数。
-		const DWORD Size = GetModuleFileNameW(nullptr, Buffer.Data(), static_cast<DWORD>(Buffer.Size()));
-		if (Size == 0)
-		{
-			throw Toolbox::FException("GetModuleFileNameW failed");
-		}
-		if (Size < Buffer.Size())
-		{
-			// 基準ディレクトリ。
-			const auto Root = (Toolbox::FPath(Toolbox::FWideString(Buffer.Data(), Size)).Parent() / L"Assets").ToUtf8();
-			return {reinterpret_cast<const char*>(Root.Data()), Root.Size()};
-		}
-		if (Buffer.Size() >= 32768)
-		{
-			throw Toolbox::FException("Executable path is too long");
-		}
-		Buffer.Resize(Buffer.Size() * 2);
-	}
-}
 // 起動または実行時のエラーを表示する。
 // @param Message エラーの説明。
 void ShowError_Internal(const Toolbox::FString& Message)
@@ -69,14 +44,17 @@ Toolbox::int32 WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, Toolbox::int32)
 		// 初期化に使用する設定。
 		Dxf::FApplicationSettings Settings;
 		Settings.Window.Title = "dxlib_framework - Sandbox";
+		// sln配置先を基準にするアセットの起点。開発パス設定がなければexe配置先を使う。
+		const Toolbox::FPath ProjectRoot = Dxf::ResolveEntryProjectRoot(L"Sandbox.dxfpaths");
+		Settings.ProjectRoot = ProjectRoot.ToUtf8();
 		// サービスを結合した実行用のアプリケーション。
 		Dxf::FApplication Application(Backends.GetServices(), Settings,
 		                              Toolbox::MakeUnique<Dxf::Sandbox::DSandboxGameInstance>());
 		// アプリケーションの実行器。
 		Dxf::FAppRunner Runner;
 		// 処理結果。
-		auto Result =
-		    Runner.Run(Application, Toolbox::MakeUnique<Dxf::Sandbox::DSandboxScene>(GetAssetRoot_Internal()));
+		auto Result = Runner.Run(
+		    Application, Toolbox::MakeUnique<Dxf::Sandbox::DSandboxScene>(ProjectRoot.ToUtf8() + "/Assets"));
 		if (!Result)
 		{
 			ShowError_Internal(Result.Error().Message);
