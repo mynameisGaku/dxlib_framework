@@ -68,7 +68,11 @@ function(dxf_public_headers Target Layer Visibility)
     dxf_ide_headers(${Target} "Source/${Layer}")
 endfunction()
 
+find_package(Threads REQUIRED)
+
 add_library(dxf_toolbox STATIC
+    Source/Toolbox/Private/Threading.cpp
+    Source/Toolbox/Private/JobSystem.cpp
     Source/Toolbox/Private/Platform.cpp
     Source/Toolbox/Private/Vector3.cpp
     Source/Toolbox/Private/Matrix4.cpp
@@ -85,6 +89,7 @@ add_library(dxf_toolbox STATIC
 add_library(dxf::toolbox ALIAS dxf_toolbox)
 set_target_properties(dxf_toolbox PROPERTIES EXPORT_NAME toolbox DEBUG_POSTFIX d)
 target_compile_features(dxf_toolbox PUBLIC cxx_std_20)
+target_link_libraries(dxf_toolbox PUBLIC Threads::Threads)
 target_include_directories(dxf_toolbox PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Source/Toolbox/Public>" "$<INSTALL_INTERFACE:include>")
 dxf_ide_headers(dxf_toolbox Source/Toolbox)
 dxf_warnings(dxf_toolbox)
@@ -176,7 +181,7 @@ if(DXF_BUILD_TESTS)
         set_tests_properties(NoStl PROPERTIES LABELS "source-policy" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
     endif()
     add_executable(dxf_tests Tests/TestMain.cpp Tests/ToolboxTests.cpp Tests/MathCollisionTests.cpp Tests/FoundationTests.cpp Tests/SupportTests.cpp
-        Tests/GameplayTests.cpp Tests/ApplicationTests.cpp Tests/SandboxTests.cpp Tests/FixedTickTests.cpp Tests/PhysicsSceneTests.cpp
+        Tests/GameplayTests.cpp Tests/ApplicationTests.cpp Tests/SandboxTests.cpp Tests/FixedTickTests.cpp Tests/PhysicsSceneTests.cpp Tests/ThreadingTests.cpp
         Tests/HardeningTests.cpp Tests/RenderFailureTests.cpp Tests/SceneContinuationTests.cpp Tests/ResourceShutdownTests.cpp Tests/UsabilityTests.cpp Tests/StressTests.cpp Tests/StarterTests.cpp Examples/Starter/Source/BootScene.cpp Examples/Sandbox/SandboxGame.cpp)
     target_link_libraries(dxf_tests PRIVATE dxf::framework)
     target_include_directories(dxf_tests PRIVATE Tests Examples/Sandbox Examples/Starter/Source)

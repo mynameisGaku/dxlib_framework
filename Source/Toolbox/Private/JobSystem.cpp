@@ -48,6 +48,24 @@ struct FJobSystem::FImpl
 		FImpl* pSystem = nullptr;
 		uint32 Index = 0;
 	};
+	/**
+	 * 同一スレッド上で実行中のJobと所属Systemの退避先。
+	 */
+	struct FExecutionFrame
+	{
+		/**
+		 * 実行中Jobが属するJob System。
+		 */
+		FImpl* pSystem = nullptr;
+		/**
+		 * 実行中Jobへ渡された完了Fence。指定なしはnullptr。
+		 */
+		FJobFence* pFence = nullptr;
+		/**
+		 * 一つ外側で実行中のJob枠。最も外側はnullptr。
+		 */
+		FExecutionFrame* pPrevious = nullptr;
+	};
 	FMutex m_QueueMutex;
 	FConditionVariable m_QueueCondition;
 	FJobNode* m_pHead = nullptr;
@@ -66,6 +84,7 @@ struct FJobSystem::FImpl
 	static thread_local FImpl* s_pCurrentSystem;
 	static thread_local uint32 s_CurrentWorkerIndex;
 	static thread_local FJobFence* s_pCurrentFence;
+	static thread_local FExecutionFrame* s_pExecutionStack;
 
 	explicit FImpl(uint32 RequestedCount)
 	{
@@ -202,6 +221,14 @@ struct FJobSystem::FImpl
 		FImpl* PreviousSystem = s_pCurrentSystem;
 		const uint32 PreviousWorkerIndex = s_CurrentWorkerIndex;
 		FJobFence* PreviousFence = s_pCurrentFence;
+		// 退避する一つ外側の実行枠。
+		FExecutionFrame* PreviousFrame = s_pExecutionStack;
+		// 今回実行するJobの所属とFenceを示す実行枠。
+		FExecutionFrame Frame;
+		Frame.pSystem = this;
+		Frame.pFence = Node->Fence;
+		Frame.pPrevious = PreviousFrame;
+		s_pExecutionStack = &Frame;
 		s_pCurrentSystem = this;
 		s_pCurrentFence = Node->Fence;
 		try
@@ -216,6 +243,7 @@ struct FJobSystem::FImpl
 				Node->Fence->Fail_Internal();
 			}
 		}
+		s_pExecutionStack = PreviousFrame;
 		s_pCurrentFence = PreviousFence;
 		s_pCurrentSystem = PreviousSystem;
 		s_CurrentWorkerIndex = PreviousWorkerIndex;
@@ -321,9 +349,19 @@ struct FJobSystem::FImpl
 	}
 	bool Wait_Internal(FJobFence& Fence) noexcept
 	{
-		if (s_pCurrentSystem == this && s_pCurrentFence == &Fence)
+		if (s_pCurrentSystem == this)
 		{
-			return false;
+			// 実行中Job自身または祖先Jobを含むFenceへの待機は循環するため拒否する。
+			// 外側へ遡る走査対象の実行枠。
+			FExecutionFrame* Frame = s_pExecutionStack;
+			while (Frame != nullptr)
+			{
+				if (Frame->pSystem == this && Frame->pFence == &Fence)
+				{
+					return false;
+				}
+				Frame = Frame->pPrevious;
+			}
 		}
 		if (s_pCurrentSystem != this)
 		{
@@ -351,6 +389,7 @@ struct FJobSystem::FImpl
 thread_local FJobSystem::FImpl* FJobSystem::FImpl::s_pCurrentSystem = nullptr;
 thread_local uint32 FJobSystem::FImpl::s_CurrentWorkerIndex = FJobSystem::InvalidWorkerIndex;
 thread_local FJobFence* FJobSystem::FImpl::s_pCurrentFence = nullptr;
+thread_local FJobSystem::FImpl::FExecutionFrame* FJobSystem::FImpl::s_pExecutionStack = nullptr;
 FJobSystem::FJobSystem(uint32 ExecutionThreadCount) : m_pImpl(new FImpl(ExecutionThreadCount))
 {
 }

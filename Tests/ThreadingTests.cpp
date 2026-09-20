@@ -277,6 +277,25 @@ TEST("waiting on the fence that contains the current job is rejected")
 	REQUIRE(Jobs.Wait(Fence));
 	REQUIRE(Rejected.Load() == 1);
 }
+TEST("nested synchronous jobs reject waiting on an ancestor fence")
+{
+	FJobSystem Jobs(1);
+	FJobFence Ancestor;
+	bool bRejected = false;
+	REQUIRE(Jobs.TrySubmit([&]()
+	{
+		FJobFence Child;
+		REQUIRE(Jobs.TrySubmit([&]()
+		{
+			bRejected = !Jobs.Wait(Ancestor);
+		}, &Child));
+		REQUIRE(Jobs.Wait(Child));
+		REQUIRE(Child.FailureCount() == 0);
+	}, &Ancestor));
+	REQUIRE(Jobs.Wait(Ancestor));
+	REQUIRE(Ancestor.FailureCount() == 0);
+	REQUIRE(bRejected);
+}
 TEST("job exceptions are contained and recorded without stopping workers")
 {
 	FJobSystem Jobs(4);

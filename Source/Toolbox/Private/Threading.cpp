@@ -7,6 +7,9 @@
 #define NOMINMAX
 #endif
 #include <Windows.h>
+#ifdef Yield
+#undef Yield
+#endif
 #else
 #include <pthread.h>
 #include <unistd.h>

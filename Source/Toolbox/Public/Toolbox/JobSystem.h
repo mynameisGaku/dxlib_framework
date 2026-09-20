@@ -145,7 +145,7 @@ public:
 	}
 	/**
 	 * Fenceが完了するまで待つ。同じJobSystemのJob実行中なら待機中にQueueを処理する。
-	 * 現在Job自身を含むFenceは循環待機になるためfalseを返す。
+	 * 実行中Job自身または祖先Jobを含むFenceは循環待機になるためfalseを返す。
 	 * @param Fence 完了を待つFence。
 	 */
 	bool Wait(FJobFence& Fence) noexcept;

@@ -1,31 +1,11 @@
 {
   "native_sdk_verified": false,
   "warnings_as_errors": true,
-  "profiles": {
-    "debug": {
-      "framework_cases": 138,
-      "native_contract_cases": 14
-    },
-    "release": {
-      "framework_cases": 138,
-      "native_contract_cases": 14
-    },
-    "sanitized": {
-      "framework_cases": 138,
-      "native_contract_cases": 14
-    }
-  },
-  "status": "passed",
-  "run_id": "fb602d18efe44cdfa0cbfbd584a6ca6f",
-  "started_utc": "2026-09-12T08:50:46.670427+00:00",
+  "profiles": {},
+  "status": "failed",
+  "run_id": "97816ba7c68c46d2aad17bd75342c121",
+  "started_utc": "2026-09-20T13:49:06.782915+00:00",
   "version": "0.3.0",
-  "standalone_public_headers": 65,
-  "standalone_sample_headers": 1,
-  "sample_assets": "BMP 64x64 24-bit; WAV mono 16-bit 22050Hz",
-  "environment": {
-    "python": "3.13.5",
-    "platform": "linux",
-    "cmake": "cmake version 3.31.6"
-  },
-  "finished_utc": "2026-09-12T08:51:05.319041+00:00"
+  "error": "RuntimeError: debug-configure failed; see C:\\Users\\g0190\\OneDrive\\Desktop\\frame\\dxlib_framework\\Docs\\Validation\\debug-configure.log",
+  "finished_utc": "2026-09-20T13:49:07.548227+00:00"
 }

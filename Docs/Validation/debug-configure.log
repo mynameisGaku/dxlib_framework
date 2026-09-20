@@ -1,6 +1,13 @@
-$ cmake -S /mnt/data/dxlib_framework_work -B /mnt/data/dxlib_framework_work/Build/Validation/debug -G Ninja -DCMAKE_BUILD_TYPE=Debug -DDXF_BUILD_TESTS=ON -DDXF_BUILD_NATIVE=OFF -DDXF_BUILD_EXAMPLE=OFF -DDXF_BUILD_NATIVE_SMOKE=OFF -DDXF_WARNINGS_AS_ERRORS=ON
--- Configuring done (0.0s)
--- Generating done (0.0s)
--- Build files have been written to: /mnt/data/dxlib_framework_work/Build/Validation/debug
+$ cmake -S C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework -B C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\Validation\debug -G Ninja -DCMAKE_BUILD_TYPE=Debug -DDXF_BUILD_TESTS=ON -DDXF_BUILD_NATIVE=OFF -DDXF_BUILD_EXAMPLE=OFF -DDXF_BUILD_NATIVE_SMOKE=OFF -DDXF_WARNINGS_AS_ERRORS=ON
+-- The CXX compiler identification is unknown
+CMake Error at CMakeLists.txt:2 (project):
+  No CMAKE_CXX_COMPILER could be found.
 
-EXIT_CODE=0
+  Tell CMake where to find the compiler by setting either the environment
+  variable "CXX" or the CMake cache entry CMAKE_CXX_COMPILER to the full path
+  to the compiler, or to the compiler name if it is in the PATH.
+
+
+-- Configuring incomplete, errors occurred!
+
+EXIT_CODE=1
