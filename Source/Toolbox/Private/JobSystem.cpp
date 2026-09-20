@@ -247,12 +247,13 @@ struct FJobSystem::FImpl
 		s_pCurrentFence = PreviousFence;
 		s_pCurrentSystem = PreviousSystem;
 		s_CurrentWorkerIndex = PreviousWorkerIndex;
+		// Fence完了の通知より先に実行件数を確定し、Wait帰還後の件数観測を安定させる。
+		m_CompletedJobs.FetchAdd(1);
 		Node->Destroy(Node->Context);
 		if (Node->Fence != nullptr)
 		{
 			Node->Fence->Complete_Internal();
 		}
-		m_CompletedJobs.FetchAdd(1);
 		delete Node;
 	}
 	bool SubmitRaw_Internal(void* Context, FInvoke Invoke, FDestroy Destroy, FJobFence* Fence)

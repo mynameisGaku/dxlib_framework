@@ -172,6 +172,7 @@ public:
 	uint64 GetSubmittedJobCount() const noexcept;
 	/**
 	 * 実行を終えたJob数を返す。例外終了も一回の完了として数える。
+	 * FenceのWaitから戻った後は、そのFenceに属するJobが件数に含まれる。
 	 */
 	uint64 GetCompletedJobCount() const noexcept;
 
