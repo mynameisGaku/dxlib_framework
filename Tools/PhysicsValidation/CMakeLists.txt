@@ -4,12 +4,12 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 get_filename_component(DXF_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
 option(DXF_PHYSICS_SANITIZERS "Enable ASan and UBSan on GCC/Clang" OFF)
 add_library(dxf_physics_core STATIC
-    "${DXF_ROOT}/Source/Toolbox/Private/Vector3.cpp"
-    "${DXF_ROOT}/Source/Toolbox/Private/CollisionShapes.cpp"
-    "${DXF_ROOT}/Source/Toolbox/Private/Mesh.cpp"
-    "${DXF_ROOT}/Source/Toolbox/Private/Collision2D.cpp"
-    "${DXF_ROOT}/Source/Toolbox/Private/ContinuousCollision.cpp"
-    "${DXF_ROOT}/Source/Toolbox/Private/FixedStepScheduler.cpp")
+    "${DXF_ROOT}/Source/Toolbox/Private/Toolbox/Vector3.cpp"
+    "${DXF_ROOT}/Source/Toolbox/Private/Toolbox/CollisionShapes.cpp"
+    "${DXF_ROOT}/Source/Toolbox/Private/Toolbox/Mesh.cpp"
+    "${DXF_ROOT}/Source/Toolbox/Private/Toolbox/Collision2D.cpp"
+    "${DXF_ROOT}/Source/Toolbox/Private/Toolbox/ContinuousCollision.cpp"
+    "${DXF_ROOT}/Source/Toolbox/Private/Toolbox/FixedStepScheduler.cpp")
 target_include_directories(dxf_physics_core PUBLIC "${DXF_ROOT}/Source/Toolbox/Public")
 target_compile_features(dxf_physics_core PUBLIC cxx_std_20)
 enable_testing()

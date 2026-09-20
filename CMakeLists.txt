@@ -71,22 +71,22 @@ endfunction()
 find_package(Threads REQUIRED)
 
 add_library(dxf_toolbox STATIC
-    Source/Toolbox/Private/Threading.cpp
-    Source/Toolbox/Private/JobSystem.cpp
-    Source/Toolbox/Private/Platform.cpp
-    Source/Toolbox/Private/ProjectPaths.cpp
-    Source/Toolbox/Private/Vector3.cpp
-    Source/Toolbox/Private/Matrix4.cpp
-    Source/Toolbox/Private/Quaternion.cpp
-    Source/Toolbox/Private/Complex.cpp
-    Source/Toolbox/Private/CollisionShapes.cpp
-    Source/Toolbox/Private/Collision2D.cpp
-    Source/Toolbox/Private/Contact2D.cpp
-    Source/Toolbox/Private/Contact3D.cpp
-    Source/Toolbox/Private/ContinuousCollision.cpp
-    Source/Toolbox/Private/FixedStepScheduler.cpp
-    Source/Toolbox/Private/Mesh.cpp
-    Source/Toolbox/Private/CollisionWorld.cpp)
+    Source/Toolbox/Private/Toolbox/Threading.cpp
+    Source/Toolbox/Private/Toolbox/JobSystem.cpp
+    Source/Toolbox/Private/Toolbox/Platform.cpp
+    Source/Toolbox/Private/Toolbox/ProjectPaths.cpp
+    Source/Toolbox/Private/Toolbox/Vector3.cpp
+    Source/Toolbox/Private/Toolbox/Matrix4.cpp
+    Source/Toolbox/Private/Toolbox/Quaternion.cpp
+    Source/Toolbox/Private/Toolbox/Complex.cpp
+    Source/Toolbox/Private/Toolbox/CollisionShapes.cpp
+    Source/Toolbox/Private/Toolbox/Collision2D.cpp
+    Source/Toolbox/Private/Toolbox/Contact2D.cpp
+    Source/Toolbox/Private/Toolbox/Contact3D.cpp
+    Source/Toolbox/Private/Toolbox/ContinuousCollision.cpp
+    Source/Toolbox/Private/Toolbox/FixedStepScheduler.cpp
+    Source/Toolbox/Private/Toolbox/Mesh.cpp
+    Source/Toolbox/Private/Toolbox/CollisionWorld.cpp)
 add_library(dxf::toolbox ALIAS dxf_toolbox)
 set_target_properties(dxf_toolbox PROPERTIES EXPORT_NAME toolbox DEBUG_POSTFIX d)
 target_compile_features(dxf_toolbox PUBLIC cxx_std_20)
@@ -119,13 +119,13 @@ if(DXF_COVERAGE)
 endif()
 
 add_library(dxf_support STATIC
-    Source/DxLibSupport/Private/AssetService.cpp
-    Source/DxLibSupport/Private/TextureLoader.cpp
-    Source/DxLibSupport/Private/SoundLoader.cpp
-    Source/DxLibSupport/Private/FontLoader.cpp
-    Source/DxLibSupport/Private/RenderSystem2D.cpp
-    Source/DxLibSupport/Private/RenderQueue2D.cpp
-    Source/DxLibSupport/Private/AudioPlayer.cpp)
+    Source/DxLibSupport/Private/Dxf/AssetService.cpp
+    Source/DxLibSupport/Private/Dxf/TextureLoader.cpp
+    Source/DxLibSupport/Private/Dxf/SoundLoader.cpp
+    Source/DxLibSupport/Private/Dxf/FontLoader.cpp
+    Source/DxLibSupport/Private/Dxf/RenderSystem2D.cpp
+    Source/DxLibSupport/Private/Dxf/RenderQueue2D.cpp
+    Source/DxLibSupport/Private/Dxf/AudioPlayer.cpp)
 add_library(dxf::support ALIAS dxf_support)
 set_target_properties(dxf_support PROPERTIES EXPORT_NAME support DEBUG_POSTFIX d)
 target_link_libraries(dxf_support PUBLIC dxf::foundation)
@@ -133,9 +133,9 @@ dxf_public_headers(dxf_support DxLibSupport PUBLIC)
 dxf_warnings(dxf_support)
 
 add_library(dxf_runtime STATIC
-    Source/Runtime/Private/LifecycleObject.cpp
-    Source/Runtime/Private/SceneNavigator.cpp
-    Source/Runtime/Private/Application.cpp)
+    Source/Runtime/Private/Dxf/LifecycleObject.cpp
+    Source/Runtime/Private/Dxf/SceneNavigator.cpp
+    Source/Runtime/Private/Dxf/Application.cpp)
 add_library(dxf::runtime ALIAS dxf_runtime)
 set_target_properties(dxf_runtime PROPERTIES EXPORT_NAME runtime DEBUG_POSTFIX d)
 target_link_libraries(dxf_runtime PUBLIC dxf::support)
@@ -149,8 +149,8 @@ target_link_libraries(dxf_gameplay INTERFACE dxf::runtime dxf::physics)
 dxf_public_headers(dxf_gameplay Gameplay INTERFACE)
 
 add_library(dxf_physics STATIC
-    Source/Physics/Private/PhysicsWorld2D.cpp
-    Source/Physics/Private/PhysicsWorld3D.cpp)
+    Source/Physics/Private/Dxf/PhysicsWorld2D.cpp
+    Source/Physics/Private/Dxf/PhysicsWorld3D.cpp)
 add_library(dxf::physics ALIAS dxf_physics)
 set_target_properties(dxf_physics PROPERTIES EXPORT_NAME physics DEBUG_POSTFIX d)
 target_compile_features(dxf_physics PUBLIC cxx_std_20)
@@ -164,12 +164,12 @@ set_target_properties(dxlib_framework PROPERTIES EXPORT_NAME framework)
 target_link_libraries(dxlib_framework INTERFACE dxf::gameplay)
 
 set(DXF_NATIVE_SOURCES
-    Source/Native/Private/DxLibPlatform.cpp
-    Source/Native/Private/DxLibInputSource.cpp
-    Source/Native/Private/DxLibTextureBackend.cpp
-    Source/Native/Private/DxLibSoundBackend.cpp
-    Source/Native/Private/DxLibFontBackend.cpp
-    Source/Native/Private/DxLibRenderBackend.cpp)
+    Source/Native/Private/Dxf/DxLibPlatform.cpp
+    Source/Native/Private/Dxf/DxLibInputSource.cpp
+    Source/Native/Private/Dxf/DxLibTextureBackend.cpp
+    Source/Native/Private/Dxf/DxLibSoundBackend.cpp
+    Source/Native/Private/Dxf/DxLibFontBackend.cpp
+    Source/Native/Private/Dxf/DxLibRenderBackend.cpp)
 
 if(DXF_BUILD_TESTS)
     enable_testing()

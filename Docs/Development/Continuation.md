@@ -11,7 +11,7 @@
 1. sln基準アセットRoot（`Tests/AssetRootTests.cpp` 17件）
    - `Toolbox::FAssetPathResolver`、`ParseProjectPathSettings`、
      `ResolveDevelopmentRoot`（`Source/Toolbox/Public/Toolbox/ProjectPaths.h`、
-     `Source/Toolbox/Private/ProjectPaths.cpp`）
+     `Source/Toolbox/Private/Toolbox/ProjectPaths.cpp`）
    - `Toolbox::ExecutableDirectory`、`Toolbox::IsDirectory`
     （`Platform.h`／`Platform.cpp`）
    - `FAssetService::SetProjectRoot`／`GetProjectRoot`、全Load経路の共通解決

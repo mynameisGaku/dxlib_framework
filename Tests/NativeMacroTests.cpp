@@ -4,7 +4,7 @@
 // 実SDKの取り込みによって後から追加されるWindowsマクロを再現する。
 #define CreateFont CreateFontA
 #define DrawText DrawTextA
-#include "../Source/Native/Private/NativeApi.h"
+#include "../Source/Native/Private/Dxf/NativeApi.h"
 
 #ifdef CreateFont
 #error NativeApi must remove the Windows CreateFont macro
