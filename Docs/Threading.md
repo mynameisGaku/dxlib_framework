@@ -46,6 +46,19 @@ Job System自身をWorker Jobの中から破棄したり、Workerから`Shutdown
 - DxLib Native描画・Handle生成破棄: Main/Native担当スレッドへ残す。
 - Physics Worldの所有構造: 現時点では外部から同時変更しない。積分・BroadPhase・NarrowPhaseは借用Job Systemで並列化済み（安定順マージ、1/N一致を回帰）。Island Solverの並列化は別段階。Workerは構造を変更せず、NarrowPhaseは専用領域だけを書く。
 
+## 共有Task Dispatcher
+
+`Dxf::FTaskDispatcher`はApplicationが所有する共有実行窓口です。借用Job Systemへ
+準備（`Prepare`）を分散し、所有スレッドの`PumpCommits`で投入順に反映（`Commit`）します。
+
+- 準備はSceneやDxLibへ直接書かず、Taskが所有するCPU結果だけを書きます。
+- 反映は準備済みの先頭から順に行い、先頭が未完了なら後続を待ちます。
+- `FTaskScope`はDispatcher識別子・位置・世代を持ち、別Dispatcher・削除後・
+  再利用後の利用を拒否します。親の取り消しは子孫へ伝播します。
+- 取り消しは強制スレッド停止ではなく協調方式です。未反映の要求は上限件数で拒否します。
+- `Shutdown`は受付を止め、実行中の準備を待って未反映を所有スレッドで破棄します。
+- Scene切り替えでは旧Scopeを失効させて新Scopeを作り、切替失敗時は旧Scopeを維持します。
+
 ## 次の並列化単位
 
 Job基盤とPhysicsの積分・BroadPhase・NarrowPhase・Island診断は接続済みです。残りは次です。

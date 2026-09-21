@@ -4,13 +4,15 @@
 
 - P0完了：`/showIncludes`接頭辞の文字化け注入を廃止し、CMake自動検出へ。
   fixtureと実ツリー＋隔離worktreeで増分再ビルドを検証。
-- P1進行中：`.dxfpaths`の不存在と読込失敗の区別、`dxf_asset_probe`起動試験。
-- P2進行中：Physics検証統一とWorld実行設定の接続。
-- P3進行中：Thread/Job監査（投入失敗・他System待機・全Worker子待ち・破棄再入・
+- P1完了：`.dxfpaths`の不存在と読込失敗の区別、`dxf_asset_probe`起動試験。
+- P2完了：Physics検証統一とWorld実行設定の接続。
+- P3完了：Thread/Job監査（投入失敗・他System待機・全Worker子待ち・破棄再入・
   二重Shutdownの回帰を追加、契約文書を更新）。
   未実施：Worker生成失敗の故障注入（注入点なし、停止・Join経路は目視監査のみ）。
-- 残り：P4 実World並列（Island Solver並列化・起床・CCD方針・長時間）、
-  P5 Task、P6 非同期Asset、P7 並列描画、P8 最終検証。
+- P4完了：Island Solver並列化（静的書込の除去、1/N一致、SolverIslandCount）。
+  残りは起床伝播の追加回帰とCCD方針の明文化。
+- P5進行中：Application共有Task基盤（Dispatcher・Scope・Step反映・終了順序）。
+- 残り：P6 非同期Asset、P7 並列描画、P8 最終検証。
 
 ## 開始位置
 

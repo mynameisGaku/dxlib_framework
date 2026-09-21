@@ -138,6 +138,7 @@ dxf_warnings(dxf_support)
 add_library(dxf_runtime STATIC
     Source/Runtime/Private/Dxf/LifecycleObject.cpp
     Source/Runtime/Private/Dxf/SceneNavigator.cpp
+    Source/Runtime/Private/Dxf/TaskDispatcher.cpp
     Source/Runtime/Private/Dxf/Application.cpp)
 add_library(dxf::runtime ALIAS dxf_runtime)
 set_target_properties(dxf_runtime PROPERTIES EXPORT_NAME runtime DEBUG_POSTFIX d)
@@ -190,7 +191,7 @@ if(DXF_BUILD_TESTS)
     endif()
     add_executable(dxf_tests Tests/TestMain.cpp Tests/Support/TestFs.cpp Tests/ToolboxTests.cpp Tests/MathCollisionTests.cpp Tests/FoundationTests.cpp Tests/SupportTests.cpp
         Tests/GameplayTests.cpp Tests/ApplicationTests.cpp Tests/SandboxTests.cpp Tests/FixedTickTests.cpp Tests/PhysicsSceneTests.cpp Tests/ThreadingTests.cpp Tests/AssetRootTests.cpp
-        Tests/HardeningTests.cpp Tests/RenderFailureTests.cpp Tests/SceneContinuationTests.cpp Tests/ResourceShutdownTests.cpp Tests/UsabilityTests.cpp Tests/StressTests.cpp Tests/StarterTests.cpp Examples/Starter/Source/BootScene.cpp Examples/Sandbox/SandboxGame.cpp)
+        Tests/HardeningTests.cpp Tests/RenderFailureTests.cpp Tests/SceneContinuationTests.cpp Tests/ResourceShutdownTests.cpp Tests/UsabilityTests.cpp Tests/StressTests.cpp Tests/StarterTests.cpp Tests/TaskDispatcherTests.cpp Examples/Starter/Source/BootScene.cpp Examples/Sandbox/SandboxGame.cpp)
     target_link_libraries(dxf_tests PRIVATE dxf::framework)
     target_include_directories(dxf_tests PRIVATE Tests Examples/Sandbox Examples/Starter/Source)
     dxf_ide_headers(dxf_tests Tests/Support Examples/Sandbox Examples/Starter/Source)

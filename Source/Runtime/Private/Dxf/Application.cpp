@@ -12,7 +12,8 @@ FApplication::FApplication(FBackendServices Services, FApplicationSettings Setti
                            Toolbox::TUniquePtr<DGameInstance> Game)
     : m_pPlatform(&Services.Platform), m_Settings(Toolbox::Move(Settings)), m_Session(Services.Platform),
       m_Input(Services.Input), m_Assets(Services.Textures, Services.Sounds, Services.Fonts),
-      m_Renderer(Services.Renderer), m_Audio(Services.Sounds), m_pGame(Toolbox::Move(Game)),
+      m_Renderer(Services.Renderer), m_Audio(Services.Sounds), m_ExecutionJobs(m_Settings.ExecutionThreadCount),
+      m_TaskDispatcher(m_ExecutionJobs), m_pGame(Toolbox::Move(Game)),
       m_Scenes(m_Assets, m_Audio, m_pGame.Get()), m_Clock(m_Settings.MaxDeltaSeconds)
 {
 }
@@ -20,6 +21,27 @@ FApplication::FApplication(FBackendServices Services, FApplicationSettings Setti
 FApplication::~FApplication()
 {
 	Shutdown();
+}
+// Sceneの切り替わりに合わせてScopeを付け替える。
+// 切替失敗では旧SceneとそのScopeを維持する。
+void FApplication::SyncSceneScope_Internal()
+{
+	// 追跡中のScene。
+	DScene* Current = m_Scenes.GetCurrent();
+	if (Current == m_pTaskScene)
+	{
+		return;
+	}
+	if (m_SceneScope.IsValid())
+	{
+		m_TaskDispatcher.DestroyScope(m_SceneScope);
+		m_SceneScope = {};
+	}
+	m_pTaskScene = Current;
+	if (Current != nullptr)
+	{
+		m_SceneScope = m_TaskDispatcher.CreateScope();
+	}
 }
 // 初期化を行い実行を開始する。
 // @param InitialScene 最初に開始するシーン。
@@ -69,6 +91,7 @@ TResult<void> FApplication::Start_Internal(Toolbox::TUniquePtr<DScene> InitialSc
 	{
 		return TResult<void>::Failure(Commit.Error());
 	}
+	SyncSceneScope_Internal();
 	m_bStarted = true;
 	return {};
 }
@@ -184,6 +207,9 @@ TResult<bool> FApplication::Step_Internal(Toolbox::f64 NowSeconds)
 	{
 		return TResult<bool>::Success(false);
 	}
+	// 共有Taskの反映とScene Scopeの追従。失敗した反映はDispatcher内で集計し、フレームは継続する。
+	m_TaskDispatcher.PumpCommits();
+	SyncSceneScope_Internal();
 	// 音声再生のサービス。
 	auto Audio = m_Audio.Tick();
 	if (!Audio)
@@ -271,6 +297,14 @@ void FApplication::Shutdown() noexcept
 	m_bShutdown = true;
 	// 処理終了時に状態を戻すガード。
 	TGuardValue Guard(m_bBusy, true);
+	if (m_SceneScope.IsValid())
+	{
+		m_TaskDispatcher.DestroyScope(m_SceneScope);
+		m_SceneScope = {};
+	}
+	m_pTaskScene = nullptr;
+	m_TaskDispatcher.Shutdown();
+	m_ExecutionJobs.Shutdown();
 	m_Scenes.Shutdown();
 	if (m_pGame)
 	{

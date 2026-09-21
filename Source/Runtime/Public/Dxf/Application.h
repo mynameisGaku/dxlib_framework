@@ -7,6 +7,7 @@
 #include "Dxf/RenderSystem2D.h"
 #include "Dxf/GameInstance.h"
 #include "Dxf/SceneNavigator.h"
+#include "Dxf/TaskDispatcher.h"
 namespace Dxf
 {
 /**
@@ -26,6 +27,10 @@ struct FApplicationSettings
 	 * 一度に進める時間の上限秒数。
 	 */
 	Toolbox::f64 MaxDeltaSeconds = 0.25;
+	/**
+	 * 共有実行レーン数。0はOS論理スレッド数、1はWorkerなしの同期実行。
+	 */
+	Toolbox::uint32 ExecutionThreadCount = 0;
 	/**
 	 * アセット解決の基準にするProjectRoot。空なら従来の相対パスのまま使う。
 	 */
@@ -106,6 +111,27 @@ public:
 	{
 		return m_pGame.Get();
 	}
+	/**
+	 * 共有Job Systemを取得する。所有スレッド以外からも投入できる。
+	 */
+	FORCEINLINE Toolbox::FJobSystem& GetExecutionJobs() noexcept
+	{
+		return m_ExecutionJobs;
+	}
+	/**
+	 * 共有Task Dispatcherを取得する。反映はStepの境界でのみ行う。
+	 */
+	FORCEINLINE FTaskDispatcher& GetTaskDispatcher() noexcept
+	{
+		return m_TaskDispatcher;
+	}
+	/**
+	 * 現在SceneのScopeを返す。Sceneがない場合は無効。
+	 */
+	FORCEINLINE FTaskScope GetSceneScope() noexcept
+	{
+		return m_SceneScope;
+	}
 
 private:
 	/**
@@ -118,6 +144,11 @@ private:
 	 * @param NowSeconds 単調増加する現在時刻の秒数。
 	 */
 	TResult<bool> Step_Internal(Toolbox::f64 NowSeconds);
+	/**
+	 * Sceneの切り替わりに合わせてScopeを付け替える。
+	 * 切替失敗では旧SceneとそのScopeを維持する。
+	 */
+	void SyncSceneScope_Internal();
 	/**
 	 * 正常終了が要求されているかを調べる。
 	 */
@@ -150,6 +181,22 @@ private:
 	 * 音声再生のサービス。
 	 */
 	FAudioPlayer m_Audio;
+	/**
+	 * 共有実行レーンのJob System。
+	 */
+	Toolbox::FJobSystem m_ExecutionJobs;
+	/**
+	 * 共有実行のTask Dispatcher。
+	 */
+	FTaskDispatcher m_TaskDispatcher;
+	/**
+	 * 現在SceneのScope。Sceneがない場合は無効。
+	 */
+	FTaskScope m_SceneScope;
+	/**
+	 * Scopeを追跡中のScene。
+	 */
+	DScene* m_pTaskScene = nullptr;
 	/**
 	 * シーン間で共有するゲーム状態。
 	 */

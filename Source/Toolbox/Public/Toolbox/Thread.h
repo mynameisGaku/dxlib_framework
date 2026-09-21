@@ -4,8 +4,14 @@
 #include "Toolbox/Utility.h"
 namespace Toolbox
 {
+// Windows.hのYieldマクロと宣言が衝突するため一時的に退避する。
+#ifdef Yield
+#pragma push_macro("Yield")
+#undef Yield
+#define TOOLBOX_YIELD_MACRO_RESTORED
+#endif
 /**
- * OSスレッドの実行入口。Contextは呼び出し側がJoin完了まで保持する。
+ * OSスレッドを所有し、開始とJoinを管理する。
  */
 using FThreadEntry = void (*)(void* Context);
 /**
@@ -80,5 +86,10 @@ private:
 	 */
 	FImpl* m_pImpl = nullptr;
 };
+// 退避したYieldマクロを元に戻す。
+#ifdef TOOLBOX_YIELD_MACRO_RESTORED
+#pragma pop_macro("Yield")
+#undef TOOLBOX_YIELD_MACRO_RESTORED
+#endif
 } // namespace Toolbox
 #endif
