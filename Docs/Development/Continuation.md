@@ -12,8 +12,9 @@
 - P4完了：Island Solver並列化（静的書込の除去、1/N一致、SolverIslandCount）。
   残りは起床伝播の追加回帰とCCD方針の明文化。
 - P5完了：Application共有Task基盤（Dispatcher・Scope・Step反映・終了順序）。
-- P6進行中：非同期Asset（CPU検証・メモリ取込・期限切れチケット）。
-- 残り：P7 並列描画、P8 最終検証。
+- P6完了：非同期Asset（CPU検証・メモリ取込・期限切れチケット）。
+- P7進行中：並列描画命令生成（入力順一括反映・失敗時不変）。
+- 残り：P8 最終検証。
 
 ## 開始位置
 

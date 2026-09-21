@@ -110,6 +110,18 @@ ProjectRootRelative=../../../
 配布・破損・移動・日本語パス・ロックの配置を作り、CTestの`AssetRootLaunch`
 として検証する。実DxLibのSandbox画面・音声の目視は別項目である。
 
+## 描画命令の並列生成
+
+`FRenderQueue2D::SubmitGenerated`は借用Job Systemで命令を並列生成し、
+入力順に一括で追加する。通常の`OnDraw`や即時操作は所有スレッドのままである。
+
+- 各添字は専用領域へ一度だけ書き込み、入力順に統合する。
+  同順位の命令は入力順を保つ（後のソートも安定順である）。
+- 一つでも生成・検証に失敗したらキューを変更しない。
+- 生成中は資源の寿命を呼び出し側で保つ。最終検証は所有スレッドで行う。
+- `RenderTarget`変更・`Clear`・即時`Native`・`ScreenFlip`は所有スレッドで実行し、
+  並べ替えの境界とする。
+
 ## エラー例
 
 - `Texture path cannot resolve against root <Root>: <要求パス>` —
