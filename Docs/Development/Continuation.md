@@ -1,5 +1,13 @@
 # 開発継続記録
 
+## 現在地（2026-09-22更新）
+
+- P0完了：`/showIncludes`接頭辞の文字化け注入を廃止し、CMake自動検出へ。
+  fixtureと実ツリー＋隔離worktreeで増分再ビルドを検証。
+- P1進行中：`.dxfpaths`の不存在と読込失敗の区別、`dxf_asset_probe`起動試験。
+- 残り：P2 Physics検証統一、P3 Thread/Job監査、P4 実World並列、
+  P5 Task、P6 非同期Asset、P7 並列描画、P8 最終検証。
+
 ## 開始位置
 
 - 開始HEAD: `68b4456e4686af7f33f3be54f35615c03fb94dd6`（main、origin/mainと一致、作業前クリーン）

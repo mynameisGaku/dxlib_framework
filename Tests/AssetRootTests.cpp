@@ -1,6 +1,13 @@
 #include "Support/Test.h"
 #include "Support/FakeBackend.h"
+#include "Support/TestFs.h"
 #include "Toolbox/ProjectPaths.h"
+#if defined(_WIN32)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <Windows.h>
+#endif
 #include "Dxf/AssetService.h"
 #include "Dxf/Application.h"
 #include "SandboxGame.h"
@@ -89,6 +96,8 @@ TEST("project path settings parse the development file")
 	REQUIRE(!Toolbox::ParseProjectPathSettings("Version=2\nMode=Development\nProjectRootRelative=..\n", Settings));
 	REQUIRE(!Toolbox::ParseProjectPathSettings("Mode=Development\n", Settings));
 	REQUIRE(!Toolbox::ParseProjectPathSettings("", Settings));
+	REQUIRE(!Toolbox::ParseProjectPathSettings(
+	    Toolbox::FString("Version=1\nMode=Develop\xFFment\nProjectRootRelative=..\n", 52), Settings));
 }
 
 TEST("asset service with a root hands resolved paths to the backend")
@@ -215,3 +224,96 @@ TEST("application rejects a relative explicit project root")
 	auto Result = App.Start(Toolbox::MakeUnique<Dxf::Sandbox::DSandboxScene>("Assets"));
 	REQUIRE(!Result && Result.Error().Code == EErrorCode::InvalidArgument);
 }
+TEST("settings file read distinguishes missing from failures")
+{
+	// 検証用の作業場所。
+	const Toolbox::FPath Scratch = Test::PrepareScratchDirectory("SettingsRead");
+	// 読み取った設定本文。
+	Toolbox::FString Text("untouched");
+	REQUIRE(!Toolbox::TryReadSettingsFile(Scratch / "missing.dxfpaths", Text));
+	REQUIRE(Text == "untouched");
+	bool bThrew = false;
+	try
+	{
+		Toolbox::FString DirectoryText;
+		Toolbox::TryReadSettingsFile(Scratch, DirectoryText);
+	}
+	catch (const Toolbox::FException&)
+	{
+		bThrew = true;
+	}
+	REQUIRE(bThrew);
+}
+TEST("settings file read loads exact content and enforces the size limit")
+{
+	// 検証用の作業場所。
+	const Toolbox::FPath Scratch = Test::PrepareScratchDirectory("SettingsBounds");
+	// 境界ちょうどで受け付ける内容。
+	Toolbox::FString Accept;
+	for (Toolbox::size_t Index = 0; Index < Toolbox::MaxSettingsFileBytes; ++Index)
+	{
+		Accept.PushBack('a');
+	}
+	Test::WriteScratchFile(Scratch / "accept.dxfpaths", Accept);
+	// 読み取った設定本文。
+	Toolbox::FString Loaded;
+	REQUIRE(Toolbox::TryReadSettingsFile(Scratch / "accept.dxfpaths", Loaded));
+	REQUIRE(Loaded == Accept);
+	// 1バイト超過で拒否する内容。
+	Toolbox::FString Over = Accept;
+	Over.PushBack('b');
+	Test::WriteScratchFile(Scratch / "over.dxfpaths", Over);
+	bool bThrew = false;
+	try
+	{
+		Toolbox::FString OverText;
+		Toolbox::TryReadSettingsFile(Scratch / "over.dxfpaths", OverText);
+	}
+	catch (const Toolbox::FException&)
+	{
+		bThrew = true;
+	}
+	REQUIRE(bThrew);
+	// 有効な先頭へ上限超の追記は切り捨てて有効扱いにしない。
+	Toolbox::FString Padded("Version=1\nMode=Development\nProjectRootRelative=..\n");
+	for (Toolbox::size_t Index = Padded.Size(); Index < Toolbox::MaxSettingsFileBytes + 16; ++Index)
+	{
+		Padded.PushBack('#');
+	}
+	Test::WriteScratchFile(Scratch / "padded.dxfpaths", Padded);
+	bool bPaddedThrew = false;
+	try
+	{
+		Toolbox::FString PaddedText;
+		Toolbox::TryReadSettingsFile(Scratch / "padded.dxfpaths", PaddedText);
+	}
+	catch (const Toolbox::FException&)
+	{
+		bPaddedThrew = true;
+	}
+	REQUIRE(bPaddedThrew);
+}
+#if defined(_WIN32)
+TEST("settings file read reports a locked sidecar without fallback")
+{
+	// 検証用の作業場所。
+	const Toolbox::FPath Scratch = Test::PrepareScratchDirectory("SettingsLock");
+	Test::WriteScratchFile(Scratch / "locked.dxfpaths", "Version=1\nMode=Development\nProjectRootRelative=..\n");
+	// 共有を拒否して開いた検証対象。
+	const HANDLE Locked = CreateFileW(Toolbox::ToWide((Scratch / "locked.dxfpaths").ToUtf8()).CStr(), GENERIC_READ,
+	                                  0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+	REQUIRE(Locked != INVALID_HANDLE_VALUE);
+	bool bThrew = false;
+	try
+	{
+		Toolbox::FString LockedText;
+		Toolbox::TryReadSettingsFile(Scratch / "locked.dxfpaths", LockedText);
+	}
+	catch (const Toolbox::FException&)
+	{
+		bThrew = true;
+	}
+	CloseHandle(Locked);
+	REQUIRE(bThrew);
+}
+#endif

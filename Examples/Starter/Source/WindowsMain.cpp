@@ -21,7 +21,7 @@ Toolbox::int32 WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, Toolbox::int32)
 		Dxf::FApplicationSettings Settings;
 		Settings.Window.Title = "My Game";
 		// sln配置先を基準にするアセットの起点。開発パス設定がなければexe配置先を使う。
-		Settings.ProjectRoot = Dxf::ResolveEntryProjectRoot(L"Starter.dxfpaths").ToUtf8();
+		Settings.ProjectRoot = Dxf::ResolveEntryProjectRoot("Starter.dxfpaths").ToUtf8();
 		// シーンとゲーム用のサービスを管理する実行本体。
 		Dxf::FApplication Application(Backends.GetServices(), Settings);
 		// ウィンドウを閉じるまで更新と描画を繰り返す実行器。

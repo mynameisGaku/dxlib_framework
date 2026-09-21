@@ -45,7 +45,7 @@ Toolbox::int32 WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, Toolbox::int32)
 		Dxf::FApplicationSettings Settings;
 		Settings.Window.Title = "dxlib_framework - Sandbox";
 		// sln配置先を基準にするアセットの起点。開発パス設定がなければexe配置先を使う。
-		const Toolbox::FPath ProjectRoot = Dxf::ResolveEntryProjectRoot(L"Sandbox.dxfpaths");
+		const Toolbox::FPath ProjectRoot = Dxf::ResolveEntryProjectRoot("Sandbox.dxfpaths");
 		Settings.ProjectRoot = ProjectRoot.ToUtf8();
 		// サービスを結合した実行用のアプリケーション。
 		Dxf::FApplication Application(Backends.GetServices(), Settings,

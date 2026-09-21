@@ -41,6 +41,20 @@ ProjectRootRelative=../../../
 - `Version`は1のみ有効。`Mode`は用途表示で解決には使わない。
 - 相対値はexe配置先基準。別ボリューム等の絶対値は開発専用としてそのまま使う。
 - CMakeの`dxf_runtime_paths`がPOST_BUILDで生成する。手書きの`../..`固定はしない。
+- 生成物は内容が変わるときだけ書き換える。
+
+## 設定ファイルの読み取り
+
+`Toolbox::TryReadSettingsFile`が次を区別する（上限4096バイト）。
+
+- 存在しない → 呼び出し側は配布構成（exe配置先）を使う。
+- 共有違反・権限・種別・上限超過・読込失敗 → 例外。配布構成へ逃げない。
+- ディレクトリ等 → 例外。
+- 全文を読み切ってから返す。切り捨てた先頭だけを有効扱いにしない。
+
+設定本文が空・不正UTF-8・未対応Version・欠落／重複キーは解析で拒否する。
+`Examples/Shared/ProjectRootEntry.h`の入口はこの読込と
+`ResolveDevelopmentRoot`＋`IsDirectory`確認を組み合わせる。
 
 ## 解決規則
 
@@ -74,6 +88,13 @@ ProjectRootRelative=../../../
 
 配布物に開発パス設定を入れない。exe横に`Assets/player.bmp`等を置く。
 `Starter.dxfpaths`がない`Starter.exe`は自配置先をRootにする。
+
+## 起動試験
+
+`dxf_asset_probe`（`Tests/AssetProbe/Main.cpp`）はexe入口と同じ解決を行い、
+解決したRootを標準出力へ出す。`Tools/VerifyAssetRoot.py`が開発・競合・欠落・
+配布・破損・移動・日本語パス・ロックの配置を作り、CTestの`AssetRootLaunch`
+として検証する。実DxLibのSandbox画面・音声の目視は別項目である。
 
 ## エラー例
 

@@ -184,7 +184,7 @@ if(DXF_BUILD_TESTS)
         add_test(NAME NoStl COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/Tools/CheckNoStl.py")
         set_tests_properties(NoStl PROPERTIES LABELS "source-policy" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
     endif()
-    add_executable(dxf_tests Tests/TestMain.cpp Tests/ToolboxTests.cpp Tests/MathCollisionTests.cpp Tests/FoundationTests.cpp Tests/SupportTests.cpp
+    add_executable(dxf_tests Tests/TestMain.cpp Tests/Support/TestFs.cpp Tests/ToolboxTests.cpp Tests/MathCollisionTests.cpp Tests/FoundationTests.cpp Tests/SupportTests.cpp
         Tests/GameplayTests.cpp Tests/ApplicationTests.cpp Tests/SandboxTests.cpp Tests/FixedTickTests.cpp Tests/PhysicsSceneTests.cpp Tests/ThreadingTests.cpp Tests/AssetRootTests.cpp
         Tests/HardeningTests.cpp Tests/RenderFailureTests.cpp Tests/SceneContinuationTests.cpp Tests/ResourceShutdownTests.cpp Tests/UsabilityTests.cpp Tests/StressTests.cpp Tests/StarterTests.cpp Examples/Starter/Source/BootScene.cpp Examples/Sandbox/SandboxGame.cpp)
     target_link_libraries(dxf_tests PRIVATE dxf::framework)
@@ -202,6 +202,20 @@ if(DXF_BUILD_TESTS)
     dxf_warnings(dxf_native_contract_tests)
     add_test(NAME NativeContract COMMAND dxf_native_contract_tests)
     set_tests_properties(NativeContract PROPERTIES TIMEOUT 60 LABELS "contract;not-real-sdk")
+    add_executable(dxf_asset_probe Tests/AssetProbe/Main.cpp)
+    target_link_libraries(dxf_asset_probe PRIVATE dxf::toolbox)
+    target_include_directories(dxf_asset_probe PRIVATE Examples/Shared)
+    dxf_ide_headers(dxf_asset_probe Tests/AssetProbe Examples/Shared)
+    dxf_warnings(dxf_asset_probe)
+    add_test(NAME FrameworkAltCwd COMMAND dxf_tests)
+    set_tests_properties(FrameworkAltCwd PROPERTIES TIMEOUT 300 LABELS "portable;alt-cwd"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
+    if(Python3_Interpreter_FOUND)
+        add_test(NAME AssetRootLaunch
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/Tools/VerifyAssetRoot.py"
+                --probe "$<TARGET_FILE:dxf_asset_probe>")
+        set_tests_properties(AssetRootLaunch PROPERTIES TIMEOUT 300 LABELS "portable")
+    endif()
 endif()
 
 set(DXF_EXPORT_TARGETS dxlib_framework dxf_toolbox dxf_foundation dxf_support dxf_runtime dxf_gameplay dxf_physics)

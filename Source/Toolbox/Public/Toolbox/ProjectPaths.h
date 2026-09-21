@@ -5,6 +5,18 @@
 namespace Toolbox
 {
 /**
+ * 開発パス設定ファイルの最大バイト数。これを超える内容は拒否する。
+ */
+static constexpr size_t MaxSettingsFileBytes = 4096;
+/**
+ * 開発パス設定ファイルを読み取る。存在しなければfalseを返す。
+ * 共有違反・権限・種別・上限超過・読込失敗は例外で通知し、黙って空にしない。
+ * @param Path 読み取る設定ファイルのパス。
+ * @param Text 読み取ったUTF-8本文の格納先。失敗時は変更しない。
+ * @return 読み取れたらtrue。存在しない場合だけfalse。
+ */
+bool TryReadSettingsFile(const FPath& Path, FString& Text);
+/**
  * exe横の開発パス設定が保持する値。設定・結果の保持専用。
  */
 struct FProjectPathSettings
