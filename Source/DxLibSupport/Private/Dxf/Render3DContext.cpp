@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: NOASSERTION
 #include "Dxf/Render3DContext.h"
+#include "RenderPass3D.h"
 namespace Dxf
 {
 TResult<void> FRender3DContext::StateError_Internal()
@@ -140,33 +141,60 @@ TResult<void> FRender3DContext::Execute_Internal(IRenderBackend& Backend)
 		}
 		Prepared.PushBack(Toolbox::Move(Result).Value());
 	}
+	// SetViewの呼出し区間を跨がずに計画する。同じIdを再使用しても別区間。
+	struct FViewPass
+	{
+		FRenderView3D View;
+		Toolbox::TVector<FPreparedGeometry3D> Packets;
+	};
+	Toolbox::TVector<FViewPass> Passes;
+	for (Toolbox::size_t Begin = 0; Begin < Commands.Size();)
+	{
+		Toolbox::size_t End = Begin + 1;
+		while (End < Commands.Size() && Commands[End].Serial == Commands[Begin].Serial)
+		{
+			++End;
+		}
+		auto Plan = Detail::BuildRenderPasses3D_Internal(Prepared, Begin, End, Commands[Begin].View);
+		if (!Plan)
+		{
+			return TResult<void>::Failure(Plan.Error());
+		}
+		if (!Plan.Value().IsEmpty())
+		{
+			Passes.PushBack({Commands[Begin].View, Toolbox::Move(Plan).Value()});
+		}
+		Begin = End;
+	}
 	bool Active = false;
-	Toolbox::uint64 Serial = 0;
 	TResult<void> Result;
 	try
 	{
-		for (Toolbox::size_t Index = 0; Index < Commands.Size(); ++Index)
+		for (const auto& Pass : Passes)
 		{
-			if (!Active || Serial != Commands[Index].Serial)
+			if (Active)
 			{
-				if (Active)
+				Active = false;
+				Result = Backend.EndView3D();
+				if (!Result)
 				{
-					Active = false;
-					Result = Backend.EndView3D();
-					if (!Result)
-					{
-						return Result;
-					}
+					return Result;
 				}
-				Serial = Commands[Index].Serial;
-				Active = true;
-				Result = Backend.BeginView3D(Commands[Index].View);
+			}
+			Active = true;
+			Result = Backend.BeginView3D(Pass.View);
+			if (!Result)
+			{
+				break;
+			}
+			for (const auto& Packet : Pass.Packets)
+			{
+				Result = Backend.DrawGeometry3D(Packet);
 				if (!Result)
 				{
 					break;
 				}
 			}
-			Result = Backend.DrawGeometry3D(Prepared[Index]);
 			if (!Result)
 			{
 				break;

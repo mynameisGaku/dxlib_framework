@@ -30,6 +30,7 @@ const FDebugDrawFilter& Filter, FRender3DContext& Render)
 	return Render.SubmitGenerated(Values.Size(), [&](Toolbox::size_t Index, FGeometryCommand3D& Output)
 	{
 		Output = Values[Index];
+		Output.Options.Layer = ERenderLayer3D::Overlay;
 		return TResult<void>{};
 	}
 	);

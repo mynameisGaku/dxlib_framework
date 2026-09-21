@@ -1,0 +1,54 @@
+{
+  "base_commit": "86a37b9cdb7e3641e41f7838a8c5694de801679c",
+  "remote_modified": false,
+  "full_repository_build_verified": false,
+  "windows_real_sdk_verified": false,
+  "render_debug_sample_compiled": false,
+  "actual_physics_capture_tests_executed": false,
+  "new_core_cases": 23,
+  "prior_render_continuation_cases": 20,
+  "prior_views_store_cases": 30,
+  "prior_native_translation_cases": 4,
+  "prior_job_fault_families": 5,
+  "ctest_profiles": {
+    "gcc-debug": {
+      "passed": 9,
+      "total": 9
+    },
+    "gcc-release": {
+      "passed": 9,
+      "total": 9
+    },
+    "gcc-asan-ubsan": {
+      "passed": 9,
+      "total": 9
+    },
+    "gcc-tsan": {
+      "passed": 9,
+      "total": 9
+    },
+    "clang-release": {
+      "passed": 9,
+      "total": 9
+    }
+  },
+  "release_repetition": {
+    "executables": 3,
+    "runs_per_executable": 100,
+    "passed_runs": 300
+  },
+  "new_public_header_checks": 10,
+  "applier_tests": 13,
+  "root_cmake_registration_fixture_cases": 23,
+  "no_stl": {
+    "partial_source_examples_tests_files": 79,
+    "violations": 0
+  },
+  "added_file_count": 20,
+  "capture_scope": "Registered 3D colliders only. Getter contract tested with explicit double locally. Actual FPhysicsWorld3D tests added but not run.",
+  "unpacked_partial_release_ctest": {
+    "passed": 9,
+    "total": 9
+  },
+  "unpacked_applier_tests": 13
+}

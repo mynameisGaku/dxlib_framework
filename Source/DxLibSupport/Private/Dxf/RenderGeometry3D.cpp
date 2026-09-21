@@ -98,6 +98,10 @@ bool IsValidGeometry3D(const FGeometryCommand3D& Value) noexcept
 	{
 		return false;
 	}
+	if (Value.Options.Layer != ERenderLayer3D::Scene && Value.Options.Layer != ERenderLayer3D::Overlay)
+	{
+		return false;
+	}
 	if (Value.Geometry.Triangles.Size() > 65536 || Value.Geometry.Lines.Size() > 65536)
 	{
 		return false;
@@ -251,6 +255,11 @@ TResult<FPreparedGeometry3D> PrepareGeometry3D(const FGeometryCommand3D& Command
 		return TResult<FPreparedGeometry3D>::Failure(EErrorCode::InvalidArgument, "Invalid view or geometry");
 	}
 	FPreparedGeometry3D Result;
+	// 不可視の面からだけ不透明なEdgeを生成しない。不正形状の検証は先に行う。
+	if (Command.Options.Color.A == 0)
+	{
+		return TResult<FPreparedGeometry3D>::Success(Toolbox::Move(Result));
+	}
 	const bool Surface = View.Debug.Surface != ESurfaceMode3D::Wireframe;
 	const bool Edges = View.Debug.Surface != ESurfaceMode3D::Solid;
 	if (Surface)
@@ -258,7 +267,7 @@ TResult<FPreparedGeometry3D> PrepareGeometry3D(const FGeometryCommand3D& Command
 		Result.Triangles.Reserve(Command.Geometry.Triangles.Size());
 		for (const auto& Triangle : Command.Geometry.Triangles)
 		{
-			Result.Triangles.PushBack({Triangle, Shade_Internal(Triangle, Command.Options.Color, View), Command.Options.Depth});
+			Result.Triangles.PushBack({Triangle, Shade_Internal(Triangle, Command.Options.Color, View), Command.Options.Depth, Command.Options.Layer});
 		}
 	}
 	const bool LineOnly = Command.Geometry.Triangles.IsEmpty();
@@ -267,12 +276,14 @@ TResult<FPreparedGeometry3D> PrepareGeometry3D(const FGeometryCommand3D& Command
 		const FColor Color = LineOnly || View.Debug.Surface == ESurfaceMode3D::Wireframe ? Command.Options.Color : View.Debug.EdgeColor;
 		const EDepthMode3D Depth = LineOnly || View.Debug.Surface == ESurfaceMode3D::Wireframe ? Command.Options.Depth :
 		(Command.Options.Depth == EDepthMode3D::Always ? EDepthMode3D::Always : EDepthMode3D::TestOnly);
+		const ERenderLayer3D Layer = !LineOnly && View.Debug.Surface == ESurfaceMode3D::SolidWithEdges
+		    ? ERenderLayer3D::Overlay : Command.Options.Layer;
 		if (!Command.Geometry.Lines.IsEmpty())
 		{
 			Result.Lines.Reserve(Command.Geometry.Lines.Size());
 			for (const auto& Line : Command.Geometry.Lines)
 			{
-				Result.Lines.PushBack({Line, Color, Depth});
+				Result.Lines.PushBack({Line, Color, Depth, Layer});
 			}
 		}
 		else
@@ -280,9 +291,9 @@ TResult<FPreparedGeometry3D> PrepareGeometry3D(const FGeometryCommand3D& Command
 			Result.Lines.Reserve(Command.Geometry.Triangles.Size() * 3);
 			for (const auto& T : Command.Geometry.Triangles)
 			{
-				Result.Lines.PushBack({{T.A, T.B}, Color, Depth});
-				Result.Lines.PushBack({{T.B, T.C}, Color, Depth});
-				Result.Lines.PushBack({{T.C, T.A}, Color, Depth});
+				Result.Lines.PushBack({{T.A, T.B}, Color, Depth, Layer});
+				Result.Lines.PushBack({{T.B, T.C}, Color, Depth, Layer});
+				Result.Lines.PushBack({{T.C, T.A}, Color, Depth, Layer});
 			}
 		}
 	}

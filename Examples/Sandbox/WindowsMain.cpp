@@ -52,6 +52,7 @@ Toolbox::int32 WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, Toolbox::int32)
 		                              Toolbox::MakeUnique<Dxf::Sandbox::DSandboxGameInstance>());
 		// アプリケーションの実行器。
 		Dxf::FAppRunner Runner;
+
 		// 処理結果。
 		auto Result = Runner.Run(
 		    Application, Toolbox::MakeUnique<Dxf::Sandbox::DSandboxScene>(ProjectRoot.ToUtf8() + "/Assets"));

@@ -53,7 +53,22 @@ struct FGeometry3D
 	Toolbox::TVector<FTriangle3D> Triangles;
 };
 /**
- * 3D命令に適用する色と深度設定。半透明の並べ替えは行わず受付順に描く。
+ * 不透明・透明のScene描画と、調査用の重ね描画を区別する。
+ */
+enum class ERenderLayer3D
+{
+	/**
+	 * A=255は不透明、0<A<255は奥から手前へ並べる透明パス。
+	 */
+	Scene,
+	/**
+	 * Sceneの後に受付順で重ねる。深度を書き込まない。
+	 */
+	Overlay
+};
+/**
+ * 色・深度・表示層。透明Sceneは深度を検査するが書き込まない。
+ * AlwaysはLayerに関係なくOverlayとして受付順で描く。
  */
 struct FDrawStyle3D
 {
@@ -65,6 +80,10 @@ struct FDrawStyle3D
 	 * 深度検査・書き込みの方式。
 	 */
 	EDepthMode3D Depth = EDepthMode3D::TestAndWrite;
+	/**
+	 * 描画順の所属。デバッグ補助表示はOverlayでSceneと分離できる。
+	 */
+	ERenderLayer3D Layer = ERenderLayer3D::Scene;
 };
 /**
  * 並列生成の一入力が所有する3D描画命令。
@@ -97,6 +116,10 @@ struct FPreparedTriangle3D
 	 * 深度設定。
 	 */
 	EDepthMode3D Depth;
+	/**
+	 * 変換済みの所属層。Surface+Edgesで生成した辺はOverlay。
+	 */
+	ERenderLayer3D Layer = ERenderLayer3D::Scene;
 };
 /**
  * 表示上書き後の線分。
@@ -115,9 +138,13 @@ struct FPreparedLine3D
 	 * 深度設定。
 	 */
 	EDepthMode3D Depth;
+	/**
+	 * 変換済みの所属層。Surface+Edgesで生成した辺はOverlay。
+	 */
+	ERenderLayer3D Layer = ERenderLayer3D::Scene;
 };
 /**
- * 一命令のNative非依存な描画パケット。
+ * Native非依存の描画パケット。計画後は複数命令の同種プリミティブをまとめ得る。
  */
 struct FPreparedGeometry3D
 {

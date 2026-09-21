@@ -1,175 +1,105 @@
 {
-  "base": "1bb654826cb6b23de4837d744ab2634b25fb9979",
+  "base": "86a37b9cdb7e3641e41f7838a8c5694de801679c",
   "files": [
     {
-      "path": "CMake/RenderViewsTests.cmake",
-      "before_blob": null,
-      "sha256": "8b41e269fc724abfc95b28f5a1809331cb183f6c287e048337133c300067e881"
+      "path": "CMake/DebugTools.cmake",
+      "sha256": "e1a1e54d1de4329a7880ccd831decf044fa91fb003dc7ccaacc48fd89b45a2a9",
+      "size": 3405
     },
     {
-      "path": "Docs/Rendering/ViewsAndDebug.md",
-      "before_blob": null,
-      "sha256": "d0ff310dee1144091f0709dd5693e9ff9cd084ea7867792bb01dfbfafa63fedc"
+      "path": "Docs/Development/DebugTools86Audit.md",
+      "sha256": "608ce6f30998a8925f84cf8dc1758b1875994a79ea4deb22eea6b7b11901e741",
+      "size": 6463
     },
     {
-      "path": "Source/DxLibSupport/Private/Dxf/DebugDrawAdapters.cpp",
-      "before_blob": null,
-      "sha256": "36c54cd4a93467cbe21d7404c41c23e6d29ec484398df0d265c95e256c1a8890"
+      "path": "Docs/Development/RenderingDebugRoadmap.md",
+      "sha256": "8fef292fae3df13dca5958aaf7333b602ba14c2b9f9aabf53d4001e2a50b2326",
+      "size": 4422
     },
     {
-      "path": "Source/DxLibSupport/Private/Dxf/Render2DContext.cpp",
-      "before_blob": null,
-      "sha256": "1da2ddf5894704e8d01922e836f3f0b754efa44b154777783f4e09c24440cba7"
+      "path": "Docs/Rendering/DebugTools.md",
+      "sha256": "a984801b1e2ccab3796a159e5fd0bc792ba90e6cafb5c6a059be8c2c2bc15baa",
+      "size": 7152
     },
     {
-      "path": "Source/DxLibSupport/Private/Dxf/Render3DContext.cpp",
-      "before_blob": null,
-      "sha256": "abef1a7a34d037b68b114010abc45913e15f33a4f2320a291fe1fdb327ab258a"
+      "path": "Examples/RenderDebug/RenderDebugScene.cpp",
+      "sha256": "00d207ae0472cec75eda59af342f11ac79f61c988984f6b42caa76e3e1bd3e4e",
+      "size": 11120
     },
     {
-      "path": "Source/DxLibSupport/Private/Dxf/RenderGeometry3D.cpp",
-      "before_blob": null,
-      "sha256": "68c5865822da37d0f527fe5e91b572274266d7814961719cca441d932c9c935c"
+      "path": "Examples/RenderDebug/RenderDebugScene.h",
+      "sha256": "7f3cf441b58076834687f1a65cff5ba354f1f84d6746d157c7fe5dda36b752ae",
+      "size": 4184
     },
     {
-      "path": "Source/DxLibSupport/Private/Dxf/RenderQueue2D.cpp",
-      "before_blob": "e90236dbd39b66b1566c3ab25b275f90569b05ed",
-      "sha256": "c469514ad16112458884232d5cf8189b63452a6b451d0e8f398c4269422f6da1"
+      "path": "Examples/RenderDebug/WindowsMain.cpp",
+      "sha256": "cc2bd2390ee216f4b941856d2b46b172c4db0b075e31a69872d685a32e204be2",
+      "size": 1442
     },
     {
-      "path": "Source/DxLibSupport/Private/Dxf/RenderSystem.cpp",
-      "before_blob": null,
-      "sha256": "4b1866b9390b05a080f23a6b77041d430c3e9c36b627ce431187bcd98ac587a4"
+      "path": "Source/Debug/Private/Dxf/DebugCamera3D.cpp",
+      "sha256": "2a6564f1765e9c325c8dc8aebb2d1f46d93cb595e8eefab095380902a5b20934",
+      "size": 4100
     },
     {
-      "path": "Source/DxLibSupport/Public/Dxf/DebugDrawAdapters.h",
-      "before_blob": null,
-      "sha256": "ac411705c693467d0423878e828fa2c6f16843dd1dcef9a1d8f3aa7f9e637317"
+      "path": "Source/Debug/Private/Dxf/DebugSnapshotHistory.cpp",
+      "sha256": "a6717a8bc7309e50795a5b87931c95a344dd4269c24ce9d3a0b8ab6537fd3c68",
+      "size": 1605
     },
     {
-      "path": "Source/DxLibSupport/Public/Dxf/DebugDrawStore.h",
-      "before_blob": null,
-      "sha256": "e21bbfd8e894bc67a26687778e5dbdb60e355f002a811a46e367453246b0ce99"
+      "path": "Source/Debug/Private/Dxf/DebugStepController.cpp",
+      "sha256": "31c58539185c5c73f43fadeefdc05761196a35c3310cb17f498d1b35d5c121e9",
+      "size": 1581
     },
     {
-      "path": "Source/DxLibSupport/Public/Dxf/Render2DContext.h",
-      "before_blob": null,
-      "sha256": "2943d7a372a5d0468462e7648735744c3ba0339c0af8b57a7105efb748f8590d"
+      "path": "Source/Debug/Private/Dxf/PhysicsDebugDisplay3D.cpp",
+      "sha256": "e382b86fcb0b744177cfd71b902269d62443248a3b369a415fc9f6ae2f6258dd",
+      "size": 2853
     },
     {
-      "path": "Source/DxLibSupport/Public/Dxf/Render3DContext.h",
-      "before_blob": null,
-      "sha256": "bfaa95dce21a323ba788806401df7504f70262c7b8da1208e1d1bf8b21621ca7"
+      "path": "Source/Debug/Private/Dxf/PhysicsDebugSnapshot3D.cpp",
+      "sha256": "31978657c3d8604cfc4ccb3a4272e6d00e4d861059a17296a6efcb7821246604",
+      "size": 1762
     },
     {
-      "path": "Source/DxLibSupport/Public/Dxf/RenderAccess.h",
-      "before_blob": null,
-      "sha256": "fd1605a7d68a19ed54dc22a2bbcef2c86e6f1db1182f3632b2e8ca58753d46d2"
+      "path": "Source/Debug/Public/Dxf/DebugCamera3D.h",
+      "sha256": "c1b5a79167981b020e0f3f0c3976a5930e14f624164107365e911912c0650cd8",
+      "size": 2290
     },
     {
-      "path": "Source/DxLibSupport/Public/Dxf/RenderBackend.h",
-      "before_blob": "55f71a664e77e39c8d1b2f60c8ec009590d6ce21",
-      "sha256": "c47faa699c5ff458cc12d06ce831ca8aedd472dc15941275079832d989123d13"
+      "path": "Source/Debug/Public/Dxf/DebugSnapshotHistory.h",
+      "sha256": "239f64ac966ace4925b2b3e805245bbe5b0d1ed64865012e3822e87763037103",
+      "size": 1925
     },
     {
-      "path": "Source/DxLibSupport/Public/Dxf/RenderCommands.h",
-      "before_blob": "0925ba3383b1f9f1205ce81db45a4ea15b84f0fa",
-      "sha256": "dc4d6e607788d5237b5dd0fb1c82b00249357bd928eee227e71ce19e04ea7d3c"
+      "path": "Source/Debug/Public/Dxf/DebugStepController.h",
+      "sha256": "916b8b70059e775a50ab323d385c11633ddcca662c671df894ef2c964e3589da",
+      "size": 2045
     },
     {
-      "path": "Source/DxLibSupport/Public/Dxf/RenderContext.h",
-      "before_blob": "5fdff948ecc2e23435b7bb59452bf0b2cf4b11b3",
-      "sha256": "462425bfa356af3b2a314b9a9bacb8e336ee6d50a322190589f746cc1ba2759d"
+      "path": "Source/Debug/Public/Dxf/PhysicsDebugDisplay3D.h",
+      "sha256": "9151b4651d9d576f7758957063c8fe83da385ddcb3ce89cbddc7891c25114973",
+      "size": 1551
     },
     {
-      "path": "Source/DxLibSupport/Public/Dxf/RenderGeometry3D.h",
-      "before_blob": null,
-      "sha256": "5ed23152f1dc707a5c2dabcd9a22dccea65f7fb5e966e0dffca27ffc854f1a8c"
+      "path": "Source/Debug/Public/Dxf/PhysicsDebugSnapshot3D.h",
+      "sha256": "b5c9e1a6d0fb383ed9bcb8f022d9406e75c93f6c46bd6fe65b27a5c67582c5b6",
+      "size": 6192
     },
     {
-      "path": "Source/DxLibSupport/Public/Dxf/RenderQueue2D.h",
-      "before_blob": "ae2b71a9e4f8e39655129b394dbae204ac39c050",
-      "sha256": "52a8641cf311a9f369f47e62adbef175ad34f904587da1ba4f04eddd4d8ce48b"
+      "path": "Tests/DebugPhysicsIntegrationTests.cpp",
+      "sha256": "a4359fbaacfd02afb08582644e5d9e9f8a14e5ec42434d8dc1b40e6a3fbe4eb3",
+      "size": 2575
     },
     {
-      "path": "Source/DxLibSupport/Public/Dxf/RenderSystem.h",
-      "before_blob": null,
-      "sha256": "8443a37b6adbae0d406d10d7b366b2c9fd956a73791d35a571ef57efa497f7f4"
+      "path": "Tests/DebugRendererIntegrationTests.cpp",
+      "sha256": "80dec9b9d95f0923de990990fffa0e7b572e31cd547772dfb42681dc3a551e15",
+      "size": 2263
     },
     {
-      "path": "Source/DxLibSupport/Public/Dxf/RenderView3D.h",
-      "before_blob": null,
-      "sha256": "9e633682233c1e89448d1e6a67edfc3dd3389693ce43f4de22c55a6ef4b1da07"
-    },
-    {
-      "path": "Source/Native/Private/Dxf/DxLibGeometryBackend.cpp",
-      "before_blob": null,
-      "sha256": "8f0de86c95c7259d09e9b81178e5fa32e8e149e70b4cdc6dee451d6832664326"
-    },
-    {
-      "path": "Source/Native/Private/Dxf/DxLibRenderBackend.cpp",
-      "before_blob": "a7d09e2fa1f70d17bb6b66fdbcb5d20e6a395244",
-      "sha256": "50221caa7a48344168a32374ed0f512f34dd1d49af95cd12c924d1d09b2cae15"
-    },
-    {
-      "path": "Source/Native/Public/Dxf/DxLibRenderBackend.h",
-      "before_blob": "20708cf20619cf34ffcce9333c5ae5c2569694b7",
-      "sha256": "4379146e9f9f780ee4e6a00d91886d9e42e7a234a4488f193c590f3dc4adfdaa"
-    },
-    {
-      "path": "Source/Toolbox/Public/Toolbox/Vector.h",
-      "before_blob": "7efba5a7633df4711b417e13a1d8fe734fb3c6f3",
-      "sha256": "156e2dfded70976dd8078979fc5f2aead1be6ec164fbdeaa41ec26f3c9517940"
-    },
-    {
-      "path": "Tests/DebugDrawStoreTests.cpp",
-      "before_blob": null,
-      "sha256": "e26d6c14c1598416e94b462fa72f4f8de5e4996249896d94bddc9cf0be893a05"
-    },
-    {
-      "path": "Tests/FakeDxLib/RenderViewsApi.h",
-      "before_blob": null,
-      "sha256": "3e5928fd25b9ef518763abaadec931a9c552aa71f64612a7e002007e60041aa3"
-    },
-    {
-      "path": "Tests/NativeRenderViewsTests.cpp",
-      "before_blob": null,
-      "sha256": "f414f572358b99831216b9636cbf02d58043b74d3962e1e65451a59c762f49a4"
-    },
-    {
-      "path": "Tests/RenderContinuationTests.cpp",
-      "before_blob": "492e8da6f817540317d7af732ef88517476c2074",
-      "sha256": "2f4c7ad174aaa7186c96a1226625e6a8052f04f223badb4bd462544b199731f9"
-    },
-    {
-      "path": "Tests/RenderViewsTests.cpp",
-      "before_blob": null,
-      "sha256": "f2083d57a648dba35ad60b2abf47952271b54432886013abd66d9b2ac6394211"
-    },
-    {
-      "path": "Tools/RenderApiValidation/CMakeLists.txt",
-      "before_blob": null,
-      "sha256": "d2c48d569db7126998cfcd3f9e56f25814f69f6661eca45b0f4348db7b57de51"
-    },
-    {
-      "path": "Tools/RenderApiValidation/FakeNative/DxLib.h",
-      "before_blob": null,
-      "sha256": "0c7aabfcac5cd61a427d2523af0e2a341a6e5caf62b619e1815a3d6d2a2f99c2"
-    },
-    {
-      "path": "Tools/RenderValidation/CMakeLists.txt",
-      "before_blob": "4d000ee407a6ebf2e3ac707f4d0670f55b10142f",
-      "sha256": "82f7ad974ec9924ca712507a055f77814c7a351d10ea81262f60470f99ae2e3c"
-    },
-    {
-      "path": "Source/DxLibSupport/Public/Dxf/RenderSystem2D.h",
-      "before_blob": "1a90c143dab6bb6158ba99e7650dbf0cbc683b48",
-      "delete": true
-    },
-    {
-      "path": "Source/DxLibSupport/Private/Dxf/RenderSystem2D.cpp",
-      "before_blob": "26b0b01bc2616d4f83d41ce3cffd9d747ba1d680",
-      "delete": true
+      "path": "Tests/DebugToolsTests.cpp",
+      "sha256": "09c5f1201aeedcb2b2cdd6d8e98f2dc01d1213745c8a91d4e01740fa58ac5783",
+      "size": 13078
     }
   ]
 }
