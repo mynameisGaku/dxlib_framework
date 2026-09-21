@@ -181,6 +181,7 @@ void WorkerCountDoesNotChange2DResult_Internal()
 	PHYSICS_REQUIRE(ParallelDiagnostics.ExecutionThreadCount == 4);
 	PHYSICS_REQUIRE(ParallelDiagnostics.CandidatePairCount > 0);
 	PHYSICS_REQUIRE(ParallelDiagnostics.IslandCount > 1);
+	PHYSICS_REQUIRE(ParallelDiagnostics.SolverIslandCount == ParallelDiagnostics.IslandCount);
 }
 
 void WorkerCountDoesNotChange3DResult_Internal()
@@ -206,6 +207,7 @@ void WorkerCountDoesNotChange3DResult_Internal()
 	PHYSICS_REQUIRE(ParallelDiagnostics.ExecutionThreadCount == 4);
 	PHYSICS_REQUIRE(ParallelDiagnostics.CandidatePairCount > 0);
 	PHYSICS_REQUIRE(ParallelDiagnostics.IslandCount > 1);
+	PHYSICS_REQUIRE(ParallelDiagnostics.SolverIslandCount == ParallelDiagnostics.IslandCount);
 }
 
 void BroadPhaseSlopKeepsNearPair_Internal()

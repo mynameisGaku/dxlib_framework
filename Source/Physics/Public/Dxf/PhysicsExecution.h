@@ -52,6 +52,10 @@ struct FPhysicsExecutionDiagnostics
 	 * 現在接触から構築したDynamic Island数。
 	 */
 	Toolbox::uint64 IslandCount = 0;
+	/**
+	 * Job経路で解決したIsland数。直列経路では増えない。
+	 */
+	Toolbox::uint64 SolverIslandCount = 0;
 };
 } // namespace Dxf
 #endif

@@ -10,11 +10,12 @@ Physics Worldの公開APIは引き続き**呼び出し側で直列化する契�
 2. Sweep-and-Prune BroadPhaseの固定チャンク。
 3. Candidate PairごとのNarrowPhase。各Jobは専用のManifold slotだけを書きます。
 4. Dynamic接触グラフから作った独立IslandごとのConstraint Solver。
+   WarmStartは全多様体へ直列に済ませ、StoreCacheも直列に戻す。
 5. Bodyごとの位置・姿勢積分。
 
 Candidate PairはJob完了順を使わず、最後にCollider indexの辞書順へ戻します。Islandの根は最小Body indexに固定します。このためWorker数やJob完了順でSolver入力順が変わらないようにしています。
 
-Static/KinematicはDynamic Island同士を接続しません。複数Islandが同じStatic/Kinematicへ接触できるため、並列Solver経路では逆質量・逆慣性が0のBodyへ「0を加算する」書き込みも行いません。
+Static/KinematicはDynamic Island同士を接続しません。複数Islandが同じStatic/Kinematicへ接触できるため、並列Solver経路では逆質量・逆慣性が0のBodyへ「0を加算する」書き込みも行いません。既に起きている対象への再起床も書き込みません。これにより共有Static/Kinematicは読み取り専用になり、Island完了順によらず結果が一致します。
 
 `ContactSlop`内の近接をNarrowPhaseが接触として扱えるよう、BroadPhaseは各AABBをSlop分だけ膨張させて候補化します。
 
@@ -29,4 +30,4 @@ CCDのTOI反復は現在もWorld単位で順序依存があるため、この段
 - NarrowPhase Worker: 読み取り専用World state + 専用Manifold slotのみ変更。
 - Island Solver Worker: そのIslandに所属するDynamic Bodyだけ変更。
 
-`WorkerCount=1`相当のJob Systemと複数Workerで同じ入力列を比較する回帰テストを維持します。
+`WorkerCount=1`相当のJob Systemと複数Workerで同じ入力列を比較する回帰テストを維持します。借用なし（`nullptr`）では従来の直列経路をそのまま通り、新旧経路の等価性も検証します。`SolverIslandCount`が`IslandCount`に一致することで、Island SolverがJob経路を通ったことを確認します。

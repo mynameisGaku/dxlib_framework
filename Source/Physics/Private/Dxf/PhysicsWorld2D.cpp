@@ -812,32 +812,6 @@ struct FPhysicsWorld2D::FImpl
 		}
 		ExecutionDiagnostics.ManifoldCount += Out.Size();
 	}
-	// 多様体列からDynamic接触Islandを数える。Solverは直列のまま診断だけ作る。
-	void BuildIslandDiagnostics_Internal(const Toolbox::TVector<FManifold2D>& Manifolds)
-	{
-		Toolbox::TVector<PhysicsPrivate::FIslandEdge> Edges;
-		Edges.Reserve(Manifolds.Size());
-		for (Toolbox::size_t Index = 0; Index < Manifolds.Size(); ++Index)
-		{
-			const FManifold2D& Manifold = Manifolds[Index];
-			const FBodyRecord2D* BodyA = Find_Internal(Manifold.BodyA);
-			const FBodyRecord2D* BodyB = Find_Internal(Manifold.BodyB);
-			if (BodyA == nullptr || BodyB == nullptr)
-			{
-				continue;
-			}
-			PhysicsPrivate::FIslandEdge Edge;
-			Edge.BodyA = Manifold.BodyA.Index;
-			Edge.BodyB = Manifold.BodyB.Index;
-			Edge.ConstraintIndex = Index;
-			Edge.bDynamicA = BodyA->Type == EBodyType::Dynamic;
-			Edge.bDynamicB = BodyB->Type == EBodyType::Dynamic;
-			Edges.PushBack(Edge);
-		}
-		Toolbox::TVector<PhysicsPrivate::FPhysicsIsland> Islands;
-		PhysicsPrivate::FIslandManager::Build(Slots.Size(), Edges, Islands);
-		ExecutionDiagnostics.IslandCount = Islands.Size();
-	}
 	// 設定に応じて直列またはBroadPhase経由で多様体列を作る。
 	void GenerateStepManifolds_Internal(Toolbox::TVector<FManifold2D>& Out)
 	{
@@ -922,6 +896,11 @@ struct FPhysicsWorld2D::FImpl
 	// 休止中の剛体を起こす。
 	static void Wake_Internal(FBodyRecord2D& Record) noexcept
 	{
+		// 既に起きている対象への書き込みは並列Islandの競合になるため省く。
+		if (!Record.bSleeping && Record.SleepTimer == 0)
+		{
+			return;
+		}
 		Record.bSleeping = false;
 		Record.SleepTimer = 0;
 	}
@@ -1059,14 +1038,22 @@ struct FPhysicsWorld2D::FImpl
 		const Toolbox::f64 ArmBY = Toolbox::f64(Point.Y) - BodyB.Position.Y;
 		const Toolbox::f64 PushX = Push.X;
 		const Toolbox::f64 PushY = Push.Y;
-		BodyA.Velocity += {static_cast<Toolbox::f32>(PushX * InverseMassA),
-		                   static_cast<Toolbox::f32>(PushY * InverseMassA)};
-		BodyA.AngularVelocity = static_cast<Toolbox::f32>(Toolbox::f64(BodyA.AngularVelocity) +
-		                                                   (ArmAX * PushY - ArmAY * PushX) * InverseInertiaA);
-		BodyB.Velocity += {static_cast<Toolbox::f32>(-PushX * InverseMassB),
-		                   static_cast<Toolbox::f32>(-PushY * InverseMassB)};
-		BodyB.AngularVelocity = static_cast<Toolbox::f32>(Toolbox::f64(BodyB.AngularVelocity) -
-		                                                   (ArmBX * PushY - ArmBY * PushX) * InverseInertiaB);
+		// 実効質量がゼロの対象への書き込みは並列Islandの競合になるため省く。
+		// 有限値へのゼロ加算と変わらず、非有限値も保存される。
+		if (InverseMassA != 0 || InverseInertiaA != 0)
+		{
+			BodyA.Velocity += {static_cast<Toolbox::f32>(PushX * InverseMassA),
+			                   static_cast<Toolbox::f32>(PushY * InverseMassA)};
+			BodyA.AngularVelocity = static_cast<Toolbox::f32>(Toolbox::f64(BodyA.AngularVelocity) +
+			                                                   (ArmAX * PushY - ArmAY * PushX) * InverseInertiaA);
+		}
+		if (InverseMassB != 0 || InverseInertiaB != 0)
+		{
+			BodyB.Velocity += {static_cast<Toolbox::f32>(-PushX * InverseMassB),
+			                   static_cast<Toolbox::f32>(-PushY * InverseMassB)};
+			BodyB.AngularVelocity = static_cast<Toolbox::f32>(Toolbox::f64(BodyB.AngularVelocity) -
+			                                                   (ArmBX * PushY - ArmBY * PushX) * InverseInertiaB);
+		}
 	}
 	// 単一接触点の速度拘束を解く。
 	static void SolvePoint_Internal(FBodyRecord2D& BodyA, FBodyRecord2D& BodyB, FSolvePoint2D& Point,
@@ -1133,11 +1120,24 @@ struct FPhysicsWorld2D::FImpl
 	// 多様体列の速度拘束を反復して解く。
 	void SolveVelocities_Internal(Toolbox::TVector<FManifold2D>& Manifolds)
 	{
+		// 全制約の安定添字。
+		Toolbox::TVector<Toolbox::size_t> All;
+		All.Reserve(Manifolds.Size());
+		for (Toolbox::size_t Index = 0; Index < Manifolds.Size(); ++Index)
+		{
+			All.PushBack(Index);
+		}
+		SolveConstraints_Internal(Manifolds, All);
+	}
+	// 制約添字列の速度拘束を添字順に反復して解く。
+	void SolveConstraints_Internal(Toolbox::TVector<FManifold2D>& Manifolds,
+	                               const Toolbox::TVector<Toolbox::size_t>& Constraints)
+	{
 		for (Toolbox::uint32 Iteration = 0; Iteration < Contact.VelocityIterations; ++Iteration)
 		{
-			for (Toolbox::size_t ManifoldIndex = 0; ManifoldIndex < Manifolds.Size(); ++ManifoldIndex)
+			for (Toolbox::size_t Slot = 0; Slot < Constraints.Size(); ++Slot)
 			{
-				FManifold2D& Manifold = Manifolds[ManifoldIndex];
+				FManifold2D& Manifold = Manifolds[Constraints[Slot]];
 				FBodyRecord2D* BodyA = Find_Internal(Manifold.BodyA);
 				FBodyRecord2D* BodyB = Find_Internal(Manifold.BodyB);
 				if (BodyA == nullptr || BodyB == nullptr)
@@ -1148,6 +1148,57 @@ struct FPhysicsWorld2D::FImpl
 				{
 					SolvePoint_Internal(*BodyA, *BodyB, Manifold.Points[PointIndex], Contact.RestitutionThreshold);
 				}
+			}
+		}
+	}
+	// 多様体列からIslandを構築し、独立Islandごとに拘束を解く。
+	// IslandはDynamic Bodyを共有せず、Static/Kinematicへは書き込まない。
+	// WarmStartは呼び出し側で全多様体へ済ませておく。
+	void SolveIslands_Internal(Toolbox::TVector<FManifold2D>& Manifolds)
+	{
+		Toolbox::TVector<PhysicsPrivate::FIslandEdge> Edges;
+		Edges.Reserve(Manifolds.Size());
+		for (Toolbox::size_t Index = 0; Index < Manifolds.Size(); ++Index)
+		{
+			const FManifold2D& Manifold = Manifolds[Index];
+			const FBodyRecord2D* BodyA = Find_Internal(Manifold.BodyA);
+			const FBodyRecord2D* BodyB = Find_Internal(Manifold.BodyB);
+			if (BodyA == nullptr || BodyB == nullptr)
+			{
+				continue;
+			}
+			PhysicsPrivate::FIslandEdge Edge;
+			Edge.BodyA = Manifold.BodyA.Index;
+			Edge.BodyB = Manifold.BodyB.Index;
+			Edge.ConstraintIndex = Index;
+			Edge.bDynamicA = BodyA->Type == EBodyType::Dynamic;
+			Edge.bDynamicB = BodyB->Type == EBodyType::Dynamic;
+			Edges.PushBack(Edge);
+		}
+		Toolbox::TVector<PhysicsPrivate::FPhysicsIsland> Islands;
+		PhysicsPrivate::FIslandManager::Build(Slots.Size(), Edges, Islands);
+		ExecutionDiagnostics.IslandCount = Islands.Size();
+		if (Islands.IsEmpty())
+		{
+			return;
+		}
+		auto SolveOne = [&](Toolbox::size_t IslandIndex)
+		{
+			SolveConstraints_Internal(Manifolds, Islands[IslandIndex].ConstraintIndices);
+		};
+		if (UseBorrowedJobs_Internal(Execution.bParallelIslandSolver))
+		{
+			if (!Toolbox::ParallelFor(*Execution.JobSystem, Islands.Size(), SolveOne, 1))
+			{
+				throw Toolbox::FException("Parallel 2D island solver failed");
+			}
+			ExecutionDiagnostics.SolverIslandCount += Islands.Size();
+		}
+		else
+		{
+			for (Toolbox::size_t IslandIndex = 0; IslandIndex < Islands.Size(); ++IslandIndex)
+			{
+				SolveOne(IslandIndex);
 			}
 		}
 	}
@@ -2203,12 +2254,18 @@ void FPhysicsWorld2D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 		// 現在位置の接触を集めて速度拘束を解く。
 		Toolbox::TVector<FManifold2D> Manifolds;
 		m_pImpl->GenerateStepManifolds_Internal(Manifolds);
-		m_pImpl->BuildIslandDiagnostics_Internal(Manifolds);
 		for (Toolbox::size_t ManifoldIndex = 0; ManifoldIndex < Manifolds.Size(); ++ManifoldIndex)
 		{
 			m_pImpl->WarmStart_Internal(Manifolds[ManifoldIndex]);
 		}
-		m_pImpl->SolveVelocities_Internal(Manifolds);
+		if (m_pImpl->Execution.JobSystem == nullptr)
+		{
+			m_pImpl->SolveVelocities_Internal(Manifolds);
+		}
+		else
+		{
+			m_pImpl->SolveIslands_Internal(Manifolds);
+		}
 		m_pImpl->StoreCache_Internal(Manifolds);
 		if (bContinuous)
 		{

@@ -877,12 +877,19 @@ struct FPhysicsWorld3D::FImpl
 		const FVector3D ArmB = {Toolbox::f64(Point.X) - BodyB.Position.X, Toolbox::f64(Point.Y) - BodyB.Position.Y,
 		                        Toolbox::f64(Point.Z) - BodyB.Position.Z};
 		// 並進への反映。
-		BodyA.Velocity += {static_cast<Toolbox::f32>(Push.X * InverseMassA),
-		                   static_cast<Toolbox::f32>(Push.Y * InverseMassA),
-		                   static_cast<Toolbox::f32>(Push.Z * InverseMassA)};
-		BodyB.Velocity += {static_cast<Toolbox::f32>(-Push.X * InverseMassB),
-		                   static_cast<Toolbox::f32>(-Push.Y * InverseMassB),
-		                   static_cast<Toolbox::f32>(-Push.Z * InverseMassB)};
+		// 実効質量がゼロの対象への書き込みは並列Islandの競合になるため省く。
+		if (InverseMassA != 0)
+		{
+			BodyA.Velocity += {static_cast<Toolbox::f32>(Push.X * InverseMassA),
+			                   static_cast<Toolbox::f32>(Push.Y * InverseMassA),
+			                   static_cast<Toolbox::f32>(Push.Z * InverseMassA)};
+		}
+		if (InverseMassB != 0)
+		{
+			BodyB.Velocity += {static_cast<Toolbox::f32>(-Push.X * InverseMassB),
+			                   static_cast<Toolbox::f32>(-Push.Y * InverseMassB),
+			                   static_cast<Toolbox::f32>(-Push.Z * InverseMassB)};
+		}
 		// 腕とImpulseの外積をワールド逆慣性で角速度へ変換する。
 		const FVector3D MomentA = {ArmA.Y * Push.Z - ArmA.Z * Push.Y, ArmA.Z * Push.X - ArmA.X * Push.Z,
 		                           ArmA.X * Push.Y - ArmA.Y * Push.X};
@@ -892,10 +899,16 @@ struct FPhysicsWorld3D::FImpl
 		const FQuaternionD QuaternionB = ToDouble_Internal(BodyB.Orientation);
 		const FVector3D DeltaA = TransformDiagonal_Internal(QuaternionA, InverseDiagonalA, MomentA);
 		const FVector3D DeltaB = TransformDiagonal_Internal(QuaternionB, InverseDiagonalB, MomentB);
-		BodyA.AngularVelocity += {static_cast<Toolbox::f32>(DeltaA.X), static_cast<Toolbox::f32>(DeltaA.Y),
-		                          static_cast<Toolbox::f32>(DeltaA.Z)};
-		BodyB.AngularVelocity += {static_cast<Toolbox::f32>(-DeltaB.X), static_cast<Toolbox::f32>(-DeltaB.Y),
-		                          static_cast<Toolbox::f32>(-DeltaB.Z)};
+		if (InverseDiagonalA.X != 0 || InverseDiagonalA.Y != 0 || InverseDiagonalA.Z != 0)
+		{
+			BodyA.AngularVelocity += {static_cast<Toolbox::f32>(DeltaA.X), static_cast<Toolbox::f32>(DeltaA.Y),
+			                          static_cast<Toolbox::f32>(DeltaA.Z)};
+		}
+		if (InverseDiagonalB.X != 0 || InverseDiagonalB.Y != 0 || InverseDiagonalB.Z != 0)
+		{
+			BodyB.AngularVelocity += {static_cast<Toolbox::f32>(-DeltaB.X), static_cast<Toolbox::f32>(-DeltaB.Y),
+			                          static_cast<Toolbox::f32>(-DeltaB.Z)};
+		}
 	}
 	// 二つのコライダー組から接触点列を作る。
 	void AppendPairManifold_Internal(const FColliderRecord3D& RecordA, const FColliderId3D& IdA,
@@ -1157,32 +1170,6 @@ struct FPhysicsWorld3D::FImpl
 		}
 		ExecutionDiagnostics.ManifoldCount += Out.Size();
 	}
-	// 多様体列からDynamic接触Islandを数える。Solverは直列のまま診断だけ作る。
-	void BuildIslandDiagnostics_Internal(const Toolbox::TVector<FManifold3D>& Manifolds)
-	{
-		Toolbox::TVector<PhysicsPrivate::FIslandEdge> Edges;
-		Edges.Reserve(Manifolds.Size());
-		for (Toolbox::size_t Index = 0; Index < Manifolds.Size(); ++Index)
-		{
-			const FManifold3D& Manifold = Manifolds[Index];
-			const FBodyRecord3D* BodyA = Find_Internal(Manifold.BodyA);
-			const FBodyRecord3D* BodyB = Find_Internal(Manifold.BodyB);
-			if (BodyA == nullptr || BodyB == nullptr)
-			{
-				continue;
-			}
-			PhysicsPrivate::FIslandEdge Edge;
-			Edge.BodyA = Manifold.BodyA.Index;
-			Edge.BodyB = Manifold.BodyB.Index;
-			Edge.ConstraintIndex = Index;
-			Edge.bDynamicA = BodyA->Type == EBodyType::Dynamic;
-			Edge.bDynamicB = BodyB->Type == EBodyType::Dynamic;
-			Edges.PushBack(Edge);
-		}
-		Toolbox::TVector<PhysicsPrivate::FPhysicsIsland> Islands;
-		PhysicsPrivate::FIslandManager::Build(Slots.Size(), Edges, Islands);
-		ExecutionDiagnostics.IslandCount = Islands.Size();
-	}
 	// 設定に応じて直列またはBroadPhase経由で多様体列を作る。
 	void GenerateStepManifolds_Internal(Toolbox::TVector<FManifold3D>& Out)
 	{
@@ -1280,6 +1267,11 @@ struct FPhysicsWorld3D::FImpl
 	// 休止中の剛体を起こす。
 	static void Wake_Internal(FBodyRecord3D& Record) noexcept
 	{
+		// 既に起きている対象への書き込みは並列Islandの競合になるため省く。
+		if (!Record.bSleeping && Record.SleepTimer == 0)
+		{
+			return;
+		}
 		Record.bSleeping = false;
 		Record.SleepTimer = 0;
 	}
@@ -1522,11 +1514,24 @@ struct FPhysicsWorld3D::FImpl
 	// 多様体列の速度拘束を反復して解く。
 	void SolveVelocities_Internal(Toolbox::TVector<FManifold3D>& Manifolds)
 	{
+		// 全制約の安定添字。
+		Toolbox::TVector<Toolbox::size_t> All;
+		All.Reserve(Manifolds.Size());
+		for (Toolbox::size_t Index = 0; Index < Manifolds.Size(); ++Index)
+		{
+			All.PushBack(Index);
+		}
+		SolveConstraints_Internal(Manifolds, All);
+	}
+	// 制約添字列の速度拘束を添字順に反復して解く。
+	void SolveConstraints_Internal(Toolbox::TVector<FManifold3D>& Manifolds,
+	                               const Toolbox::TVector<Toolbox::size_t>& Constraints)
+	{
 		for (Toolbox::uint32 Iteration = 0; Iteration < Contact.VelocityIterations; ++Iteration)
 		{
-			for (Toolbox::size_t ManifoldIndex = 0; ManifoldIndex < Manifolds.Size(); ++ManifoldIndex)
+			for (Toolbox::size_t Slot = 0; Slot < Constraints.Size(); ++Slot)
 			{
-				FManifold3D& Manifold = Manifolds[ManifoldIndex];
+				FManifold3D& Manifold = Manifolds[Constraints[Slot]];
 				FBodyRecord3D* BodyA = Find_Internal(Manifold.BodyA);
 				FBodyRecord3D* BodyB = Find_Internal(Manifold.BodyB);
 				if (BodyA == nullptr || BodyB == nullptr)
@@ -1537,6 +1542,57 @@ struct FPhysicsWorld3D::FImpl
 				{
 					SolvePoint_Internal(*BodyA, *BodyB, Manifold.Points[PointIndex], Contact.RestitutionThreshold);
 				}
+			}
+		}
+	}
+	// 多様体列からIslandを構築し、独立Islandごとに拘束を解く。
+	// IslandはDynamic Bodyを共有せず、Static/Kinematicへは書き込まない。
+	// WarmStartは呼び出し側で全多様体へ済ませておく。
+	void SolveIslands_Internal(Toolbox::TVector<FManifold3D>& Manifolds)
+	{
+		Toolbox::TVector<PhysicsPrivate::FIslandEdge> Edges;
+		Edges.Reserve(Manifolds.Size());
+		for (Toolbox::size_t Index = 0; Index < Manifolds.Size(); ++Index)
+		{
+			const FManifold3D& Manifold = Manifolds[Index];
+			const FBodyRecord3D* BodyA = Find_Internal(Manifold.BodyA);
+			const FBodyRecord3D* BodyB = Find_Internal(Manifold.BodyB);
+			if (BodyA == nullptr || BodyB == nullptr)
+			{
+				continue;
+			}
+			PhysicsPrivate::FIslandEdge Edge;
+			Edge.BodyA = Manifold.BodyA.Index;
+			Edge.BodyB = Manifold.BodyB.Index;
+			Edge.ConstraintIndex = Index;
+			Edge.bDynamicA = BodyA->Type == EBodyType::Dynamic;
+			Edge.bDynamicB = BodyB->Type == EBodyType::Dynamic;
+			Edges.PushBack(Edge);
+		}
+		Toolbox::TVector<PhysicsPrivate::FPhysicsIsland> Islands;
+		PhysicsPrivate::FIslandManager::Build(Slots.Size(), Edges, Islands);
+		ExecutionDiagnostics.IslandCount = Islands.Size();
+		if (Islands.IsEmpty())
+		{
+			return;
+		}
+		auto SolveOne = [&](Toolbox::size_t IslandIndex)
+		{
+			SolveConstraints_Internal(Manifolds, Islands[IslandIndex].ConstraintIndices);
+		};
+		if (UseBorrowedJobs_Internal(Execution.bParallelIslandSolver))
+		{
+			if (!Toolbox::ParallelFor(*Execution.JobSystem, Islands.Size(), SolveOne, 1))
+			{
+				throw Toolbox::FException("Parallel 3D island solver failed");
+			}
+			ExecutionDiagnostics.SolverIslandCount += Islands.Size();
+		}
+		else
+		{
+			for (Toolbox::size_t IslandIndex = 0; IslandIndex < Islands.Size(); ++IslandIndex)
+			{
+				SolveOne(IslandIndex);
 			}
 		}
 	}
@@ -2671,12 +2727,18 @@ void FPhysicsWorld3D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 		// 現在位置の接触を集めて速度拘束を解く。
 		Toolbox::TVector<FManifold3D> Manifolds;
 		m_pImpl->GenerateStepManifolds_Internal(Manifolds);
-		m_pImpl->BuildIslandDiagnostics_Internal(Manifolds);
 		for (Toolbox::size_t ManifoldIndex = 0; ManifoldIndex < Manifolds.Size(); ++ManifoldIndex)
 		{
 			m_pImpl->WarmStart_Internal(Manifolds[ManifoldIndex]);
 		}
-		m_pImpl->SolveVelocities_Internal(Manifolds);
+		if (m_pImpl->Execution.JobSystem == nullptr)
+		{
+			m_pImpl->SolveVelocities_Internal(Manifolds);
+		}
+		else
+		{
+			m_pImpl->SolveIslands_Internal(Manifolds);
+		}
 		m_pImpl->StoreCache_Internal(Manifolds);
 		if (bContinuous)
 		{
