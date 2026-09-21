@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: NOASSERTION
 #include "Dxf/RigidBody2D.h"
+#include "ParallelPhysicsCore.h"
 #include "Toolbox/ContinuousCollision.h"
 #include "Toolbox/Vector.h"
 namespace Dxf
@@ -442,6 +443,10 @@ struct FPhysicsWorld2D::FImpl
 	FContinuousSettings2D Continuous;
 	// 直近更新の連続衝突診断。
 	FContinuousDiagnostics2D Diagnostics;
+	// Step内部だけで利用する非所有Job Systemと並列化設定。
+	FPhysicsExecutionSettings Execution;
+	// 直近更新で集計した並列実行診断。
+	FPhysicsExecutionDiagnostics ExecutionDiagnostics;
 	// 休止の条件。
 	FSleepSettings2D Sleep;
 	// 新しいワールドへ重ならない識別子を発行する。
@@ -650,6 +655,198 @@ struct FPhysicsWorld2D::FImpl
 				Manifold.Points.PushBack(Point);
 			}
 		}
+	}
+	// 指定機能へ借用Job Systemを使うか。1レーンでも同じ並列経路を通す。
+	bool UseBorrowedJobs_Internal(bool bEnabled) const noexcept
+	{
+		return bEnabled && Execution.JobSystem != nullptr;
+	}
+	// 借用Job Systemの実行レーン数を返す。借用なしは1。
+	Toolbox::uint32 ExecutionLanes_Internal() const noexcept
+	{
+		return Execution.JobSystem != nullptr ? Execution.JobSystem->GetExecutionThreadCount() : 1;
+	}
+	// コライダーのワールド軸平行境界を作る。計算はf32で行いf64へ広げる。
+	static PhysicsPrivate::FBroadPhaseBounds ToBounds_Internal(const FBodyRecord2D& Body,
+	                                                          const FColliderRecord2D& Record) noexcept
+	{
+		PhysicsPrivate::FBroadPhaseBounds Bounds;
+		if (Record.Shape.Index() == 0)
+		{
+			// 中心と半径のワールド円。
+			const Toolbox::FCircle2D World = ToWorld_Internal(Body, Record.Shape.Get<0>());
+			Bounds.MinX = Toolbox::f64(World.Center.X - World.Radius);
+			Bounds.MinY = Toolbox::f64(World.Center.Y - World.Radius);
+			Bounds.MaxX = Toolbox::f64(World.Center.X + World.Radius);
+			Bounds.MaxY = Toolbox::f64(World.Center.Y + World.Radius);
+			return Bounds;
+		}
+		// 回転矩形のワールド形状。
+		const Toolbox::FOrientedBox2D World = ToWorld_Internal(Body, Record.Shape.Get<1>());
+		// 回転角の余弦と正弦。
+		const Toolbox::f64 Cosine = Toolbox::Cos(Toolbox::f64(World.Angle));
+		const Toolbox::f64 Sine = Toolbox::Sin(Toolbox::f64(World.Angle));
+		// 四隅から範囲を広げる。
+		bool bFirst = true;
+		for (Toolbox::int32 Corner = 0; Corner < 4; ++Corner)
+		{
+			const Toolbox::f64 SignX = (Corner & 1) == 0 ? -1 : 1;
+			const Toolbox::f64 SignY = (Corner & 2) == 0 ? -1 : 1;
+			const Toolbox::f64 PointX =
+			    Toolbox::f64(World.Center.X) + Cosine * SignX * World.HalfExtents.X - Sine * SignY * World.HalfExtents.Y;
+			const Toolbox::f64 PointY =
+			    Toolbox::f64(World.Center.Y) + Sine * SignX * World.HalfExtents.X + Cosine * SignY * World.HalfExtents.Y;
+			if (bFirst)
+			{
+				Bounds.MinX = PointX;
+				Bounds.MinY = PointY;
+				Bounds.MaxX = PointX;
+				Bounds.MaxY = PointY;
+				bFirst = false;
+			}
+			else
+			{
+				if (PointX < Bounds.MinX)
+				{
+					Bounds.MinX = PointX;
+				}
+				if (PointY < Bounds.MinY)
+				{
+					Bounds.MinY = PointY;
+				}
+				if (PointX > Bounds.MaxX)
+				{
+					Bounds.MaxX = PointX;
+				}
+				if (PointY > Bounds.MaxY)
+				{
+					Bounds.MaxY = PointY;
+				}
+			}
+		}
+		return Bounds;
+	}
+	// BroadPhaseの入力を有効なコライダーから作る。
+	void BuildBroadPhaseEntries_Internal(Toolbox::TVector<PhysicsPrivate::FBroadPhaseEntry>& Out) const
+	{
+		Out.Clear();
+		for (Toolbox::size_t Index = 0; Index < Colliders.Size(); ++Index)
+		{
+			const FColliderRecord2D& Record = Colliders[Index];
+			if (!Record.bAlive)
+			{
+				continue;
+			}
+			const FBodyRecord2D* Body = Find_Internal(Record.Body);
+			if (Body == nullptr)
+			{
+				continue;
+			}
+			PhysicsPrivate::FBroadPhaseEntry Entry;
+			Entry.ColliderIndex = Index;
+			Entry.BodyIndex = Record.Body.Index;
+			Entry.BodyGeneration = Record.Body.Generation;
+			Entry.bDynamic = Body->Type == EBodyType::Dynamic;
+			Entry.Bounds = ToBounds_Internal(*Body, Record);
+			Out.PushBack(Entry);
+		}
+	}
+	// 一つの候補組から接触点列を作る。呼び出し側の専用領域だけを書く。
+	// 共有状態は読み取りだけにし、構造変更は行わない。
+	void GeneratePairManifold_Internal(const PhysicsPrivate::FBroadPhasePair& Pair, FManifold2D& Manifold)
+	{
+		const FColliderRecord2D& RecordA = Colliders[Pair.FirstColliderIndex];
+		const FColliderRecord2D& RecordB = Colliders[Pair.SecondColliderIndex];
+		const FBodyRecord2D* BodyA = Find_Internal(RecordA.Body);
+		const FBodyRecord2D* BodyB = Find_Internal(RecordB.Body);
+		if (BodyA == nullptr || BodyB == nullptr)
+		{
+			return;
+		}
+		const FColliderId2D IdA = {RecordA.Body, Pair.FirstColliderIndex, RecordA.Generation};
+		const FColliderId2D IdB = {RecordB.Body, Pair.SecondColliderIndex, RecordB.Generation};
+		if (ColliderLess_Internal(IdB, IdA))
+		{
+			AppendPairManifold_Internal(RecordB, IdB, RecordA, IdA, *BodyB, *BodyA, Manifold);
+		}
+		else
+		{
+			AppendPairManifold_Internal(RecordA, IdA, RecordB, IdB, *BodyA, *BodyB, Manifold);
+		}
+	}
+	// BroadPhaseの候補組から多様体列を作る。組順序を保ち、空の多様体は除く。
+	void GenerateParallelManifolds_Internal(Toolbox::TVector<FManifold2D>& Out)
+	{
+		Toolbox::TVector<PhysicsPrivate::FBroadPhaseEntry> Entries;
+		BuildBroadPhaseEntries_Internal(Entries);
+		Toolbox::TVector<PhysicsPrivate::FBroadPhasePair> Pairs;
+		Toolbox::FJobSystem* BroadJobs = UseBorrowedJobs_Internal(Execution.bParallelBroadPhase) ? Execution.JobSystem : nullptr;
+		PhysicsPrivate::FBroadPhase::Generate(Entries, Contact.ContactSlop, BroadJobs, Pairs);
+		ExecutionDiagnostics.CandidatePairCount += Pairs.Size();
+		// 組ごとの専用多様体。
+		Toolbox::TVector<FManifold2D> PairManifolds(Pairs.Size());
+		auto GenerateOne = [&](Toolbox::size_t Index)
+		{
+			GeneratePairManifold_Internal(Pairs[Index], PairManifolds[Index]);
+		};
+		if (UseBorrowedJobs_Internal(Execution.bParallelNarrowPhase))
+		{
+			if (!Toolbox::ParallelFor(*Execution.JobSystem, Pairs.Size(), GenerateOne, 8))
+			{
+				throw Toolbox::FException("Parallel 2D narrow phase failed");
+			}
+		}
+		else
+		{
+			for (Toolbox::size_t Index = 0; Index < Pairs.Size(); ++Index)
+			{
+				GenerateOne(Index);
+			}
+		}
+		for (Toolbox::size_t Index = 0; Index < PairManifolds.Size(); ++Index)
+		{
+			if (!PairManifolds[Index].Points.IsEmpty())
+			{
+				Out.PushBack(Toolbox::Move(PairManifolds[Index]));
+			}
+		}
+		ExecutionDiagnostics.ManifoldCount += Out.Size();
+	}
+	// 多様体列からDynamic接触Islandを数える。Solverは直列のまま診断だけ作る。
+	void BuildIslandDiagnostics_Internal(const Toolbox::TVector<FManifold2D>& Manifolds)
+	{
+		Toolbox::TVector<PhysicsPrivate::FIslandEdge> Edges;
+		Edges.Reserve(Manifolds.Size());
+		for (Toolbox::size_t Index = 0; Index < Manifolds.Size(); ++Index)
+		{
+			const FManifold2D& Manifold = Manifolds[Index];
+			const FBodyRecord2D* BodyA = Find_Internal(Manifold.BodyA);
+			const FBodyRecord2D* BodyB = Find_Internal(Manifold.BodyB);
+			if (BodyA == nullptr || BodyB == nullptr)
+			{
+				continue;
+			}
+			PhysicsPrivate::FIslandEdge Edge;
+			Edge.BodyA = Manifold.BodyA.Index;
+			Edge.BodyB = Manifold.BodyB.Index;
+			Edge.ConstraintIndex = Index;
+			Edge.bDynamicA = BodyA->Type == EBodyType::Dynamic;
+			Edge.bDynamicB = BodyB->Type == EBodyType::Dynamic;
+			Edges.PushBack(Edge);
+		}
+		Toolbox::TVector<PhysicsPrivate::FPhysicsIsland> Islands;
+		PhysicsPrivate::FIslandManager::Build(Slots.Size(), Edges, Islands);
+		ExecutionDiagnostics.IslandCount = Islands.Size();
+	}
+	// 設定に応じて直列またはBroadPhase経由で多様体列を作る。
+	void GenerateStepManifolds_Internal(Toolbox::TVector<FManifold2D>& Out)
+	{
+		if (Execution.JobSystem == nullptr)
+		{
+			GenerateManifolds_Internal(Out);
+			return;
+		}
+		GenerateParallelManifolds_Internal(Out);
 	}
 	// 全コライダー組から多様体列を作る。
 	void GenerateManifolds_Internal(Toolbox::TVector<FManifold2D>& Out)
@@ -1875,6 +2072,22 @@ FContinuousDiagnostics2D FPhysicsWorld2D::GetContinuousDiagnostics() const noexc
 {
 	return m_pImpl->Diagnostics;
 }
+// Step内部で借用するJob Systemと並列化の指定を変更する。
+// @param Settings Step中だけ使う並列実行設定。
+void FPhysicsWorld2D::SetExecutionSettings(const FPhysicsExecutionSettings& Settings) noexcept
+{
+	m_pImpl->Execution = Settings;
+}
+// Step内部で使う並列実行設定を返す。
+FPhysicsExecutionSettings FPhysicsWorld2D::GetExecutionSettings() const noexcept
+{
+	return m_pImpl->Execution;
+}
+// 直近更新の並列実行診断を返す。
+FPhysicsExecutionDiagnostics FPhysicsWorld2D::GetExecutionDiagnostics() const noexcept
+{
+	return m_pImpl->ExecutionDiagnostics;
+}
 void FPhysicsWorld2D::SetSleepSettings(const FSleepSettings2D& Settings)
 {
 	if (!Toolbox::IsFinite(Settings.TimeoutSeconds) || Settings.TimeoutSeconds <= 0)
@@ -1951,23 +2164,46 @@ void FPhysicsWorld2D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 	const Toolbox::f64 Slice = DeltaSeconds / static_cast<Toolbox::f64>(SubSteps);
 	// 診断は更新ごとに作り直す。
 	m_pImpl->Diagnostics = {};
+	m_pImpl->ExecutionDiagnostics = {};
+	m_pImpl->ExecutionDiagnostics.ExecutionThreadCount = m_pImpl->ExecutionLanes_Internal();
 	// 移動区間の解決を行うか。
 	const bool bContinuous = m_pImpl->Continuous.bEnabled && m_pImpl->HasContinuousBody_Internal();
 	for (Toolbox::uint32 SliceIndex = 0; SliceIndex < SubSteps; ++SliceIndex)
 	{
 		// 力と重力を速度へ反映する。
-		for (Toolbox::size_t Index = 0; Index < m_pImpl->Slots.Size(); ++Index)
+		if (m_pImpl->UseBorrowedJobs_Internal(m_pImpl->Execution.bParallelIntegration))
 		{
-			FBodyRecord2D& Record = m_pImpl->Slots[Index];
-			if (!Record.bAlive || Record.Type != EBodyType::Dynamic || Record.bSleeping)
+			Toolbox::FJobSystem& Jobs = *m_pImpl->Execution.JobSystem;
+			auto IntegrateOne = [&](Toolbox::size_t Index)
 			{
-				continue;
+				FBodyRecord2D& Record = m_pImpl->Slots[Index];
+				if (!Record.bAlive || Record.Type != EBodyType::Dynamic || Record.bSleeping)
+				{
+					return;
+				}
+				IntegrateVelocity_Internal(Record, m_pImpl->Gravity, Slice);
+			};
+			if (!Toolbox::ParallelFor(Jobs, m_pImpl->Slots.Size(), IntegrateOne, 32))
+			{
+				throw Toolbox::FException("Parallel 2D velocity integration failed");
 			}
-			IntegrateVelocity_Internal(Record, m_pImpl->Gravity, Slice);
+		}
+		else
+		{
+			for (Toolbox::size_t Index = 0; Index < m_pImpl->Slots.Size(); ++Index)
+			{
+				FBodyRecord2D& Record = m_pImpl->Slots[Index];
+				if (!Record.bAlive || Record.Type != EBodyType::Dynamic || Record.bSleeping)
+				{
+					continue;
+				}
+				IntegrateVelocity_Internal(Record, m_pImpl->Gravity, Slice);
+			}
 		}
 		// 現在位置の接触を集めて速度拘束を解く。
 		Toolbox::TVector<FManifold2D> Manifolds;
-		m_pImpl->GenerateManifolds_Internal(Manifolds);
+		m_pImpl->GenerateStepManifolds_Internal(Manifolds);
+		m_pImpl->BuildIslandDiagnostics_Internal(Manifolds);
 		for (Toolbox::size_t ManifoldIndex = 0; ManifoldIndex < Manifolds.Size(); ++ManifoldIndex)
 		{
 			m_pImpl->WarmStart_Internal(Manifolds[ManifoldIndex]);
@@ -1980,26 +2216,53 @@ void FPhysicsWorld2D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 			m_pImpl->AdvanceContinuous_Internal(Slice);
 			// 移動後の分離で貫通を補正する。
 			Toolbox::TVector<FManifold2D> Touched;
-			m_pImpl->GenerateManifolds_Internal(Touched);
+			m_pImpl->GenerateStepManifolds_Internal(Touched);
 			m_pImpl->CorrectPositions_Internal(Touched);
 			m_pImpl->UpdateSleep_Internal(Touched, Slice);
 			continue;
 		}
 		// 更新後の速度で位置と姿勢を進める。
-		for (Toolbox::size_t Index = 0; Index < m_pImpl->Slots.Size(); ++Index)
+		if (m_pImpl->UseBorrowedJobs_Internal(m_pImpl->Execution.bParallelIntegration))
 		{
-			FBodyRecord2D& Record = m_pImpl->Slots[Index];
-			if (!Record.bAlive)
+			Toolbox::FJobSystem& Jobs = *m_pImpl->Execution.JobSystem;
+			auto IntegrateOne = [&](Toolbox::size_t Index)
 			{
-				continue;
+				FBodyRecord2D& Record = m_pImpl->Slots[Index];
+				if (!Record.bAlive)
+				{
+					return;
+				}
+				if (Record.Type == EBodyType::Dynamic)
+				{
+					IntegratePosition_Internal(Record, Slice);
+				}
+				else if (Record.Type == EBodyType::Kinematic)
+				{
+					IntegrateKinematic_Internal(Record, Slice);
+				}
+			};
+			if (!Toolbox::ParallelFor(Jobs, m_pImpl->Slots.Size(), IntegrateOne, 32))
+			{
+				throw Toolbox::FException("Parallel 2D position integration failed");
 			}
-			if (Record.Type == EBodyType::Dynamic)
+		}
+		else
+		{
+			for (Toolbox::size_t Index = 0; Index < m_pImpl->Slots.Size(); ++Index)
 			{
-				IntegratePosition_Internal(Record, Slice);
-			}
-			else if (Record.Type == EBodyType::Kinematic)
-			{
-				IntegrateKinematic_Internal(Record, Slice);
+				FBodyRecord2D& Record = m_pImpl->Slots[Index];
+				if (!Record.bAlive)
+				{
+					continue;
+				}
+				if (Record.Type == EBodyType::Dynamic)
+				{
+					IntegratePosition_Internal(Record, Slice);
+				}
+				else if (Record.Type == EBodyType::Kinematic)
+				{
+					IntegrateKinematic_Internal(Record, Slice);
+				}
 			}
 		}
 		// 許容幅を超える貫通を位置で補正する。

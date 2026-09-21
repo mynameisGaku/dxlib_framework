@@ -11,10 +11,16 @@ function(dxf_add_physics_tests Target CoreTarget)
         "${_root}/Tests/Physics/SolverTests.cpp"
         "${_root}/Tests/Physics/ContinuousTests.cpp"
         "${_root}/Tests/Physics/StabilityTests.cpp"
+        "${_root}/Tests/Physics/ParallelTests.cpp"
         "${_root}/Tests/Physics/TestCases.h")
-    target_include_directories(${Target} PRIVATE "${_root}/Tests/Physics")
+    target_include_directories(${Target} PRIVATE "${_root}/Tests/Physics" "${_root}/Source/Physics/Private")
+    target_include_directories(${Target} PRIVATE "${_root}/Tests/Physics" "${_root}/Source/Physics/Private")
     target_link_libraries(${Target} PRIVATE ${CoreTarget})
     target_compile_features(${Target} PRIVATE cxx_std_20)
+    if(DXF_SANITIZERS)
+        target_compile_options(${Target} PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(${Target} PRIVATE -fsanitize=address,undefined)
+    endif()
     if(COMMAND dxf_ide_headers)
         dxf_ide_headers(${Target} Tests/Physics)
     endif()

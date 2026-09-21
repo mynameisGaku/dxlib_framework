@@ -11,7 +11,6 @@ import shutil
 import subprocess
 import sys
 
-
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
@@ -66,15 +65,19 @@ def main() -> int:
                     ("clang-sanitized", "clang++", "Debug", True))
         for name, compiler, configuration, sanitized in profiles:
             build = output / name
-            command = ["cmake", "-S", str(root / "Tools" / "PhysicsValidation"), "-B", str(build),
+            # The standalone entry configures the repository root itself so the
+            # same dxf::physics body backs every physics test binary.
+            command = ["cmake", "-S", str(root), "-B", str(build),
                        f"-DCMAKE_CXX_COMPILER={shutil.which(compiler)}", f"-DCMAKE_BUILD_TYPE={configuration}",
-                       f"-DDXF_PHYSICS_SANITIZERS={'ON' if sanitized else 'OFF'}"]
+                       "-DDXF_BUILD_NATIVE=OFF", "-DDXF_BUILD_TESTS=ON",
+                       f"-DDXF_SANITIZERS={'ON' if sanitized else 'OFF'}"]
             run(name + "-configure", command)
             run(name + "-build", ["cmake", "--build", str(build), "--parallel", "4"])
             env = os.environ.copy()
             if sanitized:
                 env.update(ASAN_OPTIONS="detect_leaks=1:halt_on_error=1", UBSAN_OPTIONS="halt_on_error=1:print_stacktrace=1")
-            run(name + "-ctest", ["ctest", "--test-dir", str(build), "--output-on-failure"], env)
+            run(name + "-ctest", ["ctest", "--test-dir", str(build), "-R", "PhysicsContinuation",
+                                  "--output-on-failure"], env)
             text = run(name + "-cases", [str(build / "dxf_physics_tests")], env)
             totals = [(int(a), int(b)) for a, b in re.findall(r"RESULT (\d+)/(\d+) passed", text)]
             if not totals or any(a != b for a, b in totals):

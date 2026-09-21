@@ -66,13 +66,13 @@ Toolbox::FFixedStepPlan Plan = Scheduler.Advance(1.0 / 30.0);
 
 実装は`dxf::toolbox`へ追加します。通常ソリューションへテスト専用プロジェクトを常時表示しないよう、`dxf_physics_tests`は`DXF_BUILD_TESTS=ON`のときだけ作成します。既存の`GenerateProjectFiles.bat -Development`の運用を維持します。
 
-今回の部分だけをDxLibなしで確認する入口:
+今回の部分だけをDxLibなしで確認する入口（本体ターゲットを再利用するroot構成）:
 
 ```powershell
 # CMakeとNinjaを実行できるDeveloper PowerShell for VSで実行します。
-cmake -S Tools/PhysicsValidation -B Build/physics -G Ninja -DCMAKE_BUILD_TYPE=Debug
-cmake --build Build/physics
-ctest --test-dir Build/physics --output-on-failure
+cmake -S . -B Build/physics -G Ninja -DCMAKE_BUILD_TYPE=Debug -DDXF_BUILD_NATIVE=OFF -DDXF_BUILD_TESTS=ON
+cmake --build Build/physics --target dxf_physics_tests
+ctest --test-dir Build/physics -R PhysicsContinuation --output-on-failure
 ```
 
 LinuxのGCC／Clangがある環境では次で4構成・ヘッダー単独検査・STL監査をまとめて実行できます。

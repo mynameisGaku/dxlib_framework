@@ -153,13 +153,17 @@ dxf_public_headers(dxf_gameplay Gameplay INTERFACE)
 
 add_library(dxf_physics STATIC
     Source/Physics/Private/Dxf/PhysicsWorld2D.cpp
-    Source/Physics/Private/Dxf/PhysicsWorld3D.cpp)
+    Source/Physics/Private/Dxf/PhysicsWorld3D.cpp
+    Source/Physics/Private/Dxf/ParallelPhysicsCore.cpp)
 add_library(dxf::physics ALIAS dxf_physics)
 set_target_properties(dxf_physics PROPERTIES EXPORT_NAME physics DEBUG_POSTFIX d)
 target_compile_features(dxf_physics PUBLIC cxx_std_20)
 target_link_libraries(dxf_physics PUBLIC dxf::foundation)
 dxf_public_headers(dxf_physics Physics PUBLIC)
 dxf_warnings(dxf_physics)
+if(DXF_SANITIZERS)
+    target_compile_options(dxf_physics PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+endif()
 
 add_library(dxlib_framework INTERFACE)
 add_library(dxf::framework ALIAS dxlib_framework)

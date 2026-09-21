@@ -5,7 +5,8 @@
 - P0完了：`/showIncludes`接頭辞の文字化け注入を廃止し、CMake自動検出へ。
   fixtureと実ツリー＋隔離worktreeで増分再ビルドを検証。
 - P1進行中：`.dxfpaths`の不存在と読込失敗の区別、`dxf_asset_probe`起動試験。
-- 残り：P2 Physics検証統一、P3 Thread/Job監査、P4 実World並列、
+- P2進行中：Physics検証統一とWorld実行設定の接続。
+- 残り：P3 Thread/Job監査、P4 実World並列（Island Solver並列化・起床・CCD方針・長時間）、
   P5 Task、P6 非同期Asset、P7 並列描画、P8 最終検証。
 
 ## 開始位置

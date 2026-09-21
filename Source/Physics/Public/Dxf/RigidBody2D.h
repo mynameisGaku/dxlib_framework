@@ -2,6 +2,7 @@
 #ifndef DXF_PHYSICS_RIGID_BODY_2D_H
 #define DXF_PHYSICS_RIGID_BODY_2D_H
 #include "Dxf/BodyType.h"
+#include "Dxf/PhysicsExecution.h"
 #include "Toolbox/Contact2D.h"
 #include "Toolbox/Variant.h"
 #include "Toolbox/UniquePtr.h"
@@ -378,6 +379,20 @@ public:
 	 * 直近更新の連続衝突診断を返す。
 	 */
 	FContinuousDiagnostics2D GetContinuousDiagnostics() const noexcept;
+	/**
+	 * Step内部で借用するJob Systemと並列化の指定を変更する。
+	 * Job SystemはWorldより長く生存させ、Step中の所有権は呼び出し側が保つ。
+	 * @param Settings Step中だけ使う並列実行設定。
+	 */
+	void SetExecutionSettings(const FPhysicsExecutionSettings& Settings) noexcept;
+	/**
+	 * Step内部で使う並列実行設定を返す。
+	 */
+	FPhysicsExecutionSettings GetExecutionSettings() const noexcept;
+	/**
+	 * 直近更新の並列実行診断を返す。
+	 */
+	FPhysicsExecutionDiagnostics GetExecutionDiagnostics() const noexcept;
 	/**
 	 * 休止の条件を変更する。不正な値は例外で通知する。
 	 * @param Settings 休止の条件。

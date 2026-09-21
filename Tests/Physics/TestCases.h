@@ -70,6 +70,11 @@ const FCase* GetContinuousCases(Toolbox::size_t& Count) noexcept;
  * @param Count 返す配列の要素数。
  */
 const FCase* GetStabilityCases(Toolbox::size_t& Count) noexcept;
+/**
+ * 並列実行とBroadPhase/Islandの回帰ケースを返す。
+ * @param Count 返す配列の要素数。
+ */
+const FCase* GetParallelCases(Toolbox::size_t& Count) noexcept;
 } // namespace PhysicsTest
 #define PHYSICS_REQUIRE(...) PhysicsTest::Require_Internal(static_cast<bool>((__VA_ARGS__)), #__VA_ARGS__)
 #endif

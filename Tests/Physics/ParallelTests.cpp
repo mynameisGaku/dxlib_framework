@@ -3,7 +3,7 @@
 #include "Dxf/PhysicsExecution.h"
 #include "Dxf/RigidBody2D.h"
 #include "Dxf/RigidBody3D.h"
-#include "ParallelPhysicsCore.h"
+#include "Dxf/ParallelPhysicsCore.h"
 using namespace Toolbox;
 using namespace Dxf;
 namespace
@@ -143,9 +143,26 @@ TVector<FState3D> Run3D_Internal(FJobSystem* Jobs, FPhysicsExecutionDiagnostics&
 	}
 	return Result;
 }
+void NullExecutionMatchesSingleLane_Internal()
+{
+	FJobSystem One(1);
+	FPhysicsExecutionDiagnostics BorrowedDiagnostics;
+	const TVector<FState2D> Borrowed = Run2D_Internal(&One, BorrowedDiagnostics);
+	FPhysicsExecutionDiagnostics LegacyDiagnostics;
+	const TVector<FState2D> Legacy = Run2D_Internal(nullptr, LegacyDiagnostics);
+	PHYSICS_REQUIRE(Borrowed.Size() == Legacy.Size());
+	for (size_t Index = 0; Index < Borrowed.Size(); ++Index)
+	{
+		PHYSICS_REQUIRE(Borrowed[Index].Position == Legacy[Index].Position);
+		PHYSICS_REQUIRE(Borrowed[Index].Velocity == Legacy[Index].Velocity);
+		PHYSICS_REQUIRE(Borrowed[Index].Angle == Legacy[Index].Angle);
+		PHYSICS_REQUIRE(Borrowed[Index].AngularVelocity == Legacy[Index].AngularVelocity);
+	}
+}
 
 void WorkerCountDoesNotChange2DResult_Internal()
 {
+
 	FJobSystem One(1);
 	FJobSystem Four(4);
 	FPhysicsExecutionDiagnostics SingleDiagnostics;
@@ -179,7 +196,10 @@ void WorkerCountDoesNotChange3DResult_Internal()
 	{
 		PHYSICS_REQUIRE(Single[Index].Position == Parallel[Index].Position);
 		PHYSICS_REQUIRE(Single[Index].Velocity == Parallel[Index].Velocity);
-		PHYSICS_REQUIRE(Single[Index].Orientation == Parallel[Index].Orientation);
+		PHYSICS_REQUIRE(Single[Index].Orientation.X == Parallel[Index].Orientation.X);
+		PHYSICS_REQUIRE(Single[Index].Orientation.Y == Parallel[Index].Orientation.Y);
+		PHYSICS_REQUIRE(Single[Index].Orientation.Z == Parallel[Index].Orientation.Z);
+		PHYSICS_REQUIRE(Single[Index].Orientation.W == Parallel[Index].Orientation.W);
 		PHYSICS_REQUIRE(Single[Index].AngularVelocity == Parallel[Index].AngularVelocity);
 	}
 	PHYSICS_REQUIRE(SingleDiagnostics.ExecutionThreadCount == 1);
@@ -241,6 +261,7 @@ void IslandStaticSupportDoesNotMergeDynamics_Internal()
 }
 
 const PhysicsTest::FCase Cases[] = {
+    {"null execution matches borrowed single lane", NullExecutionMatchesSingleLane_Internal},
     {"parallel 2D physics matches one execution lane", WorkerCountDoesNotChange2DResult_Internal},
     {"parallel 3D physics matches one execution lane", WorkerCountDoesNotChange3DResult_Internal},
     {"broad phase keeps ContactSlop near pair", BroadPhaseSlopKeepsNearPair_Internal},
