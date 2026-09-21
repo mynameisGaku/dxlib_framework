@@ -110,7 +110,8 @@ struct FNativeTrace
 	/**
 	 * 次に発行する疑似資源番号。
 	 */
-	Toolbox::int32 NextHandle = 1, Ends = 0, CharCode = 0, DeletedGraphs = 0, SoundType = 0, LoadedSoundType = 0;
+	Toolbox::int32 NextHandle = 1, Ends = 0, CharCode = 0, DeletedGraphs = 0, GraphsFromMemory = 0, SoundType = 0,
+	                  LoadedSoundType = 0;
 	/**
 	 * 検証する再生音量。
 	 */
@@ -298,6 +299,15 @@ FORCEINLINE Toolbox::int32 DeleteGraph(Toolbox::int32)
 	return 0;
 }
 /**
+ * 準備済み画像データからの生成APIの呼び出しを再現する。
+ */
+FORCEINLINE Toolbox::int32 CreateGraphFromMem(const void*, Toolbox::int32, const void*, Toolbox::int32,
+                                              Toolbox::int32, Toolbox::int32)
+{
+	++Trace.GraphsFromMemory;
+	return Trace.NextHandle++;
+}
+/**
  * 描画先生成APIの呼び出しを再現する。
  */
 FORCEINLINE Toolbox::int32 MakeScreen(Toolbox::int32, Toolbox::int32, Toolbox::int32)
@@ -316,6 +326,14 @@ FORCEINLINE Toolbox::int32 SetCreateSoundDataType(Toolbox::int32 Type)
  * 音声読み込みAPIの呼び出しを再現する。
  */
 FORCEINLINE Toolbox::int32 LoadSoundMem(const char*)
+{
+	Trace.LoadedSoundType = Trace.SoundType;
+	return Trace.NextHandle++;
+}
+/**
+ * 準備済み音声データからの生成APIの呼び出しを再現する。
+ */
+FORCEINLINE Toolbox::int32 LoadSoundMemByMemImage(const void*, Toolbox::size_t, Toolbox::int32, Toolbox::int32)
 {
 	Trace.LoadedSoundType = Trace.SoundType;
 	return Trace.NextHandle++;

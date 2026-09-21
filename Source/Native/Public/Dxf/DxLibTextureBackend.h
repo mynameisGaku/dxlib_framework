@@ -15,6 +15,14 @@ public:
 	 */
 	TResult<FTextureAllocation> LoadTexture(const Toolbox::FString& Path, const FTextureLoadOptions& Options) override;
 	/**
+	 * 準備済み画像データからテクスチャを取得する。ファイルを読まない。
+	 * @param Data 画像ファイルのバイト列。呼び出し中だけ有効。
+	 * @param Size バイト列の長さ。
+	 * @param Options 処理に適用する設定。
+	 */
+	TResult<FTextureAllocation> LoadTextureMemory(const void* Data, Toolbox::size_t Size,
+	                                             const FTextureLoadOptions& Options) override;
+	/**
 	 * 描画先として使うテクスチャを生成する。
 	 * @param Width 幅。
 	 * @param Height 高さ。

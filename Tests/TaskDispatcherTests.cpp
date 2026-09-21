@@ -35,20 +35,11 @@ TEST("task commits run in submission order")
 			                      return true;
 		                      }}));
 	}
-	Toolbox::uint64 CommittedTotal = 0;
-	Toolbox::uint64 FailedTotal = 0;
-	Toolbox::uint64 CanceledTotal = 0;
-	for (Toolbox::int32 Attempt = 0; Attempt < 1000 && CommittedTotal < 5; ++Attempt)
-	{
-		const FCommitSummary Step = Tasks.PumpCommits();
-		CommittedTotal += Step.Committed;
-		FailedTotal += Step.Failed;
-		CanceledTotal += Step.Canceled;
-		Toolbox::FThread::Yield();
-	}
-	REQUIRE(CommittedTotal == 5);
-	REQUIRE(FailedTotal == 0);
-	REQUIRE(CanceledTotal == 0);
+	Tasks.WaitForPrepares();
+	const FCommitSummary Summary = Tasks.PumpCommits();
+	REQUIRE(Summary.Committed == 5);
+	REQUIRE(Summary.Failed == 0);
+	REQUIRE(Summary.Canceled == 0);
 	REQUIRE(Order.Size() == 5);
 	for (Toolbox::size_t Index = 0; Index < Order.Size(); ++Index)
 	{
@@ -92,13 +83,9 @@ TEST("unready head blocks later commits until released")
 	REQUIRE(Blocked.Committed == 0);
 	REQUIRE(Order.IsEmpty());
 	Release.Store(1);
-	Toolbox::uint64 DoneTotal = 0;
-	for (Toolbox::int32 Attempt = 0; Attempt < 1000 && DoneTotal < 3; ++Attempt)
-	{
-		DoneTotal += Tasks.PumpCommits().Committed;
-		Toolbox::FThread::Yield();
-	}
-	REQUIRE(DoneTotal == 3);
+	Tasks.WaitForPrepares();
+	const FCommitSummary Done = Tasks.PumpCommits();
+	REQUIRE(Done.Committed == 3);
 	REQUIRE(Order.Size() == 3);
 	REQUIRE(Order[0] == 0 && Order[1] == 1 && Order[2] == 2);
 }
@@ -130,17 +117,10 @@ TEST("canceling a parent suppresses its subtree but not the root")
 	REQUIRE(Tasks.Submit(MakeRequest(Child, 2)));
 	REQUIRE(Tasks.Submit(MakeRequest(FTaskScope{}, 3)));
 	Tasks.Cancel(Parent);
-	Toolbox::uint64 CommittedTotal = 0;
-	Toolbox::uint64 CanceledTotal = 0;
-	for (Toolbox::int32 Attempt = 0; Attempt < 1000 && CommittedTotal + CanceledTotal < 3; ++Attempt)
-	{
-		const FCommitSummary Step = Tasks.PumpCommits();
-		CommittedTotal += Step.Committed;
-		CanceledTotal += Step.Canceled;
-		Toolbox::FThread::Yield();
-	}
-	REQUIRE(CommittedTotal == 1);
-	REQUIRE(CanceledTotal == 2);
+	Tasks.WaitForPrepares();
+	const FCommitSummary CancelSummary = Tasks.PumpCommits();
+	REQUIRE(CancelSummary.Committed == 1);
+	REQUIRE(CancelSummary.Canceled == 2);
 	REQUIRE(Committed.Size() == 1 && Committed[0] == 3);
 }
 TEST("cancel during preparation skips the commit")
@@ -175,17 +155,10 @@ TEST("cancel during preparation skips the commit")
 	}
 	Tasks.Cancel(Scope);
 	Release.Store(1);
-	Toolbox::uint64 CanceledTotal = 0;
-	Toolbox::uint64 CommittedTotal = 0;
-	for (Toolbox::int32 Attempt = 0; Attempt < 1000 && CanceledTotal + CommittedTotal < 1; ++Attempt)
-	{
-		const FCommitSummary Step = Tasks.PumpCommits();
-		CanceledTotal += Step.Canceled;
-		CommittedTotal += Step.Committed;
-		Toolbox::FThread::Yield();
-	}
-	REQUIRE(CanceledTotal == 1);
-	REQUIRE(CommittedTotal == 0);
+	Tasks.WaitForPrepares();
+	const FCommitSummary CancelSummary = Tasks.PumpCommits();
+	REQUIRE(CancelSummary.Canceled == 1);
+	REQUIRE(CancelSummary.Committed == 0);
 	REQUIRE(Committed.Load() == 0);
 }
 TEST("prepare and commit failures never run later commits out of order")
@@ -228,17 +201,10 @@ TEST("prepare and commit failures never run later commits out of order")
 		                      Order.PushBack(3);
 		                      return true;
 	                      }}));
-	Toolbox::uint64 CommittedTotal = 0;
-	Toolbox::uint64 FailedTotal = 0;
-	for (Toolbox::int32 Attempt = 0; Attempt < 1000 && CommittedTotal + FailedTotal < 4; ++Attempt)
-	{
-		const FCommitSummary Step = Tasks.PumpCommits();
-		CommittedTotal += Step.Committed;
-		FailedTotal += Step.Failed;
-		Toolbox::FThread::Yield();
-	}
-	REQUIRE(CommittedTotal == 1);
-	REQUIRE(FailedTotal == 3);
+	Tasks.WaitForPrepares();
+	const FCommitSummary FailureSummary = Tasks.PumpCommits();
+	REQUIRE(FailureSummary.Committed == 1);
+	REQUIRE(FailureSummary.Failed == 3);
 	REQUIRE(Order.Size() == 1 && Order[0] == 3);
 }
 TEST("pending bound rejects overflow and recovers after pump")
@@ -263,13 +229,9 @@ TEST("pending bound rejects overflow and recovers after pump")
 	REQUIRE(Tasks.Submit(MakeHealthy()));
 	REQUIRE(Tasks.Submit(MakeHealthy()));
 	REQUIRE(!Tasks.Submit(MakeHealthy()));
-	Toolbox::uint64 CommittedTotal = 0;
-	for (Toolbox::int32 Attempt = 0; Attempt < 1000 && CommittedTotal < 2; ++Attempt)
-	{
-		CommittedTotal += Tasks.PumpCommits().Committed;
-		Toolbox::FThread::Yield();
-	}
-	REQUIRE(CommittedTotal == 2);
+	Tasks.WaitForPrepares();
+	const FCommitSummary BoundSummary = Tasks.PumpCommits();
+	REQUIRE(BoundSummary.Committed == 2);
 	REQUIRE(Tasks.Submit(MakeHealthy()));
 }
 TEST("destroyed scopes reject submits and old handles stay dead")
@@ -315,13 +277,9 @@ TEST("commits run on the pumping thread")
 		                      Committer = Toolbox::FThread::CurrentThreadId();
 		                      return true;
 	                      }}));
-	Toolbox::uint64 CommittedTotal = 0;
-	for (Toolbox::int32 Attempt = 0; Attempt < 1000 && CommittedTotal < 1; ++Attempt)
-	{
-		CommittedTotal += Tasks.PumpCommits().Committed;
-		Toolbox::FThread::Yield();
-	}
-	REQUIRE(CommittedTotal == 1);
+	Tasks.WaitForPrepares();
+	const FCommitSummary ThreadSummary = Tasks.PumpCommits();
+	REQUIRE(ThreadSummary.Committed == 1);
 	REQUIRE(Committer == Caller);
 }
 TEST("shutdown discards without committing")
@@ -380,11 +338,9 @@ TEST("application pumps scene tasks and rotates scopes on switch")
 	REQUIRE(App.GetTaskDispatcher().Submit(Toolbox::Move(Request)));
 	// 単調に進むフレーム時刻。
 	Toolbox::f64 Now = 0;
-	for (Toolbox::int32 Attempt = 0; Attempt < 100 && Committed.Load() < 1; ++Attempt)
-	{
-		Now += 0.001;
-		REQUIRE(App.Step(Now));
-	}
+	App.GetTaskDispatcher().WaitForPrepares();
+	Now += 0.001;
+	REQUIRE(App.Step(Now));
 	REQUIRE(Committed.Load() == 1);
 	// Sceneを切り替える入力。
 	Backend.GetTrace().Input.Keys[static_cast<Toolbox::size_t>(EKey::Enter)] = true;
@@ -411,10 +367,8 @@ TEST("application pumps scene tasks and rotates scopes on switch")
 		return true;
 	});
 	REQUIRE(App.GetTaskDispatcher().Submit(Toolbox::Move(SecondRequest)));
-	for (Toolbox::int32 Attempt = 0; Attempt < 100 && Committed.Load() < 2; ++Attempt)
-	{
-		Now += 0.001;
-		REQUIRE(App.Step(Now));
-	}
+	App.GetTaskDispatcher().WaitForPrepares();
+	Now += 0.001;
+	REQUIRE(App.Step(Now));
 	REQUIRE(Committed.Load() == 2);
 }

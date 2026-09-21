@@ -22,6 +22,15 @@ public:
 	 * @param Options 処理に適用する設定。
 	 */
 	TResult<FSound> Load(const Toolbox::FString& Path, const FSoundLoadOptions& Options);
+	/**
+	 * 準備済みデータからリソースを読み込む。ファイルを読まない。
+	 * @param Data 音声ファイルのバイト列。呼び出し中だけ有効。
+	 * @param Size バイト列の長さ。
+	 * @param Options 処理に適用する設定。
+	 * @param Path 登録に残すファイルのパス。
+	 */
+	TResult<FSound> LoadMemory(const void* Data, Toolbox::size_t Size, const FSoundLoadOptions& Options,
+	                          const Toolbox::FString& Path);
 
 private:
 	/**

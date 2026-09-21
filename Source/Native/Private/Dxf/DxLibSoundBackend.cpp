@@ -32,6 +32,45 @@ TResult<Toolbox::int32> FDxLibSoundBackend::LoadSound(const Toolbox::FString& Pa
 	}
 	return TResult<Toolbox::int32>::Success(Handle);
 }
+// 準備済み音声データから音声を取得する。Memory保持のみ対応し、ファイルを読まない。
+// @param Data 音声ファイルのバイト列。呼び出し中だけ有効。
+// @param Size バイト列の長さ。
+// @param Options 処理に適用する設定。
+TResult<Toolbox::int32> FDxLibSoundBackend::LoadSoundMemory(const void* Data, Toolbox::size_t Size,
+                                                           const FSoundLoadOptions& Options)
+{
+	if (Data == nullptr || Size == 0)
+	{
+		return TResult<Toolbox::int32>::Failure(EErrorCode::InvalidArgument, "Invalid sound memory range");
+	}
+	if (Options.Storage != ESoundStorage::Memory)
+	{
+		return TResult<Toolbox::int32>::Failure(EErrorCode::InvalidArgument,
+		                                        "Memory image loading supports Memory storage only");
+	}
+	// ネイティブAPIのデータ保持方式。
+	const Toolbox::int32 Type = DX_SOUNDDATATYPE_MEMNOPRESS;
+	if (DxLib::SetCreateSoundDataType(Type) < 0)
+	{
+		return TResult<Toolbox::int32>::Failure(EErrorCode::BackendFailure, "SetCreateSoundDataType failed");
+	}
+	// ハンドル。
+	const Toolbox::int32 Handle = DxLib::LoadSoundMemByMemImage(Data, Size, 3, -1);
+	// 読み込み方式はこのアダプターが管理し、処理後は既定の方式へ戻す。
+	//
+	// 既定状態への復元結果。
+	const Toolbox::int32 Reset = DxLib::SetCreateSoundDataType(DX_SOUNDDATATYPE_MEMNOPRESS);
+	if (Handle < 0)
+	{
+		return TResult<Toolbox::int32>::Failure(EErrorCode::BackendFailure, "LoadSoundMemByMemImage failed");
+	}
+	if (Reset < 0)
+	{
+		DxLib::DeleteSoundMem(Handle);
+		return TResult<Toolbox::int32>::Failure(EErrorCode::BackendFailure, "Sound loading state reset failed");
+	}
+	return TResult<Toolbox::int32>::Success(Handle);
+}
 // 独立して再生できる音声ハンドルを複製する。
 // @param Handle ハンドル。
 TResult<Toolbox::int32> FDxLibSoundBackend::DuplicateSound(Toolbox::int32 Handle)

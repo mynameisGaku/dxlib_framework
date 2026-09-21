@@ -13,21 +13,20 @@ Toolbox::FString NormalizePath_Internal(const Toolbox::FString& Path)
 	auto Normalized = Toolbox::FPath(Path).Normalize().ToUtf8();
 	return Toolbox::FString(reinterpret_cast<const char*>(Normalized.Data()), Normalized.Size());
 }
+} // namespace
 // 要求パスをProjectRoot基準で解決する。未設定なら正規化だけ行う。
-// @param Resolver 設定済みかもしれない解決器。
 // @param Path 読み込むファイルのパス。
 // @param Resolved 解決したパスの格納先。
-bool ResolveAssetPath_Internal(const Toolbox::FAssetPathResolver& Resolver, const Toolbox::FString& Path,
-                               Toolbox::FString& Resolved)
+bool FAssetService::ResolveRequestPath_Internal(const Toolbox::FString& Path, Toolbox::FString& Resolved) const
 {
-	if (!Resolver.IsSet())
+	if (!m_Resolver.IsSet())
 	{
 		Resolved = NormalizePath_Internal(Path);
 		return true;
 	}
 	// 解決した絶対パス。
 	Toolbox::FPath Absolute;
-	if (!Resolver.Resolve(Path, Absolute))
+	if (!m_Resolver.Resolve(Path, Absolute))
 	{
 		return false;
 	}
@@ -36,7 +35,6 @@ bool ResolveAssetPath_Internal(const Toolbox::FAssetPathResolver& Resolver, cons
 	Resolved = Toolbox::FString(reinterpret_cast<const char*>(Normalized.Data()), Normalized.Size());
 	return true;
 }
-} // namespace
 // 必要な依存関係を受け取り、初期状態を構築する。
 // @param Textures 管理するテクスチャ群。
 // @param Sounds 管理する音声群。
@@ -66,7 +64,7 @@ TResult<FTexture> FAssetService::LoadTexture(const Toolbox::FString& Path, const
 	}
 	// 解決した読み込みパス。
 	Toolbox::FString Resolved;
-	if (!ResolveAssetPath_Internal(m_Resolver, Path, Resolved))
+	if (!ResolveRequestPath_Internal(Path, Resolved))
 	{
 		return TResult<FTexture>::Failure(
 		    EErrorCode::InvalidArgument,
@@ -106,7 +104,7 @@ TResult<FSound> FAssetService::LoadSound(const Toolbox::FString& Path, const FSo
 	}
 	// 解決した読み込みパス。
 	Toolbox::FString Resolved;
-	if (!ResolveAssetPath_Internal(m_Resolver, Path, Resolved))
+	if (!ResolveRequestPath_Internal(Path, Resolved))
 	{
 		return TResult<FSound>::Failure(
 		    EErrorCode::InvalidArgument,

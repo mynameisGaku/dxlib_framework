@@ -11,8 +11,9 @@
   未実施：Worker生成失敗の故障注入（注入点なし、停止・Join経路は目視監査のみ）。
 - P4完了：Island Solver並列化（静的書込の除去、1/N一致、SolverIslandCount）。
   残りは起床伝播の追加回帰とCCD方針の明文化。
-- P5進行中：Application共有Task基盤（Dispatcher・Scope・Step反映・終了順序）。
-- 残り：P6 非同期Asset、P7 並列描画、P8 最終検証。
+- P5完了：Application共有Task基盤（Dispatcher・Scope・Step反映・終了順序）。
+- P6進行中：非同期Asset（CPU検証・メモリ取込・期限切れチケット）。
+- 残り：P7 並列描画、P8 最終検証。
 
 ## 開始位置
 

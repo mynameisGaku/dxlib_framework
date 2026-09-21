@@ -67,6 +67,12 @@ public:
 	{
 		return m_Backend.LoadSound(Path, Options);
 	}
+	// 準備済み音声データの読み込みを委譲する。
+	TResult<Toolbox::int32> LoadSoundMemory(const void* Data, Toolbox::size_t Size,
+	                                       const FSoundLoadOptions& Options) override
+	{
+		return m_Backend.LoadSoundMemory(Data, Size, Options);
+	}
 	// 複製した音声に別の資源番号を発行する。
 	TResult<Toolbox::int32> DuplicateSound(Toolbox::int32 Handle) override
 	{

@@ -3,9 +3,12 @@
 #include "Dxf/SoundLoader.h"
 #include "Dxf/FontLoader.h"
 #include "Dxf/ResourceCache.h"
+#include "Dxf/AsyncAsset.h"
 #include "Toolbox/ProjectPaths.h"
 namespace Dxf
 {
+class FTaskDispatcher;
+struct FTaskScope;
 /**
  * テクスチャを再利用するキャッシュ。
  */
@@ -56,6 +59,32 @@ public:
 	 */
 	TResult<FSound> LoadSound(const Toolbox::FString& Path, const FSoundLoadOptions& Options = {});
 	/**
+	 * 画像の読み込みをWorkerの準備と所有側の取込に分けて要求する。
+	 * 要求時点の解決済みパスを保持し、WorkerはRootを再評価しない。
+	 * 取り消しや破棄で反映しなかった要求は未完了のまま残る。
+	 * Dispatcherは終了前に停止し、このサービスより長く生存させること。
+	 * @param Dispatcher 準備と反映の実行先。
+	 * @param Scope 要求の所属。取り消し時は反映せず期限切れになる。
+	 * @param Path 読み込むファイルのパス。
+	 * @param Options 処理に適用する設定。
+	 */
+	TResult<FAsyncTexture> LoadTextureAsync(FTaskDispatcher& Dispatcher, const FTaskScope& Scope,
+	                                        const Toolbox::FString& Path,
+	                                        const FTextureLoadOptions& Options = {});
+	/**
+	 * 音声の読み込みをWorkerの準備と所有側の取込に分けて要求する。
+	 * Memory保持のみ対応し、Streamは明示的に拒否する。
+	 * 要求時点の解決済みパスを保持し、WorkerはRootを再評価しない。
+	 * 取り消しや破棄で反映しなかった要求は未完了のまま残る。
+	 * Dispatcherは終了前に停止し、このサービスより長く生存させること。
+	 * @param Dispatcher 準備と反映の実行先。
+	 * @param Scope 要求の所属。取り消し時は反映せず期限切れになる。
+	 * @param Path 読み込むファイルのパス。
+	 * @param Options 処理に適用する設定。
+	 */
+	TResult<FAsyncSound> LoadSoundAsync(FTaskDispatcher& Dispatcher, const FTaskScope& Scope,
+	                                    const Toolbox::FString& Path, const FSoundLoadOptions& Options = {});
+	/**
 	 * ProjectRootを一度だけ設定する。以後の要求はこのRootを基準に解決する。
 	 * 未設定のままなら従来どおり呼び出し側の相対パスをそのまま使う。
 	 * @param Root sln配置先の完全修飾ディレクトリ。
@@ -88,6 +117,12 @@ public:
 	void Shutdown() noexcept;
 
 private:
+	/**
+	 * 要求パスをProjectRoot基準で解決する。未設定なら正規化だけ行う。
+	 * @param Path 読み込むファイルのパス。
+	 * @param Resolved 解決したパスの格納先。
+	 */
+	bool ResolveRequestPath_Internal(const Toolbox::FString& Path, Toolbox::FString& Resolved) const;
 	/**
 	 * リソースの登録先。
 	 */

@@ -9,6 +9,8 @@
 #undef CreateDirectory
 #undef CopyFile
 #else
+#include <errno.h>
+#include <fcntl.h>
 #include <time.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -17,6 +19,46 @@
 #endif
 namespace Toolbox
 {
+namespace
+{
+// 開いた読み取りハンドルを閉じる所有権。
+struct FReadGuard
+{
+#if defined(_WIN32)
+	// 所有するOS固有ハンドル。
+	HANDLE Handle;
+	// 無効なハンドルで初期化する。
+	FReadGuard() : Handle(INVALID_HANDLE_VALUE)
+	{
+	}
+#else
+	// 所有するOS固有ハンドル。
+	int Descriptor;
+	// 無効な記述子で初期化する。
+	FReadGuard() : Descriptor(-1)
+	{
+	}
+#endif
+	// 所有するハンドルを閉じる。
+	~FReadGuard()
+	{
+#if defined(_WIN32)
+		if (Handle != INVALID_HANDLE_VALUE)
+		{
+			CloseHandle(Handle);
+		}
+#else
+		if (Descriptor >= 0)
+		{
+			close(Descriptor);
+		}
+#endif
+	}
+	// 所有権の複製を禁止する。
+	FReadGuard(const FReadGuard&) = delete;
+	FReadGuard& operator=(const FReadGuard&) = delete;
+};
+} // namespace
 // 壁時計に影響されない単調増加時刻をナノ秒で返す。
 uint64 MonotonicNanoseconds()
 {
@@ -484,6 +526,89 @@ bool IsDirectory(const FPath& Path)
 	// ファイル種別を含むPOSIXの属性情報。
 	struct stat Info{};
 	return stat(Path.ToUtf8().CStr(), &Info) == 0 && S_ISDIR(Info.st_mode);
+#endif
+}
+// ファイル全体を読み取る。存在しなければfalseを返す。
+// @param Path 読み取るファイルのパス。
+// @param Out 読み取ったバイト列の格納先。失敗時は変更しない。
+// @param MaxBytes 受け付ける最大バイト数。
+bool ReadFileBytes(const FPath& Path, TVector<uint8>& Out, size_t MaxBytes)
+{
+#if defined(_WIN32)
+	// 所有権と共に閉じる読み取りハンドル。
+	FReadGuard Guard;
+	Guard.Handle =
+	    CreateFileW(ToWide(Path.ToUtf8()).CStr(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING,
+	                FILE_ATTRIBUTE_NORMAL, nullptr);
+	if (Guard.Handle == INVALID_HANDLE_VALUE)
+	{
+		// 開けなかった理由の番号。
+		const DWORD Error = GetLastError();
+		if (Error == ERROR_FILE_NOT_FOUND || Error == ERROR_PATH_NOT_FOUND)
+		{
+			return false;
+		}
+		throw FException("Cannot open file for reading");
+	}
+	// ファイル全体のバイト数。
+	LARGE_INTEGER Size{};
+	if (!GetFileSizeEx(Guard.Handle, &Size) || Size.QuadPart < 0 ||
+	    static_cast<uint64>(Size.QuadPart) > MaxBytes)
+	{
+		throw FException("File is too large to read");
+	}
+	// 読み取ったバイト列。
+	TVector<uint8> Bytes(static_cast<size_t>(Size.QuadPart));
+	// 読み取り済みのバイト数。
+	size_t Done = 0;
+	while (Done < Bytes.Size())
+	{
+		// 今回読み取ったバイト数。
+		DWORD Chunk = 0;
+		if (!ReadFile(Guard.Handle, Bytes.Data() + Done, static_cast<DWORD>(Bytes.Size() - Done), &Chunk, nullptr) ||
+		    Chunk == 0)
+		{
+			throw FException("Cannot read file contents");
+		}
+		Done += Chunk;
+	}
+	Out = Toolbox::Move(Bytes);
+	return true;
+#else
+	// 所有権と共に閉じる読み取り記述子。
+	FReadGuard Guard;
+	Guard.Descriptor = open(Path.ToUtf8().CStr(), O_RDONLY);
+	if (Guard.Descriptor < 0)
+	{
+		if (errno == ENOENT || errno == ENOTDIR)
+		{
+			return false;
+		}
+		throw FException("Cannot open file for reading");
+	}
+	// ファイル種別を含む属性情報。
+	struct stat Info{};
+	if (fstat(Guard.Descriptor, &Info) != 0 || !S_ISREG(Info.st_mode) || Info.st_size < 0 ||
+	    static_cast<uint64>(Info.st_size) > MaxBytes)
+	{
+		throw FException("File is too large to read");
+	}
+	// 読み取ったバイト列。
+	TVector<uint8> Bytes(static_cast<size_t>(Info.st_size));
+	// 読み取り済みのバイト数。
+	size_t Done = 0;
+	while (Done < Bytes.Size())
+	{
+		// 今回読み取ったバイト数。
+		const ssize_t Chunk = read(Guard.Descriptor, Bytes.Data() + Done, Bytes.Size() - Done);
+		if (Chunk <= 0)
+		{
+			throw FException("Cannot read file contents");
+		}
+		Done += static_cast<size_t>(Chunk);
+	}
+	Out = Toolbox::Move(Bytes);
+	return true;
 #endif
 }
 // ファイルを新規コピーする。既存のコピー先は上書きしない。

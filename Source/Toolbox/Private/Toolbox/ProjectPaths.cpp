@@ -1,16 +1,5 @@
 // SPDX-License-Identifier: NOASSERTION
 #include "Toolbox/ProjectPaths.h"
-#if defined(_WIN32)
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <Windows.h>
-#else
-#include <errno.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#endif
 namespace Toolbox
 {
 namespace
@@ -128,31 +117,6 @@ FString TrimTrailingSeparator_Internal(const FString& Root)
 	}
 	return Trimmed;
 }
-#if defined(_WIN32)
-// 開いた設定ファイルを閉じる所有権。
-struct FFileCloser
-{
-	// 所有するファイルハンドル。
-	HANDLE m_Handle;
-	// 所有するハンドルを閉じる。
-	~FFileCloser()
-	{
-		CloseHandle(m_Handle);
-	}
-};
-#else
-// 開いた設定ファイルを閉じる所有権。
-struct FFileCloser
-{
-	// 所有するファイル記述子。
-	int m_Descriptor;
-	// 所有する記述子を閉じる。
-	~FFileCloser()
-	{
-		close(m_Descriptor);
-	}
-};
-#endif
 } // namespace
 // 小さなバージョン付き開発パス設定を読み取る。
 // @param Text 設定ファイルのUTF-8本文。
@@ -272,84 +236,14 @@ bool ResolveDevelopmentRoot(const FPath& ExeDirectory, const FString& SettingsTe
 // @param Text 読み取ったUTF-8本文の格納先。失敗時は変更しない。
 bool TryReadSettingsFile(const FPath& Path, FString& Text)
 {
-#if defined(_WIN32)
-	// 読み取る設定ファイルのハンドル。
-	HANDLE File =
-	    CreateFileW(ToWide(Path.ToUtf8()).CStr(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING,
-	                FILE_ATTRIBUTE_NORMAL, nullptr);
-	if (File == INVALID_HANDLE_VALUE)
+	// 読み取った本文のバイト列。
+	TVector<uint8> Bytes;
+	if (!ReadFileBytes(Path, Bytes, MaxSettingsFileBytes))
 	{
-		// 開けなかった理由の番号。
-		const DWORD Error = GetLastError();
-		if (Error == ERROR_FILE_NOT_FOUND || Error == ERROR_PATH_NOT_FOUND)
-		{
-			return false;
-		}
-		throw FException("Cannot open the settings file");
+		return false;
 	}
-	// 所有権と共に閉じる対象。
-	FFileCloser Closer{File};
-	// ファイル全体のバイト数。
-	LARGE_INTEGER Size{};
-	if (!GetFileSizeEx(File, &Size) || Size.QuadPart < 0 ||
-	    static_cast<uint64>(Size.QuadPart) > MaxSettingsFileBytes)
-	{
-		throw FException("Settings file is too large");
-	}
-	// 読み取った本文の作業領域。
-	TVector<char> Bytes(static_cast<size_t>(Size.QuadPart));
-	// 読み取り済みのバイト数。
-	size_t Done = 0;
-	while (Done < Bytes.Size())
-	{
-		// 今回読み取ったバイト数。
-		DWORD Chunk = 0;
-		if (!ReadFile(File, Bytes.Data() + Done, static_cast<DWORD>(Bytes.Size() - Done), &Chunk, nullptr) ||
-		    Chunk == 0)
-		{
-			throw FException("Cannot read the settings file");
-		}
-		Done += Chunk;
-	}
-	Text = FString(Bytes.Data(), Done);
+	Text = FString(reinterpret_cast<const char*>(Bytes.Data()), Bytes.Size());
 	return true;
-#else
-	// 読み取る設定ファイルの記述子。
-	const int Descriptor = open(Path.ToUtf8().CStr(), O_RDONLY);
-	if (Descriptor < 0)
-	{
-		if (errno == ENOENT || errno == ENOTDIR)
-		{
-			return false;
-		}
-		throw FException("Cannot open the settings file");
-	}
-	// 所有権と共に閉じる対象。
-	FFileCloser Closer{Descriptor};
-	// ファイル種別を含む属性情報。
-	struct stat Info{};
-	if (fstat(Descriptor, &Info) != 0 || !S_ISREG(Info.st_mode) || Info.st_size < 0 ||
-	    static_cast<uint64>(Info.st_size) > MaxSettingsFileBytes)
-	{
-		throw FException("Settings file is not readable");
-	}
-	// 読み取った本文の作業領域。
-	TVector<char> Bytes(static_cast<size_t>(Info.st_size));
-	// 読み取り済みのバイト数。
-	size_t Done = 0;
-	while (Done < Bytes.Size())
-	{
-		// 今回読み取ったバイト数。
-		const ssize_t Chunk = read(Descriptor, Bytes.Data() + Done, Bytes.Size() - Done);
-		if (Chunk <= 0)
-		{
-			throw FException("Cannot read the settings file");
-		}
-		Done += static_cast<size_t>(Chunk);
-	}
-	Text = FString(Bytes.Data(), Done);
-	return true;
-#endif
 }
 // ProjectRootを一度だけ設定する。絶対パスを要求する。
 // @param Root sln配置先の完全修飾ディレクトリ。

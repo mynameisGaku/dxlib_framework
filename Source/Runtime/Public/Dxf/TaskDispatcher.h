@@ -153,6 +153,12 @@ public:
 	 */
 	FCommitSummary PumpCommits();
 	/**
+	 * 受理済みの準備がすべて終わるまで待つ。Commitは実行しない。
+	 * 終わらない準備と組み合わせると戻らないため、所有スレッドから使う。
+	 * Workerの中からは待てない。
+	 */
+	void WaitForPrepares() noexcept;
+	/**
 	 * Scopeと子孫を取り消す。実行中の準備は協調点で止まる。
 	 * 存在しない指定は無視する。
 	 * @param Scope 取り消すScope。

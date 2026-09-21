@@ -42,9 +42,25 @@ struct FBackendTrace
 	 */
 	Toolbox::TVector<Toolbox::FString> TexturePaths;
 	/**
+	 * 画像メモリ読み込みの呼び出し回数。
+	 */
+	Toolbox::int32 TextureMemoryLoads = 0;
+	/**
+	 * 画像メモリ読み込みへ渡された内容の検査値。
+	 */
+	Toolbox::uint64 TextureMemoryChecksum = 0;
+	/**
 	 * 音声読み込みへ渡されたパスの記録。
 	 */
 	Toolbox::TVector<Toolbox::FString> SoundPaths;
+	/**
+	 * 音声メモリ読み込みの呼び出し回数。
+	 */
+	Toolbox::int32 SoundMemoryLoads = 0;
+	/**
+	 * 音声メモリ読み込みへ渡された内容の検査値。
+	 */
+	Toolbox::uint64 SoundMemoryChecksum = 0;
 	/**
 	 * 現在の描画先の疑似資源番号。
 	 */
@@ -135,6 +151,22 @@ struct FBackendTrace
 	FRawInput Input;
 };
 /**
+ * 疑似バックエンドへ渡された内容の検査値を求める。
+ */
+FORCEINLINE Toolbox::uint64 Checksum_Internal(const void* Data, Toolbox::size_t Size) noexcept
+{
+	// FNV-1aの初期値と素数。
+	Toolbox::uint64 Hash = 14695981039346656037ULL;
+	// 検査するバイト列。
+	const unsigned char* Bytes = static_cast<const unsigned char*>(Data);
+	for (Toolbox::size_t Index = 0; Index < Size && Bytes != nullptr; ++Index)
+	{
+		Hash ^= Bytes[Index];
+		Hash *= 1099511628211ULL;
+	}
+	return Hash;
+}
+/**
  * 外部ライブラリを使わず資源・描画・入力を再現する。
  */
 class FFakeBackend final : public ITextureBackend,
@@ -177,6 +209,23 @@ public:
 		return TResult<FTextureAllocation>::Success({Handle, 64, 64});
 	}
 	/**
+	 * 準備済み画像データから疑似資源番号を発行し内容を記録する。
+	 */
+	TResult<FTextureAllocation> LoadTextureMemory(const void* Data, Toolbox::size_t Size,
+	                                             const FTextureLoadOptions&) override
+	{
+		++m_Trace.TextureMemoryLoads;
+		m_Trace.TextureMemoryChecksum = Checksum_Internal(Data, Size);
+		if (m_Trace.bFailTexture)
+		{
+			return TResult<FTextureAllocation>::Failure(EErrorCode::BackendFailure, "missing texture memory");
+		}
+		// 生存期間や世代を検証する登録ハンドル。
+		Toolbox::int32 Handle = m_Trace.NextHandle++;
+		m_Trace.Textures.Insert(Handle);
+		return TResult<FTextureAllocation>::Success({Handle, 64, 64});
+	}
+	/**
 	 * 指定サイズの描画先を疑似資源として作る。
 	 */
 	TResult<FTextureAllocation> CreateRenderTarget(Toolbox::int32 Width, Toolbox::int32 Height, bool) override
@@ -205,6 +254,23 @@ public:
 		if (m_Trace.bFailSound)
 		{
 			return TResult<Toolbox::int32>::Failure(EErrorCode::NotFound, "missing sound");
+		}
+		// 生存期間や世代を検証する登録ハンドル。
+		Toolbox::int32 Handle = m_Trace.NextHandle++;
+		m_Trace.Sounds[Handle] = false;
+		return TResult<Toolbox::int32>::Success(Handle);
+	}
+	/**
+	 * 準備済み音声データから疑似資源番号を発行し内容を記録する。
+	 */
+	TResult<Toolbox::int32> LoadSoundMemory(const void* Data, Toolbox::size_t Size,
+	                                       const FSoundLoadOptions&) override
+	{
+		++m_Trace.SoundMemoryLoads;
+		m_Trace.SoundMemoryChecksum = Checksum_Internal(Data, Size);
+		if (m_Trace.bFailSound)
+		{
+			return TResult<Toolbox::int32>::Failure(EErrorCode::BackendFailure, "missing sound memory");
 		}
 		// 生存期間や世代を検証する登録ハンドル。
 		Toolbox::int32 Handle = m_Trace.NextHandle++;

@@ -43,7 +43,7 @@ FTaskScope FTaskDispatcher::CreateScope(const FTaskScope& Parent)
 		ParentIndex = Parent.Index;
 	}
 	// 再利用する空き位置。
-	Toolbox::uint32 Index = m_Scopes.Size();
+	Toolbox::uint32 Index = static_cast<Toolbox::uint32>(m_Scopes.Size());
 	for (Toolbox::uint32 Slot = 1; Slot < m_Scopes.Size(); ++Slot)
 	{
 		if (!m_Scopes[Slot].bAlive)
@@ -212,6 +212,11 @@ FCommitSummary FTaskDispatcher::PumpCommits()
 	Toolbox::FScopedLock Lock(m_Mutex);
 	Summary.Stalled = static_cast<Toolbox::uint64>(m_Tasks.Size());
 	return Summary;
+}
+// 受理済みの準備がすべて終わるまで待つ。Commitは実行しない。
+void FTaskDispatcher::WaitForPrepares() noexcept
+{
+	m_pJobs->Wait(m_Fence);
 }
 // Scopeと子孫を取り消す。実行中の準備は協調点で止まる。
 // @param Scope 取り消すScope。

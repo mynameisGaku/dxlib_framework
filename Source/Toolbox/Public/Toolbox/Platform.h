@@ -115,6 +115,14 @@ bool IsRegularFile(const FPath& Path);
  */
 bool IsDirectory(const FPath& Path);
 /**
+ * ファイル全体を読み取る。存在しなければfalseを返す。
+ * 上限超過・種別異常・読み取り失敗は例外で通知する。
+ * @param Path 読み取るファイルのパス。
+ * @param Out 読み取ったバイト列の格納先。失敗時は変更しない。
+ * @param MaxBytes 受け付ける最大バイト数。
+ */
+bool ReadFileBytes(const FPath& Path, TVector<uint8>& Out, size_t MaxBytes);
+/**
  * ファイルを新規コピーする。既存のコピー先は上書きしない。
  * @param Source 読み取り元のパス。
  * @param Destination 新規作成するコピー先のパス。

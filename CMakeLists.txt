@@ -123,6 +123,8 @@ endif()
 
 add_library(dxf_support STATIC
     Source/DxLibSupport/Private/Dxf/AssetService.cpp
+    Source/DxLibSupport/Private/Dxf/AsyncAsset.cpp
+    Source/DxLibSupport/Private/Dxf/AssetDecode.cpp
     Source/DxLibSupport/Private/Dxf/TextureLoader.cpp
     Source/DxLibSupport/Private/Dxf/SoundLoader.cpp
     Source/DxLibSupport/Private/Dxf/FontLoader.cpp
@@ -132,6 +134,8 @@ add_library(dxf_support STATIC
 add_library(dxf::support ALIAS dxf_support)
 set_target_properties(dxf_support PROPERTIES EXPORT_NAME support DEBUG_POSTFIX d)
 target_link_libraries(dxf_support PUBLIC dxf::foundation)
+# 非同期要求の定義だけが借用Dispatcherを参照する。公開側へ漏らさない。
+target_include_directories(dxf_support PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Source/Runtime/Public")
 dxf_public_headers(dxf_support DxLibSupport PUBLIC)
 dxf_warnings(dxf_support)
 
@@ -191,7 +195,7 @@ if(DXF_BUILD_TESTS)
     endif()
     add_executable(dxf_tests Tests/TestMain.cpp Tests/Support/TestFs.cpp Tests/ToolboxTests.cpp Tests/MathCollisionTests.cpp Tests/FoundationTests.cpp Tests/SupportTests.cpp
         Tests/GameplayTests.cpp Tests/ApplicationTests.cpp Tests/SandboxTests.cpp Tests/FixedTickTests.cpp Tests/PhysicsSceneTests.cpp Tests/ThreadingTests.cpp Tests/AssetRootTests.cpp
-        Tests/HardeningTests.cpp Tests/RenderFailureTests.cpp Tests/SceneContinuationTests.cpp Tests/ResourceShutdownTests.cpp Tests/UsabilityTests.cpp Tests/StressTests.cpp Tests/StarterTests.cpp Tests/TaskDispatcherTests.cpp Examples/Starter/Source/BootScene.cpp Examples/Sandbox/SandboxGame.cpp)
+        Tests/HardeningTests.cpp Tests/RenderFailureTests.cpp Tests/SceneContinuationTests.cpp Tests/ResourceShutdownTests.cpp Tests/UsabilityTests.cpp Tests/StressTests.cpp Tests/StarterTests.cpp Tests/TaskDispatcherTests.cpp Tests/AssetAsyncTests.cpp Examples/Starter/Source/BootScene.cpp Examples/Sandbox/SandboxGame.cpp)
     target_link_libraries(dxf_tests PRIVATE dxf::framework)
     target_include_directories(dxf_tests PRIVATE Tests Examples/Sandbox Examples/Starter/Source)
     dxf_ide_headers(dxf_tests Tests/Support Examples/Sandbox Examples/Starter/Source)

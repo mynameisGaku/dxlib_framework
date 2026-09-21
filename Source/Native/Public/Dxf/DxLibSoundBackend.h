@@ -15,6 +15,14 @@ public:
 	 */
 	TResult<Toolbox::int32> LoadSound(const Toolbox::FString& Path, const FSoundLoadOptions& Options) override;
 	/**
+	 * 準備済み音声データから音声を取得する。Memory保持のみ対応し、ファイルを読まない。
+	 * @param Data 音声ファイルのバイト列。呼び出し中だけ有効。
+	 * @param Size バイト列の長さ。
+	 * @param Options 処理に適用する設定。
+	 */
+	TResult<Toolbox::int32> LoadSoundMemory(const void* Data, Toolbox::size_t Size,
+	                                       const FSoundLoadOptions& Options) override;
+	/**
 	 * 独立して再生できる音声ハンドルを複製する。
 	 * @param Handle ハンドル。
 	 */

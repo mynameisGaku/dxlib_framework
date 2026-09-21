@@ -56,6 +56,32 @@ TResult<FTexture> FTextureLoader::Load(const Toolbox::FString& Path, const FText
 	return Resource ? TResult<FTexture>::Success(FTexture(Toolbox::Move(Resource).Value()))
 	                : TResult<FTexture>::Failure(Resource.Error());
 }
+// 準備済みデータからリソースを読み込む。ファイルを読まない。
+// @param Data 画像ファイルのバイト列。呼び出し中だけ有効。
+// @param Size バイト列の長さ。
+// @param Options 処理に適用する設定。
+TResult<FTexture> FTextureLoader::LoadMemory(const void* Data, Toolbox::size_t Size,
+                                             const FTextureLoadOptions& Options)
+{
+	if (m_pRegistry->IsShutdown())
+	{
+		return TResult<FTexture>::Failure(EErrorCode::InvalidState, "Assets stopped");
+	}
+	if (Data == nullptr || Size == 0)
+	{
+		return TResult<FTexture>::Failure(EErrorCode::InvalidArgument, "Image memory is empty");
+	}
+	// ネイティブリソースの確保結果。
+	auto Allocation = m_pBackend->LoadTextureMemory(Data, Size, Options);
+	if (!Allocation)
+	{
+		return TResult<FTexture>::Failure(Allocation.Error());
+	}
+	// 共有するリソース。
+	auto Resource = Adopt_Internal(Allocation.Value(), false);
+	return Resource ? TResult<FTexture>::Success(FTexture(Toolbox::Move(Resource).Value()))
+	                : TResult<FTexture>::Failure(Resource.Error());
+}
 // 描画先として使うテクスチャを生成する。
 // @param Width 幅。
 // @param Height 高さ。

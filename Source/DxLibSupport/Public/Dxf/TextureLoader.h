@@ -24,6 +24,13 @@ public:
 	 */
 	TResult<FTexture> Load(const Toolbox::FString& Path, const FTextureLoadOptions& Options);
 	/**
+	 * 準備済みデータからリソースを読み込む。ファイルを読まない。
+	 * @param Data 画像ファイルのバイト列。呼び出し中だけ有効。
+	 * @param Size バイト列の長さ。
+	 * @param Options 処理に適用する設定。
+	 */
+	TResult<FTexture> LoadMemory(const void* Data, Toolbox::size_t Size, const FTextureLoadOptions& Options);
+	/**
 	 * 描画先として使うテクスチャを生成する。
 	 * @param Width 幅。
 	 * @param Height 高さ。

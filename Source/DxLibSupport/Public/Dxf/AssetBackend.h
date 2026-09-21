@@ -94,6 +94,14 @@ public:
 	virtual TResult<FTextureAllocation> LoadTexture(const Toolbox::FString& Path,
 	                                                const FTextureLoadOptions& Options) = 0;
 	/**
+	 * 準備済み画像データからテクスチャを取得する。ファイルを読まない。
+	 * @param Data 画像ファイルのバイト列。呼び出し中だけ有効。
+	 * @param Size バイト列の長さ。
+	 * @param Options 処理に適用する設定。
+	 */
+	virtual TResult<FTextureAllocation> LoadTextureMemory(const void* Data, Toolbox::size_t Size,
+	                                                     const FTextureLoadOptions& Options) = 0;
+	/**
 	 * 描画先として使うテクスチャを生成する。
 	 * @param Width 幅。
 	 * @param Height 高さ。
@@ -144,6 +152,14 @@ public:
 	 * @param Options 処理に適用する設定。
 	 */
 	virtual TResult<Toolbox::int32> LoadSound(const Toolbox::FString& Path, const FSoundLoadOptions& Options) = 0;
+	/**
+	 * 準備済み音声データから音声を取得する。ファイルを読まない。
+	 * @param Data 音声ファイルのバイト列。呼び出し中だけ有効。
+	 * @param Size バイト列の長さ。
+	 * @param Options 処理に適用する設定。
+	 */
+	virtual TResult<Toolbox::int32> LoadSoundMemory(const void* Data, Toolbox::size_t Size,
+	                                               const FSoundLoadOptions& Options) = 0;
 	/**
 	 * 独立して再生できる音声ハンドルを複製する。
 	 * @param Handle ハンドル。
