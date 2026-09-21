@@ -1,0 +1,9 @@
+FAIL generated batch refuses synchronous Submit reentry: bRejected at line 81
+FAIL generated batch refuses nested generation: bRejected at line 105
+FAIL generated batch cannot execute the existing queue: bRejected at line 121
+FAIL queue rejects foreign worker submissions before mutable access: bRejected at line 139
+FAIL queue rejects inline job submissions outside generation: bRejected at line 151
+PASS failed generation preserves queue and permits subsequent submission
+PASS generated commands keep input order on one and four lanes
+FAIL inline jobs cannot invoke renderer Native or end a frame: bNativeRejected at line 217
+2/8 passed

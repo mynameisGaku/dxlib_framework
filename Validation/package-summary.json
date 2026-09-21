@@ -1,0 +1,30 @@
+{
+  "scope": "Exact dependency subset / synthetic root CMake hunk context. Not full repository build.",
+  "steps": [
+    {
+      "step": "apply-check",
+      "exit": 0
+    },
+    {
+      "step": "apply",
+      "exit": 0
+    },
+    {
+      "step": "diff-check",
+      "exit": 0
+    },
+    {
+      "step": "configure",
+      "exit": 0
+    },
+    {
+      "step": "build",
+      "exit": 0
+    },
+    {
+      "step": "ctest",
+      "exit": 0
+    }
+  ],
+  "changed_file_bytes_matched": true
+}

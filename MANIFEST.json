@@ -1,0 +1,84 @@
+{
+  "base_commit": "e753045c76affa2cc69e890cb70f13a9ef430172",
+  "remote_modified": false,
+  "full_repository_build_verified": false,
+  "files": [
+    {
+      "path": "Source/Toolbox/Public/Toolbox/JobSystem.h",
+      "before_git_blob": "7f18097165678fbb127541aa9ca105bb32071066",
+      "after_git_blob": "2ffbc55674e302cfdbab9e3ffc8df07a82c2108a",
+      "after_sha256": "1cb1eae7a30fd5ae302aada3d74da65d0c3ab44c5e6fd3a6a3a468ef194c9f40"
+    },
+    {
+      "path": "Source/Toolbox/Private/Toolbox/JobSystem.cpp",
+      "before_git_blob": "95619eabcf78cb2708d85d947e40f92a1eaa2efb",
+      "after_git_blob": "93d0039a0d496c40d48e79bdb884ad73c9e28eb8",
+      "after_sha256": "ea7a80c555f901e9458049fbe9e1a9d58c6c34b38e9f832cd6a3958f0d8df155"
+    },
+    {
+      "path": "Source/DxLibSupport/Public/Dxf/RenderQueue2D.h",
+      "before_git_blob": "74e1a1e092293431c0d6ccc5654b961e6ae48384",
+      "after_git_blob": "ae2b71a9e4f8e39655129b394dbae204ac39c050",
+      "after_sha256": "0c11ca6f25f8622f50c8c1aa1d267e41a96dd0312388cf12a6d2a309bbfbc9ec"
+    },
+    {
+      "path": "Source/DxLibSupport/Private/Dxf/RenderQueue2D.cpp",
+      "before_git_blob": "20f0909fc5fd2f29bcd07a8b1668e185eeb03c93",
+      "after_git_blob": "e90236dbd39b66b1566c3ab25b275f90569b05ed",
+      "after_sha256": "40a60b17a48151f9eafbcb5ed0f2f6c5a2faafac5c1d211fb510b897248056d6"
+    },
+    {
+      "path": "Source/DxLibSupport/Public/Dxf/RenderContext.h",
+      "before_git_blob": "627787d33d948133064e20a5f6b0bb1b7eb417db",
+      "after_git_blob": "5fdff948ecc2e23435b7bb59452bf0b2cf4b11b3",
+      "after_sha256": "0b8bcaa07ab91a87c426ce0001ff482e4fbbd96e1eba7db005dc2667564caba5"
+    },
+    {
+      "path": "Source/DxLibSupport/Private/Dxf/RenderSystem2D.cpp",
+      "before_git_blob": "e9ffeb2b3a02e412b6afc8e90ec96f5b4aff2814",
+      "after_git_blob": "26b0b01bc2616d4f83d41ce3cffd9d747ba1d680",
+      "after_sha256": "98b01dd4bf4c87094d22bf3eaf47f948c816d4e5ecbf8b55e7ff1a11e0abede2"
+    },
+    {
+      "path": "Tests/RenderContinuationTests.cpp",
+      "before_git_blob": null,
+      "after_git_blob": "492e8da6f817540317d7af732ef88517476c2074",
+      "after_sha256": "9e5d4e7af2a5d72a0c5e1e1f258edf62c0d43114fe2be9c228ac19cfc092270f"
+    },
+    {
+      "path": "Tools/RenderValidation/CMakeLists.txt",
+      "before_git_blob": null,
+      "after_git_blob": "4d000ee407a6ebf2e3ac707f4d0670f55b10142f",
+      "after_sha256": "9baa79248a96752423c7377c6fecc21b2b94e080c3c8cece3a9e32df2703633d"
+    },
+    {
+      "path": "Tools/RenderValidation/Main.cpp",
+      "before_git_blob": null,
+      "after_git_blob": "adbf89cfd4c4ea5c56d2b54c44bae314fccf4622",
+      "after_sha256": "d33cbaef6fee9804f1acb773395a99055d816d54e8bb8e26805d1fcf8c9ba760"
+    },
+    {
+      "path": "Tools/RenderValidation/JobFaultTests.cpp",
+      "before_git_blob": null,
+      "after_git_blob": "163a09a41d6974fa205180d126640d51fcf99f0b",
+      "after_sha256": "1918bb69c7abc2abe508135bb6150e02022720bf37c9ae4cf6251dea73aab649"
+    },
+    {
+      "path": "CMake/RenderContinuationTests.cmake",
+      "before_git_blob": null,
+      "after_git_blob": "bfeca36c51013b012a739cda6d90686517209957",
+      "after_sha256": "1197e592e28192b49aa8c21aa3cb86b2c6e6c81df6a70c92aa31c99830b3df0f"
+    },
+    {
+      "path": "Docs/Development/E753045RenderJobAudit.md",
+      "before_git_blob": null,
+      "after_git_blob": "bafee017b657dc615e4320bc7c76a541627201c1",
+      "after_sha256": "4fe78ad5cc505180dc343b42ac064921352a53a8f7e4c505bf13f18e7734d91d"
+    },
+    {
+      "path": "CMakeLists.txt",
+      "before_git_blob": "88c7df023f3efc705cbf1244a8b45037e51bdb9f",
+      "change": "Insert include and dxf_add_render_continuation_tests(dxf::support) in DXF_BUILD_TESTS block. No replacement root file is shipped."
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+COMMAND ["ctest", "--test-dir", "/mnt/data/dxf_e753045_validation/asan", "--output-on-failure"]
+Internal ctest changing into directory: /mnt/data/dxf_e753045_validation/asan
+Test project /mnt/data/dxf_e753045_validation/asan
+    Start 1: RenderContinuation
+1/7 Test #1: RenderContinuation ...............   Passed    0.30 sec
+    Start 2: JobFault-construction
+2/7 Test #2: JobFault-construction ............   Passed    0.10 sec
+    Start 3: JobFault-submission
+3/7 Test #3: JobFault-submission ..............   Passed    0.17 sec
+    Start 4: JobFault-capture-wait
+4/7 Test #4: JobFault-capture-wait ............   Passed    0.11 sec
+    Start 5: JobFault-cross-system
+5/7 Test #5: JobFault-cross-system ............   Passed    0.06 sec
+    Start 6: JobFault-fence-allocation
+6/7 Test #6: JobFault-fence-allocation ........   Passed    0.09 sec
+    Start 7: ThreadingContinuation
+7/7 Test #7: ThreadingContinuation ............   Passed    0.78 sec
+
+100% tests passed, 0 tests failed out of 7
+
+Label Time Summary:
+fault-injection    =   0.53 sec*proc (5 tests)
+portable           =   1.61 sec*proc (7 tests)
+render             =   0.30 sec*proc (1 test)
+threading          =   1.61 sec*proc (7 tests)
+
+Total Test time (real) =   1.63 sec
+
+EXIT=0

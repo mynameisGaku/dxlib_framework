@@ -1,0 +1,4 @@
+COMMAND ["/mnt/data/dxf_e753045_validation/base_fault_tests", "fence-allocation"]
+terminate called after throwing an instance of 'Toolbox::FException'
+
+EXIT -6

@@ -1,0 +1,14 @@
+[
+  {
+    "executable": "dxf_render_continuation_tests",
+    "repetitions": 100,
+    "passed": 100,
+    "seconds": 2.0198841189999257
+  },
+  {
+    "executable": "dxf_threading_continuation_tests",
+    "repetitions": 100,
+    "passed": 100,
+    "seconds": 26.03865871400012
+  }
+]

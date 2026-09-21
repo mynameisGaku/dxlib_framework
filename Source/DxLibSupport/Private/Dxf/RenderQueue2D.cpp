@@ -85,7 +85,7 @@ TResult<void> FRenderQueue2D::Validate_Internal(const FRenderCommand& Command) c
 // @param Command 実行する描画命令。
 TResult<void> FRenderQueue2D::Submit(FRenderCommand Command)
 {
-	if (!m_bAccepting || m_bExecuting)
+	if (!IsOwnerOperationAllowed_Internal() || !m_bAccepting || m_bExecuting)
 	{
 		return StateError_Internal();
 	}
@@ -102,7 +102,7 @@ TResult<void> FRenderQueue2D::Submit(FRenderCommand Command)
 // @param Backend ネイティブ処理の呼び出し先。
 TResult<void> FRenderQueue2D::Execute_Internal(IRenderBackend& Backend)
 {
-	if (m_bExecuting)
+	if (!IsOwnerOperationAllowed_Internal() || m_bExecuting)
 	{
 		return StateError_Internal();
 	}

@@ -1,0 +1,50 @@
+[
+  {
+    "compiler": "g++",
+    "header": "Toolbox/JobSystem.h",
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "compiler": "g++",
+    "header": "Dxf/RenderQueue2D.h",
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "compiler": "g++",
+    "header": "Dxf/RenderContext.h",
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "compiler": "g++",
+    "header": "Dxf/RenderSystem2D.h",
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "compiler": "clang++",
+    "header": "Toolbox/JobSystem.h",
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "compiler": "clang++",
+    "header": "Dxf/RenderQueue2D.h",
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "compiler": "clang++",
+    "header": "Dxf/RenderContext.h",
+    "exit": 0,
+    "diagnostic": ""
+  },
+  {
+    "compiler": "clang++",
+    "header": "Dxf/RenderSystem2D.h",
+    "exit": 0,
+    "diagnostic": ""
+  }
+]

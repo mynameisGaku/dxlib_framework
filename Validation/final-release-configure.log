@@ -1,0 +1,6 @@
+COMMAND ["cmake", "-S", "/mnt/data/dxf_e753045_work/Tools/RenderValidation", "-B", "/mnt/data/dxf_e753045_validation/release", "-G", "Ninja", "-DCMAKE_BUILD_TYPE=Release"]
+-- Configuring done (0.1s)
+-- Generating done (0.0s)
+-- Build files have been written to: /mnt/data/dxf_e753045_validation/release
+
+EXIT=0

@@ -1,0 +1,24 @@
+COMMAND ["/mnt/data/dxf_e753045_validation/release/dxf_render_continuation_tests"]
+PASS generated batch refuses synchronous Submit reentry
+PASS generated batch refuses nested generation
+PASS generated batch cannot execute the existing queue
+PASS queue rejects foreign worker submissions before mutable access
+PASS queue rejects inline job submissions outside generation
+PASS failed generation preserves queue and permits subsequent submission
+PASS generated commands keep input order on one and four lanes
+PASS inline jobs cannot invoke renderer Native or end a frame
+PASS fence construction does not promise no-throw allocation
+PASS public context generates batches without crossing Native barriers
+PASS nested inline jobs preserve the actual OS worker owner
+PASS internal queue mutations are ignored during generation
+PASS invalid tail and throwing generators do not append partial results
+PASS empty batch and stopped queue have explicit contracts
+PASS oversized generated count fails without changing the queue
+PASS generated errors are selected in input order
+PASS worker cannot cancel a frame or execute Native calls
+PASS layer and explicit order precede stable generated input order
+PASS pinned sprite resources are finally released on the owner thread
+PASS feedback rejection preserves old commands and pinned resource
+20/20 passed
+
+EXIT=0

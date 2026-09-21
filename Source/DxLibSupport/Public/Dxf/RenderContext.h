@@ -19,6 +19,22 @@ public:
 	{
 	}
 	/**
+	 * 確定した入力から命令を並列生成し、入力順でキューへ一括反映する。
+	 * 所有スレッドの通常描画中だけ呼べる。Generateは専用出力以外を変更しない。
+	 * Generateの捕捉は複数Jobから同時に呼ばれるため、入力を読み取り専用にする。
+	 * 呼び出し側は返るまでTexture・Fontの所有参照を保持し、資源を無効化しない。
+	 * @param Jobs 完了まで借用するJob System。
+	 * @param Count 生成する一命令ごとの入力件数。
+	 * @param Generate 添字と専用FRenderCommandを受け取りTResult<void>を返す処理。
+	 * @param MinimumBatch 一つのJobへまとめる最小件数。0は1として扱う。
+	 */
+	template <typename F>
+	TResult<void> SubmitGenerated(Toolbox::FJobSystem& Jobs, Toolbox::size_t Count, F&& Generate,
+	                             Toolbox::size_t MinimumBatch = 16)
+	{
+		return m_pQueue->SubmitGenerated(Jobs, Count, Toolbox::Forward<F>(Generate), MinimumBatch);
+	}
+	/**
 	 * 対象の描画を要求する。
 	 * @param Texture 描画するテクスチャ。
 	 * @param Position 描画位置。

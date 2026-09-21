@@ -1,0 +1,18 @@
+[1/2] Building CXX object CMakeFiles/dxf_render_continuation_tests.dir/mnt/data/dxf_e753045_work/Tests/RenderContinuationTests.cpp.o
+FAILED: CMakeFiles/dxf_render_continuation_tests.dir/mnt/data/dxf_e753045_work/Tests/RenderContinuationTests.cpp.o 
+/usr/bin/c++  -I/mnt/data/dxf_e753045_work/Tests -I/mnt/data/dxf_e753045_work/Source/Toolbox/Public -I/mnt/data/dxf_e753045_work/Source/Foundation/Public -I/mnt/data/dxf_e753045_work/Source/DxLibSupport/Public -g -std=c++20 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror -MD -MT CMakeFiles/dxf_render_continuation_tests.dir/mnt/data/dxf_e753045_work/Tests/RenderContinuationTests.cpp.o -MF CMakeFiles/dxf_render_continuation_tests.dir/mnt/data/dxf_e753045_work/Tests/RenderContinuationTests.cpp.o.d -o CMakeFiles/dxf_render_continuation_tests.dir/mnt/data/dxf_e753045_work/Tests/RenderContinuationTests.cpp.o -c /mnt/data/dxf_e753045_work/Tests/RenderContinuationTests.cpp
+In file included from /mnt/data/dxf_e753045_work/Tests/RenderContinuationTests.cpp:2:
+/mnt/data/dxf_e753045_work/Tests/RenderContinuationTests.cpp: In function 'void Test_Internal_227()':
+/mnt/data/dxf_e753045_work/Tests/RenderContinuationTests.cpp:234:25: error: 'class Dxf::FRenderContext' has no member named 'SubmitGenerated'
+  234 |         REQUIRE(Context.SubmitGenerated(Jobs, 3, [](Toolbox::size_t Index, Dxf::FRenderCommand& Output)
+      |                         ^~~~~~~~~~~~~~~
+/mnt/data/dxf_e753045_work/Tests/Support/Test.h:67:64: note: in definition of macro 'REQUIRE'
+   67 | #define REQUIRE(...) Test::Require_Internal(static_cast<bool>((__VA_ARGS__)), #__VA_ARGS__, __LINE__)
+      |                                                                ^~~~~~~~~~~
+/mnt/data/dxf_e753045_work/Tests/RenderContinuationTests.cpp:244:25: error: 'class Dxf::FRenderContext' has no member named 'SubmitGenerated'
+  244 |         REQUIRE(Context.SubmitGenerated(Jobs, 3, [](Toolbox::size_t Index, Dxf::FRenderCommand& Output)
+      |                         ^~~~~~~~~~~~~~~
+/mnt/data/dxf_e753045_work/Tests/Support/Test.h:67:64: note: in definition of macro 'REQUIRE'
+   67 | #define REQUIRE(...) Test::Require_Internal(static_cast<bool>((__VA_ARGS__)), #__VA_ARGS__, __LINE__)
+      |                                                                ^~~~~~~~~~~
+ninja: build stopped: subcommand failed.

@@ -1,0 +1,4 @@
+COMMAND ["/mnt/data/dxf_e753045_validation/base_fault_tests", "submission"]
+submission caught=1 submitted=1 completed_at_return=0
+
+EXIT -11

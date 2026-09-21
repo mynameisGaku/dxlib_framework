@@ -1,0 +1,32 @@
+# Same test registration for the real framework and the isolated validation build.
+function(dxf_add_render_continuation_tests CoreTarget)
+    get_filename_component(_root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/.." ABSOLUTE)
+    add_executable(dxf_render_continuation_tests
+        "${_root}/Tools/RenderValidation/Main.cpp"
+        "${_root}/Tests/RenderContinuationTests.cpp")
+    target_include_directories(dxf_render_continuation_tests PRIVATE "${_root}/Tests")
+    target_link_libraries(dxf_render_continuation_tests PRIVATE ${CoreTarget})
+
+    # Global new replacement is isolated to this executable, never added to a library.
+    add_executable(dxf_job_fault_tests "${_root}/Tools/RenderValidation/JobFaultTests.cpp")
+    target_link_libraries(dxf_job_fault_tests PRIVATE ${CoreTarget})
+    foreach(_target dxf_render_continuation_tests dxf_job_fault_tests)
+        target_compile_features(${_target} PRIVATE cxx_std_20)
+        if(COMMAND dxf_warnings)
+            dxf_warnings(${_target})
+        elseif(MSVC)
+            target_compile_options(${_target} PRIVATE /W4 /WX /permissive- /utf-8 /EHsc /GR)
+        else()
+            target_compile_options(${_target} PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
+        endif()
+        if(COMMAND dxf_ide_headers)
+            dxf_ide_headers(${_target} Tools/RenderValidation)
+        endif()
+    endforeach()
+    add_test(NAME RenderContinuation COMMAND dxf_render_continuation_tests)
+    set_tests_properties(RenderContinuation PROPERTIES TIMEOUT 60 LABELS "portable;render;threading")
+    foreach(_case construction submission capture-wait cross-system fence-allocation)
+        add_test(NAME JobFault-${_case} COMMAND dxf_job_fault_tests ${_case})
+        set_tests_properties(JobFault-${_case} PROPERTIES TIMEOUT 30 LABELS "portable;threading;fault-injection")
+    endforeach()
+endfunction()

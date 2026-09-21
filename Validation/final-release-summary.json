@@ -1,0 +1,32 @@
+[
+  {
+    "profile": "release",
+    "phase": "configure",
+    "exit": 0,
+    "log": "final-release-configure.log"
+  },
+  {
+    "profile": "release",
+    "phase": "build",
+    "exit": 0,
+    "log": "final-release-build.log"
+  },
+  {
+    "profile": "release",
+    "phase": "ctest",
+    "exit": 0,
+    "log": "final-release-ctest.log"
+  },
+  {
+    "profile": "release",
+    "phase": "cases",
+    "exit": 0,
+    "log": "final-release-cases.log"
+  },
+  {
+    "profile": "release",
+    "phase": "threading",
+    "exit": 0,
+    "log": "final-release-threading.log"
+  }
+]

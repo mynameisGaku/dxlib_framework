@@ -1,0 +1,12 @@
+COMMAND ["cmake", "--build", "/mnt/data/dxf_e753045_validation/tsan", "-j4"]
+[1/9] Building CXX object CMakeFiles/dxf_threading_continuation_tests.dir/Main.cpp.o
+[2/9] Building CXX object CMakeFiles/dxf_render_validation_core.dir/mnt/data/dxf_e753045_work/Source/DxLibSupport/Private/Dxf/RenderQueue2D.cpp.o
+[3/9] Building CXX object CMakeFiles/dxf_render_validation_core.dir/mnt/data/dxf_e753045_work/Source/DxLibSupport/Private/Dxf/RenderSystem2D.cpp.o
+[4/9] Linking CXX static library libdxf_render_validation_core.a
+[5/9] Linking CXX executable dxf_job_fault_tests
+[6/9] Building CXX object CMakeFiles/dxf_threading_continuation_tests.dir/mnt/data/dxf_e753045_work/Tests/ThreadingTests.cpp.o
+[7/9] Linking CXX executable dxf_threading_continuation_tests
+[8/9] Building CXX object CMakeFiles/dxf_render_continuation_tests.dir/mnt/data/dxf_e753045_work/Tests/RenderContinuationTests.cpp.o
+[9/9] Linking CXX executable dxf_render_continuation_tests
+
+EXIT=0

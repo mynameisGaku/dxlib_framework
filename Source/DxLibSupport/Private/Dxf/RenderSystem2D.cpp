@@ -42,7 +42,7 @@ FRenderSystem2D::FRenderSystem2D(IRenderBackend& Backend)
 // @param Color 描画色。
 TResult<void> FRenderSystem2D::BeginFrame(Toolbox::int32 Width, Toolbox::int32 Height, FColor Color)
 {
-	if (m_bBusy || m_bFrame)
+	if (!m_Queue.IsOwnerOperationAllowed_Internal() || m_bBusy || m_bFrame)
 	{
 		return StateError_Internal();
 	}
@@ -144,7 +144,7 @@ TResult<void> FRenderSystem2D::Flush_Internal()
 // 蓄積した描画命令を実行する。
 TResult<void> FRenderSystem2D::Flush()
 {
-	if (!m_bFrame || m_bBusy)
+	if (!m_Queue.IsOwnerOperationAllowed_Internal() || !m_bFrame || m_bBusy)
 	{
 		return StateError_Internal();
 	}
@@ -156,7 +156,7 @@ TResult<void> FRenderSystem2D::Flush()
 // @param Target 描画先またはその設定結果。
 TResult<void> FRenderSystem2D::SetRenderTarget(const FRenderTarget& Target)
 {
-	if (!m_bFrame || m_bBusy)
+	if (!m_Queue.IsOwnerOperationAllowed_Internal() || !m_bFrame || m_bBusy)
 	{
 		return StateError_Internal();
 	}
@@ -195,7 +195,7 @@ TResult<void> FRenderSystem2D::SetRenderTarget(const FRenderTarget& Target)
 // 画面のバックバッファを設定する。
 TResult<void> FRenderSystem2D::SetBackBuffer()
 {
-	if (!m_bFrame || m_bBusy)
+	if (!m_Queue.IsOwnerOperationAllowed_Internal() || !m_bFrame || m_bBusy)
 	{
 		return StateError_Internal();
 	}
@@ -230,7 +230,7 @@ TResult<void> FRenderSystem2D::SetBackBuffer()
 // @param Color 描画色。
 TResult<void> FRenderSystem2D::ClearTarget(FColor Color)
 {
-	if (!m_bFrame || m_bBusy)
+	if (!m_Queue.IsOwnerOperationAllowed_Internal() || !m_bFrame || m_bBusy)
 	{
 		return StateError_Internal();
 	}
@@ -254,7 +254,7 @@ TResult<void> FRenderSystem2D::ClearTarget(FColor Color)
 // @param Callback 利用者が指定した処理。
 TResult<void> FRenderSystem2D::Native(const Toolbox::TFunction<TResult<void>()>& Callback)
 {
-	if (!m_bFrame || m_bBusy || !Callback)
+	if (!m_Queue.IsOwnerOperationAllowed_Internal() || !m_bFrame || m_bBusy || !Callback)
 	{
 		return StateError_Internal();
 	}
@@ -300,7 +300,7 @@ TResult<void> FRenderSystem2D::Native(const Toolbox::TFunction<TResult<void>()>&
 // 蓄積した描画を実行してフレームを終了する。
 TResult<void> FRenderSystem2D::EndFrame()
 {
-	if (!m_bFrame || m_bBusy)
+	if (!m_Queue.IsOwnerOperationAllowed_Internal() || !m_bFrame || m_bBusy)
 	{
 		return StateError_Internal();
 	}
@@ -328,7 +328,7 @@ TResult<void> FRenderSystem2D::EndFrame()
 // 実行待ちの描画を破棄してフレームを中断する。
 void FRenderSystem2D::CancelFrame() noexcept
 {
-	if (m_bBusy)
+	if (!m_Queue.IsOwnerOperationAllowed_Internal() || m_bBusy)
 	{
 		return;
 	}

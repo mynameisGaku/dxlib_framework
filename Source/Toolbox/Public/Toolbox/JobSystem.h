@@ -14,9 +14,9 @@ class FJobFence
 {
 public:
 	/**
-	 * 未追跡の空Fenceを作る。
+	 * 未追跡の空Fenceを作る。同期資源の確保に失敗した場合は例外を伝播する。
 	 */
-	FJobFence() noexcept = default;
+	FJobFence() = default;
 	/**
 	 * 同じ同期状態を複製できないためコピーを禁止する。
 	 */
@@ -146,7 +146,7 @@ public:
 	}
 	/**
 	 * Fenceが完了するまで待つ。同じJobSystemのJob実行中なら待機中にQueueを処理する。
-	 * 実行中Job自身または祖先Jobを含むFenceは循環待機になるためfalseを返す。
+	 * 同一スレッド上の実行中Job自身または祖先Jobを含むFenceはSystemによらずfalseを返す。
 	 * 別Job SystemのFence待ちはQueue処理を伴わずblockする。
 	 * @param Fence 完了を待つFence。
 	 */
@@ -155,6 +155,11 @@ public:
 	 * 設定から解決した実行レーン数を返す。1は同期実行。
 	 */
 	uint32 GetExecutionThreadCount() const noexcept;
+	/**
+	 * 現在のOSスレッドでJob本体または捕捉の破棄処理を実行中か返す。
+	 * 同期レーンと入れ子のJobも対象とし、特定のJob Systemには限定しない。
+	 */
+	static bool IsExecutingJob() noexcept;
 	/**
 	 * 呼び出しスレッドがこのJobSystemの実OS Worker Threadか返す。
 	 * 同期実行レーン上のJobではfalseを返す。
@@ -222,7 +227,8 @@ private:
 };
 /**
  * 独立した添字範囲をJob Systemへ分割して処理する。
- * FunctionはParallelForの完了まで呼び出し元が保持し、各添字は一度だけ呼ばれる。
+ * FunctionはParallelForの完了まで呼び出し元が保持し、成功時は各添字を一度だけ呼ぶ。
+ * 投入途中の例外でも受理済みJobを待ってから伝播する。処理済み範囲は巻き戻さない。
  * @param Jobs 使用するJob System。
  * @param Count 処理する要素数。
  * @param Function size_t添字を受け取る処理。
@@ -268,24 +274,33 @@ bool ParallelFor(FJobSystem& Jobs, size_t Count, F&& Function, size_t MinimumBat
 		Batch = MinimumBatch;
 	}
 	FJobFence Fence;
-	size_t Begin = 0;
-	while (Begin < Count)
+	try
 	{
-		const size_t Remaining = Count - Begin;
-		const size_t End = Batch < Remaining ? Begin + Batch : Count;
-		const bool Accepted = Jobs.TrySubmit([Begin, End, &Function]()
+		size_t Begin = 0;
+		while (Begin < Count)
 		{
-			for (size_t Index = Begin; Index < End; ++Index)
+			const size_t Remaining = Count - Begin;
+			const size_t End = Batch < Remaining ? Begin + Batch : Count;
+			const bool Accepted = Jobs.TrySubmit([Begin, End, &Function]()
 			{
-				Function(Index);
+				for (size_t Index = Begin; Index < End; ++Index)
+				{
+					Function(Index);
+				}
+			}, &Fence);
+			if (!Accepted)
+			{
+				Jobs.Wait(Fence);
+				return false;
 			}
-		}, &Fence);
-		if (!Accepted)
-		{
-			Jobs.Wait(Fence);
-			return false;
+			Begin = End;
 		}
-		Begin = End;
+	}
+	catch (...)
+	{
+		// 投入済みJobが参照するFunctionとFenceを、例外の伝播より先に退役させる。
+		Jobs.Wait(Fence);
+		throw;
 	}
 	return Jobs.Wait(Fence) && Fence.FailureCount() == 0;
 }

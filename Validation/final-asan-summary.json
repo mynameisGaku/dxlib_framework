@@ -1,0 +1,62 @@
+[
+  {
+    "profile": "release",
+    "phase": "configure",
+    "exit": 0,
+    "log": "final-release-configure.log"
+  },
+  {
+    "profile": "release",
+    "phase": "build",
+    "exit": 0,
+    "log": "final-release-build.log"
+  },
+  {
+    "profile": "release",
+    "phase": "ctest",
+    "exit": 0,
+    "log": "final-release-ctest.log"
+  },
+  {
+    "profile": "release",
+    "phase": "cases",
+    "exit": 0,
+    "log": "final-release-cases.log"
+  },
+  {
+    "profile": "release",
+    "phase": "threading",
+    "exit": 0,
+    "log": "final-release-threading.log"
+  },
+  {
+    "profile": "asan",
+    "phase": "configure",
+    "exit": 0,
+    "log": "final-asan-configure.log"
+  },
+  {
+    "profile": "asan",
+    "phase": "build",
+    "exit": 0,
+    "log": "final-asan-build.log"
+  },
+  {
+    "profile": "asan",
+    "phase": "ctest",
+    "exit": 0,
+    "log": "final-asan-ctest.log"
+  },
+  {
+    "profile": "asan",
+    "phase": "cases",
+    "exit": 0,
+    "log": "final-asan-cases.log"
+  },
+  {
+    "profile": "asan",
+    "phase": "threading",
+    "exit": 0,
+    "log": "final-asan-threading.log"
+  }
+]

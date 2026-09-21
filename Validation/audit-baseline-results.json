@@ -1,0 +1,38 @@
+[
+  {
+    "case": [
+      "construction",
+      "6"
+    ],
+    "exit": -11,
+    "output": ""
+  },
+  {
+    "case": [
+      "submission"
+    ],
+    "exit": -11,
+    "output": "submission caught=1 submitted=1 completed_at_return=0\n"
+  },
+  {
+    "case": [
+      "capture-wait"
+    ],
+    "exit": "timeout",
+    "output": ""
+  },
+  {
+    "case": [
+      "cross-system"
+    ],
+    "exit": "timeout",
+    "output": ""
+  },
+  {
+    "case": [
+      "fence-allocation"
+    ],
+    "exit": -6,
+    "output": "terminate called after throwing an instance of 'Toolbox::FException'\n"
+  }
+]

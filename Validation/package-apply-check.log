@@ -1,0 +1,3 @@
+COMMAND ["git", "apply", "--check", "/mnt/data/dxf_e753045_render_jobs_fix/e753045_render_jobs.patch"]
+
+EXIT=0

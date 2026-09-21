@@ -1,0 +1,32 @@
+[
+  {
+    "profile": "tsan",
+    "phase": "configure",
+    "exit": 0,
+    "log": "final-tsan-configure.log"
+  },
+  {
+    "profile": "tsan",
+    "phase": "build",
+    "exit": 0,
+    "log": "final-tsan-build.log"
+  },
+  {
+    "profile": "tsan",
+    "phase": "ctest",
+    "exit": 0,
+    "log": "final-tsan-ctest.log"
+  },
+  {
+    "profile": "tsan",
+    "phase": "cases",
+    "exit": 0,
+    "log": "final-tsan-cases.log"
+  },
+  {
+    "profile": "tsan",
+    "phase": "threading",
+    "exit": 0,
+    "log": "final-tsan-threading.log"
+  }
+]

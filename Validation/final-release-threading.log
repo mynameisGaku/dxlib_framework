@@ -1,0 +1,27 @@
+COMMAND ["/mnt/data/dxf_e753045_validation/release/dxf_threading_continuation_tests"]
+PASS atomic compare exchange and arithmetic are consistent
+PASS thread starts joins and exposes a different id
+PASS thread boundary contains an entry exception and still joins
+PASS worker identity distinguishes real workers from synchronous jobs
+PASS mutex protects shared writes from several threads
+PASS job system executes ten thousand jobs exactly once
+PASS multiple producers can submit concurrently without losing jobs
+PASS worker wait helps child jobs instead of deadlocking
+PASS waiting on the fence that contains the current job is rejected
+PASS nested synchronous jobs reject waiting on an ancestor fence
+PASS job exceptions are contained and recorded without stopping workers
+PASS parallel for produces the same indexed result with one and many lanes
+PASS parallel for reports a contained job exception
+PASS parallel for contains exceptions consistently in single lane mode
+PASS single lane mode runs jobs synchronously on the caller
+PASS shutdown races with producers without dropping accepted jobs
+PASS wait synchronizes the final fence completion before fence destruction
+PASS concurrent shutdown callers return only after accepted work finishes
+PASS throwing job capture propagates without breaking accepted work
+PASS waiting on another system fence blocks until that system finishes
+PASS every worker waits for its own child without deadlocking
+PASS job capture destructor can submit and wait for follow-up work
+PASS shutdown is idempotent across repeated calls
+23/23 passed
+
+EXIT=0

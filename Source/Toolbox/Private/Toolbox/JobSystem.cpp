@@ -81,6 +81,8 @@ struct FJobSystem::FImpl
 	FAtomicCounter m_UnhandledExceptions;
 	FAtomicCounter m_SubmittedJobs;
 	FAtomicCounter m_CompletedJobs;
+	// 実行中JobのSystemとは別に、OS Workerの所有Systemを固定して保持する。
+	static thread_local FImpl* s_pWorkerSystem;
 	static thread_local FImpl* s_pCurrentSystem;
 	static thread_local uint32 s_CurrentWorkerIndex;
 	static thread_local FJobFence* s_pCurrentFence;
@@ -103,29 +105,23 @@ struct FJobSystem::FImpl
 			return;
 		}
 		m_WorkerThreadCount = Resolved - 1;
-		m_pWorkers = new FThread[m_WorkerThreadCount];
+		// 部分構築中に例外が起きても、開始済みWorkerを停止してから所有領域を戻す。
+		uint32 Started = 0;
 		try
 		{
+			m_pWorkers = new FThread[m_WorkerThreadCount];
 			m_pWorkerContexts = new FWorkerContext[m_WorkerThreadCount];
-		}
-		catch (...)
-		{
-			delete[] m_pWorkers;
-			m_pWorkers = nullptr;
-			m_WorkerThreadCount = 0;
-			throw;
-		}
-		uint32 Started = 0;
-		for (; Started < m_WorkerThreadCount; ++Started)
-		{
-			m_pWorkerContexts[Started].pSystem = this;
-			m_pWorkerContexts[Started].Index = Started;
-			if (!m_pWorkers[Started].Start(&WorkerEntry_Internal, m_pWorkerContexts + Started))
+			for (; Started < m_WorkerThreadCount; ++Started)
 			{
-				break;
+				m_pWorkerContexts[Started].pSystem = this;
+				m_pWorkerContexts[Started].Index = Started;
+				if (!m_pWorkers[Started].Start(&WorkerEntry_Internal, m_pWorkerContexts + Started))
+				{
+					throw FException("Failed to create JobSystem worker thread");
+				}
 			}
 		}
-		if (Started != m_WorkerThreadCount)
+		catch (...)
 		{
 			m_QueueMutex.Lock();
 			m_bAccepting = false;
@@ -141,7 +137,7 @@ struct FJobSystem::FImpl
 			m_pWorkerContexts = nullptr;
 			m_pWorkers = nullptr;
 			m_WorkerThreadCount = 0;
-			throw FException("Failed to create JobSystem worker thread");
+			throw;
 		}
 	}
 	~FImpl()
@@ -166,6 +162,7 @@ struct FJobSystem::FImpl
 	{
 		FWorkerContext* Worker = static_cast<FWorkerContext*>(Context);
 		FImpl* System = Worker->pSystem;
+		s_pWorkerSystem = System;
 		s_pCurrentSystem = System;
 		s_CurrentWorkerIndex = Worker->Index;
 		for (;;)
@@ -179,6 +176,7 @@ struct FJobSystem::FImpl
 		}
 		s_CurrentWorkerIndex = FJobSystem::InvalidWorkerIndex;
 		s_pCurrentSystem = nullptr;
+		s_pWorkerSystem = nullptr;
 	}
 	FJobNode* PopUnlocked_Internal() noexcept
 	{
@@ -243,13 +241,14 @@ struct FJobSystem::FImpl
 				Node->Fence->Fail_Internal();
 			}
 		}
+		// 捕捉のデストラクターもJobの寿命内で実行し、祖先Fenceへの再入待機を拒否する。
+		Node->Destroy(Node->Context);
 		s_pExecutionStack = PreviousFrame;
 		s_pCurrentFence = PreviousFence;
 		s_pCurrentSystem = PreviousSystem;
 		s_CurrentWorkerIndex = PreviousWorkerIndex;
-		// Fence完了の通知より先に実行件数を確定し、Wait帰還後の件数観測を安定させる。
+		// Fenceの完了を観測できる時点では、捕捉の破棄と完了件数の確定も済んでいる。
 		m_CompletedJobs.FetchAdd(1);
-		Node->Destroy(Node->Context);
 		if (Node->Fence != nullptr)
 		{
 			Node->Fence->Complete_Internal();
@@ -350,19 +349,15 @@ struct FJobSystem::FImpl
 	}
 	bool Wait_Internal(FJobFence& Fence) noexcept
 	{
-		if (s_pCurrentSystem == this)
+		// 待機に使うSystemが違っても、同じ呼出し鎖にあるFenceなら循環する。
+		FExecutionFrame* Frame = s_pExecutionStack;
+		while (Frame != nullptr)
 		{
-			// 実行中Job自身または祖先Jobを含むFenceへの待機は循環するため拒否する。
-			// 外側へ遡る走査対象の実行枠。
-			FExecutionFrame* Frame = s_pExecutionStack;
-			while (Frame != nullptr)
+			if (Frame->pFence == &Fence)
 			{
-				if (Frame->pSystem == this && Frame->pFence == &Fence)
-				{
-					return false;
-				}
-				Frame = Frame->pPrevious;
+				return false;
 			}
+			Frame = Frame->pPrevious;
 		}
 		if (s_pCurrentSystem != this)
 		{
@@ -387,6 +382,7 @@ struct FJobSystem::FImpl
 		return true;
 	}
 };
+thread_local FJobSystem::FImpl* FJobSystem::FImpl::s_pWorkerSystem = nullptr;
 thread_local FJobSystem::FImpl* FJobSystem::FImpl::s_pCurrentSystem = nullptr;
 thread_local uint32 FJobSystem::FImpl::s_CurrentWorkerIndex = FJobSystem::InvalidWorkerIndex;
 thread_local FJobFence* FJobSystem::FImpl::s_pCurrentFence = nullptr;
@@ -418,9 +414,14 @@ uint32 FJobSystem::GetExecutionThreadCount() const noexcept
 {
 	return m_pImpl->m_ExecutionThreadCount;
 }
+// 所有スレッドの操作をJob中に誤って実行しないためのTLS問い合わせ。
+bool FJobSystem::IsExecutingJob() noexcept
+{
+	return FImpl::s_pExecutionStack != nullptr;
+}
 bool FJobSystem::IsInWorkerThread() const noexcept
 {
-	return FImpl::s_pCurrentSystem == m_pImpl && FImpl::s_CurrentWorkerIndex != InvalidWorkerIndex;
+	return FImpl::s_pWorkerSystem == m_pImpl && FImpl::s_CurrentWorkerIndex != InvalidWorkerIndex;
 }
 uint32 FJobSystem::GetCurrentWorkerIndex() const noexcept
 {
