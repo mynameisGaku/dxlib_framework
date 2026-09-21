@@ -119,6 +119,7 @@ public:
 	/**
 	 * 受付中ならJobを一度だけ実行対象へ追加する。停止後はfalseを返す。
 	 * Fenceを指定した場合は実行完了までFenceのPendingへ含める。
+	 * 捕捉の複写に失敗した場合は例外が呼び出し側へ伝播し、Jobは受理されない。
 	 * @param Function 引数を取らないJob本体。
 	 * @param Fence 任意の完了Fence。Job完了まで生存させる。
 	 */
@@ -146,6 +147,7 @@ public:
 	/**
 	 * Fenceが完了するまで待つ。同じJobSystemのJob実行中なら待機中にQueueを処理する。
 	 * 実行中Job自身または祖先Jobを含むFenceは循環待機になるためfalseを返す。
+	 * 別Job SystemのFence待ちはQueue処理を伴わずblockする。
 	 * @param Fence 完了を待つFence。
 	 */
 	bool Wait(FJobFence& Fence) noexcept;

@@ -18,7 +18,7 @@
 
 `FJobFence`は、そのFenceを参照するJobと`Wait()`がすべて終わるまで生存させます。Job System本体より長く生存させる必要はありません。同じFenceへ投入したJobがすべて完了するまで`Wait()`できます。`IsComplete()`は非同期の状態観測用で、Fenceを破棄する直前の寿命同期には必ず`Wait()`を使用します。`FailureCount()`はFenceの寿命中で累積するため、独立した処理単位には別Fenceを使います。
 
-現在実行中のJob自身を含むFenceを、そのJobから待つことは循環依存なので`Wait()`が`false`を返します。別Fenceの子JobはWorkerがQueueを手伝いながら待つため、Worker数が少ない場合でも単純な親子待ちで停止しません。
+現在実行中のJob自身または祖先Jobを含むFenceを、そのJobから待つことは循環依存なので`Wait()`が`false`を返します。別Fenceの子JobはWorkerがQueueを手伝いながら待つため、Worker数が少ない場合でも単純な親子待ちで停止しません。別Job SystemのFence待ちはQueue処理を伴わないblockとなり、相手側の完了で戻ります。
 
 Job本体から外へ出た例外はWorker Threadを終了させず、FenceとJob Systemの失敗数へ記録します。`ParallelFor()`は担当Jobに失敗があった場合`false`を返します。
 
@@ -38,24 +38,20 @@ Job System自身をWorker Jobの中から破棄したり、Workerから`Shutdown
 - `FConditionVariable::NotifyOne/NotifyAll`: 複数スレッドから利用可能。`Wait()`は対象`FMutex`を保持して呼び、必ず条件をwhileで再確認する。破棄時には待機者を残さない。
 - `FThread`: 単独所有。別スレッドから同じ`FThread`へ`Start/Join/Move/Destroy`を同時実行しない。静的なThread ID・CPU数・Yield取得は複数スレッドから利用可能。所有しているThread自身からその`FThread`を破棄・Joinしない。
 - `FJobFence`: `IsComplete/PendingCount/FailureCount`は並行参照可能。Fenceを参照するJobまたはWaitが残る間は破棄しない。
-- `FJobSystem::TrySubmit()`: 複数Producerから同時利用可能。
-- `FJobSystem::Wait()`: 外部スレッドおよび同じJob Systemの実行中Jobから利用可能。ただし自己Fence待ちは拒否し、循環するFence依存は利用側で作らない。
+- `FJobSystem::TrySubmit()`: 複数Producerから同時利用可能。捕捉の複写に失敗した場合は例外が呼び出し側へ伝播し、そのJobは受理されない。受理済みJobの完了には影響しない。
+- `FJobSystem::Wait()`: 外部スレッドおよび同じJob Systemの実行中Jobから利用可能。ただし自己・祖先Fence待ちは拒否し、循環するFence依存は利用側で作らない。別Job SystemのFence待ちはblockする。`Wait()`帰還後はそのFenceのJobが完了件数に含まれる。`IsComplete()`の観測だけでは件数・破棄の同期は保証しない。
 - `FJobSystem::Shutdown()`: 複数の外部所有スレッドから同時呼び出し可能で、全呼び出しがJoin完了を待つ。Workerからの停止・破棄は行わない。
 - `FJobSystem`の破棄: 所有側で排他的に行う。破棄と`TrySubmit/Wait`を競合させない。
 - Scene、GameObject、GameObjectComponentの通常ライフサイクル: 引き続きGame Threadで変更する。
 - DxLib Native描画・Handle生成破棄: Main/Native担当スレッドへ残す。
-- Physics Worldの所有構造: 現時点では外部から同時変更しない。今後BroadPhase、NarrowPhase、Island SolverをJob化する際に読み取りSnapshotと確定フェーズを分離する。
+- Physics Worldの所有構造: 現時点では外部から同時変更しない。積分・BroadPhase・NarrowPhaseは借用Job Systemで並列化済み（安定順マージ、1/N一致を回帰）。Island Solverの並列化は別段階。Workerは構造を変更せず、NarrowPhaseは専用領域だけを書く。
 
 ## 次の並列化単位
 
-Job基盤の次は、PhysicsのBroadPhaseとIslandを責務として分離してから並列化します。
+Job基盤とPhysicsの積分・BroadPhase・NarrowPhase・Island診断は接続済みです。残りは次です。
 
-1. Bodyの独立した速度／位置積分。
-2. BroadPhase候補生成。
-3. 候補PairごとのNarrowPhaseをWorker-local Contact Bufferへ出力。
-4. Contact GraphからIslandを構築。
-5. 互いに独立したIslandをWorkerへ割り当ててConstraint Solverを実行。
-6. Barrier後に安定したBody/Collider/Pairキー順で結果とEventを統合。
+1. 互いに独立したIslandをWorkerへ割り当ててConstraint Solverを実行。
+2. Barrier後に安定したBody/Collider/Pairキー順で結果とEventを統合。
 
 同一Bodyへ複数Workerから同時書き込みするSolverにはしません。一つの巨大Island内部の並列Constraint Solverは、Island間並列を検証した後の別段階です。
 
@@ -70,7 +66,10 @@ Threading専用テストでは次を確認します。
 - 10,000 Jobのexactly-once実行。
 - 4 Producerからの同時投入。
 - Worker内からの子Job投入とWait。
-- 自己Fence待ちの拒否。
+- 自己・祖先Fence待ちの拒否。
+- 別Job SystemのFence待ちと全Workerの子待ち。
+- 捕捉の複写失敗と破棄時再入の隔離。
+- 繰り返しShutdownの冪等性。
 - Job例外の隔離と失敗記録。
 - `ParallelFor`の1レーン／複数レーン結果一致と例外時のfalse返却。
 - Job投入とShutdownの競合。

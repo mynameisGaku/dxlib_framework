@@ -97,6 +97,41 @@ static void ShutdownFromThread_Internal(void* Raw)
 	Context->Jobs->Shutdown();
 	Context->Returned->FetchAdd(1);
 }
+// 移動で例外を送出する投入用捕捉。受理前の失敗経路を再現する。
+struct FThrowOnMove
+{
+	FThrowOnMove() = default;
+	FThrowOnMove(const FThrowOnMove&) = default;
+	FThrowOnMove(FThrowOnMove&&)
+	{
+		throw FException("throwing capture move");
+	}
+	void operator()() const
+	{
+	}
+};
+// 破棄時に後続Jobを投入して待つ捕捉。破棄経路の再入を再現する。
+struct FFollowUpCapture
+{
+	FJobSystem* Jobs = nullptr;
+	FAtomicCounter* FollowUp = nullptr;
+	FAtomicCounter* Destroyed = nullptr;
+	void operator()() const
+	{
+	}
+	~FFollowUpCapture()
+	{
+		FJobFence Inner;
+		if (Jobs->TrySubmit([this]()
+		    {
+			    FollowUp->FetchAdd(1);
+		    }, &Inner) &&
+		    Jobs->Wait(Inner) && Inner.FailureCount() == 0)
+		{
+			Destroyed->FetchAdd(1);
+		}
+	}
+};
 TEST("atomic compare exchange and arithmetic are consistent")
 {
 	TAtomic<uint64> Value(10);
@@ -436,5 +471,103 @@ TEST("concurrent shutdown callers return only after accepted work finishes")
 	Second.Join();
 	REQUIRE(Returned.Load() == 2);
 	REQUIRE(Fence.IsComplete());
+}
+TEST("throwing job capture propagates without breaking accepted work")
+{
+	FJobSystem Jobs(4);
+	FJobFence Fence;
+	FAtomicCounter Ran;
+	REQUIRE(Jobs.TrySubmit([&Ran]()
+	{
+		Ran.FetchAdd(1);
+	}, &Fence));
+	bool bThrew = false;
+	try
+	{
+		Jobs.TrySubmit(FThrowOnMove{});
+	}
+	catch (const FException&)
+	{
+		bThrew = true;
+	}
+	REQUIRE(bThrew);
+	REQUIRE(Jobs.Wait(Fence));
+	REQUIRE(Ran.Load() == 1);
+	REQUIRE(Fence.FailureCount() == 0);
+}
+TEST("waiting on another system fence blocks until that system finishes")
+{
+	FJobSystem Primary(2);
+	FJobSystem Secondary(2);
+	FJobFence Fence;
+	FAtomicCounter Ran;
+	REQUIRE(Secondary.TrySubmit([&Ran]()
+	{
+		Ran.FetchAdd(1);
+	}, &Fence));
+	FJobFence Outer;
+	FAtomicCounter Waited;
+	REQUIRE(Primary.TrySubmit([&Secondary, &Fence, &Waited]()
+	{
+		if (Secondary.Wait(Fence))
+		{
+			Waited.FetchAdd(1);
+		}
+	}, &Outer));
+	REQUIRE(Primary.Wait(Outer));
+	REQUIRE(Outer.FailureCount() == 0);
+	REQUIRE(Ran.Load() == 1);
+	REQUIRE(Waited.Load() == 1);
+}
+TEST("every worker waits for its own child without deadlocking")
+{
+	FJobSystem Jobs(4);
+	FJobFence Outer;
+	FAtomicCounter Done;
+	for (uint32 Index = 0; Index < 4; ++Index)
+	{
+		REQUIRE(Jobs.TrySubmit([&Jobs, &Done]()
+		{
+			FJobFence Inner;
+			if (!Jobs.TrySubmit([&Done]()
+			    {
+				    Done.FetchAdd(1);
+			    }, &Inner))
+			{
+				throw FException("child submit rejected");
+			}
+			if (!Jobs.Wait(Inner))
+			{
+				throw FException("child wait rejected");
+			}
+		}, &Outer));
+	}
+	REQUIRE(Jobs.Wait(Outer));
+	REQUIRE(Outer.FailureCount() == 0);
+	REQUIRE(Done.Load() == 4);
+}
+TEST("job capture destructor can submit and wait for follow-up work")
+{
+	FJobSystem Jobs(4);
+	FJobFence Outer;
+	FAtomicCounter FollowUp;
+	FAtomicCounter Destroyed;
+	FFollowUpCapture Capture{&Jobs, &FollowUp, &Destroyed};
+	REQUIRE(Jobs.TrySubmit(Capture, &Outer));
+	REQUIRE(Jobs.Wait(Outer));
+	REQUIRE(Outer.FailureCount() == 0);
+	REQUIRE(FollowUp.Load() == 1);
+	REQUIRE(Destroyed.Load() == 1);
+}
+TEST("shutdown is idempotent across repeated calls")
+{
+	FJobSystem Jobs(2);
+	FJobFence Fence;
+	REQUIRE(Jobs.TrySubmit([]() {}, &Fence));
+	Jobs.Shutdown();
+	Jobs.Shutdown();
+	REQUIRE(Fence.IsComplete());
+	REQUIRE(Jobs.GetCompletedJobCount() == 1);
+	REQUIRE(!Jobs.TrySubmit([]() {}));
 }
 } // namespace

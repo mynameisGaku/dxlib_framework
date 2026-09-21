@@ -6,7 +6,10 @@
   fixtureと実ツリー＋隔離worktreeで増分再ビルドを検証。
 - P1進行中：`.dxfpaths`の不存在と読込失敗の区別、`dxf_asset_probe`起動試験。
 - P2進行中：Physics検証統一とWorld実行設定の接続。
-- 残り：P3 Thread/Job監査、P4 実World並列（Island Solver並列化・起床・CCD方針・長時間）、
+- P3進行中：Thread/Job監査（投入失敗・他System待機・全Worker子待ち・破棄再入・
+  二重Shutdownの回帰を追加、契約文書を更新）。
+  未実施：Worker生成失敗の故障注入（注入点なし、停止・Join経路は目視監査のみ）。
+- 残り：P4 実World並列（Island Solver並列化・起床・CCD方針・長時間）、
   P5 Task、P6 非同期Asset、P7 並列描画、P8 最終検証。
 
 ## 開始位置
