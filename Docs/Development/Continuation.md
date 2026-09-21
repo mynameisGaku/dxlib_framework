@@ -49,12 +49,17 @@
 
 ## 注意（ビルド運用）
 
-- 日本語ロケールの`/showIncludes`をNinjaが解析できず、ヘッダ編集時に
-  依存先が再ビルドされない。ヘッダ編集後は対象ターゲットを
-  `ninja -t clean <targets>`してからビルドする。
-  （今回`SupportTests.cpp.obj`等9/13の stale でODR不整合の停止を経験）
-- 失敗例：`ninja -C Build/windows-release -t clean dxf_tests dxf_support
+- ヘッダー依存追跡の停止原因を特定した。`BuildWindows.ps1`がPowerShell経由で
+  採取した`/showIncludes`接頭辞が文字化けし、`DXF_MSVC_INCLUDE_PREFIX`経由で
+  `rules.ninja`の`msvc_deps_prefix`へ焼き込まれていた。Ninjaのバイト比較が
+  一致せず、ヘッダー依存が一件も記録されない（`ninja -t deps`で`#deps 0`）。
+  対策としてスクリプト側の測定・注入を廃止し、空の既定値ではCMakeの自動検出を
+  使う。`DXF_MSVC_INCLUDE_PREFIX`は手動上書き専用に残す。
+- ヘッダー編集後は初回だけ対象ターゲットを`ninja -t clean`して
+  poisoned時代の依存記録を流すこと。以後は通常の増分再ビルドでよい。
+  例：`ninja -C Build/windows-release -t clean dxf_tests dxf_support
   dxf_toolbox dxf_runtime dxf_gameplay dxf_foundation dxf_physics`
+- `ninja -d explain`と`ninja -t deps <obj>`で増分動作を確認できる。
 
 ## よく使うコマンド
 

@@ -5,8 +5,11 @@ if(POLICY CMP0144)
     cmake_policy(SET CMP0144 NEW)
 endif()
 
-# Windows検証スクリプトが実際のコンパイラ出力から取得した依存ファイル行の接頭辞。
-set(DXF_MSVC_INCLUDE_PREFIX "" CACHE STRING "Measured MSVC showIncludes prefix; empty uses CMake detection")
+# Manual override for the MSVC /showIncludes dependency prefix. Empty (default)
+# uses CMake's own detection, which handles localized toolchains. Set this only
+# when dependency tracking is provably broken; the value must byte-match the
+# compiler output or Ninja will silently record no header dependencies.
+set(DXF_MSVC_INCLUDE_PREFIX "" CACHE STRING "Manual MSVC showIncludes prefix override; empty uses CMake detection")
 if(MSVC AND DXF_MSVC_INCLUDE_PREFIX)
     set(CMAKE_CL_SHOWINCLUDES_PREFIX "${DXF_MSVC_INCLUDE_PREFIX}")
 endif()
