@@ -131,7 +131,8 @@ public:
 		{
 			return;
 		}
-		if (Capacity > TNumericLimits<size_t>::Max() / sizeof(T))
+		// 対応する32/64bit環境の符号付きアドレス差で表現できるサイズに制限する。
+		if (Capacity > (TNumericLimits<size_t>::Max() / 2) / sizeof(T))
 		{
 			throw FException("Vector capacity overflow");
 		}
@@ -181,8 +182,8 @@ public:
 			// 引数が現在の要素を参照していても、再確保の前に値を保持する。
 			// 構築または転送する対象の値。
 			T Value(Forward<Args>(Values)...);
-			// 計算のオーバーフローを起こさない上限。
-			const size_t Maximum = TNumericLimits<size_t>::Max() / sizeof(T);
+			// ポインター差分で扱える一オブジェクトのバイト数と、容量計算の上限。
+			const size_t Maximum = (TNumericLimits<size_t>::Max() / 2) / sizeof(T);
 			if (m_Size == Maximum)
 			{
 				throw FException("Vector capacity overflow");

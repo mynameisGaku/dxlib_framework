@@ -14,8 +14,12 @@ find_package(Threads REQUIRED)
 add_library(dxf_render_validation_core STATIC
     "${DXF_ROOT}/Source/Toolbox/Private/Toolbox/Threading.cpp"
     "${DXF_ROOT}/Source/Toolbox/Private/Toolbox/JobSystem.cpp"
+    "${DXF_ROOT}/Source/DxLibSupport/Private/Dxf/RenderGeometry3D.cpp"
+    "${DXF_ROOT}/Source/DxLibSupport/Private/Dxf/Render2DContext.cpp"
+    "${DXF_ROOT}/Source/DxLibSupport/Private/Dxf/Render3DContext.cpp"
+    "${DXF_ROOT}/Source/DxLibSupport/Private/Dxf/DebugDrawAdapters.cpp"
     "${DXF_ROOT}/Source/DxLibSupport/Private/Dxf/RenderQueue2D.cpp"
-    "${DXF_ROOT}/Source/DxLibSupport/Private/Dxf/RenderSystem2D.cpp")
+    "${DXF_ROOT}/Source/DxLibSupport/Private/Dxf/RenderSystem.cpp")
 target_include_directories(dxf_render_validation_core PUBLIC
     "${DXF_ROOT}/Source/Toolbox/Public"
     "${DXF_ROOT}/Source/Foundation/Public"

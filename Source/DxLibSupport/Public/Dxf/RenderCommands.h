@@ -106,9 +106,74 @@ struct FRectangleCommand
 	 * 処理に適用する設定。
 	 */
 	FDrawStyle Options;
+	/**
+	 * falseなら外周だけ描く。
+	 */
+	bool bFilled = true;
 };
 /**
- * スプライト・文字列・矩形の描画命令。
+ * 2D線分。画面ピクセル単位。
  */
-using FRenderCommand = Toolbox::TVariant<FSpriteCommand, FTextCommand, FRectangleCommand>;
-} // namespace Dxf
+struct FLineCommand2D
+{
+	/**
+	 * 始点。
+	 */
+	FVector2 Start;
+	/**
+	 * 終点。
+	 */
+	FVector2 End;
+	/**
+	 * 色と描画順。
+	 */
+	FDrawStyle Options;
+};
+/**
+ * 2D円。画面ピクセル単位。
+ */
+struct FCircleCommand2D
+{
+	/**
+	 * 中心。
+	 */
+	FVector2 Center;
+	/**
+	 * 非負の半径。
+	 */
+	Toolbox::f32 Radius = 0;
+	/**
+	 * 中身を塗るか。
+	 */
+	bool bFilled = false;
+	/**
+	 * 色と描画順。
+	 */
+	FDrawStyle Options;
+};
+/**
+ * 2D三角形。画面ピクセル単位。
+ */
+struct FTriangleCommand2D
+{
+	/**
+	 * 三頂点。
+	 */
+	FVector2 A;
+	FVector2 B;
+	FVector2 C;
+	/**
+	 * 中身を塗るか。
+	 */
+	bool bFilled = false;
+	/**
+	 * 色と描画順。
+	 */
+	FDrawStyle Options;
+};
+/**
+ * 2D描画命令。3Dの命令を混在させない。
+ */
+using FRenderCommand = Toolbox::TVariant<FSpriteCommand, FTextCommand, FRectangleCommand, FLineCommand2D, FCircleCommand2D, FTriangleCommand2D>;
+}
+// namespace Dxf

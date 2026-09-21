@@ -1,68 +1,79 @@
-#pragma once
-#include "Dxf/RenderQueue2D.h"
+// SPDX-License-Identifier: NOASSERTION
+#ifndef DXF_RENDER_CONTEXT_H
+#define DXF_RENDER_CONTEXT_H
+#include "Dxf/Render2DContext.h"
+#include "Dxf/Render3DContext.h"
 #include "Dxf/RenderControl.h"
 namespace Dxf
 {
 /**
- * 描画命令と即時制御の窓口を管理する型。
+ * 次元別の描画窓口とパス制御を束ねる。Draw・DrawText等の旧入口は提供しない。
+ * Get2D/Get3Dで得た窓口はこのContextより長く保存しない。
  */
 class FRenderContext
 {
 public:
 	/**
-	 * 必要な依存関係を受け取り、初期状態を構築する。
-	 * @param Queue 描画命令の蓄積先。
-	 * @param Control 描画状態を直接制御する窓口。
+	 * @param Queue 2Dキュー。
+	 * @param Control パス制御。
+	 * @param Jobs 借用する共有実行器。
 	 */
-	explicit FRenderContext(FRenderQueue2D& Queue, IRenderControl* Control = nullptr)
-	    : m_pQueue(&Queue), m_pControl(Control)
+	explicit FRenderContext(FRenderQueue2D& Queue, IRenderControl* Control = nullptr, Toolbox::FJobSystem* Jobs = nullptr)
+	: m_Access(Queue), m_Draw2D(Queue, m_Access), m_Draw3D(m_Access), m_pControl(Control)
 	{
+		m_Access.m_pJobs = Jobs;
 	}
 	/**
-	 * 確定した入力から命令を並列生成し、入力順でキューへ一括反映する。
-	 * 所有スレッドの通常描画中だけ呼べる。Generateは専用出力以外を変更しない。
-	 * Generateの捕捉は複数Jobから同時に呼ばれるため、入力を読み取り専用にする。
-	 * 呼び出し側は返るまでTexture・Fontの所有参照を保持し、資源を無効化しない。
-	 * @param Jobs 完了まで借用するJob System。
-	 * @param Count 生成する一命令ごとの入力件数。
-	 * @param Generate 添字と専用FRenderCommandを受け取りTResult<void>を返す処理。
-	 * @param MinimumBatch 一つのJobへまとめる最小件数。0は1として扱う。
+	 * 内部の借用関係を複製しない。
 	 */
-	template <typename F>
-	TResult<void> SubmitGenerated(Toolbox::FJobSystem& Jobs, Toolbox::size_t Count, F&& Generate,
-	                             Toolbox::size_t MinimumBatch = 16)
+	FRenderContext(const FRenderContext&) = delete;
+	FRenderContext& operator=(const FRenderContext&) = delete;
+	/**
+	 * 画面座標の2D描画入口。
+	 */
+	FORCEINLINE FRender2DContext& Get2D() noexcept
 	{
-		return m_pQueue->SubmitGenerated(Jobs, Count, Toolbox::Forward<F>(Generate), MinimumBatch);
+		return m_Draw2D;
 	}
 	/**
-	 * 対象の描画を要求する。
-	 * @param Texture 描画するテクスチャ。
-	 * @param Position 描画位置。
-	 * @param Options 処理に適用する設定。
+	 * ワールド座標の3D描画入口。
 	 */
-	TResult<void> Draw(FTexture Texture, FVector2 Position, const FSpriteDrawOptions& Options = {})
+	FORCEINLINE FRender3DContext& Get3D() noexcept
 	{
-		return m_pQueue->Submit(FSpriteCommand{Toolbox::Move(Texture), Position, Options});
+		return m_Draw3D;
 	}
 	/**
-	 * 文字列の描画命令を処理する。
-	 * @param Font 文字描画に使うフォント。
-	 * @param Text 描画する文字列。
-	 * @param Position 描画位置。
-	 * @param Options 処理に適用する設定。
+	 * @param Jobs Applicationが所有する共有実行器。停止前に全使用が完了していること。
 	 */
-	TResult<void> DrawText(FFont Font, Toolbox::FString Text, FVector2 Position, const FDrawStyle& Options = {})
+	TResult<void> SetExecutionJobs_Internal(Toolbox::FJobSystem* Jobs)
 	{
-		return m_pQueue->Submit(FTextCommand{Toolbox::Move(Font), Toolbox::Move(Text), Position, Options});
+		if (!m_Access.IsAllowed())
+		{
+			return MissingControl_Internal();
+		}
+		m_Access.m_pJobs = Jobs;
+		return {};
 	}
 	/**
-	 * 塗りつぶした矩形の描画を要求する。
-	 * @param Rectangle 描画する矩形。
-	 * @param Options 処理に適用する設定。
+	 * 所有スレッドと共通生成区間を検査する。
 	 */
-	TResult<void> FillRectangle(FIntRect Rectangle, const FDrawStyle& Options = {})
+	FORCEINLINE bool IsOwnerOperationAllowed_Internal() const noexcept
 	{
-		return m_pQueue->Submit(FRectangleCommand{Rectangle, Options});
+		return m_Access.IsAllowed();
+	}
+	/**
+	 * @param Backend 3D命令を実行するBackend。
+	 */
+	TResult<void> Execute3D_Internal(IRenderBackend& Backend)
+	{
+		return m_Draw3D.Execute_Internal(Backend);
+	}
+	/**
+	 * フレームを中断するときの未実行3D命令の解放。
+	 */
+	void Clear3D_Internal() noexcept
+	{
+		m_Draw3D.Clear_Internal();
 	}
 	/**
 	 * 描画先のテクスチャを設定する。
@@ -70,6 +81,10 @@ public:
 	 */
 	TResult<void> SetRenderTarget(const FRenderTarget& Target)
 	{
+		if (!m_Access.IsAllowed())
+		{
+			return MissingControl_Internal();
+		}
 		return m_pControl ? m_pControl->SetRenderTarget(Target) : MissingControl_Internal();
 	}
 	/**
@@ -77,6 +92,10 @@ public:
 	 */
 	TResult<void> SetBackBuffer()
 	{
+		if (!m_Access.IsAllowed())
+		{
+			return MissingControl_Internal();
+		}
 		return m_pControl ? m_pControl->SetBackBuffer() : MissingControl_Internal();
 	}
 	/**
@@ -85,6 +104,10 @@ public:
 	 */
 	TResult<void> ClearTarget(FColor Color)
 	{
+		if (!m_Access.IsAllowed())
+		{
+			return MissingControl_Internal();
+		}
 		return m_pControl ? m_pControl->ClearTarget(Color) : MissingControl_Internal();
 	}
 	/**
@@ -93,24 +116,36 @@ public:
 	 */
 	TResult<void> Native(const Toolbox::TFunction<TResult<void>()>& Callback)
 	{
+		if (!m_Access.IsAllowed())
+		{
+			return MissingControl_Internal();
+		}
 		return m_pControl ? m_pControl->Native(Callback) : MissingControl_Internal();
 	}
-
 private:
 	/**
-	 * 描画制御サービス不足を示すエラーを生成する。
+	 * 不正なパス制御を失敗として返す。
 	 */
 	static TResult<void> MissingControl_Internal()
 	{
-		return TResult<void>::Failure(EErrorCode::InvalidState, "This context has no immediate render control");
+		return TResult<void>::Failure(EErrorCode::InvalidState, "Render pass control unavailable");
 	}
 	/**
-	 * 描画命令の蓄積先。
+	 * 二次元・三次元共通の所有境界。
 	 */
-	FRenderQueue2D* m_pQueue;
+	FRenderAccess m_Access;
 	/**
-	 * 描画状態を直接制御する窓口。
+	 * 2D専用の借用窓口。
+	 */
+	FRender2DContext m_Draw2D;
+	/**
+	 * 3D命令を所有する窓口。
+	 */
+	FRender3DContext m_Draw3D;
+	/**
+	 * パスを実行する所有者。
 	 */
 	IRenderControl* m_pControl;
 };
-} // namespace Dxf
+}
+#endif

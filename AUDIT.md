@@ -1,84 +1,63 @@
-# dxlib_framework Multithreading Stage 2 — self audit
+# 1bb6548継続：描画入口・基本3D・デバッグ記録の監査
 
-Base branch: `physics/continuation-89ec1f0`  
-Required base commit: `c75e7bb85a33865ba6b4d07c0064646d2c402408`
+## 実装範囲
 
-## Implemented
+- FRenderContextの旧Draw/DrawText/FillRectangle/SubmitGeneratedを削除。Get2D/Get3Dだけを描画入口にした。
+- FRenderSystem2DをFRenderSystemへ改名し、二つの次元の実行順序を所有する。
+- 2Dの線・円・三角形・矩形輪郭、3Dの線・面・箱・球・CPUメッシュを追加。
+- ビューは受付時に複写。形状のワイヤー、塗り＋辺、Unlit、LightsOff、単一方向光＋環境色を区別。
+- カテゴリ・選択ID・Scope・寿命・予算付きのデバッグ記録と、次元別描画へのアダプターを追加。
+- Applicationの共有Job接続、CMake登録、既存呼出しの移行は適用器へ含めた。
 
-Stage 1 is included as a prerequisite patch and provides the STL-free Toolbox threading / job foundation.
+## 失敗を先に再現して修正した項目
 
-Stage 2 adds:
+1. 旧Context APIの削除とGet2D/Get3Dの追加：コンパイル時のAPI存在テスト。
+2. 大座標で潰れた箱・球を成功として返す：生成後も表現可能性と非縮退を検証。
+3. 2D実行中に3Dビューを変更できる：同じキューの実行区間まで共通境界に含めた。
+4. 3D失敗時にEndView例外が元のエラーを上書きする：最初の失敗を保持。
+5. 3D例外で2D状態復元を飛ばす：結果変換後に必ず復元を試す。
+6. 3Dバッチの総プリミティブ数が無制限：Flush単位の合計予算を検証してから一括反映。
+7. 配列の確保上限：符号付きアドレス差で扱えるサイズを超える確保をToolbox側で拒否。GCC Releaseのalloc-size診断も解消。
+8. Debug Storeの初回Frame=0が不正扱い：未開始状態とフレーム番号を区別。
+9. Scopeなしの永続図形を解除する入口不足：Clearを追加。
+10. 未対応Backendで矩形輪郭が黙って塗りつぶされる：能力を検査して失敗にした。
 
-- `Dxf::FPhysicsExecutionSettings` / `FPhysicsExecutionDiagnostics`
-- external/non-owning `Toolbox::FJobSystem` use by Physics World
-- deterministic Sweep-and-Prune broad phase
-- ContactSlop-aware conservative candidate bounds
-- parallel broad-phase chunk scanning
-- parallel narrow phase with one result slot per candidate
-- deterministic candidate merge by collider index
-- deterministic Dynamic contact-island construction
-- same-tick wake propagation across a Dynamic island
-- angular wake threshold handling
-- parallel solver execution across independent Dynamic islands
-- parallel velocity and discrete position/orientation integration
-- atomic world-ID generation
-- no writes to Static/Kinematic velocity/angular velocity from the parallel impulse path
-- focused parallel regression tests and TDD logs
+Debug Storeとアダプターの追加も、API未存在によるコンパイル失敗を記録している。追加した全検証ケースが実装前だったとは扱わない。ビュー設定・照明・幾何の正常系とNative変換の一部は、実装後に拡張した回帰検査である。
 
-The public `FPhysicsWorld2D/3D` API itself remains externally serialized. Internal jobs are joined before `Step()` returns.
+## 実行結果
 
-## Self-review findings fixed before packaging
+GCC Debug / Release、GCC ASan+UBSan、GCC TSan、Clang Releaseで8/8 CTest通過。
+内部ケースは既存描画20、新規ビュー等30、Native変換4、別実行の故障注入5系統。CTest件数とは加算しない。
+Releaseの三つの描画系実行ファイルを各100回反復し、300実行通過。
+描画公開ヘッダー12個をGCC/Clangそれぞれで単独コンパイル（24/24）。
+取得済みSource/Testsの59ファイルでSTL違反0。完全なリポジトリのファイル総数ではない。
+適用器は11/11自己検査通過。途中書き込み失敗時の復元、BackendとContextの識別、コメント保護、入れ子getter、未知パターン拒否を確認した。
 
-1. **ContactSlop broad-phase omission** — initial integration used exact AABB overlap. Narrow phase accepts separation within `ContactSlop`, so a near-but-not-overlapping AABB could have been discarded. Broad phase now expands both bounds by the supplied margin.
-2. **f32 broad-phase bounds** — initial core stored bounds as `f32`, which could lose range/precision at large coordinates. Internal broad-phase bounds now use `f64`.
-3. **shared Static/Kinematic writes** — independent Dynamic islands can touch the same floor. The solver path must not even write `+= 0` into shared non-Dynamic bodies. Integration patch only writes impulse results when effective inverse mass/inertia is non-zero.
-4. **same-tick island wake** — an explicit impulse/velocity change on one sleeping stack member must wake connected Dynamic bodies before solving. Stage 2 seeds wake from already-awake bodies and contact motion, then wakes the full Dynamic island.
-5. **angular wake omission** — contact-point linear speed alone can miss a very small, rapidly rotating Kinematic support. Wake checks now also use `AngularSpeedLimit`.
-6. **invalid Step diagnostics mutation** — diagnostics are reset only after `DeltaSeconds` and `SubSteps` validation, preserving the existing invalid-input state contract.
-7. **apply-script ambiguous anchors** — edits use exact anchors plus brace-aware function insertion. The script aborts instead of guessing if the expected c75e7bb source shape is not present.
+## 検証の境界
 
-## Focused execution results in this environment
+この作業はGitHubで確認した1bb6548の実装と、Git blob SHAで照合した依存ファイルを使う部分チェックアウトである。
+Windows/MSVC、実DxLib SDK、実画面・音声、Application/Asset/Gameplay/Physics全体のビルドは実行していない。
+Nativeの検査は実際の新旧アダプターcppをコンパイルしているが、DxLib.hだけは手書きの翻訳テストダブルであり、SDKの宣言やABIを保証しない。
+適用器による完全な実リポジトリへの適用・全体ビルドは、この環境で確認できていない。適用後は通常のWindows検証を必ず実行する。
+GitHubのmainへのcommit/pushは行っていない。
 
-The focused project uses the real Stage-1 JobSystem implementation plus the Stage-2 BroadPhase/Island implementation.
+## 機能の制約
 
-- GCC Debug + `-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror`: **11/11 pass**
-- GCC Release: **11/11 pass**
-- ASan + UBSan + leak detection: **11/11 pass**, no reported issue
-- GCC ThreadSanitizer: **11/11 pass**, no reported data race
-- Release executable repeated 100 times: **all pass**
-- Focused no-STL scan: **0 violations**
+- 3Dは基本形状とCPUメッシュ。MV1、スキニング、テクスチャ付きモデルは未対応。
+- 照明は調査用のCPUフラット計算。任意のDxLibライト/Material/影を切り替える完成版ではない。
+- ビューは描画先全体を使い、切替で深度を初期化する。分割Viewport・複数ウィンドウは未対応。
+- 透明3Dの自動ソートなし。Nativeの任意の外部状態の保存・復元は保証しない。
+- 物理Snapshot自動採取、デバッグUI、カメラ操作、GPU計測、記録タイムラインは未実装。
+- 入力資源を生成完了まで保持する所有契約は引き続き必要。任意のユーザーコードをThreadSafeにする仕組みではない。
 
-Coverage includes:
+## 変更の適用
 
-- deterministic single/multi-worker pair results
-- random 2D broad phase vs brute-force AABB reference
-- random 3D broad phase vs brute-force AABB reference
-- ContactSlop near pairs
-- same-body and non-Dynamic pair filtering
-- 5,000 sparse colliders
-- 256 fully dense colliders and unique stable pair ordering
-- invalid bounds/margin rejection
-- deterministic island roots
-- Dynamic islands separated across a shared Static body
-- 10,000-body Dynamic island chain
-- out-of-range edge rejection
+古いZIPの一括上書きやChangedFilesの部分コピーは禁止。同梱apply_render_views.pyで検査後に適用する。
+対象SHA不一致・作業ツリーの編集・不明な変換箇所を検知したら停止する。ファイル操作前の計画と、変更前の退避を行う。
+Core差分だけをgit applyした状態を完成とは扱わない。Application、呼出し側、Native/CMakeの接続まで適用器で反映する。
 
-## Important verification boundary
+## 配布候補の再展開検証
 
-This environment cannot clone the live GitHub repository over git networking, and the installed GitHub integration currently returns HTTP 403 for content/blob writes. Therefore I could not create a real commit on GitHub or run the full c75e7bb repository build after applying the integration edits here.
+ZIPを別ディレクトリへ展開し、同梱ValidationSourceのReleaseを新規ビルドして8/8 CTest通過。最終ZIPへの追加はログと説明、適用器のrootテスト登録修正のみ。検証用C++ソースはSHA-256で一致を確認した。適用器の最終自己検査は11/11。全リポジトリの再構築ではない。
 
-The Stage-2 core itself was compiled and sanitizer-tested. The c75e7bb integration is supplied as a strict apply script that edits the exact source shapes inspected through the GitHub connector and aborts on anchor mismatch. **Windows/MSVC, the real DxLib SDK, all existing repository tests, and the integrated 1-worker-vs-N-worker world tests still must be run after applying the bundle to the actual checkout.**
-
-Do not report the focused 11/11 result as the repository's total test count.
-
-## Remaining multithreading work after Stage 2
-
-- Application-owned shared JobSystem and explicit shutdown ordering
-- async CPU-side asset loading/decode with main-thread native-handle commit
-- worker-local render command generation with deterministic merge
-- optional task graph / dependency API for user jobs
-- Physics CCD TOI iteration parallel strategy (currently kept ordered)
-- island-wide sleep timer/eligibility instead of the current per-body timer logic
-- feature-level contact-cache lifetime fix from the previous review
-- event/trigger buffering suitable for worker production and main-thread delivery
-- performance benchmarks on the target Windows machine
+Tools配下の追加検証用C++3ファイルも別途監査し、STL違反0。

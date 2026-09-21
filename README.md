@@ -1,100 +1,56 @@
-# e753045 継続修正パッケージ
+# dxlib_framework：2D/3D描画入口とデバッグ図形の実装
 
-対象リポジトリ: mynameisGaku/dxlib_framework
-
-対象commit: `e753045c76affa2cc69e890cb70f13a9ef430172`（main）
-
-**本体6ファイルの修正、描画の公開入口、追加テスト、CMake登録を含む13ファイル分のパッチです。指令書や失敗状態だけの保存ではありません。GitHubへは反映していません。**
-
-## 今回の範囲
-
-- RenderContextから並列生成を呼ぶ入口を追加。
-- 描画生成中の再入、不正Thread・同期JobからのNative呼出し、失敗時の部分追加を防止。
-- Job投入途中の例外、Worker部分構築の例外、捕捉破棄中のFence待機を修正。
-- 実OS Workerの所属と入れ子Jobの所属を分離。
-- 現在のPrivate/Dxf・Private/Toolbox配置と、sln基準アセットRootを維持。
+対象main: `1bb654826cb6b23de4837d744ab2634b25fb9979`。
+GitHubへの書き込みはしていません。これはソース・移行器・テスト・検証記録です。
 
 ## 適用
 
-ZIPはリポジトリの外へ展開してください。`ChangedFiles`を本体へ部分コピーしないでください。
+ZIPはリポジトリ外（Downloads等）へ展開してください。個々のChangedFilesを上書きしないでください。
 
-未コミット作業を保存したうえで、リポジトリのルートで実行します。以下のPatch値は実際の展開先へ変更します。
+リポジトリのPowerShellから:
 
 ```powershell
-$Patch = "$HOME\Downloads\dxf_e753045_render_jobs_fix\e753045_render_jobs.patch"
+# まず検査のみ。失敗した場合は次へ進まない。
+python C:\展開先\apply_render_views.py --root .
+if ($LASTEXITCODE -ne 0) { throw "移行確認に失敗" }
 
-git status --short
-git branch --show-current
-git rev-parse HEAD
-
-git apply --check "$Patch"
-if ($LASTEXITCODE -ne 0) { throw 'Patch check failed. Do not partially copy or force apply.' }
-
-git apply "$Patch"
-if ($LASTEXITCODE -ne 0) { throw 'Patch application failed.' }
+# 検査済み計画を適用。変更前ファイルはリポジトリの隣に退避。
+python C:\展開先\apply_render_views.py --root . --apply
+if ($LASTEXITCODE -ne 0) { throw "移行に失敗" }
 
 git diff --check
-if ($LASTEXITCODE -ne 0) { throw 'Diff check failed.' }
-git diff --stat
-```
-
-`git apply`は作業ツリーへの適用だけであり、commit/pushしません。別CLで変更されていたら適用を強制せず、その差分を確認してください。root CMakeは2行の登録追加のみで、丸ごとの置換ファイルは同梱していません。Patchには新規ファイルも含まれ、CMakeのテスト登録はDXF_BUILD_TESTS=ONの場合にだけ有効になります。
-
-## Windowsの本体検証
-
-既存のVisual Studio環境初期化とSDK設定を使い、通常の全体検証を実行します。
-
-```powershell
+.\GenerateProjectFiles.bat -Development
+if ($LASTEXITCODE -ne 0) { throw "生成に失敗" }
 .\Build.cmd -Clean
-if ($LASTEXITCODE -ne 0) { throw 'Full Windows build/test failed.' }
-python Tools/CheckNoStl.py
-if ($LASTEXITCODE -ne 0) { throw 'Source policy check failed.' }
 ```
 
-Releaseも既存の検証スクリプトで実行してください。NinjaではMSVC環境を取り込んだ同じプロセスで実行し、古いヘッダー依存情報が残っている場合は最初に既存のClean経路を使用してください。生成したVisual Studioプロジェクトを使う場合はGenerateProjectFiles.bat -Developmentでテストターゲットも再生成します。
+適用器はcleanな起点を要求します。別コミットやユーザーの編集へ無理に上書きしません。未コミット作業は先に保存してください。force push、reset、clean、stashは行いません。commit/pushも自動で行いません。
 
-## 追加分を独立検証する場合
+## 入口
 
-```powershell
-cmake -S Tools/RenderValidation -B Build/RenderContinuation -G Ninja -DCMAKE_BUILD_TYPE=Release
-if ($LASTEXITCODE -ne 0) { throw 'Configure failed.' }
-cmake --build Build/RenderContinuation
-if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
-ctest --test-dir Build/RenderContinuation --output-on-failure
-if ($LASTEXITCODE -ne 0) { throw 'Tests failed.' }
+```cpp
+auto Result = Render.Get2D().DrawSprite(Texture, Position);
+auto Text = Render.Get2D().DrawText(Font, "Hello", Position);
+auto Line = Render.Get3D().DrawLine({0, 0, 0}, {1, 0, 0});
 ```
 
-独立検証は本体のThreading / JobSystem / RenderQueue / RenderSystemのcppを直接ビルドします。別実装で代用はしていません。ただしApplication / Asset / Physicsの全体テストではありません。
+旧Render.Draw/DrawText/FillRectangle/SubmitGeneratedは削除しています。管理者名もFRenderSystemに改名しました。Applicationの共有JobSystemを自動接続するため、通常の並列生成は `Render.Get2D().SubmitGenerated(Count, Generate)` です。
 
-## 実行済み
+## 対応範囲
 
-Linux上の正確な対象ソース・依存ヘッダーの部分チェックアウトで次を実行しました。
+2D: 画像・文字・矩形・線・円・三角形。
+3D: 線・三角形・箱・球・CPUの三角形／線メッシュ。
+表示: 通常塗り、形状のワイヤー、塗り＋辺。照明は単一方向光＋環境色のCPUフラット計算、Unlit、LightsOffを区別。
+デバッグ: カテゴリ、選択ID、Scope、ゲーム／実時間の寿命、件数制限、描画アダプター。
 
-- 新規描画・追加回帰20/20。
-- 無変更の現行Threadingテスト23/23。
-- 故障注入5/5系統（うち構築系統は確保位置0〜13）。
-- GCC Debug / Release、GCC ASan+UBSan、GCC TSan、Clang Releaseで7/7 CTest。
-- 描画・ThreadingのRelease実行ファイルをそれぞれ100回反復し通過。
-- 直接影響する4公開ヘッダーをGCC/Clangで単独コンパイル、8/8。
-- Source/Testsの取得済み40ファイル＋検証用cpp2ファイルのSTL監査で違反0。
-- パッチを元の正確な依存ソース部分へ再適用し、新規Releaseビルド・7/7 CTest。
+**MV1モデル、アニメーション、任意の複数ライト・影、GPUワイヤー、法線／深度／オーバードローの専用モード、物理Snapshotの自動採取、デバッグUIは未実装です。** 名前だけ対応済みのAPIは追加していません。
 
-パッチ再適用試験のroot CMakeは、GitHubで読んだ実際の挿入箇所を使った文脈fixtureです。フレームワークroot全体の再ビルドではありません。
+詳しい契約と使用例は `ChangedFiles/Docs/Rendering/ViewsAndDebug.md`。
 
-## 未確認
+## 検証の境界
 
-- 実リポジトリ全体のビルドと既存全テスト。
-- Windows/MSVC・実DxLib SDK・実機描画/音声。
-- Physicsの長時間安定性と全Scope/Assetの寿命。
+実際の描画・Job・Native変換cppをコンパイルし、GCC/ClangとSanitizerで検証しています。ただし、全リポジトリのApplication/Gameplay/Asset/Physicsの回帰、Windows/MSVC、実DxLib SDK、実画面は未実施です。
 
-上記の未確認項目を今回の7/7へ含めてはいません。実SDK用の成功ログやGitHubのcommit/push結果はありません。
+適用器の構文・変換・退避は別のテストで確認しています。この成功を全リポジトリの適用後ビルド成功と扱っていません。検証後のmain反映は、実際の開発環境で行ってください。
 
-## 同梱物
-
-- `e753045_render_jobs.patch`: 適用する一式。
-- `ChangedFiles/`: レビュー用の修正後ファイル。部分コピーしない。
-- `MANIFEST.json`: 基準blob SHA、修正後ハッシュ、対象パス。
-- `Validation/`: この作業での実行ログ、Red、比較監査、Green。
-- `ChangedFiles/Docs/Development/E753045RenderJobAudit.md`: API契約、監査と未確認範囲。
-
-既存の古いStage ZIPやスクリプトを追加適用する必要はありません。
+既にinstallしたincludeディレクトリには旧RenderSystem2D.hが残り得ます。外部利用の検証は新しい空のinstall prefixで行ってください。CMakeのinstallは、利用者の既存ヘッダーを削除する処理には変更していません。

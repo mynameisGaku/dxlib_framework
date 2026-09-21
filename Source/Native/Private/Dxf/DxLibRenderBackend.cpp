@@ -16,7 +16,7 @@ TResult<void> FDxLibRenderBackend::SetTarget(Toolbox::int32 Handle, Toolbox::int
 	}
 	// 描画先またはその設定結果。
 	auto Target = Detail::CheckNative_Internal(DxLib::SetDrawScreen(Handle < 0 ? DX_SCREEN_BACK : Handle),
-	                                           "SetDrawScreen failed");
+	"SetDrawScreen failed");
 	if (!Target)
 	{
 		return Target;
@@ -29,9 +29,9 @@ TResult<void> FDxLibRenderBackend::SetTarget(Toolbox::int32 Handle, Toolbox::int
 TResult<void> FDxLibRenderBackend::ResetState(Toolbox::int32 Width, Toolbox::int32 Height)
 {
 	if (DxLib::SetDrawArea(0, 0, Width, Height) < 0 || DxLib::SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 255) < 0 ||
-	    DxLib::SetDrawBright(255, 255, 255) < 0 || DxLib::SetDrawMode(DX_DRAWMODE_BILINEAR) < 0 ||
-	    DxLib::SetUseZBufferFlag(FALSE) < 0 || DxLib::SetWriteZBufferFlag(FALSE) < 0 ||
-	    DxLib::SetUseVertexShader(-1) < 0 || DxLib::SetUsePixelShader(-1) < 0)
+	DxLib::SetDrawBright(255, 255, 255) < 0 || DxLib::SetDrawMode(DX_DRAWMODE_BILINEAR) < 0 ||
+	DxLib::SetUseZBufferFlag(FALSE) < 0 || DxLib::SetWriteZBufferFlag(FALSE) < 0 ||
+	DxLib::SetUseVertexShader(-1) < 0 || DxLib::SetUsePixelShader(-1) < 0)
 	{
 		return TResult<void>::Failure(EErrorCode::BackendFailure, "2D render-state reset failed");
 	}
@@ -47,7 +47,7 @@ TResult<void> FDxLibRenderBackend::Clear(FColor Color)
 	}
 	// 背景の描画設定または設定結果。
 	auto Background =
-	    Detail::CheckNative_Internal(DxLib::SetBackgroundColor(Color.R, Color.G, Color.B), "SetBackgroundColor failed");
+	Detail::CheckNative_Internal(DxLib::SetBackgroundColor(Color.R, Color.G, Color.B), "SetBackgroundColor failed");
 	if (!Background)
 	{
 		return Background;
@@ -65,10 +65,10 @@ TResult<void> FDxLibRenderBackend::ApplyStyle_Internal(const FDrawStyle& Style, 
 	}
 	// アルファ値または透過の使用設定。
 	const Toolbox::int32 Alpha =
-	    static_cast<Toolbox::int32>(Toolbox::RoundToLong(static_cast<Toolbox::f32>(Style.Color.A) * Style.Opacity));
+	static_cast<Toolbox::int32>(Toolbox::RoundToLong(static_cast<Toolbox::f32>(Style.Color.A) * Style.Opacity));
 	if (DxLib::SetDrawBlendMode(DX_BLENDMODE_ALPHA, Alpha) < 0 ||
-	    DxLib::SetDrawBright(bSprite ? Style.Color.R : 255, bSprite ? Style.Color.G : 255,
-	                         bSprite ? Style.Color.B : 255) < 0)
+	DxLib::SetDrawBright(bSprite ? Style.Color.R : 255, bSprite ? Style.Color.G : 255,
+	bSprite ? Style.Color.B : 255) < 0)
 	{
 		return TResult<void>::Failure(EErrorCode::BackendFailure, "Draw style application failed");
 	}
@@ -109,28 +109,28 @@ TResult<void> FDxLibRenderBackend::DrawSprite(const FSpriteCommand& Command)
 	{
 		// X座標。
 		const Toolbox::f64 X = ((Command.Options.bFlipX ? 1 - U[Index] : U[Index]) * Width - Command.Options.Pivot.X) *
-		                       Command.Options.Scale.X;
+		Command.Options.Scale.X;
 		// Y座標。
 		const Toolbox::f64 Y = ((Command.Options.bFlipY ? 1 - V[Index] : V[Index]) * Height - Command.Options.Pivot.Y) *
-		                       Command.Options.Scale.Y;
+		Command.Options.Scale.Y;
 		// 変換後の画面X座標。
 		const Toolbox::f64 ScreenX = Command.Position.X + X * Cos - Y * Sin;
 		// 変換後の画面Y座標。
 		const Toolbox::f64 ScreenY = Command.Position.Y + X * Sin + Y * Cos;
 		if (!Toolbox::IsFinite(ScreenX) || !Toolbox::IsFinite(ScreenY) ||
-		    Toolbox::Abs(ScreenX) > Toolbox::TNumericLimits<Toolbox::f32>::Max() ||
-		    Toolbox::Abs(ScreenY) > Toolbox::TNumericLimits<Toolbox::f32>::Max())
+		Toolbox::Abs(ScreenX) > Toolbox::TNumericLimits<Toolbox::f32>::Max() ||
+		Toolbox::Abs(ScreenY) > Toolbox::TNumericLimits<Toolbox::f32>::Max())
 		{
 			return TResult<void>::Failure(EErrorCode::InvalidArgument,
-			                              "Sprite transform exceeds finite float coordinates");
+			"Sprite transform exceeds finite float coordinates");
 		}
 		Vertices[Index * 2] = static_cast<Toolbox::f32>(ScreenX);
 		Vertices[Index * 2 + 1] = static_cast<Toolbox::f32>(ScreenY);
 	}
 	return Detail::CheckNative_Internal(DxLib::DrawModiGraphF(Vertices[0], Vertices[1], Vertices[2], Vertices[3],
-	                                                          Vertices[4], Vertices[5], Vertices[6], Vertices[7],
-	                                                          Command.Texture.GetNativeHandle_Internal(), TRUE),
-	                                    "DrawModiGraphF failed");
+	Vertices[4], Vertices[5], Vertices[6], Vertices[7],
+	Command.Texture.GetNativeHandle_Internal(), TRUE),
+	"DrawModiGraphF failed");
 }
 // 文字列の描画命令を処理する。
 // @param Command 実行する描画命令。
@@ -149,9 +149,9 @@ TResult<void> FDxLibRenderBackend::DrawText(const FTextCommand& Command)
 	// 描画色。
 	const auto& Color = Command.Options.Color;
 	return Detail::CheckNative_Internal(
-	    DxLib::DrawStringFToHandle(Command.Position.X, Command.Position.Y, Command.Text.CStr(),
-	                               DxLib::GetColor(Color.R, Color.G, Color.B), Command.Font.GetNativeHandle_Internal()),
-	    "DrawStringFToHandle failed");
+	DxLib::DrawStringFToHandle(Command.Position.X, Command.Position.Y, Command.Text.CStr(),
+	DxLib::GetColor(Color.R, Color.G, Color.B), Command.Font.GetNativeHandle_Internal()),
+	"DrawStringFToHandle failed");
 }
 // 矩形の描画命令を処理する。
 // @param Command 実行する描画命令。
@@ -168,12 +168,13 @@ TResult<void> FDxLibRenderBackend::DrawRectangle(const FRectangleCommand& Comman
 	// 描画色。
 	const auto& Color = Command.Options.Color;
 	return Detail::CheckNative_Internal(
-	    DxLib::DrawBox(Rect.Left, Rect.Top, Rect.Right, Rect.Bottom, DxLib::GetColor(Color.R, Color.G, Color.B), TRUE),
-	    "DrawBox failed");
+	DxLib::DrawBox(Rect.Left, Rect.Top, Rect.Right, Rect.Bottom, DxLib::GetColor(Color.R, Color.G, Color.B), Command.bFilled ? TRUE : FALSE),
+	"DrawBox failed");
 }
 // 描画したフレームを画面へ提示する。
 TResult<void> FDxLibRenderBackend::Present()
 {
 	return Detail::CheckNative_Internal(DxLib::ScreenFlip(), "ScreenFlip failed");
 }
-} // namespace Dxf
+}
+// namespace Dxf

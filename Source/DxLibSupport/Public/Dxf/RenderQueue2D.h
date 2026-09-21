@@ -31,7 +31,21 @@ public:
 	FORCEINLINE bool IsOwnerOperationAllowed_Internal() const noexcept
 	{
 		return Toolbox::FThread::CurrentThreadId() == m_OwnerThreadId &&
-		       !Toolbox::FJobSystem::IsExecutingJob() && !m_bGenerating;
+		!Toolbox::FJobSystem::IsExecutingJob() && !m_bGenerating;
+	}
+	/**
+	 * Context間で共有する制御はBackend実行中にも拒否する。
+	 */
+	FORCEINLINE bool IsScopeOperationAllowed_Internal() const noexcept
+	{
+		return IsOwnerOperationAllowed_Internal() && !m_bExecuting;
+	}
+	/**
+	 * 所有スレッドで通常の描画を受け付けているか。
+	 */
+	FORCEINLINE bool IsAccepting_Internal() const noexcept
+	{
+		return IsOwnerOperationAllowed_Internal() && m_bAccepting && !m_bExecuting;
 	}
 	/**
 	 * 検証した描画命令をキューへ追加する。
@@ -51,7 +65,7 @@ public:
 	 */
 	template <typename F>
 	TResult<void> SubmitGenerated(Toolbox::FJobSystem& Jobs, Toolbox::size_t Count, F&& Generate,
-	                             Toolbox::size_t MinimumBatch = 16)
+	Toolbox::size_t MinimumBatch = 16)
 	{
 		if (!IsOwnerOperationAllowed_Internal() || !m_bAccepting || m_bExecuting)
 		{
@@ -64,7 +78,7 @@ public:
 		// 件数加算と各配列のバイト数がsize_tを超える入力は確保前に拒否する。
 		const Toolbox::size_t Maximum = Toolbox::TNumericLimits<Toolbox::size_t>::Max();
 		if (Count > Maximum / sizeof(FRenderCommand) - m_Commands.Size() ||
-		    Count > Maximum / sizeof(TResult<void>))
+		Count > Maximum / sizeof(TResult<void>))
 		{
 			return TResult<void>::Failure(EErrorCode::InvalidArgument, "Render batch size overflow");
 		}
@@ -157,7 +171,6 @@ public:
 		}
 		m_Commands.Clear();
 	}
-
 private:
 	/**
 	 * 構築時から変わらない所有OSスレッド番号。
@@ -189,4 +202,5 @@ private:
 	 */
 	bool m_bExecuting = false;
 };
-} // namespace Dxf
+}
+// namespace Dxf

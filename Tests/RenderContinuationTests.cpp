@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: NOASSERTION
 #include "Support/Test.h"
-#include "Dxf/RenderSystem2D.h"
+#include "Dxf/RenderSystem.h"
 #include "Toolbox/Atomic.h"
 
 namespace
@@ -200,7 +200,7 @@ TEST("inline jobs cannot invoke renderer Native or end a frame")
 {
 	Toolbox::FJobSystem Jobs(1);
 	FRecordingBackend Backend;
-	Dxf::FRenderSystem2D Renderer(Backend);
+	Dxf::FRenderSystem Renderer(Backend);
 	REQUIRE(Renderer.BeginFrame(320, 240));
 	bool bNativeRejected = false;
 	bool bEndRejected = false;
@@ -228,10 +228,11 @@ TEST("public context generates batches without crossing Native barriers")
 {
 	Toolbox::FJobSystem Jobs(4);
 	FRecordingBackend Backend;
-	Dxf::FRenderSystem2D Renderer(Backend);
+	Dxf::FRenderSystem Renderer(Backend);
 	REQUIRE(Renderer.BeginFrame(320, 240));
+	REQUIRE(Renderer.SetExecutionJobs(Jobs));
 	auto& Context = Renderer.GetContext();
-	REQUIRE(Context.SubmitGenerated(Jobs, 3, [](Toolbox::size_t Index, Dxf::FRenderCommand& Output)
+	REQUIRE(Context.Get2D().SubmitGenerated( 3, [](Toolbox::size_t Index, Dxf::FRenderCommand& Output)
 	{
 		Output = Rectangle_Internal(static_cast<Toolbox::int32>(Index));
 		return Dxf::TResult<void>{};
@@ -241,7 +242,7 @@ TEST("public context generates batches without crossing Native barriers")
 		Backend.m_Commands.PushBack(90);
 		return Dxf::TResult<void>{};
 	}));
-	REQUIRE(Context.SubmitGenerated(Jobs, 3, [](Toolbox::size_t Index, Dxf::FRenderCommand& Output)
+	REQUIRE(Context.Get2D().SubmitGenerated( 3, [](Toolbox::size_t Index, Dxf::FRenderCommand& Output)
 	{
 		Output = Rectangle_Internal(static_cast<Toolbox::int32>(Index) + 10, -100);
 		return Dxf::TResult<void>{};
@@ -394,9 +395,9 @@ TEST("worker cannot cancel a frame or execute Native calls")
 {
 	Toolbox::FJobSystem Jobs(2);
 	FRecordingBackend Backend;
-	Dxf::FRenderSystem2D Renderer(Backend);
+	Dxf::FRenderSystem Renderer(Backend);
 	REQUIRE(Renderer.BeginFrame(320, 240));
-	REQUIRE(Renderer.GetContext().FillRectangle({7, 0, 8, 1}));
+	REQUIRE(Renderer.GetContext().Get2D().FillRectangle({7, 0, 8, 1}));
 	bool bNativeRejected = false;
 	bool bEndRejected = false;
 	Toolbox::FJobFence Fence;

@@ -41,7 +41,7 @@ protected:
 		FSpriteDrawOptions Options;
 		Options.Pivot = {32, 32};
 		Options.Layer = 10;
-		RequireSuccess_Internal(Render.Draw(m_Texture, *m_pPosition, Options));
+		RequireSuccess_Internal(Render.Get2D().DrawSprite(m_Texture, *m_pPosition, Options));
 	}
 
 private:
@@ -174,16 +174,16 @@ void DSandboxScene::OnDraw(FRenderContext& Render) const
 	FDrawStyle Background;
 	Background.Color = m_bAlternate ? FColor{30, 30, 30, 255} : FColor{12, 12, 12, 255};
 	Background.Layer = -10;
-	RequireSuccess_Internal(Render.FillRectangle({0, 160, 1280, 720}, Background));
+	RequireSuccess_Internal(Render.Get2D().FillRectangle({0, 160, 1280, 720}, Background));
 	// 描画する文字列。
 	FDrawStyle Text;
 	Text.Layer = 100;
-	RequireSuccess_Internal(Render.DrawText(m_Font, "dxlib_framework / Sandbox", {24, 20}, Text));
-	RequireSuccess_Internal(
-	    Render.DrawText(m_Font, "WASD: 移動  SPACE: 効果音  P: ポーズ  ENTER: シーン切替  ESC: 終了", {24, 56}, Text));
+	RequireSuccess_Internal(Render.Get2D().DrawText(m_Font, "dxlib_framework / Sandbox", {24, 20}, Text));
+	RequireSuccess_Internal(Render.Get2D().DrawText(
+	    m_Font, "WASD: 移動  SPACE: 効果音  P: ポーズ  ENTER: シーン切替  ESC: 終了", {24, 56}, Text));
 	// 画面へ表示する状態の文字列。
 	const Toolbox::FString Status =
 	    "シーン訪問回数: " + Toolbox::ToString(m_VisitCount) + (GetClock().IsPaused() ? "  [PAUSED]" : "");
-	RequireSuccess_Internal(Render.DrawText(m_Font, Status, {24, 92}, Text));
+	RequireSuccess_Internal(Render.Get2D().DrawText(m_Font, Status, {24, 92}, Text));
 }
 } // namespace Dxf::Sandbox

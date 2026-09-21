@@ -1,5 +1,6 @@
 #pragma once
 #include "Dxf/RenderCommands.h"
+#include "Dxf/RenderGeometry3D.h"
 namespace Dxf
 {
 /**
@@ -46,8 +47,74 @@ public:
 	 */
 	virtual TResult<void> DrawRectangle(const FRectangleCommand& Command) = 0;
 	/**
+	 * 追加2D図形を扱えるか。falseの場合、対応関数は失敗する。
+	 */
+	virtual bool SupportsShapes2D() const noexcept
+	{
+		return false;
+	}
+	/**
+	 * このBackendがワールド座標の基本3D形状を扱えるか。
+	 */
+	virtual bool SupportsGeometry3D() const noexcept
+	{
+		return false;
+	}
+	/**
+	 * @param Command 描画する2D線分。
+	 */
+	virtual TResult<void> DrawLine2D(const FLineCommand2D&)
+	{
+		return Unsupported_Internal();
+	}
+	/**
+	 * @param Command 描画する2D円。
+	 */
+	virtual TResult<void> DrawCircle2D(const FCircleCommand2D&)
+	{
+		return Unsupported_Internal();
+	}
+	/**
+	 * @param Command 描画する2D三角形。
+	 */
+	virtual TResult<void> DrawTriangle2D(const FTriangleCommand2D&)
+	{
+		return Unsupported_Internal();
+	}
+	/**
+	 * 全描画先でビューを開始する。ビュー切替時に深度を初期化する。
+	 * @param View カメラ設定。失敗時もEndView3Dを呼び出す。
+	 */
+	virtual TResult<void> BeginView3D(const FRenderView3D&)
+	{
+		return Unsupported_Internal();
+	}
+	/**
+	 * @param Geometry 照明計算済みの描画パケット。
+	 */
+	virtual TResult<void> DrawGeometry3D(const FPreparedGeometry3D&)
+	{
+		return Unsupported_Internal();
+	}
+	/**
+	 * 失敗を含むビュー実行後に状態を後始末する。
+	 */
+	virtual TResult<void> EndView3D()
+	{
+		return {};
+	}
+	/**
 	 * 描画したフレームを画面へ提示する。
 	 */
 	virtual TResult<void> Present() = 0;
+private:
+	/**
+	 * 対応していない機能を成功として扱わない。
+	 */
+	static TResult<void> Unsupported_Internal()
+	{
+		return TResult<void>::Failure(EErrorCode::BackendFailure, "Unsupported render capability");
+	}
 };
-} // namespace Dxf
+}
+// namespace Dxf

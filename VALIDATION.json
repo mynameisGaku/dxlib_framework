@@ -1,0 +1,87 @@
+{
+  "base": "1bb654826cb6b23de4837d744ab2634b25fb9979",
+  "created_utc": "2026-09-21T10:13:38.189629+00:00",
+  "full_repository_build_verified": false,
+  "windows_msvc_verified": false,
+  "real_dxlib_sdk_verified": false,
+  "remote_modified": false,
+  "scope": "Exact dependency subset: rendering facade, geometry, debug records, threading, native translation double",
+  "render_regressions": 20,
+  "views_debug_and_container_cases": 30,
+  "native_translation_cases": 4,
+  "fault_groups": 5,
+  "ctest_registered": 8,
+  "profiles": [
+    {
+      "profile": "debug",
+      "phase": "build",
+      "exit_code": 0,
+      "seconds": 0.556
+    },
+    {
+      "profile": "debug",
+      "phase": "ctest",
+      "exit_code": 0,
+      "seconds": 0.039
+    },
+    {
+      "profile": "release",
+      "phase": "build",
+      "exit_code": 0,
+      "seconds": 2.908
+    },
+    {
+      "profile": "release",
+      "phase": "ctest",
+      "exit_code": 0,
+      "seconds": 0.038
+    },
+    {
+      "profile": "asan",
+      "phase": "build",
+      "exit_code": 0,
+      "seconds": 1.846
+    },
+    {
+      "profile": "asan",
+      "phase": "ctest",
+      "exit_code": 0,
+      "seconds": 0.118
+    },
+    {
+      "profile": "tsan",
+      "phase": "build",
+      "exit_code": 0,
+      "seconds": 0.961
+    },
+    {
+      "profile": "tsan",
+      "phase": "ctest",
+      "exit_code": 0,
+      "seconds": 0.137
+    },
+    {
+      "profile": "clang",
+      "phase": "build",
+      "exit_code": 0,
+      "seconds": 1.825
+    },
+    {
+      "profile": "clang",
+      "phase": "ctest",
+      "exit_code": 0,
+      "seconds": 0.037
+    }
+  ],
+  "standalone_header_compile_checks": 24,
+  "source_policy_files": 59,
+  "source_policy_violations": 0,
+  "migration_unit_tests": 11,
+  "stress_executable_runs": 300,
+  "fixed_payload_operations": 34,
+  "tool_policy_files": 3,
+  "tool_policy_violations": 0,
+  "extracted_archive_subset_release_verified": true,
+  "extracted_archive_ctest_passed": 8,
+  "source_changed_since_archive_rebuild": false
+}

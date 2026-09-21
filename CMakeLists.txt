@@ -122,6 +122,10 @@ if(DXF_COVERAGE)
 endif()
 
 add_library(dxf_support STATIC
+    Source/DxLibSupport/Private/Dxf/RenderGeometry3D.cpp
+    Source/DxLibSupport/Private/Dxf/Render2DContext.cpp
+    Source/DxLibSupport/Private/Dxf/Render3DContext.cpp
+    Source/DxLibSupport/Private/Dxf/DebugDrawAdapters.cpp
     Source/DxLibSupport/Private/Dxf/AssetService.cpp
     Source/DxLibSupport/Private/Dxf/AsyncAsset.cpp
     Source/DxLibSupport/Private/Dxf/AssetDecode.cpp
@@ -176,6 +180,7 @@ set_target_properties(dxlib_framework PROPERTIES EXPORT_NAME framework)
 target_link_libraries(dxlib_framework INTERFACE dxf::gameplay)
 
 set(DXF_NATIVE_SOURCES
+    Source/Native/Private/Dxf/DxLibGeometryBackend.cpp
     Source/Native/Private/Dxf/DxLibPlatform.cpp
     Source/Native/Private/Dxf/DxLibInputSource.cpp
     Source/Native/Private/Dxf/DxLibTextureBackend.cpp

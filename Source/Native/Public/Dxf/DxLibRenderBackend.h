@@ -3,7 +3,7 @@
 namespace Dxf
 {
 /**
- * DxLibによる2D描画を管理する型。
+ * DxLibによる次元別描画を管理する型。
  */
 class FDxLibRenderBackend final : public IRenderBackend
 {
@@ -45,7 +45,44 @@ public:
 	 * 描画したフレームを画面へ提示する。
 	 */
 	TResult<void> Present() override;
-
+	/**
+	 * 2D基本図形を描ける。
+	 */
+	bool SupportsShapes2D() const noexcept override
+	{
+		return true;
+	}
+	/**
+	 * カメラ付き基本3D形状を描ける。
+	 */
+	bool SupportsGeometry3D() const noexcept override
+	{
+		return true;
+	}
+	/**
+	 * @param Command 画面ピクセル座標の線分。
+	 */
+	TResult<void> DrawLine2D(const FLineCommand2D& Command) override;
+	/**
+	 * @param Command 画面ピクセル座標の円。
+	 */
+	TResult<void> DrawCircle2D(const FCircleCommand2D& Command) override;
+	/**
+	 * @param Command 画面ピクセル座標の三角形。
+	 */
+	TResult<void> DrawTriangle2D(const FTriangleCommand2D& Command) override;
+	/**
+	 * @param View 全描画先に適用する透視ビュー。深度だけを消去する。
+	 */
+	TResult<void> BeginView3D(const FRenderView3D& View) override;
+	/**
+	 * @param Geometry CPUでフラット照明を適用した面と線。
+	 */
+	TResult<void> DrawGeometry3D(const FPreparedGeometry3D& Geometry) override;
+	/**
+	 * 2D向けの標準状態へ戻す。一般のNative状態スナップショット復元ではない。
+	 */
+	TResult<void> EndView3D() override;
 private:
 	/**
 	 * 描画色と不透明度をバックエンドへ適用する。
@@ -53,5 +90,10 @@ private:
 	 * @param bSprite スプライト用の色変調を適用するか。
 	 */
 	TResult<void> ApplyStyle_Internal(const FDrawStyle& Style, bool bSprite);
+	/**
+	 * Nativeビューが開始済みか。所有スレッドだけで操作する。
+	 */
+	bool m_bView3D = false;
 };
-} // namespace Dxf
+}
+// namespace Dxf

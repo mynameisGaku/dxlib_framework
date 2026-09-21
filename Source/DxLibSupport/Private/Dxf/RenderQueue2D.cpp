@@ -24,62 +24,92 @@ bool Finite_Internal(FVector2 Value)
 {
 	return Toolbox::IsFinite(Value.X) && Toolbox::IsFinite(Value.Y);
 }
-} // namespace
+}
+// namespace
 // 描画命令のリソースと数値を検証する。
 // @param Command 実行する描画命令。
 TResult<void> FRenderQueue2D::Validate_Internal(const FRenderCommand& Command) const
 {
 	return Toolbox::Visit(
-	    [&](const auto& Value) -> TResult<void>
-	    {
-		    if (!ValidStyle_Internal(Value.Options))
-		    {
-			    return TResult<void>::Failure(EErrorCode::InvalidArgument, "Invalid draw style");
-		    }
-		    // 現在の描画命令の実体型。
-		    using T = Toolbox::TDecay<decltype(Value)>;
-		    if constexpr (Toolbox::IsSame<T, FSpriteCommand>)
-		    {
-			    if (!Value.Texture.IsValid())
-			    {
-				    return TResult<void>::Failure(EErrorCode::InvalidState, "Texture was invalidated");
-			    }
-			    if (Value.Texture.GetNativeHandle_Internal() == m_Target)
-			    {
-				    return TResult<void>::Failure(EErrorCode::InvalidArgument, "Render target feedback is forbidden");
-			    }
-			    if (!Finite_Internal(Value.Position) || !Finite_Internal(Value.Options.Scale) ||
-			        !Finite_Internal(Value.Options.Pivot) || !Toolbox::IsFinite(Value.Options.RotationRadians))
-			    {
-				    return TResult<void>::Failure(EErrorCode::InvalidArgument, "Nonfinite sprite transform");
-			    }
-		    }
-		    else if constexpr (Toolbox::IsSame<T, FTextCommand>)
-		    {
-			    if (!Value.Font.IsValid())
-			    {
-				    return TResult<void>::Failure(EErrorCode::InvalidState, "Font was invalidated");
-			    }
-			    if (!Detail::IsValidNativeString_Internal(Value.Text, true))
-			    {
-				    return TResult<void>::Failure(EErrorCode::InvalidArgument,
-				                                  "Text must be UTF-8 without embedded NUL");
-			    }
-			    if (!Finite_Internal(Value.Position))
-			    {
-				    return TResult<void>::Failure(EErrorCode::InvalidArgument, "Nonfinite text position");
-			    }
-		    }
-		    else
-		    {
-			    if (Value.Rectangle.Right < Value.Rectangle.Left || Value.Rectangle.Bottom < Value.Rectangle.Top)
-			    {
-				    return TResult<void>::Failure(EErrorCode::InvalidArgument, "Invalid rectangle");
-			    }
-		    }
-		    return {};
-	    },
-	    Command);
+	[&](const auto& Value) -> TResult<void>
+	{
+		if (!ValidStyle_Internal(Value.Options))
+		{
+			return TResult<void>::Failure(EErrorCode::InvalidArgument, "Invalid draw style");
+		}
+		// 現在の描画命令の実体型。
+		using T = Toolbox::TDecay<decltype(Value)>;
+		if constexpr (Toolbox::IsSame<T, FSpriteCommand>)
+		{
+			if (!Value.Texture.IsValid())
+			{
+				return TResult<void>::Failure(EErrorCode::InvalidState, "Texture was invalidated");
+			}
+			if (Value.Texture.GetNativeHandle_Internal() == m_Target)
+			{
+				return TResult<void>::Failure(EErrorCode::InvalidArgument, "Render target feedback is forbidden");
+			}
+			if (!Finite_Internal(Value.Position) || !Finite_Internal(Value.Options.Scale) ||
+			!Finite_Internal(Value.Options.Pivot) || !Toolbox::IsFinite(Value.Options.RotationRadians))
+			{
+				return TResult<void>::Failure(EErrorCode::InvalidArgument, "Nonfinite sprite transform");
+			}
+		}
+		else if constexpr (Toolbox::IsSame<T, FTextCommand>)
+		{
+			if (!Value.Font.IsValid())
+			{
+				return TResult<void>::Failure(EErrorCode::InvalidState, "Font was invalidated");
+			}
+			if (!Detail::IsValidNativeString_Internal(Value.Text, true))
+			{
+				return TResult<void>::Failure(EErrorCode::InvalidArgument,
+				"Text must be UTF-8 without embedded NUL");
+			}
+			if (!Finite_Internal(Value.Position))
+			{
+				return TResult<void>::Failure(EErrorCode::InvalidArgument, "Nonfinite text position");
+			}
+		}
+		else if constexpr (Toolbox::IsSame<T, FRectangleCommand>)
+		{
+			if (Value.Rectangle.Right < Value.Rectangle.Left || Value.Rectangle.Bottom < Value.Rectangle.Top)
+			{
+				return TResult<void>::Failure(EErrorCode::InvalidArgument, "Invalid rectangle");
+			}
+		}
+		else
+		{
+			auto Pixel = [](FVector2 V)
+			{
+				// 整数描画APIへの丸めで表現範囲を超えないことを先に検査する。
+				return Finite_Internal(V) && Toolbox::Abs(static_cast<Toolbox::f64>(V.X)) <= 2147483000.0 &&
+				Toolbox::Abs(static_cast<Toolbox::f64>(V.Y)) <= 2147483000.0;
+			};
+			bool Valid = false;
+			if constexpr (Toolbox::IsSame<T, FLineCommand2D>)
+			{
+				Valid = Pixel(Value.Start) && Pixel(Value.End);
+			}
+			else if constexpr (Toolbox::IsSame<T, FCircleCommand2D>)
+			{
+				Valid = Pixel(Value.Center) && Toolbox::IsFinite(Value.Radius) && Value.Radius >= 0 &&
+				static_cast<Toolbox::f64>(Value.Radius) <= 2147483000.0 &&
+				Toolbox::Abs(static_cast<Toolbox::f64>(Value.Center.X)) + Value.Radius <= 2147483000.0 &&
+				Toolbox::Abs(static_cast<Toolbox::f64>(Value.Center.Y)) + Value.Radius <= 2147483000.0;
+			}
+			else
+			{
+				Valid = Pixel(Value.A) && Pixel(Value.B) && Pixel(Value.C);
+			}
+			if (!Valid)
+			{
+				return TResult<void>::Failure(EErrorCode::InvalidArgument, "Invalid 2D shape");
+			}
+		}
+		return {};
+	},
+	Command);
 }
 // 検証した描画命令をキューへ追加する。
 // @param Command 実行する描画命令。
@@ -115,17 +145,18 @@ TResult<void> FRenderQueue2D::Execute_Internal(IRenderBackend& Backend)
 	auto Key = [](const FRenderCommand& Command)
 	{
 		return Toolbox::Visit(
-		    [](const auto& Value)
-		    {
-			    return Toolbox::TPair(Value.Options.Layer, Value.Options.Order);
-		    },
-		    Command);
+		[](const auto& Value)
+		{
+			return Toolbox::TPair(Value.Options.Layer, Value.Options.Order);
+		},
+		Command);
 	};
 	Toolbox::StableSort(Commands.Begin(), Commands.End(),
-	                    [&](const auto& A, const auto& B)
-	                    {
-		                    return Key(A) < Key(B);
-	                    });
+	[&](const auto& A, const auto& B)
+	{
+		return Key(A) < Key(B);
+	}
+	);
 	// 実行する描画命令を順に処理する。
 	for (const auto& Command : Commands)
 	{
@@ -137,24 +168,47 @@ TResult<void> FRenderQueue2D::Execute_Internal(IRenderBackend& Backend)
 		}
 		// 処理結果。
 		auto Result = Toolbox::Visit(
-		    [&](const auto& Value) -> TResult<void>
-		    {
-			    // 現在の描画命令の実体型。
-			    using T = Toolbox::TDecay<decltype(Value)>;
-			    if constexpr (Toolbox::IsSame<T, FSpriteCommand>)
-			    {
-				    return Backend.DrawSprite(Value);
-			    }
-			    else if constexpr (Toolbox::IsSame<T, FTextCommand>)
-			    {
-				    return Backend.DrawText(Value);
-			    }
-			    else
-			    {
-				    return Backend.DrawRectangle(Value);
-			    }
-		    },
-		    Command);
+		[&](const auto& Value) -> TResult<void>
+		{
+			// 現在の描画命令の実体型。
+			using T = Toolbox::TDecay<decltype(Value)>;
+			if constexpr (Toolbox::IsSame<T, FSpriteCommand>)
+			{
+				return Backend.DrawSprite(Value);
+			}
+			else if constexpr (Toolbox::IsSame<T, FTextCommand>)
+			{
+				return Backend.DrawText(Value);
+			}
+			else if constexpr (Toolbox::IsSame<T, FRectangleCommand>)
+			{
+				if (!Value.bFilled && !Backend.SupportsShapes2D())
+				{
+					return TResult<void>::Failure(EErrorCode::BackendFailure, "Outline rectangle unsupported");
+				}
+				return Backend.DrawRectangle(Value);
+			}
+			else
+			{
+				if (!Backend.SupportsShapes2D())
+				{
+					return TResult<void>::Failure(EErrorCode::BackendFailure, "2D shape unsupported");
+				}
+				if constexpr (Toolbox::IsSame<T, FLineCommand2D>)
+				{
+					return Backend.DrawLine2D(Value);
+				}
+				else if constexpr (Toolbox::IsSame<T, FCircleCommand2D>)
+				{
+					return Backend.DrawCircle2D(Value);
+				}
+				else
+				{
+					return Backend.DrawTriangle2D(Value);
+				}
+			}
+		},
+		Command);
 		if (!Result)
 		{
 			return Result;
@@ -162,4 +216,5 @@ TResult<void> FRenderQueue2D::Execute_Internal(IRenderBackend& Backend)
 	}
 	return {};
 }
-} // namespace Dxf
+}
+// namespace Dxf
