@@ -1,0 +1,60 @@
+Test project C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Integration-debug
+      Start  1: PhysicsContinuation
+ 1/20 Test  #1: PhysicsContinuation ..............   Passed    0.67 sec
+      Start  2: NoStl
+ 2/20 Test  #2: NoStl ............................   Passed    0.21 sec
+      Start  3: Framework
+ 3/20 Test  #3: Framework ........................   Passed    0.79 sec
+      Start  4: ApplicationRenderIntegration
+ 4/20 Test  #4: ApplicationRenderIntegration .....   Passed    0.20 sec
+      Start  5: NativeContract
+ 5/20 Test  #5: NativeContract ...................   Passed    0.11 sec
+      Start  6: FrameworkAltCwd
+ 6/20 Test  #6: FrameworkAltCwd ..................   Passed    0.73 sec
+      Start  7: AssetRootLaunch
+ 7/20 Test  #7: AssetRootLaunch ..................   Passed    0.74 sec
+      Start  8: DebugTools
+ 8/20 Test  #8: DebugTools .......................   Passed    0.04 sec
+      Start  9: DebugPhysicsCapture
+ 9/20 Test  #9: DebugPhysicsCapture ..............   Passed    0.05 sec
+      Start 10: RenderTransparency
+10/20 Test #10: RenderTransparency ...............   Passed    0.23 sec
+      Start 11: RenderTransparencyFault
+11/20 Test #11: RenderTransparencyFault ..........   Passed    0.05 sec
+      Start 12: NativeTransparency
+12/20 Test #12: NativeTransparency ...............   Passed    0.08 sec
+      Start 13: RenderContinuation
+13/20 Test #13: RenderContinuation ...............   Passed    0.07 sec
+      Start 14: JobFault-construction
+14/20 Test #14: JobFault-construction ............   Passed    0.04 sec
+      Start 15: JobFault-submission
+15/20 Test #15: JobFault-submission ..............   Passed    0.01 sec
+      Start 16: JobFault-capture-wait
+16/20 Test #16: JobFault-capture-wait ............   Passed    0.01 sec
+      Start 17: JobFault-cross-system
+17/20 Test #17: JobFault-cross-system ............   Passed    0.01 sec
+      Start 18: JobFault-fence-allocation
+18/20 Test #18: JobFault-fence-allocation ........   Passed    0.01 sec
+      Start 19: RenderViews
+19/20 Test #19: RenderViews ......................   Passed    0.15 sec
+      Start 20: NativeViewsTranslation
+20/20 Test #20: NativeViewsTranslation ...........   Passed    0.13 sec
+
+100% tests passed, 0 tests failed out of 20
+
+Label Time Summary:
+alt-cwd            =   0.73 sec*proc (1 test)
+application        =   0.20 sec*proc (1 test)
+contract           =   0.11 sec*proc (1 test)
+debug-tools        =   0.09 sec*proc (2 tests)
+debug-views        =   0.28 sec*proc (2 tests)
+fault-injection    =   0.07 sec*proc (5 tests)
+not-real-sdk       =   0.11 sec*proc (1 test)
+physics            =   0.71 sec*proc (2 tests)
+portable           =   3.99 sec*proc (18 tests)
+render             =   0.91 sec*proc (7 tests)
+source-policy      =   0.21 sec*proc (1 test)
+threading          =   0.34 sec*proc (7 tests)
+transparency       =   0.36 sec*proc (3 tests)
+
+Total Test time (real) =   5.49 sec

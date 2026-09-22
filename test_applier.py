@@ -13,7 +13,7 @@ import unittest
 from unittest.mock import patch
 
 HERE = Path(__file__).resolve().parent
-spec = importlib.util.spec_from_file_location('task_installer', HERE / 'apply_task_dispatcher.py')
+spec = importlib.util.spec_from_file_location('scene_installer', HERE / 'apply_scene_tasks.py')
 assert spec is not None and spec.loader is not None
 installer = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = installer
@@ -34,6 +34,7 @@ class InstallerTests(unittest.TestCase):
         import zipfile
         with zipfile.ZipFile(FIXTURE) as archive:
             archive.extractall(self.root)
+        (self.root / 'Tests').mkdir(exist_ok=True)
         self.command('init', '-q')
         self.command('config', 'user.email', 'fixture@example.invalid')
         self.command('config', 'user.name', 'Installer fixture')
@@ -56,11 +57,11 @@ class InstallerTests(unittest.TestCase):
         tree = self.command('write-tree')
         source = {k: v for k, v in self.snapshot().items() if not k.startswith('.git/')}
         plan = installer.build_plan(self.root)
-        self.assertEqual(len(plan), 6)
+        self.assertEqual(len(plan), 12)
         self.assertEqual(status, self.command('status', '--porcelain=v1'))
         self.assertEqual(tree, self.command('write-tree'))
         self.assertEqual(source, {k: v for k, v in self.snapshot().items() if not k.startswith('.git/')})
-        self.assertEqual(list(self.parent.glob('repo.task-backup-*')), [])
+        self.assertEqual(list(self.parent.glob('repo.scene-task-backup-*')), [])
 
     def test_apply_backup_and_idempotence(self):
         head = self.command('rev-parse', 'HEAD')
@@ -76,8 +77,8 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(head, self.command('rev-parse', 'HEAD'))
         self.assertEqual(tree, self.command('write-tree'))
 
-    def test_unrelated_application_edits_are_preserved(self):
-        path = self.root / 'Source/Runtime/Private/Dxf/Application.cpp'
+    def test_unrelated_assets_are_preserved(self):
+        path = self.root / 'user-notes.txt'
         path.write_text('// unrelated renderer integration\n')
         installer.apply_plan(self.root, installer.build_plan(self.root))
         self.assertEqual(path.read_text(), '// unrelated renderer integration\n')
@@ -99,7 +100,7 @@ class InstallerTests(unittest.TestCase):
             installer.build_plan(self.root)
 
     def test_untracked_new_target_collision_is_rejected(self):
-        path = self.root / 'Tests/TaskDispatcherRecoveryTests.cpp'
+        path = self.root / 'Tests/SceneTaskIntegrationTests.cpp'
         path.write_text('// user test\n')
         with self.assertRaises(ValueError):
             installer.build_plan(self.root)
@@ -118,8 +119,9 @@ class InstallerTests(unittest.TestCase):
     def test_corrupt_payload_is_rejected(self):
         package = self.parent / 'package'
         shutil.copytree(HERE / 'Payload', package / 'Payload')
+        shutil.copytree(HERE / 'Variants', package / 'Variants')
         shutil.copy2(HERE / 'MANIFEST.json', package / 'MANIFEST.json')
-        target = package / 'Payload/Tests/TaskDispatcherRecoveryTests.cpp'
+        target = package / 'Payload/Tests/SceneTaskIntegrationTests.cpp'
         target.write_text('broken')
         with self.assertRaisesRegex(ValueError, 'checksum'):
             installer.build_plan(self.root, package)
@@ -153,15 +155,15 @@ class InstallerTests(unittest.TestCase):
         after = {k: v for k, v in self.snapshot().items() if not k.startswith('.git/')}
         self.assertEqual(before, after)
         self.assertEqual(self.command('status', '--porcelain=v1'), b'')
-        self.assertEqual(len(list(self.parent.glob('repo.task-backup-*'))), 1)
+        self.assertEqual(len(list(self.parent.glob('repo.scene-task-backup-*'))), 1)
 
     def test_change_after_planning_is_rejected(self):
         plan = installer.build_plan(self.root)
-        path = self.root / 'Source/Runtime/Private/Dxf/TaskDispatcher.cpp'
+        path = self.root / 'Source/Runtime/Private/Dxf/SceneNavigator.cpp'
         path.write_bytes(path.read_bytes() + b'// edited while installer waits\n')
         with self.assertRaisesRegex(ValueError, 'after validation'):
             installer.apply_plan(self.root, plan)
-        self.assertEqual(list(self.parent.glob('repo.task-backup-*')), [])
+        self.assertEqual(list(self.parent.glob('repo.scene-task-backup-*')), [])
 
     def test_symlink_is_rejected(self):
         path = self.root / 'Source/Runtime/Public/Dxf/TaskDispatcher.h'
@@ -182,6 +184,49 @@ class InstallerTests(unittest.TestCase):
         for rel in ('../outside', '/outside', 'x/../outside', 'x\\outside', './x'):
             with self.assertRaises(ValueError):
                 installer.safe_path(self.root, rel)
+
+    def install_renderer_before(self, header_only=False):
+        import zipfile
+        with zipfile.ZipFile(HERE / 'Testing/renderer_before.zip') as archive:
+            for rel in archive.namelist():
+                if not header_only or rel.endswith('.h'):
+                    (self.root / rel).write_bytes(archive.read(rel))
+        self.command('add', '.')
+        self.command('commit', '-qm', 'Disposable already-integrated renderer fixture')
+
+    def test_existing_renderer_integration_is_preserved(self):
+        self.install_renderer_before()
+        installer.apply_plan(self.root, installer.build_plan(self.root))
+        header = (self.root / 'Source/Runtime/Public/Dxf/Application.h').read_text()
+        implementation = (self.root / 'Source/Runtime/Private/Dxf/Application.cpp').read_text()
+        self.assertIn('Dxf/RenderSystem.h', header)
+        self.assertNotIn('FRenderSystem2D', header)
+        self.assertEqual(implementation.count('m_Renderer.SetExecutionJobs(m_ExecutionJobs)'), 1)
+        self.assertIn('m_Scenes(m_Assets, m_Audio, m_pGame.Get(), &m_TaskDispatcher)', implementation)
+        self.assertEqual(installer.build_plan(self.root), [])
+
+    def test_mixed_renderer_profiles_are_rejected(self):
+        self.install_renderer_before(header_only=True)
+        with self.assertRaisesRegex(ValueError, 'profiles do not match'):
+            installer.build_plan(self.root)
+
+    def test_rollback_preserves_concurrent_edit(self):
+        plan = installer.build_plan(self.root)
+        first = self.root / plan[0].relative
+        real = installer.atomic_write
+        count = 0
+        def failing(path, data, mode):
+            nonlocal count
+            count += 1
+            if count == 3:
+                first.write_bytes(b'concurrent editor data')
+                raise OSError('Injected write failure after concurrent edit')
+            return real(path, data, mode)
+        with patch.object(installer, 'atomic_write', side_effect=failing):
+            with self.assertRaisesRegex(RuntimeError, 'Concurrent edit prevents rollback'):
+                installer.apply_plan(self.root, plan)
+        self.assertEqual(first.read_bytes(), b'concurrent editor data')
+
 
 
 if __name__ == '__main__':

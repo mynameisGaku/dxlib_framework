@@ -1,104 +1,179 @@
 {
-  "format": 1,
-  "source_commit": "4868dc9811d60e227aa0d7c4d2c18410388d3d63",
+  "format": 2,
+  "base_commit": "15f5df42571dddee2a0dcaede16e0fa826a9061b",
   "files": {
+    "Source/Runtime/Public/Dxf/Application.h": {
+      "variants": [
+        {
+          "profile": "base",
+          "before_git_blob_sha1": "aefbd63a0908079f19edc1900ba80354a1796df3",
+          "payload_path": "Payload/Source/Runtime/Public/Dxf/Application.h",
+          "payload_sha256": "2df618557593a51d9dfb905e49f6ed47f74a10fb42bbb8c2b60fa2b0f3eff81b"
+        },
+        {
+          "profile": "renderer-integrated",
+          "before_git_blob_sha1": "712deb4e48b407af9721cf4a55f82c8f3dadee06",
+          "payload_path": "Variants/renderer-integrated/Source/Runtime/Public/Dxf/Application.h",
+          "payload_sha256": "27dbee9cfa4983d30540b930ebdb7fd5747cc6f6ca79814b30fe91cf108da1f7"
+        }
+      ]
+    },
+    "Source/Runtime/Public/Dxf/SceneNavigator.h": {
+      "variants": [
+        {
+          "profile": "base",
+          "before_git_blob_sha1": "8aeec246119edbfa57b4f82506f3c1ac97cd7792",
+          "payload_path": "Payload/Source/Runtime/Public/Dxf/SceneNavigator.h",
+          "payload_sha256": "a52b6b8c840db637e985787b807e057a1256856b65c275c083f7bd4c5c6a1363"
+        }
+      ]
+    },
+    "Source/Runtime/Public/Dxf/Contexts.h": {
+      "variants": [
+        {
+          "profile": "base",
+          "before_git_blob_sha1": "7a6e26eecadcc08916cd00a2a5449a76740ef3d7",
+          "payload_path": "Payload/Source/Runtime/Public/Dxf/Contexts.h",
+          "payload_sha256": "172a48a6916739ac4b537339f88f8153f0799a77110c06c1774151c56cdacdfb"
+        }
+      ]
+    },
     "Source/Runtime/Public/Dxf/TaskDispatcher.h": {
-      "before_git_blob_sha1": "2802e6d7f9e3cdb9dc8012ac1eabc40564a1c9ff",
-      "payload_sha256": "4ea1a78c2c634e81fd2441c81915725622daefed12d1032ca412be335d01113f"
+      "variants": [
+        {
+          "profile": "base",
+          "before_git_blob_sha1": "2c25ef4bffdb9708ca0f824082130256cf82ad18",
+          "payload_path": "Payload/Source/Runtime/Public/Dxf/TaskDispatcher.h",
+          "payload_sha256": "f189a11aa17a867480cb4d2bf8231dd265112ffb691330d7269f06567b8a1c34"
+        }
+      ]
     },
-    "Source/Runtime/Private/Dxf/TaskDispatcher.cpp": {
-      "before_git_blob_sha1": "bdbf369e5b4fd5efc2c6a9741b89b5b807403de6",
-      "payload_sha256": "122575dc561adc8f7bc5d97add47e6e87dc824d8a284c5188614cf2038ab7b91"
+    "Source/Runtime/Private/Dxf/Application.cpp": {
+      "variants": [
+        {
+          "profile": "base",
+          "before_git_blob_sha1": "f4d6ccefb0d79ce57bf48aee02a2e78981e34db0",
+          "payload_path": "Payload/Source/Runtime/Private/Dxf/Application.cpp",
+          "payload_sha256": "eb021d11d52dfbc95e02f0e7177ad5ea3f9bdb9038ec086d2be187b652d6ba57"
+        },
+        {
+          "profile": "renderer-integrated",
+          "before_git_blob_sha1": "a0f07157e860bc0f2e1f24c76f8d50ecaa770f57",
+          "payload_path": "Variants/renderer-integrated/Source/Runtime/Private/Dxf/Application.cpp",
+          "payload_sha256": "00602edbfa0334eedcd3ed5d8cf91319fcd70094dbbe96986ec50292b4613f38"
+        }
+      ]
     },
-    "Tests/TaskDispatcherRecoveryTests.cpp": {
-      "before_git_blob_sha1": null,
-      "payload_sha256": "8a7bea2337ce6501c9377e3547112c640ad6c655624269368b49cc0edd063059"
+    "Source/Runtime/Private/Dxf/SceneNavigator.cpp": {
+      "variants": [
+        {
+          "profile": "base",
+          "before_git_blob_sha1": "d44424ca2f73533a47c6b79ba133ff4e8ec47c3a",
+          "payload_path": "Payload/Source/Runtime/Private/Dxf/SceneNavigator.cpp",
+          "payload_sha256": "182bbfb2020c8d43fd88fd669dc1ac8ab8fd92d4cb9b1bfd4df296fc1d654ce3"
+        }
+      ]
     },
-    "Tools/TaskValidation/CMakeLists.txt": {
-      "before_git_blob_sha1": null,
-      "payload_sha256": "0a19f327f2c5ff81f9b67568f272d1cb81212e7e9f09b8f63f6185fad57029e4"
+    "Tests/SceneTaskIntegrationTests.cpp": {
+      "variants": [
+        {
+          "profile": "base",
+          "before_git_blob_sha1": null,
+          "payload_path": "Payload/Tests/SceneTaskIntegrationTests.cpp",
+          "payload_sha256": "5dd2860f1142b08e696c9035056c49dc993acba718b62a4f63fa2bac3458bde4"
+        }
+      ]
     },
-    "Tools/TaskValidation/Main.cpp": {
-      "before_git_blob_sha1": null,
-      "payload_sha256": "7ef693322ca1639151b9c9cb1daa3d6b40cad57d6a4ab20796aa0f414e1bc838"
+    "Tests/Support/SceneTaskBackend.h": {
+      "variants": [
+        {
+          "profile": "base",
+          "before_git_blob_sha1": null,
+          "payload_path": "Payload/Tests/Support/SceneTaskBackend.h",
+          "payload_sha256": "95e281d71af1b9bbfea51513f611f410c51e303552e50136e47df7d35599566c"
+        }
+      ]
     },
-    "Docs/TaskDispatcherRecovery.md": {
-      "before_git_blob_sha1": null,
-      "payload_sha256": "7635b695c6b7b33d95b695257a8509c3df455349c56f1df754606266460138a8"
+    "CMake/SceneTaskIntegrationTests.cmake": {
+      "variants": [
+        {
+          "profile": "base",
+          "before_git_blob_sha1": null,
+          "payload_path": "Payload/CMake/SceneTaskIntegrationTests.cmake",
+          "payload_sha256": "590e0164350c6d6597d52ceea49124cc16ef6c79db8109858e2aff38a4106fec"
+        }
+      ]
+    },
+    "Tools/SceneTaskValidation/CMakeLists.txt": {
+      "variants": [
+        {
+          "profile": "base",
+          "before_git_blob_sha1": null,
+          "payload_path": "Payload/Tools/SceneTaskValidation/CMakeLists.txt",
+          "payload_sha256": "52ada79ea98aca377515a9bf7a9db88ec23d195289cafdb7f4f8093912cc5f61"
+        }
+      ]
+    },
+    "Tools/SceneTaskValidation/Main.cpp": {
+      "variants": [
+        {
+          "profile": "base",
+          "before_git_blob_sha1": null,
+          "payload_path": "Payload/Tools/SceneTaskValidation/Main.cpp",
+          "payload_sha256": "7ef693322ca1639151b9c9cb1daa3d6b40cad57d6a4ab20796aa0f414e1bc838"
+        }
+      ]
+    },
+    "Docs/SceneTaskLifetime.md": {
+      "variants": [
+        {
+          "profile": "base",
+          "before_git_blob_sha1": null,
+          "payload_path": "Payload/Docs/SceneTaskLifetime.md",
+          "payload_sha256": "516555bd4b4a9d65f577a09966f9325323fe7099c740ebb0fc6933dc7ce9648c"
+        }
+      ]
     }
   },
   "dependencies": {
-    "Source/Toolbox/Public/Toolbox/Atomic.h": {
-      "git_blob_sha1": "2cc6e0fcfdde6939dbbaefb4a5d2bd929e57e14e",
-      "sha256": "83eb8c8c3a2275aeb1f291f896614e2bb08a2248501cd93a24beee546ff01752"
+    "Source/Runtime/Private/Dxf/TaskDispatcher.cpp": {
+      "git_blob_sha1": "7961b8e13f8e79f5ba81d507a24c79f9b1a62a0f"
     },
-    "Source/Toolbox/Public/Toolbox/Compiler.h": {
-      "git_blob_sha1": "832da7397a37a4e5137c3db1156c4ecbea6ba2ba",
-      "sha256": "5d7a2e2532a7cd598069c23c3ca4f604751dacc845195686dd29d25ecbd2464b"
+    "Source/Runtime/Private/Dxf/LifecycleObject.cpp": {
+      "git_blob_sha1": "db5ce48fc71e25425fad74e8a080e2ff12cb4b5d"
     },
-    "Source/Toolbox/Public/Toolbox/ConditionVariable.h": {
-      "git_blob_sha1": "1f0a6439f4a14d25194d1cc7e4e664895612b6e4",
-      "sha256": "81121d453c1dc3a5ced189a70d2b634fc3616a108ec0c92389c5b1a0999247fc"
+    "Source/Runtime/Public/Dxf/LifecycleObject.h": {
+      "git_blob_sha1": "ad6d02cc6f2cd4dcfc2d8127546003621b08dc36"
     },
-    "Source/Toolbox/Public/Toolbox/Function.h": {
-      "git_blob_sha1": "5d7a51a40fb8a98e36bb6f4d8040a29160131c89",
-      "sha256": "04c93162931eb06f16f6ff93d830bff18ef6a30698e58a5929398b68cbb434e6"
+    "Source/Runtime/Public/Dxf/LifecycleGroup.h": {
+      "git_blob_sha1": "4212882178000f569ed35fa55673a8c77e2ae1ae"
+    },
+    "Source/Runtime/Public/Dxf/Scene.h": {
+      "git_blob_sha1": "d477bd5b036e8e2237f8d21aabf14b3202770f24"
+    },
+    "Source/Runtime/Public/Dxf/SceneLifecycle.h": {
+      "git_blob_sha1": "42f2c5e81768326d46ab1fcb95a192752c25a506"
+    },
+    "Source/Runtime/Public/Dxf/SceneStorage.h": {
+      "git_blob_sha1": "66ba2cda088fddb2c6da0362596705b15855de3d"
     },
     "Source/Toolbox/Public/Toolbox/JobSystem.h": {
-      "git_blob_sha1": "2ffbc55674e302cfdbab9e3ffc8df07a82c2108a",
-      "sha256": "1cb1eae7a30fd5ae302aada3d74da65d0c3ab44c5e6fd3a6a3a468ef194c9f40"
-    },
-    "Source/Toolbox/Public/Toolbox/Mutex.h": {
-      "git_blob_sha1": "6d5a3beda3d21b774cc0efda224f0ef10d9eee83",
-      "sha256": "6bf6929fb51128401bc738f71a3e1d18ede511f64b8b2717b6a6deeb4581d22c"
-    },
-    "Source/Toolbox/Public/Toolbox/Thread.h": {
-      "git_blob_sha1": "1867cdeaf732ad41216a9ca8e41c3c4753d424be",
-      "sha256": "dd8ac673770aa0eb22b84c6904e44ef660ec42be80a3dcf0f6ce7c3c30f6dfd3"
-    },
-    "Source/Toolbox/Public/Toolbox/UniquePtr.h": {
-      "git_blob_sha1": "ed0b1062733deae64013d280a3d32fde09e699bd",
-      "sha256": "e52a0ecb28338aa92032d03efb98faf663f101679f24ca5630115f81542c47a1"
-    },
-    "Source/Toolbox/Public/Toolbox/Utility.h": {
-      "git_blob_sha1": "d31905612cf2688bbc2fa773a644858118185e95",
-      "sha256": "36eac3e3311ca3ca2c127896184ac0be8a7e632784f9add238af8257b31ca38a"
-    },
-    "Source/Toolbox/Public/Toolbox/Vector.h": {
-      "git_blob_sha1": "b06c2a981e1595e722dbe1d624d162a910d583db",
-      "sha256": "156e2dfded70976dd8078979fc5f2aead1be6ec164fbdeaa41ec26f3c9517940"
-    },
-    "Source/Toolbox/Public/Toolbox/String.h": {
-      "git_blob_sha1": "7f737ebf705d29117ae8cd402c8ce83108493625",
-      "sha256": "e7fbb6039d13eddcb6619ce926a4d53e4be12073b08a0314e6589bbb948496d5"
-    },
-    "Source/Toolbox/Public/Toolbox/SharedPtr.h": {
-      "git_blob_sha1": "0bc8a3488d8df495504f827857d4011b8d6bc07e",
-      "sha256": "4e2dd5910893067a2ae63b8b648a0f99cbcafac99a6a14622010b271bbf3ea19"
+      "git_blob_sha1": "2ffbc55674e302cfdbab9e3ffc8df07a82c2108a"
     },
     "Source/Toolbox/Private/Toolbox/JobSystem.cpp": {
-      "git_blob_sha1": "93d0039a0d496c40d48e79bdb884ad73c9e28eb8",
-      "sha256": "ea7a80c555f901e9458049fbe9e1a9d58c6c34b38e9f832cd6a3958f0d8df155"
+      "git_blob_sha1": "93d0039a0d496c40d48e79bdb884ad73c9e28eb8"
     },
     "Source/Toolbox/Private/Toolbox/Threading.cpp": {
-      "git_blob_sha1": "60ea0a3de4e896496a85629cf80661f1b2790b0b",
-      "sha256": "23df41bf705cdd60782ad12478fbf5f491e3c936c41de76dd88f5fed7dcdea68"
+      "git_blob_sha1": "60ea0a3de4e896496a85629cf80661f1b2790b0b"
     },
-    "Source/Toolbox/Private/Toolbox/Testing/AllocationFault.h": {
-      "git_blob_sha1": "8140ff68416e96fdcfa8e808565d068fa21cfb2a",
-      "sha256": "1075cbc3bc64076bf4e078e039a1de7e7e26cce22ecb3232e7a820c918e361ff"
+    "Source/Toolbox/Public/Toolbox/UniquePtr.h": {
+      "git_blob_sha1": "ed0b1062733deae64013d280a3d32fde09e699bd"
     },
-    "Source/Toolbox/Private/Toolbox/Testing/AllocationFault.cpp": {
-      "git_blob_sha1": "6f8507c70ae86354edc7666d55594dde334c4cdc",
-      "sha256": "70c688114e3cf35faaa9a17ec23857761e7064dd1c57cda96e51d11c8ab6dc18"
+    "Source/Toolbox/Public/Toolbox/Function.h": {
+      "git_blob_sha1": "5d7a51a40fb8a98e36bb6f4d8040a29160131c89"
     },
-    "Tests/Support/Test.h": {
-      "git_blob_sha1": "e1c65057bd9fb07aa6487a6230d5b17c6746e0ce",
-      "sha256": "1c6237b8c5d0fe9bbd4b31ab7ff751c9b075290130ac97cfbc2d29f6cab2a0d4"
-    },
-    "Tools/CheckNoStl.py": {
-      "git_blob_sha1": "9a528b9f9bf17e347c3667bf866b201f2a0dc506",
-      "sha256": "b079a490487b7fedf82bf66d801073e7944b19b6305051ba88d3c2314e8be661"
+    "Source/Toolbox/Public/Toolbox/Vector.h": {
+      "git_blob_sha1": "b06c2a981e1595e722dbe1d624d162a910d583db"
     }
   }
 }

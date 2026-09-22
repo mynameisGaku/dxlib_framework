@@ -1,0 +1,14 @@
+{
+  "command": [
+    "cmake",
+    "-S",
+    "/mnt/data/scope_work/delivery/repo/Tools/ScopeTaskValidation",
+    "-B",
+    "/mnt/data/scope_work/delivery/build",
+    "-DCMAKE_BUILD_TYPE=Release"
+  ],
+  "exit_code": 0,
+  "timed_out": false,
+  "started_utc": "2026-09-22T09:07:06.143042+00:00",
+  "seconds": 1.63
+}

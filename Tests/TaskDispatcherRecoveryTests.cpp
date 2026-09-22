@@ -64,7 +64,11 @@ template <typename T> bool Retire_Internal(T& Tasks, const FTaskScope& Scope)
 	{
 		return Tasks.RetireScope(Scope);
 	}
-	return false;
+	else
+	{
+		// MSVCの/WXで到達不能コード警告にならないよう、未実装側を分岐内へ置く。
+		return false;
+	}
 }
 // 準備済みの正常要求を作る。
 FTaskRequest Healthy_Internal(FTaskScope Scope = {})

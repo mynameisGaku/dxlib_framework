@@ -3,7 +3,7 @@
 #include "Dxf/DxLibSession.h"
 #include "Dxf/AssetService.h"
 #include "Dxf/AudioPlayer.h"
-#include "Dxf/RenderSystem2D.h"
+#include "Dxf/RenderSystem.h"
 #include "Dxf/InputSystem.h"
 #include "Toolbox/Platform.h"
 #include "Toolbox/Utility.h"
@@ -112,7 +112,7 @@ TResult<FNativeSmokeReport> RunNativeSmoke(const Toolbox::FPath& AssetsDirectory
 		// 再生状態を管理する音声サービス。
 		FAudioPlayer Audio(Services.Sounds);
 		// 描画を実行する検証用レンダラー。
-		FRenderSystem2D Renderer(Services.Renderer);
+		FRenderSystem Renderer(Services.Renderer);
 		// 検証で配信する入力状態。
 		FInputSystem Input(Services.Input);
 		// 検証で使用する画像資源。
@@ -160,15 +160,15 @@ TResult<FNativeSmokeReport> RunNativeSmoke(const Toolbox::FPath& AssetsDirectory
 			// 失敗結果を例外へ変えてスモーク検証を中断する。
 			RequireSuccess_Internal(Render.ClearTarget({0, 0, 0, 255}));
 			// 失敗結果を例外へ変えてスモーク検証を中断する。
-			RequireSuccess_Internal(Render.Draw(Texture, {8, 8}));
+			RequireSuccess_Internal(Render.Get2D().DrawSprite(Texture, {8, 8}));
 			// 失敗結果を例外へ変えてスモーク検証を中断する。
 			RequireSuccess_Internal(Render.SetBackBuffer());
 			// 失敗結果を例外へ変えてスモーク検証を中断する。
-			RequireSuccess_Internal(Render.Draw(Target.AsTexture(), {16, 16}));
+			RequireSuccess_Internal(Render.Get2D().DrawSprite(Target.AsTexture(), {16, 16}));
 			// 失敗結果を例外へ変えてスモーク検証を中断する。
-			RequireSuccess_Internal(Render.FillRectangle({128, 24, 240, 80}));
+			RequireSuccess_Internal(Render.Get2D().FillRectangle({128, 24, 240, 80}));
 			// 失敗結果を例外へ変えてスモーク検証を中断する。
-			RequireSuccess_Internal(Render.DrawText(Font, "日本語 UTF-8", {16, 140}));
+			RequireSuccess_Internal(Render.Get2D().DrawText(Font, "日本語 UTF-8", {16, 140}));
 			// 失敗結果を例外へ変えてスモーク検証を中断する。
 			RequireSuccess_Internal(Render.Native(
 			    []

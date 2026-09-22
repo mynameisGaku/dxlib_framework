@@ -1,0 +1,25 @@
+$ ctest --test-dir Build\Integration-debug -N
+Test project C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Integration-debug
+  Test  #1: PhysicsContinuation
+  Test  #2: NoStl
+  Test  #3: Framework
+  Test  #4: ApplicationRenderIntegration
+  Test  #5: NativeContract
+  Test  #6: FrameworkAltCwd
+  Test  #7: AssetRootLaunch
+  Test  #8: DebugTools
+  Test  #9: DebugPhysicsCapture
+  Test #10: RenderTransparency
+  Test #11: RenderTransparencyFault
+  Test #12: NativeTransparency
+  Test #13: RenderContinuation
+  Test #14: JobFault-construction
+  Test #15: JobFault-submission
+  Test #16: JobFault-capture-wait
+  Test #17: JobFault-cross-system
+  Test #18: JobFault-fence-allocation
+  Test #19: RenderViews
+  Test #20: NativeViewsTranslation
+
+Total Tests: 20
+EXIT_CODE=0

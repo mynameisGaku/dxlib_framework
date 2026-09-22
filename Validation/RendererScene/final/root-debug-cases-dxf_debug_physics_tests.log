@@ -1,0 +1,12 @@
+$ Build\Integration-debug\dxf_debug_physics_tests.exe
+[WARNING][PhysicsDebug] 3D snapshot capture refused: Physics snapshot requires an idle World after a successful Step (PhysicsDebugSnapshot3D.cpp:180)
+[WARNING][PhysicsDebug] 3D snapshot capture refused: Physics snapshot collider limit exceeded (PhysicsDebugSnapshot3D.cpp:180)
+[WARNING][PhysicsDebug] 3D snapshot capture refused: Physics snapshot requires an idle World after a successful Step (PhysicsDebugSnapshot3D.cpp:180)
+PASS debug capture reads an actual stepped 3d world without a watch list
+PASS debug capture reaches the 3d render queue from an actual world
+PASS debug capture reports refusals as results and leaves no partial output
+PASS recorder does not capture while disabled and keeps paused history stable
+PASS 2d debug capture reads an actual world and reaches the 2d render queue
+PASS actual worlds preserve debug geometry in one and four execution lanes
+6/6 passed
+EXIT_CODE=0

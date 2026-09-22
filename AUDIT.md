@@ -1,75 +1,75 @@
-# TaskDispatcher回復更新・検証記録
+# Scene / Task寿命統合の実装・検証記録
 
-## 起点と未適用状態
+## 基準とソースの範囲
 
-利用者から「前回のダウンロードリンクが無効で、TaskDispatcher更新を適用できていない」と通知を受け、
-前回更新を前提にしないパッケージを作り直しました。前回ZIPを同一内容として再配布したものではありません。
-GitHubのmainは4868dc9811d60e227aa0d7c4d2c18410388d3d63でした。
+GitHubから確認した基準は`15f5df42571dddee2a0dcaede16e0fa826a9061b`。
+完全なcloneは取得できず、使用する依存部分を取得・復元してGit blob SHAを照合しました。
+`Validation/verified-source.json`は今回扱った元ファイルの照合値です。省略版の本体ヘッダーで検証していません。
+Payloadは変更・追加する12ファイルに限定し、検証用に復元した依存をユーザーの本体へコピーしません。
 
-元のTaskDispatcherの2ファイルはGitHub取得内容を保存し、Git blob SHAで一致を確認しました。
+## 設計上の判断
 
-- TaskDispatcher.h: `2802e6d7f9e3cdb9dc8012ac1eabc40564a1c9ff`
-- TaskDispatcher.cpp: `bdbf369e5b4fd5efc2c6a9741b89b5b807403de6`
+1. SceneポインタをStep後半で比較する旧方式を廃止し、Navigatorが切替と同じ場所でScopeを保持します。
+2. 次Sceneの同期初期化と未公開Scopeの確保が成功してから旧Scopeを退役します。初期化失敗では旧Scopeを保持します。
+3. 退役完了を確認するまではScene停止通知を呼びません。失効した旧Scopeは終了通知と旧デストラクタの間も保持します。
+4. 候補Sceneと未公開Scopeに専用の後始末ガードを置き、例外・終了要求で有効化されなかった候補も終了します。
+5. Taskの反映・捕捉解放中は、直接CommitやStepを拒否します。Shutdownは要求だけを保持し、安全な境界で完了します。
+6. NavigatorをApplicationのStep外から直接使う経路も考慮しました。Navigatorの通知中はApplicationの終了を遅延します。
+7. 旧SceneのデストラクタからQuitが要求される経路を、SetCurrent後にも検査します。新SceneのOnEnterを呼ばず終了します。
+8. TaskDispatcher.cppの退役・待機実装は変更していません。ヘッダーに所有スレッドと同期可否の観測入口を追加しました。
+9. Activation/TickのContext末尾に既定値付きTaskフィールドを追加します。同期初期化のContextは変更しません。
 
-Toolbox依存は回収できたソースから必要なものだけを取り出し、同コミットのGitHub treeのblob SHAと照合しました。
-Tests/Support/Test.hとCheckNoStl.pyも個別に照合しました。MANIFEST.jsonに照合値があります。
-**完全なチェックアウトは取得できていないため、全体ビルドを行ったとは扱いません。**
-依存の代用品や省略ヘッダーを実装Payloadへ入れていません。
+## 実行と比較
 
-## 修正判断
+今回の新規18件を、変更前の実装へも同じソースからビルドして実行しました。
+変更前は2件成功・16件失敗（CTest終了コード8）で、コンパイルエラーや省略したAPI実装だけを失敗の代用にしていません。
+新しいContextフィールドがない版でもテンプレートの検出分岐で同じテストを実行できます。
+16件を独立した不具合16個とは数えません。追加契約を確認するケースも含みます。
 
-1. PrepareがCanceledを返した記録を終端として回収し、後続Commitを進めます。
-2. 停止・取り消しの検査を生成と投入のMutex区間へ置きました。
-3. TVector::EmplaceBackは再確保前に一時値を作るため、捕捉を持つ記録を直接渡すだけでは、
-   確保失敗時に一時値の捕捉がMutex内で破棄されます。空記録を確保してから移動代入する形へ修正しました。
-   既存記録の再配置はnoexcept移動であることをstatic_assertで検査します。
-4. 提出途中を別カウンターで追跡し、Fence登録前の隙間も停止待ちに含めました。
-5. 実行中の記録は取り消し後も準備終了まで保持し、保留件数の枠を早く解放しません。
-6. Prepareの捕捉をMutex外で解放してからReadyを公開します。
-7. 取り消し・反映・投入撤回・終了の捕捉破棄をMutex外へ移し、待機の再入を拒否しました。
-8. 親の世代を保存し、親/子Scopeが再利用されても旧世代操作が新Scopeへ伝播しないようにしました。
-9. RetireScopeを追加しました。ただし全DispatcherのPrepareを同期する保守的な実装です。
+修正後はGCC Debug / Release、Clang ASan+UBSan、GCC ThreadSanitizerで18件が通過しました。
+ソースの説明・行折り返しを整えた後にも再ビルド・再実行しました。最終Releaseの反復出力にはPassedが900回あります。
+準備中Taskは協調取り消しを待つゲートを用いて観測し、任意sleepだけを待機の根拠にしていません。
+旧版の誤った破棄順を再現するときも、Scene外の観測データへ記録し、解放済みSceneへのアクセスをテストの仕様にしていません。
 
-## RedとGreen
+前回配布したRenderer統合器の出力に相当するApplicationの2ファイルについても、
+FRenderSystem / RenderPass3Dの本体と共に18件を実行しました。空描画のフレーム境界を使うScene寿命テストであり、
+前回の3D描画回帰やGPU/実SDKの検証を代替するものではありません。
 
-最終26件を元のTaskDispatcherでもビルド・実行しました。
-元ソースは5件通過、15件失敗、6件タイムアウトで、CTest終了コードは8です。
-API未実装による失敗も含むので、これを「21個の独立した不具合」とは数えません。
-タイムアウトは各ケース10秒、テストを別プロセスへ分離しています。
+今回のテストは実Applicationを実行しますが、リンクするのは必要依存に絞った構成です。
+Physics / Native / Gameplay全体と既存テストの全リンク・実行を確認したものではありません。
+専用CMakeの既定値には本体`dxf::framework`へリンクする経路を用意していますが、完全なRootでの実行は未確認です。
 
-修正後はGCC Debug、GCC Release、Clang ASan/UBSan、GCC ThreadSanitizerでそれぞれ26件通過しました。
-Releaseの各ケースを50回ずつ反復したログには1,300件のPassedがあり、全体終了コード0を確認しました。
-ゲートと条件変数で準備・捕捉の寿命を観測し、任意のsleepだけを根拠とする待機検証にはしていません。
-複数Producer/停止のストレスだけで、すべてのスケジュールを網羅したとは主張しません。
+## ビルド警告
 
-開発中には、新テストの初期化警告と、最初の修正版に残った確保失敗時の再入停止も検出しました。
-これらを修正してから最終プロファイルを実行しています。初期ログと最終ログは区別して保存しています。
-成功数を過去の更新から転記していません。
+初回の依存全体-Werror試験は、変更対象外のPlatform.cppのOutという引数が同名グローバルを隠す警告で停止しました。
+依存は改変せず、新規変更したRuntime実装と新規テストを警告エラー扱いに限定しました。
+GCC Releaseでは既存のTVector<char>に関する最適化時のstringop-overflow警告も表示されています。
+これを無条件に誤検出とも実害とも断定していません。今回のASan/UBSan経路では問題は検出されませんでしたが、
+Toolbox全体の数値・メモリ境界品質を保証する根拠にはしていません。原ログに警告を残しています。
 
-## 適用器
+## 配布・適用器
 
-対象6ファイルだけを検査して更新し、Toolboxや無関係なApplicationの修正はコピーしません。
-15件のテストで、dry-run、適用、同一内容の再実行、変更前退避、stage済み変更の拒否、未コミット変更の拒否、
-未追跡ファイルとの衝突、依存差異、依存欠落、Payload破損、CRLF、途中失敗の差し戻し、
-検査後の変更、symlink、ルート外指定/パス遡り等を確認しました。
-初期のCRLF試験でGitのstatキャッシュによる見かけ上の変更を検出したため、内容差分とindex差分を分けて確認しています。
-実適用中に対象を別プロセスで編集しないことが前提です。電源断を含む一括原子性は保証しません。
+基準の6ファイル更新と6ファイル追加。前回のRenderer統合済み版はApplicationのh/cppを一対の別ハッシュとして認識します。
+未知の内容や未コミット・stage済み変更に自動マージせず停止します。UTF-8 BOM / CRLFの有無を保ちます。
+退避先はリポジトリの外に作り、書き込み途中の例外は適用済み分を戻します。同時編集があればその編集を保護して退避先を通知します。
+Symlink / junction / パス遡り / 異なる内容の新規ファイルとの衝突を拒否します。
+適用器の18件では、dry-run・バックアップ・再適用・CRLF・対象変更・依存差異・破損Payload・途中失敗・同時編集・Renderer二形態を確認しています。
+GitのHEADやindexの内容を変更せず、リポジトリのreset / stash / commit / pushは行いません。
+検証用の一時Gitリポジトリにはダミー名でbaseline commitを作ります。ユーザーのリモートには書き込んでいません。
 
-## 残る作業
+## 残す制限
 
-- Application/SceneNavigatorから、SceneのOnExit/OnDeinitialize/破棄より前に退役する接続。
-- Scene準備失敗時に旧Scene/Scopeを維持する実Application回帰。
-- Scope単位の待機範囲の分離。現状は無関係なPrepareも待つ。
-- Windows/MSVC、実DxLib SDK、フレームワーク全体と既存テストの検証。
+- 退役待ちはScope単位ではなく全DispatcherのPrepare待機です。終わらないPrepareを強制終了しません。
+- Rootの仕事はScene寿命に結び付かず、個別GameObject/Componentの先行破棄もこのScopeでは保護しません。
+- OnInitializeの非同期化は行っていません。候補Sceneの独自非同期処理を外部ポインタから勝手に開始した場合は対象外です。
+- 所有スレッドでの利用・破棄が必要です。TaskDispatcherより長生きする借用Navigatorなど、所有契約違反を救済するものではありません。
+- Windows/MSVC、実DxLib SDK・画面・入力・音声デバイス、全体の既存CTestは未実行です。
+- FVector2、アセットRoot、.dxfpaths、Assets、Physics、描画APIの数値・挙動は今回の更新対象外です。
+- モデル・実ライト・Viewport・GPU計測、正式なWorld Snapshot APIはこの更新に含めません。
 
-この更新ではApplication/Renderer統合を適用済みとは仮定していません。
-FVector2、sln基準アセットRoot、.dxfpaths、Assets原本、Physics数値処理、描画APIは変更していません。
-GitHubへのcommit/pushも行っていません。新しいモデル・ライト・Viewport・GPU計測機能は含みません。
+## ZIP展開後の再検証
 
-## 配布の再検証
-
-ZIPを新しいディレクトリへ展開し、同梱の使い捨て旧版fixtureへdry-run、適用、再適用、
-差分検査、Release生成・ビルド・26件のCTest、15件の適用器テストを実行しました。すべて終了コード0です。
-配布用差分の初回チェックでは新規ファイル属性と字下げを修正し、その後のgit apply --checkも通過しました。
-最終配布物のInstaller、MANIFEST、全Payload、差分、テスト適用器が再検証した内容と一致することを確認しました。
-これは完全なリポジトリではなく、専用ターゲットに必要な元ファイルを持つfixtureでの再検証です。
+新しいZIPを別ディレクトリへ展開し、照合済み元ソースを持つ使い捨てGitリポジトリに、同梱適用器でdry-run・適用・再適用を実行しました。
+差分検査、適用後のReleaseビルド、18件のCTest、ZIP内適用器の18件、部分ソース103ファイルのNo-STL検査がすべて終了コード0でした。
+最終ZIPのPayload・Variants・適用器・テスト用fixtureが、この再検証に使用したものとバイト一致することも照合しています。
+README・AUDIT・STATUS・検証ログは結果を追記した説明用ファイルで、適用器による本体の上書き対象ではありません。

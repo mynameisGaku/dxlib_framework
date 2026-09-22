@@ -1,7 +1,7 @@
 #include "Support/Test.h"
 #include "Support/FakeBackend.h"
 #include "Dxf/AssetService.h"
-#include "Dxf/RenderSystem2D.h"
+#include "Dxf/RenderSystem.h"
 #include "Dxf/AudioPlayer.h"
 #include "Dxf/DxLibSession.h"
 #include "Toolbox/Utility.h"
@@ -132,15 +132,15 @@ TEST("Render queue sorts layer and order while preserving equal-key insertion")
 	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
 	// 描画を実行する検証用レンダラー。
-	FRenderSystem2D Renderer(Backend);
+	FRenderSystem Renderer(Backend);
 	auto A = Assets.LoadTexture("a.bmp").Value();
 	auto B = Assets.LoadTexture("b.bmp").Value();
 	REQUIRE(Renderer.BeginFrame(640, 480));
 	FSpriteDrawOptions Back;
 	Back.Layer = -1;
-	REQUIRE(Renderer.GetContext().Draw(A, {}));
-	REQUIRE(Renderer.GetContext().Draw(B, {}, Back));
-	REQUIRE(Renderer.GetContext().Draw(B, {}));
+	REQUIRE(Renderer.GetContext().Get2D().DrawSprite(A, {}));
+	REQUIRE(Renderer.GetContext().Get2D().DrawSprite(B, {}, Back));
+	REQUIRE(Renderer.GetContext().Get2D().DrawSprite(B, {}));
 	REQUIRE(Renderer.EndFrame());
 	REQUIRE(Backend.GetTrace().DrawHandles ==
 	        Toolbox::TVector<Toolbox::int32>(
@@ -153,15 +153,15 @@ TEST("Sprite opacity does not leak to following commands")
 	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
 	// 描画を実行する検証用レンダラー。
-	FRenderSystem2D Renderer(Backend);
+	FRenderSystem Renderer(Backend);
 	// 検証で使用する画像資源。
 	auto Texture = Assets.LoadTexture("a.bmp").Value();
 	REQUIRE(Renderer.BeginFrame(640, 480));
 	// 透過描画の検証条件。
 	FSpriteDrawOptions Transparent;
 	Transparent.Opacity = 0.3f;
-	REQUIRE(Renderer.GetContext().Draw(Texture, {}, Transparent));
-	REQUIRE(Renderer.GetContext().Draw(Texture, {}));
+	REQUIRE(Renderer.GetContext().Get2D().DrawSprite(Texture, {}, Transparent));
+	REQUIRE(Renderer.GetContext().Get2D().DrawSprite(Texture, {}));
 	REQUIRE(Renderer.EndFrame());
 	REQUIRE(Backend.GetTrace().Opacities == Toolbox::TVector<Toolbox::f32>({0.3f, 1.0f}));
 }
@@ -172,12 +172,12 @@ TEST("Render commands keep textures alive until execution")
 	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
 	// 描画を実行する検証用レンダラー。
-	FRenderSystem2D Renderer(Backend);
+	FRenderSystem Renderer(Backend);
 	REQUIRE(Renderer.BeginFrame(640, 480));
 	{
 		// 検証で使用する画像資源。
 		auto Texture = Assets.LoadTexture("a.bmp").Value();
-		REQUIRE(Renderer.GetContext().Draw(Texture, {}));
+		REQUIRE(Renderer.GetContext().Get2D().DrawSprite(Texture, {}));
 	}
 	REQUIRE(Backend.GetTrace().DeletedTextures.IsEmpty());
 	REQUIRE(Renderer.EndFrame());
@@ -190,11 +190,11 @@ TEST("Native barrier restores state after exception but discards the failed fram
 	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
 	// 描画を実行する検証用レンダラー。
-	FRenderSystem2D Renderer(Backend);
+	FRenderSystem Renderer(Backend);
 	// 検証で使用する画像資源。
 	auto Texture = Assets.LoadTexture("a.bmp").Value();
 	REQUIRE(Renderer.BeginFrame(640, 480));
-	REQUIRE(Renderer.GetContext().Draw(Texture, {}));
+	REQUIRE(Renderer.GetContext().Get2D().DrawSprite(Texture, {}));
 	// 描画状態リセットの呼び出し回数。
 	const Toolbox::int32 Resets = Backend.GetTrace().Resets;
 	// 検証対象の操作が返した成否と値。
@@ -218,14 +218,14 @@ TEST("Drawing render target into itself is rejected")
 	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
 	// 描画を実行する検証用レンダラー。
-	FRenderSystem2D Renderer(Backend);
+	FRenderSystem Renderer(Backend);
 	// 描画先または遷移先。
 	auto Target = Assets.CreateRenderTarget(128, 128).Value();
 	REQUIRE(Renderer.BeginFrame(640, 480));
 	REQUIRE(Renderer.SetRenderTarget(Target));
-	REQUIRE(!Renderer.GetContext().Draw(Target.AsTexture(), {}));
+	REQUIRE(!Renderer.GetContext().Get2D().DrawSprite(Target.AsTexture(), {}));
 	REQUIRE(Renderer.SetBackBuffer());
-	REQUIRE(Renderer.GetContext().Draw(Target.AsTexture(), {}));
+	REQUIRE(Renderer.GetContext().Get2D().DrawSprite(Target.AsTexture(), {}));
 	REQUIRE(Renderer.EndFrame());
 }
 TEST("Invalidated texture fails submission and never reaches backend")
@@ -235,12 +235,12 @@ TEST("Invalidated texture fails submission and never reaches backend")
 	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
 	// 描画を実行する検証用レンダラー。
-	FRenderSystem2D Renderer(Backend);
+	FRenderSystem Renderer(Backend);
 	// 検証で使用する画像資源。
 	auto Texture = Assets.LoadTexture("a.bmp").Value();
 	Assets.Shutdown();
 	REQUIRE(Renderer.BeginFrame(640, 480));
-	REQUIRE(!Renderer.GetContext().Draw(Texture, {}));
+	REQUIRE(!Renderer.GetContext().Get2D().DrawSprite(Texture, {}));
 	REQUIRE(Renderer.EndFrame());
 	REQUIRE(Backend.GetTrace().DrawHandles.IsEmpty());
 }
@@ -251,11 +251,11 @@ TEST("Invalidation between queue and flush is detected")
 	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
 	// 描画を実行する検証用レンダラー。
-	FRenderSystem2D Renderer(Backend);
+	FRenderSystem Renderer(Backend);
 	// 検証で使用する画像資源。
 	auto Texture = Assets.LoadTexture("a.bmp").Value();
 	REQUIRE(Renderer.BeginFrame(640, 480));
-	REQUIRE(Renderer.GetContext().Draw(Texture, {}));
+	REQUIRE(Renderer.GetContext().Get2D().DrawSprite(Texture, {}));
 	Assets.Shutdown();
 	REQUIRE(!Renderer.EndFrame());
 	REQUIRE(Backend.GetTrace().Presentations == 0);
@@ -267,14 +267,14 @@ TEST("Nonfinite sprite values are rejected")
 	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
 	// 描画を実行する検証用レンダラー。
-	FRenderSystem2D Renderer(Backend);
+	FRenderSystem Renderer(Backend);
 	// 検証で使用する画像資源。
 	auto Texture = Assets.LoadTexture("a.bmp").Value();
 	REQUIRE(Renderer.BeginFrame(640, 480));
 	// 検証条件を指定する読み込みオプション。
 	FSpriteDrawOptions Options;
 	Options.Opacity = Toolbox::TNumericLimits<Toolbox::f32>::QuietNaN();
-	REQUIRE(!Renderer.GetContext().Draw(Texture, {}, Options));
+	REQUIRE(!Renderer.GetContext().Get2D().DrawSprite(Texture, {}, Options));
 }
 TEST("Render flush prevents reentrant native calls")
 {
@@ -283,7 +283,7 @@ TEST("Render flush prevents reentrant native calls")
 	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
 	// 描画を実行する検証用レンダラー。
-	FRenderSystem2D Renderer(Backend);
+	FRenderSystem Renderer(Backend);
 	// 検証で使用する画像資源。
 	auto Texture = Assets.LoadTexture("a.bmp").Value();
 	REQUIRE(Renderer.BeginFrame(640, 480));
@@ -295,7 +295,7 @@ TEST("Render flush prevents reentrant native calls")
 			    return TResult<void>{};
 		    }));
 	};
-	REQUIRE(Renderer.GetContext().Draw(Texture, {}));
+	REQUIRE(Renderer.GetContext().Get2D().DrawSprite(Texture, {}));
 	REQUIRE(Renderer.EndFrame());
 }
 TEST("Each memory sound playback owns a distinct native handle")
@@ -430,7 +430,7 @@ TEST("Native state restoration failure aborts the frame")
 	// 検証用のバックエンド。
 	FFakeBackend Backend;
 	// 描画を実行する検証用レンダラー。
-	FRenderSystem2D Renderer(Backend);
+	FRenderSystem Renderer(Backend);
 	REQUIRE(Renderer.BeginFrame(640, 480));
 	REQUIRE(!Renderer.Native(
 	    [&]() -> TResult<void>
@@ -478,14 +478,14 @@ TEST("Scene-facing render context exposes ordered target and native barriers wit
 	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
 	// 描画を実行する検証用レンダラー。
-	FRenderSystem2D Renderer(Backend);
+	FRenderSystem Renderer(Backend);
 	// 描画先または遷移先。
 	auto Target = Assets.CreateRenderTarget(64, 64, false).Value();
 	REQUIRE(Renderer.BeginFrame(640, 480));
 	// フック呼び出しへ渡す実行環境。
 	auto& Context = Renderer.GetContext();
 	REQUIRE(Context.SetRenderTarget(Target));
-	REQUIRE(Context.FillRectangle({0, 0, 32, 32}));
+	REQUIRE(Context.Get2D().FillRectangle({0, 0, 32, 32}));
 	REQUIRE(Context.Native(
 	    [&]()
 	    {
@@ -493,7 +493,7 @@ TEST("Scene-facing render context exposes ordered target and native barriers wit
 		    return TResult<void>{};
 	    }));
 	REQUIRE(Context.SetBackBuffer());
-	REQUIRE(Context.Draw(Target.AsTexture(), {0, 0}));
+	REQUIRE(Context.Get2D().DrawSprite(Target.AsTexture(), {0, 0}));
 	REQUIRE(Renderer.EndFrame());
 }
 TEST("Queue-only render contexts reject unsupported immediate control explicitly")

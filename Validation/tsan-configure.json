@@ -1,0 +1,15 @@
+{
+  "command": [
+    "cmake",
+    "-S",
+    "/mnt/data/scope_work/work/Tools/ScopeTaskValidation",
+    "-B",
+    "/mnt/data/scope_work/build-tsan",
+    "-DCMAKE_BUILD_TYPE=Debug",
+    "-DDXF_SCOPE_THREAD_SANITIZER=ON"
+  ],
+  "exit_code": 0,
+  "timed_out": false,
+  "started_utc": "2026-09-22T08:49:53.002222+00:00",
+  "seconds": 0.114
+}

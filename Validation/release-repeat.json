@@ -1,0 +1,16 @@
+{
+  "command": [
+    "ctest",
+    "--test-dir",
+    "/mnt/data/scope_work/build-release",
+    "-j",
+    "4",
+    "--repeat",
+    "until-fail:100",
+    "--output-on-failure"
+  ],
+  "exit_code": 0,
+  "timed_out": false,
+  "started_utc": "2026-09-22T08:53:44.904421+00:00",
+  "seconds": 14.067
+}

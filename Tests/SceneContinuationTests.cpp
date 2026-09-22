@@ -4,7 +4,7 @@
 #include "Dxf/AssetService.h"
 #include "Dxf/GameObject.h"
 #include "Dxf/GameScene.h"
-#include "Dxf/RenderSystem2D.h"
+#include "Dxf/RenderSystem.h"
 #include "Dxf/SceneNavigator.h"
 #include "Toolbox/Function.h"
 #include "Toolbox/Utility.h"
@@ -379,7 +379,7 @@ TEST("shutdown from scene drawing suppresses child drawing and deinitializes onc
 	// 再生状態を管理する音声サービス。
 	FAudioPlayer Audio(Backend);
 	// フックへ渡す描画環境。
-	FRenderSystem2D Render(Backend);
+	FRenderSystem Render(Backend);
 	// シーンのライフサイクル観測値。
 	FSceneCounts SceneCounts;
 	// アクターのライフサイクル観測値。

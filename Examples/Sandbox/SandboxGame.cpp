@@ -96,7 +96,7 @@ DSandboxScene::DSandboxScene(Toolbox::FString AssetRoot, bool bAlternate)
 TResult<void> DSandboxScene::OnInitialize(const FInitContext& Context)
 {
 	// 描画するテクスチャ。
-	auto Texture = Context.Assets.LoadTexture(m_AssetRoot + "/player.abmp");
+	auto Texture = Context.Assets.LoadTexture(m_AssetRoot + "/player.bmp");
 	if (!Texture)
 	{
 		return TResult<void>::Failure(Texture.Error());
@@ -165,6 +165,7 @@ void DSandboxScene::OnTick(const FTickContext& Context)
 			throw Toolbox::FException(Voice.Error().Message);
 		}
 	}
+
 }
 // 現在の状態を描画する。
 // @param Render 現在の描画コンテキスト。

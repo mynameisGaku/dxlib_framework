@@ -8,7 +8,7 @@
 #include "Dxf/GameObjectCollection.h"
 #include "Dxf/SceneNavigator.h"
 #include "Dxf/GameInstance.h"
-#include "Dxf/RenderSystem2D.h"
+#include "Dxf/RenderSystem.h"
 #include "Toolbox/Function.h"
 using namespace Dxf;
 using namespace Dxf::Testing;
@@ -250,7 +250,7 @@ public:
 		return m_Navigator;
 	}
 	// 検証用の描画機能への参照を返す。
-	FRenderSystem2D& GetRenderer()
+	FRenderSystem& GetRenderer()
 	{
 		return m_Renderer;
 	}
@@ -269,7 +269,7 @@ private:
 	// シーン遷移の操作先。
 	FSceneNavigator m_Navigator;
 	// 検証用の描画サービス。
-	FRenderSystem2D m_Renderer;
+	FRenderSystem m_Renderer;
 	// 検証用の入力サービス。
 	FInputSnapshot m_Input;
 };

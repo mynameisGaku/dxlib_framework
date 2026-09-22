@@ -1,0 +1,23 @@
+$ /opt/pyvenv/bin/python test_applier.py
+test_apply_backup_and_idempotence (__main__.ApplierTests.test_apply_backup_and_idempotence) ... ok
+test_bom_crlf_roundtrip (__main__.ApplierTests.test_bom_crlf_roundtrip) ... ok
+test_concurrent_edit_is_not_overwritten_on_rollback (__main__.ApplierTests.test_concurrent_edit_is_not_overwritten_on_rollback) ... ok
+test_conflicting_new_file_is_preserved (__main__.ApplierTests.test_conflicting_new_file_is_preserved) ... ok
+test_corrupt_payload_is_rejected (__main__.ApplierTests.test_corrupt_payload_is_rejected) ... ok
+test_dirty_but_matching_supported_source_is_rejected (__main__.ApplierTests.test_dirty_but_matching_supported_source_is_rejected) ... ok
+test_dry_run_is_read_only (__main__.ApplierTests.test_dry_run_is_read_only) ... ok
+test_missing_or_duplicate_anchor_is_rejected (__main__.ApplierTests.test_missing_or_duplicate_anchor_is_rejected) ... ok
+test_partial_previous_update_is_rejected (__main__.ApplierTests.test_partial_previous_update_is_rejected) ... ok
+test_path_traversal_is_rejected (__main__.ApplierTests.test_path_traversal_is_rejected) ... ok
+test_staged_changes_are_rejected (__main__.ApplierTests.test_staged_changes_are_rejected) ... ok
+test_subdirectory_is_not_a_root (__main__.ApplierTests.test_subdirectory_is_not_a_root) ... ok
+test_symlink_is_rejected (__main__.ApplierTests.test_symlink_is_rejected) ... ok
+test_unknown_source_is_preserved (__main__.ApplierTests.test_unknown_source_is_preserved) ... ok
+test_write_failure_rolls_back (__main__.ApplierTests.test_write_failure_rolls_back) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 0.385s
+
+OK
+
+EXIT_CODE=0

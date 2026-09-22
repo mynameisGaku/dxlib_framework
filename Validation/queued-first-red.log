@@ -1,0 +1,21 @@
+Internal ctest changing into directory: /mnt/data/scope_work/build-debug
+Test project /mnt/data/scope_work/build-debug
+    Start 15: scope_queued_prepare_is_canceled_without_worker_slot
+    Start 16: scope_queued_cancel_preserves_pending_bound
+1/2 Test #15: scope_queued_prepare_is_canceled_without_worker_slot ...***Timeout  10.01 sec
+
+2/2 Test #16: scope_queued_cancel_preserves_pending_bound ............***Timeout  10.01 sec
+
+
+0% tests passed, 2 tests failed out of 2
+
+Label Time Summary:
+focused       =  20.02 sec*proc (2 tests)
+task-scope    =  20.02 sec*proc (2 tests)
+
+Total Test time (real) =  10.02 sec
+
+The following tests FAILED:
+	 15 - scope_queued_prepare_is_canceled_without_worker_slot (Timeout) focused task-scope
+	 16 - scope_queued_cancel_preserves_pending_bound (Timeout) focused task-scope
+Errors while running CTest

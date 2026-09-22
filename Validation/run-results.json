@@ -1,0 +1,125 @@
+[
+  {
+    "name": "debug-configure",
+    "command": [
+      "cmake",
+      "-S",
+      "/mnt/data/work_next/core-source/Tools/PhysicsSnapshotValidation",
+      "-B",
+      "/mnt/data/work_next/build-debug",
+      "-G",
+      "Ninja",
+      "-DCMAKE_BUILD_TYPE=Debug",
+      "-DCMAKE_CXX_COMPILER=g++",
+      "-DDXF_SNAPSHOT_CORE_ONLY=ON",
+      "-DDXF_SNAPSHOT_SANITIZERS=OFF"
+    ],
+    "exit_code": 0,
+    "seconds": 0.031
+  },
+  {
+    "name": "debug-build",
+    "command": [
+      "cmake",
+      "--build",
+      "/mnt/data/work_next/build-debug",
+      "-j",
+      "2"
+    ],
+    "exit_code": 0,
+    "seconds": 0.508
+  },
+  {
+    "name": "debug-tests",
+    "command": [
+      "ctest",
+      "--test-dir",
+      "/mnt/data/work_next/build-debug",
+      "--output-on-failure"
+    ],
+    "exit_code": 0,
+    "seconds": 0.048
+  },
+  {
+    "name": "release-configure",
+    "command": [
+      "cmake",
+      "-S",
+      "/mnt/data/work_next/core-source/Tools/PhysicsSnapshotValidation",
+      "-B",
+      "/mnt/data/work_next/build-release",
+      "-G",
+      "Ninja",
+      "-DCMAKE_BUILD_TYPE=Release",
+      "-DCMAKE_CXX_COMPILER=g++",
+      "-DDXF_SNAPSHOT_CORE_ONLY=ON",
+      "-DDXF_SNAPSHOT_SANITIZERS=OFF"
+    ],
+    "exit_code": 0,
+    "seconds": 0.039
+  },
+  {
+    "name": "release-build",
+    "command": [
+      "cmake",
+      "--build",
+      "/mnt/data/work_next/build-release",
+      "-j",
+      "2"
+    ],
+    "exit_code": 0,
+    "seconds": 0.023
+  },
+  {
+    "name": "release-tests",
+    "command": [
+      "ctest",
+      "--test-dir",
+      "/mnt/data/work_next/build-release",
+      "--output-on-failure"
+    ],
+    "exit_code": 0,
+    "seconds": 0.053
+  },
+  {
+    "name": "asan-configure",
+    "command": [
+      "cmake",
+      "-S",
+      "/mnt/data/work_next/core-source/Tools/PhysicsSnapshotValidation",
+      "-B",
+      "/mnt/data/work_next/build-asan",
+      "-G",
+      "Ninja",
+      "-DCMAKE_BUILD_TYPE=Debug",
+      "-DCMAKE_CXX_COMPILER=clang++",
+      "-DDXF_SNAPSHOT_CORE_ONLY=ON",
+      "-DDXF_SNAPSHOT_SANITIZERS=ON"
+    ],
+    "exit_code": 0,
+    "seconds": 0.036
+  },
+  {
+    "name": "asan-build",
+    "command": [
+      "cmake",
+      "--build",
+      "/mnt/data/work_next/build-asan",
+      "-j",
+      "2"
+    ],
+    "exit_code": 0,
+    "seconds": 0.02
+  },
+  {
+    "name": "asan-tests",
+    "command": [
+      "ctest",
+      "--test-dir",
+      "/mnt/data/work_next/build-asan",
+      "--output-on-failure"
+    ],
+    "exit_code": 0,
+    "seconds": 0.231
+  }
+]

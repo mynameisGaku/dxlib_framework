@@ -1,0 +1,84 @@
+$ ctest --test-dir .\Build\PhysicsSnapshot -C Release --output-on-failure --no-tests=error
+Test project C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/PhysicsSnapshot
+      Start  1: snapshot_core_empty_zero_limits
+ 1/36 Test  #1: snapshot_core_empty_zero_limits .................................   Passed    0.01 sec
+      Start  2: snapshot_core_includes_bodies_without_colliders
+ 2/36 Test  #2: snapshot_core_includes_bodies_without_colliders .................   Passed    0.01 sec
+      Start  3: snapshot_core_sparse_slots_keep_original_ids_and_order
+ 3/36 Test  #3: snapshot_core_sparse_slots_keep_original_ids_and_order ..........   Passed    0.04 sec
+      Start  4: snapshot_core_multiple_colliders_and_deleted_slots
+ 4/36 Test  #4: snapshot_core_multiple_colliders_and_deleted_slots ..............   Passed    0.01 sec
+      Start  5: snapshot_core_copies_motion_and_material_values
+ 5/36 Test  #5: snapshot_core_copies_motion_and_material_values .................   Passed    0.01 sec
+      Start  6: snapshot_core_survives_source_destruction
+ 6/36 Test  #6: snapshot_core_survives_source_destruction .......................   Passed    0.01 sec
+      Start  7: snapshot_core_copies_do_not_alias_source_or_each_other
+ 7/36 Test  #7: snapshot_core_copies_do_not_alias_source_or_each_other ..........   Passed    0.01 sec
+      Start  8: snapshot_core_body_limit_does_not_truncate
+ 8/36 Test  #8: snapshot_core_body_limit_does_not_truncate ......................   Passed    0.01 sec
+      Start  9: snapshot_core_collider_limit_does_not_truncate
+ 9/36 Test  #9: snapshot_core_collider_limit_does_not_truncate ..................   Passed    0.01 sec
+      Start 10: snapshot_core_wrong_world_parent_is_rejected
+10/36 Test #10: snapshot_core_wrong_world_parent_is_rejected ....................   Passed    0.01 sec
+      Start 11: snapshot_core_out_of_range_parent_is_rejected
+11/36 Test #11: snapshot_core_out_of_range_parent_is_rejected ...................   Passed    0.01 sec
+      Start 12: snapshot_core_dead_parent_is_rejected
+12/36 Test #12: snapshot_core_dead_parent_is_rejected ...........................   Passed    0.01 sec
+      Start 13: snapshot_core_reused_parent_generation_is_rejected
+13/36 Test #13: snapshot_core_reused_parent_generation_is_rejected ..............   Passed    0.01 sec
+      Start 14: snapshot_core_step_counts_once_not_per_substep
+14/36 Test #14: snapshot_core_step_counts_once_not_per_substep ..................   Passed    0.01 sec
+      Start 15: snapshot_core_in_progress_capture_is_rejected
+15/36 Test #15: snapshot_core_in_progress_capture_is_rejected ...................   Passed    0.01 sec
+      Start 16: snapshot_core_failed_step_does_not_publish_completed_metadata
+16/36 Test #16: snapshot_core_failed_step_does_not_publish_completed_metadata ...   Passed    0.01 sec
+      Start 17: snapshot_core_success_after_failure_allows_capture
+17/36 Test #17: snapshot_core_success_after_failure_allows_capture ..............   Passed    0.01 sec
+      Start 18: snapshot_core_step_overflow_is_rejected_before_changes
+18/36 Test #18: snapshot_core_step_overflow_is_rejected_before_changes ..........   Passed    0.01 sec
+      Start 19: snapshot_core_reentrant_step_is_rejected
+19/36 Test #19: snapshot_core_reentrant_step_is_rejected ........................   Passed    0.01 sec
+      Start 20: snapshot_core_copy_failure_preserves_previous_result
+20/36 Test #20: snapshot_core_copy_failure_preserves_previous_result ............   Passed    0.01 sec
+      Start 21: snapshot_world_empty_2d_3d
+21/36 Test #21: snapshot_world_empty_2d_3d ......................................   Passed    0.01 sec
+      Start 22: snapshot_world_all_bodies_and_compound_colliders_2d
+22/36 Test #22: snapshot_world_all_bodies_and_compound_colliders_2d .............   Passed    0.01 sec
+      Start 23: snapshot_world_all_bodies_and_compound_colliders_3d
+23/36 Test #23: snapshot_world_all_bodies_and_compound_colliders_3d .............   Passed    0.01 sec
+      Start 24: snapshot_world_destroy_and_reuse_2d
+24/36 Test #24: snapshot_world_destroy_and_reuse_2d .............................   Passed    0.01 sec
+      Start 25: snapshot_world_detach_and_reuse_3d
+25/36 Test #25: snapshot_world_detach_and_reuse_3d ..............................   Passed    0.01 sec
+      Start 26: snapshot_world_step_transform_and_no_mutation_2d
+26/36 Test #26: snapshot_world_step_transform_and_no_mutation_2d ................   Passed    0.01 sec
+      Start 27: snapshot_world_step_and_orientation_3d
+27/36 Test #27: snapshot_world_step_and_orientation_3d ..........................   Passed    0.01 sec
+      Start 28: snapshot_world_snapshot_survives_both_worlds
+28/36 Test #28: snapshot_world_snapshot_survives_both_worlds ....................   Passed    0.01 sec
+      Start 29: snapshot_world_limits_and_invalid_step_preserve_state
+29/36 Test #29: snapshot_world_limits_and_invalid_step_preserve_state ...........   Passed    0.01 sec
+      Start 30: snapshot_world_failed_step_blocks_capture_until_success_2d
+30/36 Test #30: snapshot_world_failed_step_blocks_capture_until_success_2d ......   Passed    0.01 sec
+      Start 31: snapshot_world_failed_step_blocks_capture_until_success_3d
+31/36 Test #31: snapshot_world_failed_step_blocks_capture_until_success_3d ......   Passed    0.01 sec
+      Start 32: snapshot_world_ids_are_world_scoped
+32/36 Test #32: snapshot_world_ids_are_world_scoped .............................   Passed    0.01 sec
+      Start 33: snapshot_world_local_box_and_flags_2d
+33/36 Test #33: snapshot_world_local_box_and_flags_2d ...........................   Passed    0.01 sec
+      Start 34: snapshot_world_local_obb_and_orientation_3d
+34/36 Test #34: snapshot_world_local_obb_and_orientation_3d .....................   Passed    0.01 sec
+      Start 35: snapshot_world_sleeping_matches_world_2d
+35/36 Test #35: snapshot_world_sleeping_matches_world_2d ........................   Passed    0.01 sec
+      Start 36: snapshot_world_capture_does_not_change_simulation
+36/36 Test #36: snapshot_world_capture_does_not_change_simulation ...............   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 36
+
+Label Time Summary:
+physics-snapshot    =   0.26 sec*proc (36 tests)
+snapshot_core_      =   0.16 sec*proc (20 tests)
+snapshot_world_     =   0.10 sec*proc (16 tests)
+
+Total Test time (real) =   0.29 sec
+EXIT_CODE=0

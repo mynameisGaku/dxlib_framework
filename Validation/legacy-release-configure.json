@@ -1,0 +1,14 @@
+{
+  "command": [
+    "cmake",
+    "-S",
+    "/mnt/data/scope_work/work/Tools/TaskValidation",
+    "-B",
+    "/mnt/data/scope_work/legacy-release",
+    "-DCMAKE_BUILD_TYPE=Release"
+  ],
+  "exit_code": 0,
+  "timed_out": false,
+  "started_utc": "2026-09-22T08:52:58.067964+00:00",
+  "seconds": 1.533
+}

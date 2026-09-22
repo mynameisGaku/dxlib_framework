@@ -1,0 +1,49 @@
+# Scope単位のTask退役
+
+## この更新の位置付け
+
+`15f5df4`のTaskDispatcher修正版、および前回配布したScene Task寿命統合に対する後続更新です。
+過去の`TaskDispatcherRecovery.md` / `SceneTaskLifetime.md`に記載した「RetireScopeはDispatcher全体のPrepareを待つ」という制限は、この更新で変更します。過去の検証結果そのものは書き換えません。
+
+## 契約
+
+`bool FTaskDispatcher::RetireScope(const FTaskScope& Scope) noexcept`の呼び方は変わりません。
+対象Scopeと子孫への新規投入を拒否し、未開始Prepareを実行せずに取り消します。
+実行中のPrepareとその捕捉の破棄、および対象の投入確定・撤回を同期します。
+対象TaskのCommitは実行せず、所有する捕捉データを解放してからtrueを返します。
+Rootや兄弟ScopeのPrepare、進行中のSubmit、取り消し済みの捕捉はこの待機対象にしません。
+
+- 構築スレッドの非再入区間からのみ使用します。Job・Commit・捕捉デストラクタからの呼び出しはfalseです。
+- Root、無効値、別Dispatcher、未来の世代はfalseです。falseから破棄可能と判断してはいけません。
+- 取り消し前に既に開始したPrepareは終了まで待ちます。協調取り消しや正常終了を実装してください。
+- 同じDispatcherの再利用済み旧世代は、旧Taskの最終捕捉解放が済んだ後だけ再利用できるためtrueです。新世代には触れません。
+- `DestroyScope`は引き続き非同期の失効です。対象の破棄前には`RetireScope`が必要です。
+- `WaitForPrepares`と`Shutdown`はDispatcher全体を同期するAPIのままです。
+
+## Scene統合との関係
+
+前回のScene Task統合が適用済みなら、SceneNavigatorが旧SceneのOnExit・OnDeinitialize・破棄前に呼んでいるRetireScopeをそのまま利用できます。IsOwnerThreadとCanSynchronizeの入口は保持します。
+
+TaskDispatcherだけが更新されたmainにも適用できます。ただし、その場合にSceneNavigatorへの接続まで新しく追加する更新ではありません。前回のScene Task統合を適用していない状態で、Sceneの破棄全体が保護されたとは扱わないでください。
+
+## 世代と捕捉の寿命
+
+受理したTaskは、自分のScopeからRootまで保持数を増やします。Prepareの実行終了だけでは保持を外しません。Commitの実行または取り消しに伴う最終捕捉解放の後に、Mutex内で保持数を減らします。
+
+失効済みScopeでも保持数が0でなければ位置を再利用しません。したがって、親や子の位置が再利用されたために、まだ実行中の旧Taskを退役対象から見失うことを防ぎます。捕捉のデストラクタはMutex外で実行します。
+
+## 未開始Jobと受付上限
+
+JobSystemへ受理された通知は`this`とTask通し番号だけを持ち、利用者のPrepare/Commit捕捉を直接持ちません。まだPrepareの実行権を取っていないTaskは、Dispatcher内の記録と捕捉を先に回収できます。後でWorkerが空の通知を消費しても、利用者のPrepareは呼ばれません。
+
+空通知はJobキューから物理的に削除するわけではありません。消費されるまでは受付上限MaxPendingへ含め、空通知を大量に蓄積して制限を回避することを防ぎます。そのため、退役が完了しても直ちに新しい投入枠が空くとは限りません。Dispatcher自体の破棄は全体Fenceの同期後です。
+
+## 順序
+
+PumpCommitsの残ったTask同士の投入順は維持します。RetireScopeは対象だけを列の途中から取り除く操作であり、Rootや兄弟のCommitを先に実行しません。兄弟が既に取り消されていても、その捕捉の回収は兄弟のRetireScope、PumpCommits、Shutdownに任せます。
+
+## 残る制約
+
+所有するPrepareや捕捉デストラクタが独自に他の処理を待つ場合、その利用者コード内の依存待ちは解消できません。終了しないPrepareを強制停止しません。Sceneより早く破棄される個々のGameObject/Componentの寿命、Rootに投入したScene参照、OnInitializeの非同期化は対象外です。
+
+Source・Examples・TestsではSTLを使用せず、Toolboxの同期型とコンテナを使います。Renderer、アセットパス、FVector2、Physics数値処理には変更を加えません。

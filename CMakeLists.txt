@@ -76,6 +76,7 @@ find_package(Threads REQUIRED)
 add_library(dxf_toolbox STATIC
     Source/Toolbox/Private/Toolbox/Threading.cpp
     Source/Toolbox/Private/Toolbox/JobSystem.cpp
+    Source/Toolbox/Private/Toolbox/Log.cpp
     Source/Toolbox/Private/Toolbox/Platform.cpp
     Source/Toolbox/Private/Toolbox/ProjectPaths.cpp
     Source/Toolbox/Private/Toolbox/Vector3.cpp
@@ -125,6 +126,7 @@ add_library(dxf_support STATIC
     Source/DxLibSupport/Private/Dxf/RenderGeometry3D.cpp
     Source/DxLibSupport/Private/Dxf/Render2DContext.cpp
     Source/DxLibSupport/Private/Dxf/Render3DContext.cpp
+    Source/DxLibSupport/Private/Dxf/RenderPass3D.cpp
     Source/DxLibSupport/Private/Dxf/DebugDrawAdapters.cpp
     Source/DxLibSupport/Private/Dxf/AssetService.cpp
     Source/DxLibSupport/Private/Dxf/AsyncAsset.cpp
@@ -132,7 +134,7 @@ add_library(dxf_support STATIC
     Source/DxLibSupport/Private/Dxf/TextureLoader.cpp
     Source/DxLibSupport/Private/Dxf/SoundLoader.cpp
     Source/DxLibSupport/Private/Dxf/FontLoader.cpp
-    Source/DxLibSupport/Private/Dxf/RenderSystem2D.cpp
+    Source/DxLibSupport/Private/Dxf/RenderSystem.cpp
     Source/DxLibSupport/Private/Dxf/RenderQueue2D.cpp
     Source/DxLibSupport/Private/Dxf/AudioPlayer.cpp)
 add_library(dxf::support ALIAS dxf_support)
@@ -200,13 +202,17 @@ if(DXF_BUILD_TESTS)
     endif()
     add_executable(dxf_tests Tests/TestMain.cpp Tests/Support/TestFs.cpp Tests/ToolboxTests.cpp Tests/MathCollisionTests.cpp Tests/FoundationTests.cpp Tests/SupportTests.cpp
         Tests/GameplayTests.cpp Tests/ApplicationTests.cpp Tests/SandboxTests.cpp Tests/FixedTickTests.cpp Tests/PhysicsSceneTests.cpp Tests/ThreadingTests.cpp Tests/AssetRootTests.cpp
-        Tests/HardeningTests.cpp Tests/RenderFailureTests.cpp Tests/SceneContinuationTests.cpp Tests/ResourceShutdownTests.cpp Tests/UsabilityTests.cpp Tests/StressTests.cpp Tests/StarterTests.cpp Tests/TaskDispatcherTests.cpp Tests/AssetAsyncTests.cpp Tests/RenderBatchTests.cpp Examples/Starter/Source/BootScene.cpp Examples/Sandbox/SandboxGame.cpp)
+        Tests/HardeningTests.cpp Tests/RenderFailureTests.cpp Tests/SceneContinuationTests.cpp Tests/ResourceShutdownTests.cpp Tests/UsabilityTests.cpp Tests/StressTests.cpp Tests/StarterTests.cpp Tests/TaskDispatcherTests.cpp Tests/LogTests.cpp Tests/AssetAsyncTests.cpp Tests/RenderBatchTests.cpp Examples/Starter/Source/BootScene.cpp Examples/Sandbox/SandboxGame.cpp)
     target_link_libraries(dxf_tests PRIVATE dxf::framework)
     target_include_directories(dxf_tests PRIVATE Tests Examples/Sandbox Examples/Starter/Source)
     dxf_ide_headers(dxf_tests Tests/Support Examples/Sandbox Examples/Starter/Source)
     dxf_warnings(dxf_tests)
     add_test(NAME Framework COMMAND dxf_tests)
     set_tests_properties(Framework PROPERTIES TIMEOUT 60 LABELS "portable")
+
+    # 実Application・Scene・Renderer・JobSystemを使う描画統合テスト。Backendだけがテスト実装。
+    include(CMake/ApplicationRenderIntegrationTests.cmake)
+    dxf_add_application_render_integration_tests(dxf::framework)
 
     add_executable(dxf_native_contract_tests Tests/TestMain.cpp Tests/NativeTests.cpp Tests/NativeMacroTests.cpp Tests/NativeSmoke/Smoke.cpp ${DXF_NATIVE_SOURCES})
     target_link_libraries(dxf_native_contract_tests PRIVATE dxf::framework)
@@ -332,6 +338,9 @@ if(TARGET NativeSmoke OR TARGET Sandbox)
         endif()
     endforeach()
 endif()
+
+# 任意のDebug観察層・テスト・RenderDebug。Native・export一覧・実行時パス関数の定義後に読み込む。
+include(CMake/DebugTools.cmake)
 
 if(DXF_INSTALL)
     include(GNUInstallDirs)

@@ -5,7 +5,7 @@
 #include "Dxf/GameObjectCollection.h"
 #include "Dxf/GameObject.h"
 #include "Dxf/SceneNavigator.h"
-#include "Dxf/RenderSystem2D.h"
+#include "Dxf/RenderSystem.h"
 #include "Toolbox/Function.h"
 #include "Toolbox/Utility.h"
 
@@ -254,7 +254,7 @@ TEST("Standalone object Draw translates unknown user exceptions to TResult")
 	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
 	// 描画を実行する検証用レンダラー。
-	FRenderSystem2D Renderer(Backend);
+	FRenderSystem Renderer(Backend);
 	// ライフサイクルの観測回数。
 	FHookCounts Counts;
 	DHookObject Object(Counts, {}, {},
@@ -421,18 +421,18 @@ TEST("Render execution failure prevents presenting a partial frame")
 	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
 	// 描画を実行する検証用レンダラー。
-	FRenderSystem2D Renderer(Backend);
+	FRenderSystem Renderer(Backend);
 	// 検証で使用する画像資源。
 	auto Texture = Assets.LoadTexture("a.bmp").Value();
 	REQUIRE(Renderer.BeginFrame(100, 100));
-	REQUIRE(Renderer.GetContext().Draw(Texture, {}));
+	REQUIRE(Renderer.GetContext().Get2D().DrawSprite(Texture, {}));
 	Backend.GetTrace().bFailDraw = true;
 	REQUIRE(!Renderer.Flush());
 	Backend.GetTrace().bFailDraw = false;
 	REQUIRE(!Renderer.EndFrame());
 	REQUIRE(Backend.GetTrace().Presentations == 0);
 	REQUIRE(Renderer.BeginFrame(100, 100));
-	REQUIRE(Renderer.GetContext().Draw(Texture, {}));
+	REQUIRE(Renderer.GetContext().Get2D().DrawSprite(Texture, {}));
 	REQUIRE(Renderer.EndFrame());
 	REQUIRE(Backend.GetTrace().Presentations == 1);
 }
@@ -482,12 +482,12 @@ TEST("Text rendering rejects malformed UTF8 and embedded NUL before dispatch")
 	// 検証で使用するフォント資源。
 	auto Font = Assets.LoadFont().Value();
 	// 描画を実行する検証用レンダラー。
-	FRenderSystem2D Renderer(Backend);
+	FRenderSystem Renderer(Backend);
 	REQUIRE(Renderer.BeginFrame(320, 240));
-	REQUIRE(!Renderer.GetContext().DrawText(Font, Toolbox::FString("a\0b", 3), {}));
-	REQUIRE(!Renderer.GetContext().DrawText(Font, Toolbox::FString("\xc0\xaf", 2), {}));
-	REQUIRE(Renderer.GetContext().DrawText(Font, "", {}));
-	REQUIRE(Renderer.GetContext().DrawText(Font, "日本語", {}));
+	REQUIRE(!Renderer.GetContext().Get2D().DrawText(Font, Toolbox::FString("a\0b", 3), {}));
+	REQUIRE(!Renderer.GetContext().Get2D().DrawText(Font, Toolbox::FString("\xc0\xaf", 2), {}));
+	REQUIRE(Renderer.GetContext().Get2D().DrawText(Font, "", {}));
+	REQUIRE(Renderer.GetContext().Get2D().DrawText(Font, "日本語", {}));
 	REQUIRE(Renderer.EndFrame());
 }
 

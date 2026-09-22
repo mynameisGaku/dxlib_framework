@@ -118,6 +118,13 @@ public:
 	 * フレーム中断・終了で、未実行の命令を解放する。
 	 */
 	void Clear_Internal() noexcept;
+	/**
+	 * 未実行の3D命令があるか。所有スレッドから、実行前の判定にだけ使う。
+	 */
+	FORCEINLINE bool HasCommands_Internal() const noexcept
+	{
+		return !m_Commands.IsEmpty();
+	}
 private:
 	/**
 	 * 一回のFlushまでに保持する線・三角形の合計上限。

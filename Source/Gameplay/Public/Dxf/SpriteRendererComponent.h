@@ -77,7 +77,7 @@ protected:
 			return;
 		}
 		// 処理結果。
-		auto Result = Render.Draw(m_Texture, m_Position, m_Options);
+		auto Result = Render.Get2D().DrawSprite(m_Texture, m_Position, m_Options);
 		if (!Result)
 		{
 			// ライフサイクルの入口で例外をTResultへ変換する。

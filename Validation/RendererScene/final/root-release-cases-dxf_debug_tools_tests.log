@@ -1,0 +1,29 @@
+$ Build\Integration-release\dxf_debug_tools_tests.exe
+PASS debug camera produces a valid view without modifying lighting
+PASS orbit camera clamps poles and rejects invalid input transactionally
+PASS local camera movement is normalized for diagonals
+PASS paused stepping is exactly one fixed tick and resume does not replay time
+PASS clock rejects invalid delta without losing a queued manual step
+PASS clock budgets catch-up and reports discarded time
+PASS snapshot history is bounded and returned values survive eviction
+PASS snapshot history rejects mixed worlds and nonmonotonic ticks
+PASS camera rejects poses whose float rounding collapses the view basis
+PASS conversion applies body rotation to collider offset and box axes once
+PASS conversion rejects colliders whose body generation or world does not match
+PASS conversion keeps bodies without colliders counted and never truncates
+PASS conversion handles empty worlds and refuses invalid state or time
+PASS physics overlay contains only edges centers and measured velocity
+PASS overlay is visible without lighting and does not open another view
+PASS overlay produces identical packets in one and four lanes
+PASS invalid overlay tail leaves existing commands unchanged
+PASS all disabled overlays still reject invalid settings
+PASS clock count is independent of render cadence for an equal duration
+PASS history and camera limits reject NaN and out of bounds inputs
+PASS clock reset discards fractional time while preserving pause and scale
+PASS 2d conversion rotates local centers and adds body angle to boxes once
+PASS 2d overlay maps meters to screen pixels with the y axis flipped
+PASS 2d overlay submits existing line and circle commands through the 2d context
+PASS actual frame owner executes 3d before 2d and presentation
+PASS application style job binding enables both generation entry points
+26/26 passed
+EXIT_CODE=0

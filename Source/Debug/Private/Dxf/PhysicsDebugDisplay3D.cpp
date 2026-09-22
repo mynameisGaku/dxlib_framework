@@ -12,7 +12,7 @@ TResult<FGeometryCommand3D> BuildPhysicsDebugGeometry3D(const FPhysicsDebugItem3
 	FGeometryCommand3D Command;
 	Command.Options.Layer = ERenderLayer3D::Overlay;
 	Command.Options.Depth = Settings.bAlwaysVisible ? EDepthMode3D::Always : EDepthMode3D::TestOnly;
-	Command.Options.Color = Item.Motion == EDebugBodyMotion::Static ? FColor{140, 140, 140, 255} :
+	Command.Options.Color = Item.Type == EBodyType::Static ? FColor{140, 140, 140, 255} :
 		(Item.bSleeping ? FColor{70, 140, 255, 255} : FColor{80, 255, 130, 255});
 	if (Settings.bColliders)
 	{

@@ -1,0 +1,235 @@
+$ cmake.exe --build Build\Cumulative-debug --parallel 8 -- -k 0
+[0/2] Re-checking globbed directories...
+[1/37] Copying sample assets
+[2/37] Building CXX object CMakeFiles\dxf_tests.dir\Tests\RenderFailureTests.cpp.obj
+FAILED: [code=2] CMakeFiles/dxf_tests.dir/Tests/RenderFailureTests.cpp.obj 
+C:\PROGRA~1\MICROS~1\18\COMMUN~1\VC\Tools\MSVC\1451~1.362\bin\Hostx64\x64\cl.exe  /nologo /TP  -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Examples\Sandbox -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Examples\Starter\Source -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public /DWIN32 /D_WINDOWS /EHsc /Zi /Ob0 /Od /RTC1 -std:c++20 -MTd /W4 /permissive- /utf-8 /EHsc /GR /showIncludes /FoCMakeFiles\dxf_tests.dir\Tests\RenderFailureTests.cpp.obj /FdCMakeFiles\dxf_tests.dir\ /FS -c C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\RenderFailureTests.cpp
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\RenderFailureTests.cpp(138): error C2039: 'FillRectangle': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+[3/37] Building CXX object CMakeFiles\dxf_tests.dir\Tests\UsabilityTests.cpp.obj
+FAILED: [code=2] CMakeFiles/dxf_tests.dir/Tests/UsabilityTests.cpp.obj 
+C:\PROGRA~1\MICROS~1\18\COMMUN~1\VC\Tools\MSVC\1451~1.362\bin\Hostx64\x64\cl.exe  /nologo /TP  -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Examples\Sandbox -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Examples\Starter\Source -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public /DWIN32 /D_WINDOWS /EHsc /Zi /Ob0 /Od /RTC1 -std:c++20 -MTd /W4 /permissive- /utf-8 /EHsc /GR /showIncludes /FoCMakeFiles\dxf_tests.dir\Tests\UsabilityTests.cpp.obj /FdCMakeFiles\dxf_tests.dir\ /FS -c C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\UsabilityTests.cpp
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/SpriteRendererComponent.h(80): error C2039: 'Draw': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/SpriteRendererComponent.h(81): error C3536: 'Result': 初期化前に使用することはできません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/SpriteRendererComponent.h(84): error C2512: 'Toolbox::FException': クラス、構造体、共用体に既定のコンストラクターがありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/SpriteRendererComponent.h(84): note: 'Toolbox::FException::FException': クラス、構造体、共用体に既定のコンストラクターがありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public\Toolbox/Utility.h(389): note: 'Toolbox::FException::FException(const T &) noexcept' の可能性があります
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/SpriteRendererComponent.h(84): note: 引数リスト '()' を一致させようとしているとき
+[4/37] Building CXX object CMakeFiles\dxf_tests.dir\Tests\SupportTests.cpp.obj
+FAILED: [code=2] CMakeFiles/dxf_tests.dir/Tests/SupportTests.cpp.obj 
+C:\PROGRA~1\MICROS~1\18\COMMUN~1\VC\Tools\MSVC\1451~1.362\bin\Hostx64\x64\cl.exe  /nologo /TP  -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Examples\Sandbox -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Examples\Starter\Source -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public /DWIN32 /D_WINDOWS /EHsc /Zi /Ob0 /Od /RTC1 -std:c++20 -MTd /W4 /permissive- /utf-8 /EHsc /GR /showIncludes /FoCMakeFiles\dxf_tests.dir\Tests\SupportTests.cpp.obj /FdCMakeFiles\dxf_tests.dir\ /FS -c C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\SupportTests.cpp
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\SupportTests.cpp(141): error C2039: 'Draw': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\SupportTests.cpp(142): error C2039: 'Draw': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\SupportTests.cpp(143): error C2039: 'Draw': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\SupportTests.cpp(163): error C2039: 'Draw': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\SupportTests.cpp(164): error C2039: 'Draw': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\SupportTests.cpp(180): error C2039: 'Draw': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\SupportTests.cpp(197): error C2039: 'Draw': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\SupportTests.cpp(226): error C2039: 'Draw': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\SupportTests.cpp(228): error C2039: 'Draw': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\SupportTests.cpp(243): error C2039: 'Draw': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\SupportTests.cpp(258): error C2039: 'Draw': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\SupportTests.cpp(277): error C2039: 'Draw': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\SupportTests.cpp(298): error C2039: 'Draw': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\SupportTests.cpp(488): error C2039: 'FillRectangle': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\SupportTests.cpp(496): error C2039: 'Draw': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+[5/37] Building CXX object CMakeFiles\dxf_tests.dir\Tests\HardeningTests.cpp.obj
+FAILED: [code=2] CMakeFiles/dxf_tests.dir/Tests/HardeningTests.cpp.obj 
+C:\PROGRA~1\MICROS~1\18\COMMUN~1\VC\Tools\MSVC\1451~1.362\bin\Hostx64\x64\cl.exe  /nologo /TP  -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Examples\Sandbox -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Examples\Starter\Source -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public /DWIN32 /D_WINDOWS /EHsc /Zi /Ob0 /Od /RTC1 -std:c++20 -MTd /W4 /permissive- /utf-8 /EHsc /GR /showIncludes /FoCMakeFiles\dxf_tests.dir\Tests\HardeningTests.cpp.obj /FdCMakeFiles\dxf_tests.dir\ /FS -c C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\HardeningTests.cpp
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\HardeningTests.cpp(428): error C2039: 'Draw': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\HardeningTests.cpp(435): error C2039: 'Draw': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\HardeningTests.cpp(487): error C2039: 'DrawText': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\HardeningTests.cpp(488): error C2039: 'DrawText': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\HardeningTests.cpp(489): error C2039: 'DrawText': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\HardeningTests.cpp(490): error C2039: 'DrawText': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+[6/37] Building CXX object CMakeFiles\dxf_tests.dir\Examples\Starter\Source\BootScene.cpp.obj
+[7/37] Building CXX object CMakeFiles\dxf_tests.dir\Tests\AssetAsyncTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[8/37] Building CXX object CMakeFiles\dxf_tests.dir\Tests\RenderBatchTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[9/37] Building CXX object CMakeFiles\dxf_native_contract_tests.dir\Tests\TestMain.cpp.obj
+[10/37] Building CXX object CMakeFiles\dxf_tests.dir\Tests\TaskDispatcherTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[11/37] Building CXX object CMakeFiles\dxf_native_contract_tests.dir\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp.obj
+FAILED: [code=2] CMakeFiles/dxf_native_contract_tests.dir/Source/Native/Private/Dxf/DxLibGeometryBackend.cpp.obj 
+C:\PROGRA~1\MICROS~1\18\COMMUN~1\VC\Tools\MSVC\1451~1.362\bin\Hostx64\x64\cl.exe  /nologo /TP -DDXF_TEST_ASSET_DIR=\"C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Assets\" -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FakeDxLib -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public /DWIN32 /D_WINDOWS /EHsc /Zi /Ob0 /Od /RTC1 -std:c++20 -MTd /W4 /permissive- /utf-8 /EHsc /GR /showIncludes /FoCMakeFiles\dxf_native_contract_tests.dir\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp.obj /FdCMakeFiles\dxf_native_contract_tests.dir\ /FS -c C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(14): error C2039: 'VECTOR': 'DxLib' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FakeDxLib\DxLib.h(103): note: 'DxLib' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(14): error C4430: 型指定子がありません - int と仮定しました。メモ: C++ は int を既定値としてサポートしていません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(14): error C2146: 構文エラー: ';' が、識別子 'NativeVector_Internal' の前に必要です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(15): error C2143: 構文エラー: ';' が '{' の前にありません。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(15): error C2447: '{': 対応する関数ヘッダーがありません (旧形式の仮引数リスト?)
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(24): error C2039: 'SetUseZBuffer3D': 'DxLib' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FakeDxLib\DxLib.h(103): note: 'DxLib' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(24): error C3861: 'SetUseZBuffer3D': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(24): error C2039: 'SetWriteZBuffer3D': 'DxLib' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FakeDxLib\DxLib.h(103): note: 'DxLib' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(24): error C3861: 'SetWriteZBuffer3D': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(25): error C2039: 'SetZBufferCmpType': 'DxLib' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FakeDxLib\DxLib.h(103): note: 'DxLib' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(25): error C2065: 'DX_CMP_LESSEQUAL': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(25): error C3861: 'SetZBufferCmpType': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(25): error C2039: 'SetZBufferCmpType3D': 'DxLib' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FakeDxLib\DxLib.h(103): note: 'DxLib' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(25): error C2065: 'DX_CMP_LESSEQUAL': 定義されていない識別子です。
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(25): error C3861: 'SetZBufferCmpType3D': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(41): error C2039: 'DrawLine': 'DxLib' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FakeDxLib\DxLib.h(103): note: 'DxLib' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(41): error C3861: 'DrawLine': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(52): error C2039: 'DrawCircle': 'DxLib' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FakeDxLib\DxLib.h(103): note: 'DxLib' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(52): error C3861: 'DrawCircle': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(63): error C2039: 'DrawTriangle': 'DxLib' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FakeDxLib\DxLib.h(103): note: 'DxLib' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(63): error C3861: 'DrawTriangle': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(75): error C2039: 'SetUseLighting': 'DxLib' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FakeDxLib\DxLib.h(103): note: 'DxLib' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(75): error C3861: 'SetUseLighting': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(75): error C2039: 'SetUseBackCulling': 'DxLib' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FakeDxLib\DxLib.h(103): note: 'DxLib' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(75): error C3861: 'SetUseBackCulling': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(77): error C2039: 'SetupCamera_Perspective': 'DxLib' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FakeDxLib\DxLib.h(103): note: 'DxLib' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(77): error C3861: 'SetupCamera_Perspective': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(77): error C2039: 'SetCameraNearFar': 'DxLib' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FakeDxLib\DxLib.h(103): note: 'DxLib' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(77): error C3861: 'SetCameraNearFar': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(78): error C2039: 'SetCameraPositionAndTargetAndUpVec': 'DxLib' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FakeDxLib\DxLib.h(103): note: 'DxLib' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(78): error C3861: 'NativeVector_Internal': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(78): error C3861: 'NativeVector_Internal': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(78): error C3861: 'NativeVector_Internal': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(78): error C3861: 'SetCameraPositionAndTargetAndUpVec': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(79): error C2039: 'ClearDrawScreenZBuffer': 'DxLib' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FakeDxLib\DxLib.h(103): note: 'DxLib' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(79): error C3861: 'ClearDrawScreenZBuffer': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(99): error C2039: 'DrawTriangle3D': 'DxLib' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FakeDxLib\DxLib.h(103): note: 'DxLib' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(99): error C3861: 'NativeVector_Internal': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(99): error C3861: 'NativeVector_Internal': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(99): error C3861: 'NativeVector_Internal': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(99): error C3861: 'DrawTriangle3D': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(113): error C2039: 'DrawLine3D': 'DxLib' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FakeDxLib\DxLib.h(103): note: 'DxLib' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(113): error C3861: 'NativeVector_Internal': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(113): error C3861: 'NativeVector_Internal': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(113): error C3861: 'DrawLine3D': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(139): error C2039: 'SetUseZBuffer3D': 'DxLib' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FakeDxLib\DxLib.h(103): note: 'DxLib' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(139): error C3861: 'SetUseZBuffer3D': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(143): error C2039: 'SetWriteZBuffer3D': 'DxLib' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FakeDxLib\DxLib.h(103): note: 'DxLib' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(143): error C3861: 'SetWriteZBuffer3D': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(147): error C2039: 'SetUseLighting': 'DxLib' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FakeDxLib\DxLib.h(103): note: 'DxLib' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(147): error C3861: 'SetUseLighting': 識別子が見つかりませんでした
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(151): error C2039: 'SetUseBackCulling': 'DxLib' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FakeDxLib\DxLib.h(103): note: 'DxLib' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp(151): error C3861: 'SetUseBackCulling': 識別子が見つかりませんでした
+[12/37] Building CXX object CMakeFiles\dxf_native_contract_tests.dir\Tests\NativeMacroTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[13/37] Building CXX object CMakeFiles\dxf_native_contract_tests.dir\Source\Native\Private\Dxf\DxLibPlatform.cpp.obj
+[14/37] Building CXX object CMakeFiles\dxf_native_contract_tests.dir\Tests\NativeSmoke\Smoke.cpp.obj
+FAILED: [code=2] CMakeFiles/dxf_native_contract_tests.dir/Tests/NativeSmoke/Smoke.cpp.obj 
+C:\PROGRA~1\MICROS~1\18\COMMUN~1\VC\Tools\MSVC\1451~1.362\bin\Hostx64\x64\cl.exe  /nologo /TP -DDXF_TEST_ASSET_DIR=\"C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Assets\" -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FakeDxLib -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public /DWIN32 /D_WINDOWS /EHsc /Zi /Ob0 /Od /RTC1 -std:c++20 -MTd /W4 /permissive- /utf-8 /EHsc /GR /showIncludes /FoCMakeFiles\dxf_native_contract_tests.dir\Tests\NativeSmoke\Smoke.cpp.obj /FdCMakeFiles\dxf_native_contract_tests.dir\ /FS -c C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\NativeSmoke\Smoke.cpp
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\NativeSmoke\Smoke.cpp(163): error C2039: 'Draw': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\NativeSmoke\Smoke.cpp(167): error C2039: 'Draw': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\NativeSmoke\Smoke.cpp(169): error C2039: 'FillRectangle': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\NativeSmoke\Smoke.cpp(171): error C2039: 'DrawText': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+[15/37] Building CXX object CMakeFiles\dxf_native_contract_tests.dir\Tests\NativeTests.cpp.obj
+FAILED: [code=2] CMakeFiles/dxf_native_contract_tests.dir/Tests/NativeTests.cpp.obj 
+C:\PROGRA~1\MICROS~1\18\COMMUN~1\VC\Tools\MSVC\1451~1.362\bin\Hostx64\x64\cl.exe  /nologo /TP -DDXF_TEST_ASSET_DIR=\"C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Assets\" -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\FakeDxLib -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Runtime\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public /DWIN32 /D_WINDOWS /EHsc /Zi /Ob0 /Od /RTC1 -std:c++20 -MTd /W4 /permissive- /utf-8 /EHsc /GR /showIncludes /FoCMakeFiles\dxf_native_contract_tests.dir\Tests\NativeTests.cpp.obj /FdCMakeFiles\dxf_native_contract_tests.dir\ /FS -c C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\NativeTests.cpp
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\NativeTests.cpp(112): error C2039: 'Draw': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\NativeTests.cpp(115): error C2039: 'DrawText': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\NativeTests.cpp(138): error C2039: 'Draw': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\NativeTests.cpp(152): error C2039: 'FillRectangle': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+[16/37] Linking CXX static library dxf_native_backendsd.lib
+[17/37] Building CXX object CMakeFiles\dxf_native_contract_tests.dir\Source\Native\Private\Dxf\DxLibInputSource.cpp.obj
+[18/37] Building CXX object CMakeFiles\dxf_tests.dir\Examples\Sandbox\SandboxGame.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[19/37] Building CXX object CMakeFiles\dxf_asset_probe.dir\Tests\AssetProbe\Main.cpp.obj
+[20/37] Building CXX object CMakeFiles\dxf_native_contract_tests.dir\Source\Native\Private\Dxf\DxLibTextureBackend.cpp.obj
+[21/37] Building CXX object CMakeFiles\dxf_native_contract_tests.dir\Source\Native\Private\Dxf\DxLibFontBackend.cpp.obj
+[22/37] Building CXX object CMakeFiles\dxf_native_contract_tests.dir\Source\Native\Private\Dxf\DxLibSoundBackend.cpp.obj
+[23/37] Building CXX object CMakeFiles\dxf_native_contract_tests.dir\Source\Native\Private\Dxf\DxLibRenderBackend.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[24/37] Building CXX object CMakeFiles\NativeSmoke.dir\Tests\NativeSmoke\Main.cpp.obj
+[25/37] Building CXX object CMakeFiles\NativeSmoke.dir\Tests\NativeSmoke\Smoke.cpp.obj
+FAILED: [code=2] CMakeFiles/NativeSmoke.dir/Tests/NativeSmoke/Smoke.cpp.obj 
+C:\PROGRA~1\MICROS~1\18\COMMUN~1\VC\Tools\MSVC\1451~1.362\bin\Hostx64\x64\cl.exe  /nologo /TP  -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Native\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Foundation\Public -IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Toolbox\Public -external:IC:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\ThirdParty\DxLib-3.25a\DxLib_VC\プロジェクトに追加すべきファイル_VC用 -external:W0 /DWIN32 /D_WINDOWS /EHsc /Zi /Ob0 /Od /RTC1 -std:c++20 -MTd /W4 /permissive- /utf-8 /EHsc /GR /showIncludes /FoCMakeFiles\NativeSmoke.dir\Tests\NativeSmoke\Smoke.cpp.obj /FdCMakeFiles\NativeSmoke.dir\ /FS -c C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\NativeSmoke\Smoke.cpp
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\NativeSmoke\Smoke.cpp(163): error C2039: 'Draw': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\NativeSmoke\Smoke.cpp(167): error C2039: 'Draw': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\NativeSmoke\Smoke.cpp(169): error C2039: 'FillRectangle': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\NativeSmoke\Smoke.cpp(171): error C2039: 'DrawText': 'Dxf::FRenderContext' のメンバーではありません
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderContext.h(13): note: 'Dxf::FRenderContext' の宣言を確認してください
+[26/37] Building CXX object CMakeFiles\Starter.dir\Examples\Starter\Source\BootScene.cpp.obj
+[27/37] Building CXX object CMakeFiles\Sandbox.dir\Examples\Sandbox\SandboxGame.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[28/37] Linking CXX executable dxf_asset_probe.exe
+[29/37] Linking CXX executable dxf_physics_tests.exe
+[30/37] Building CXX object CMakeFiles\Starter.dir\Examples\Starter\Source\WindowsMain.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[31/37] Building CXX object CMakeFiles\Sandbox.dir\Examples\Sandbox\WindowsMain.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[32/37] Linking CXX executable Sandbox.exe; Writing Sandbox.dxfpaths
+[33/37] Linking CXX executable Starter.exe; Writing Starter.dxfpaths
+ninja: build stopped: cannot make progress due to previous errors.
+EXIT_CODE=2

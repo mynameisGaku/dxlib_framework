@@ -1,0 +1,3 @@
+$ python Tools\CheckNoStl.py
+No-STL check: 258 files, 0 violations
+EXIT_CODE=0

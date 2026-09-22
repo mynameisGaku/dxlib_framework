@@ -1,0 +1,63 @@
+Internal ctest changing into directory: /mnt/data/scope_work/legacy-tsan
+Test project /mnt/data/scope_work/legacy-tsan
+      Start  1: td_canceled_prepare_head
+      Start  2: td_stopped_scope_creation
+      Start  3: td_canceled_scope_admission
+      Start  4: td_order_and_bound_1_4
+ 1/26 Test  #1: td_canceled_prepare_head .......................   Passed    0.12 sec
+      Start  5: td_unready_head_nonblocking
+ 2/26 Test  #3: td_canceled_scope_admission ....................   Passed    0.13 sec
+      Start  6: td_failure_order
+ 3/26 Test  #4: td_order_and_bound_1_4 .........................   Passed    0.13 sec
+      Start  7: td_capture_pump_query_reentry
+ 4/26 Test  #2: td_stopped_scope_creation ......................   Passed    0.16 sec
+      Start  8: td_capture_shutdown_reentry
+ 5/26 Test  #5: td_unready_head_nonblocking ....................   Passed    0.20 sec
+      Start  9: td_job_rejection_capture_reentry
+ 6/26 Test  #6: td_failure_order ...............................   Passed    0.18 sec
+ 7/26 Test  #7: td_capture_pump_query_reentry ..................   Passed    0.17 sec
+ 8/26 Test  #8: td_capture_shutdown_reentry ....................   Passed    0.17 sec
+      Start 10: td_allocation_rollback
+      Start 11: td_allocation_capture_reentry
+      Start 12: td_prepare_capture_before_commit
+ 9/26 Test  #9: td_job_rejection_capture_reentry ...............   Passed    0.12 sec
+      Start 13: td_retire_subtree_wait_and_capture
+10/26 Test #10: td_allocation_rollback .........................   Passed    0.12 sec
+      Start 14: td_retire_preserves_live_root
+11/26 Test #11: td_allocation_capture_reentry ..................   Passed    0.13 sec
+      Start 15: td_retire_rejects_job_and_commit
+12/26 Test #12: td_prepare_capture_before_commit ...............   Passed    0.13 sec
+      Start 16: td_shutdown_from_commit
+13/26 Test #14: td_retire_preserves_live_root ..................   Passed    0.13 sec
+      Start 17: td_reentrant_pump_rejected
+14/26 Test #15: td_retire_rejects_job_and_commit ...............   Passed    0.15 sec
+      Start 18: td_scope_generations_2000
+15/26 Test #13: td_retire_subtree_wait_and_capture .............   Passed    0.19 sec
+      Start 19: td_retire_stale_does_not_cancel_new
+16/26 Test #16: td_shutdown_from_commit ........................   Passed    0.17 sec
+      Start 20: td_owner_thread_commit
+17/26 Test #17: td_reentrant_pump_rejected .....................   Passed    0.13 sec
+      Start 21: td_retire_waits_prepare_destructor
+18/26 Test #19: td_retire_stale_does_not_cancel_new ............   Passed    0.15 sec
+      Start 22: td_retire_rejects_wrong_thread_and_capture
+19/26 Test #18: td_scope_generations_2000 ......................   Passed    0.21 sec
+      Start 23: td_canceled_running_task_keeps_pending_bound
+20/26 Test #21: td_retire_waits_prepare_destructor .............   Passed    0.13 sec
+      Start 24: td_capture_can_submit_after_pump
+21/26 Test #20: td_owner_thread_commit .........................   Passed    0.20 sec
+      Start 25: td_retire_invalid_and_repeated
+22/26 Test #22: td_retire_rejects_wrong_thread_and_capture .....   Passed    0.16 sec
+      Start 26: td_multiple_producers_race_shutdown
+23/26 Test #23: td_canceled_running_task_keeps_pending_bound ...   Passed    0.12 sec
+24/26 Test #24: td_capture_can_submit_after_pump ...............   Passed    0.11 sec
+25/26 Test #25: td_retire_invalid_and_repeated .................   Passed    0.13 sec
+26/26 Test #26: td_multiple_producers_race_shutdown ............   Passed    0.16 sec
+
+100% tests passed, 0 tests failed out of 26
+
+Label Time Summary:
+focused            =   3.91 sec*proc (26 tests)
+not-application    =   3.91 sec*proc (26 tests)
+task-dispatcher    =   3.91 sec*proc (26 tests)
+
+Total Test time (real) =   1.11 sec

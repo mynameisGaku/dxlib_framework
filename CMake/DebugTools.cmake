@@ -1,14 +1,18 @@
 # Optional observations only: Physics does not depend on Debug or rendering.
+# Debug reads the value snapshots that Physics captures (FPhysicsWorld2D/3D::CaptureSnapshot).
 add_library(dxf_debug_tools STATIC
     Source/Debug/Private/Dxf/DebugCamera3D.cpp
     Source/Debug/Private/Dxf/DebugStepController.cpp
     Source/Debug/Private/Dxf/DebugSnapshotHistory.cpp
     Source/Debug/Private/Dxf/PhysicsDebugSnapshot3D.cpp
-    Source/Debug/Private/Dxf/PhysicsDebugDisplay3D.cpp)
+    Source/Debug/Private/Dxf/PhysicsDebugSnapshot2D.cpp
+    Source/Debug/Private/Dxf/PhysicsDebugRecorder3D.cpp
+    Source/Debug/Private/Dxf/PhysicsDebugDisplay3D.cpp
+    Source/Debug/Private/Dxf/PhysicsDebugDisplay2D.cpp)
 add_library(dxf::debug_tools ALIAS dxf_debug_tools)
 set_target_properties(dxf_debug_tools PROPERTIES EXPORT_NAME debug_tools DEBUG_POSTFIX d)
 target_compile_features(dxf_debug_tools PUBLIC cxx_std_20)
-target_link_libraries(dxf_debug_tools PUBLIC dxf::support)
+target_link_libraries(dxf_debug_tools PUBLIC dxf::support dxf::physics)
 dxf_public_headers(dxf_debug_tools Debug PUBLIC)
 dxf_warnings(dxf_debug_tools)
 list(APPEND DXF_EXPORT_TARGETS dxf_debug_tools)

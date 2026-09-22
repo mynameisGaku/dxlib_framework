@@ -4,7 +4,7 @@
 #include "Dxf/DxLibSession.h"
 #include "Dxf/AssetService.h"
 #include "Dxf/AudioPlayer.h"
-#include "Dxf/RenderSystem2D.h"
+#include "Dxf/RenderSystem.h"
 #include "Dxf/GameInstance.h"
 #include "Dxf/SceneNavigator.h"
 #include "Dxf/TaskDispatcher.h"
@@ -100,7 +100,7 @@ public:
 	/**
 	 * 描画を統括するサービスを取得する。
 	 */
-	FORCEINLINE FRenderSystem2D& GetRenderer() noexcept
+	FORCEINLINE FRenderSystem& GetRenderer() noexcept
 	{
 		return m_Renderer;
 	}
@@ -119,18 +119,21 @@ public:
 		return m_ExecutionJobs;
 	}
 	/**
-	 * 共有Task Dispatcherを取得する。反映はStepの境界でのみ行う。
+	 * 共有Task Dispatcherを取得する。通常の反映はStepの境界で行う。
+	 * 手動Pumpを使う場合も、所有スレッドかつScene通知の外で実行する。
 	 */
 	FORCEINLINE FTaskDispatcher& GetTaskDispatcher() noexcept
 	{
 		return m_TaskDispatcher;
 	}
 	/**
-	 * 現在SceneのScopeを返す。Sceneがない場合は無効。
+	 * 有効化した現在SceneのScopeを返す。OnEnterの前に確定し、終了通知中は失効ハンドルを返す。
+	 * Scene破棄完了後は空になる。所有スレッドでのみ取得する。
+	 * OnInitialize中は遷移元のScopeであり、遷移先のTask投入には使わない。
 	 */
 	FORCEINLINE FTaskScope GetSceneScope() noexcept
 	{
-		return m_SceneScope;
+		return m_Scenes.GetTaskScope();
 	}
 
 private:
@@ -144,11 +147,6 @@ private:
 	 * @param NowSeconds 単調増加する現在時刻の秒数。
 	 */
 	TResult<bool> Step_Internal(Toolbox::f64 NowSeconds);
-	/**
-	 * Sceneの切り替わりに合わせてScopeを付け替える。
-	 * 切替失敗では旧SceneとそのScopeを維持する。
-	 */
-	void SyncSceneScope_Internal();
 	/**
 	 * 正常終了が要求されているかを調べる。
 	 */
@@ -176,7 +174,7 @@ private:
 	/**
 	 * 描画を統括するサービス。
 	 */
-	FRenderSystem2D m_Renderer;
+	FRenderSystem m_Renderer;
 	/**
 	 * 音声再生のサービス。
 	 */
@@ -189,14 +187,6 @@ private:
 	 * 共有実行のTask Dispatcher。
 	 */
 	FTaskDispatcher m_TaskDispatcher;
-	/**
-	 * 現在SceneのScope。Sceneがない場合は無効。
-	 */
-	FTaskScope m_SceneScope;
-	/**
-	 * Scopeを追跡中のScene。
-	 */
-	DScene* m_pTaskScene = nullptr;
 	/**
 	 * シーン間で共有するゲーム状態。
 	 */

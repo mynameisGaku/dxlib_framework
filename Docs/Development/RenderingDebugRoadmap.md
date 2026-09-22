@@ -11,7 +11,7 @@
 | 分割Viewport・複数ウィンドウ | 未実装。描画先全体、ビュー切替で深度初期化の既存制約を維持 | Viewport/Scissor/RenderTarget/Camera/Depthの独立性。複数ウィンドウはBackend能力調査から開始 |
 | 透明3D | **基本形状/CPUメッシュのプリミティブ単位ソートを追加**。不透明→透明→Overlay、透明はTestOnly | Windows実画面、実負荷、テクスチャ/MV1。重心ソートは近似で交差面の厳密な解決・OITは未実装 |
 | Nativeの任意の外部状態保存・復元 | 全状態の保証なし | ライブラリが管理する状態を列挙し、その範囲だけ保証。未知の外部状態は明示再設定する契約 |
-| 物理Snapshot | **明示登録した3D Colliderだけ**をStep後に採取するアダプターを追加 | World内部の全Collider列挙・Shape改訂・固定更新番号を持つ公開の観察API。2D版も必要 |
+| 物理Snapshot | **`FPhysicsWorld2D/3D::CaptureSnapshot()`を実Worldへ統合**。Debug表示は登録型Watchを廃止し、World採取値から変換（3D表示・履歴、2D表示の入口） | RenderDebugの実画面確認。同一Collider IDのShape更新と改訂番号は別作業 |
 | 接触・Impulse・Island・CCD診断の観察 | 未実装 | Solverが実際に用いた値を更新境界で採取。別の接触計算から作った値を実測値と表示しない |
 | デバッグUI | キー操作付きRenderDebug説明パネルのみ | 汎用メニュー、検索、選択ID連携、View別の設定保存、カテゴリ管理。今回のパネルを汎用エディター扱いしない |
 | カメラ操作 | 独立カメラのOrbit/距離/平行移動、物理停止中も操作可 | 正投影、選択物体Focus、マウスPicking、複数View、ゲームカメラとの切替 |
@@ -43,3 +43,15 @@ Scope/世代/容量を持つ設計を維持し、失効したIDへポインタ�
 透明パスを先行実装した。正式Physics Snapshotは未着手であり、登録型3D観察の制約を維持する。
 前回のRenderDebugを累積で収録し、F7半透明パネルを追加。旧root Draw入口は増やしていない。
 深度とビュー境界、Native状態復元、所有権の契約を維持する。詳しくはRendering/TransparentPasses.md。
+
+## 2026-09-23 Physics Snapshot統合・Renderer／Scene統合・累積回帰
+
+- `FPhysicsWorld2D/3D::CaptureSnapshot()`を実Worldへ統合。Debug表示は登録型Watchを廃止し、World採取値からの変換へ移行（3D表示・履歴、2D表示の入口とRenderDebugのF9最小例）。
+- ApplicationをFRenderSystemへ統一し、共有JobSystemを接続。root CMakeへRenderSystem.cpp・RenderPass3D.cpp・Application描画統合テスト・DebugTools.cmakeを登録。
+- 3D命令のないフレームでは3D実行後の2D状態復元を行わない。これで描画先切替の失敗がフレーム全体の失敗へ変わる回帰を解消した。
+- Scope待機分離を維持したままScene寿命統合を接続。関係ないRoot・兄弟ScopeのPrepareを待たずにScene切替が完了することを実Applicationで確認。
+- `Toolbox/Log.h`のDXF_LOGマクロを追加（[Logging.md](../Logging.md)）。
+- RenderDebugをDebug構成の実DxLib・実画面で確認（3D描画、2D復元、F4・F8・F9、停止・手送り）。
+- 未完了: Release構成の実SDK実行ファイルのリンク。公式DxLib 3.25aの`DxLib_vs2015_x64_MT.lib`だけがFBX読込を有効にしてビルドされており、FBX SDKを要求する。
+- 次の範囲（モデル）への入力: MV1変換ではなく、FBXからモデルとアニメーションを直接読み込みたいという要望がある。
+  FBX SDKの導入（利用許諾・全構成でのDxLib対応）と、フレームワーク側の読込経路のどちらを採るかを、モデル作業の開始時に決める。

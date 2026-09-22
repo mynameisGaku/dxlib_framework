@@ -1,0 +1,19 @@
+[1/3] Building CXX object CMakeFiles/dxf_physics_snapshot_core_tests.dir/Main.cpp.o
+FAILED: CMakeFiles/dxf_physics_snapshot_core_tests.dir/Main.cpp.o 
+/usr/bin/c++  -I/mnt/data/work_next/core-source/Tests -I/mnt/data/work_next/core-source/Source/Physics/Public -I/mnt/data/work_next/core-source/Source/Physics/Private/Dxf -I/mnt/data/work_next/core-source/Source/Toolbox/Public -g -std=c++20 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror -MD -MT CMakeFiles/dxf_physics_snapshot_core_tests.dir/Main.cpp.o -MF CMakeFiles/dxf_physics_snapshot_core_tests.dir/Main.cpp.o.d -o CMakeFiles/dxf_physics_snapshot_core_tests.dir/Main.cpp.o -c /mnt/data/work_next/core-source/Tools/PhysicsSnapshotValidation/Main.cpp
+In file included from /mnt/data/work_next/core-source/Tests/Support/Test.h:2,
+                 from /mnt/data/work_next/core-source/Tools/PhysicsSnapshotValidation/Main.cpp:2:
+/mnt/data/work_next/core-source/Source/Toolbox/Public/Toolbox/Function.h:4:10: fatal error: Toolbox/UniquePtr.h: No such file or directory
+    4 | #include "Toolbox/UniquePtr.h"
+      |          ^~~~~~~~~~~~~~~~~~~~~
+compilation terminated.
+[2/3] Building CXX object CMakeFiles/dxf_physics_snapshot_core_tests.dir/mnt/data/work_next/core-source/Tests/PhysicsSnapshotCoreTests.cpp.o
+FAILED: CMakeFiles/dxf_physics_snapshot_core_tests.dir/mnt/data/work_next/core-source/Tests/PhysicsSnapshotCoreTests.cpp.o 
+/usr/bin/c++  -I/mnt/data/work_next/core-source/Tests -I/mnt/data/work_next/core-source/Source/Physics/Public -I/mnt/data/work_next/core-source/Source/Physics/Private/Dxf -I/mnt/data/work_next/core-source/Source/Toolbox/Public -g -std=c++20 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror -MD -MT CMakeFiles/dxf_physics_snapshot_core_tests.dir/mnt/data/work_next/core-source/Tests/PhysicsSnapshotCoreTests.cpp.o -MF CMakeFiles/dxf_physics_snapshot_core_tests.dir/mnt/data/work_next/core-source/Tests/PhysicsSnapshotCoreTests.cpp.o.d -o CMakeFiles/dxf_physics_snapshot_core_tests.dir/mnt/data/work_next/core-source/Tests/PhysicsSnapshotCoreTests.cpp.o -c /mnt/data/work_next/core-source/Tests/PhysicsSnapshotCoreTests.cpp
+In file included from /mnt/data/work_next/core-source/Tests/Support/Test.h:2,
+                 from /mnt/data/work_next/core-source/Tests/PhysicsSnapshotCoreTests.cpp:2:
+/mnt/data/work_next/core-source/Source/Toolbox/Public/Toolbox/Function.h:4:10: fatal error: Toolbox/UniquePtr.h: No such file or directory
+    4 | #include "Toolbox/UniquePtr.h"
+      |          ^~~~~~~~~~~~~~~~~~~~~
+compilation terminated.
+ninja: build stopped: subcommand failed.

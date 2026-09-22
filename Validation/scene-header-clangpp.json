@@ -1,0 +1,23 @@
+{
+  "command": [
+    "clang++",
+    "-std=c++20",
+    "-fsyntax-only",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-I",
+    "/mnt/data/scope_work/work/Source/Runtime/Public",
+    "-I",
+    "/mnt/data/scope_work/work/Source/Foundation/Public",
+    "-I",
+    "/mnt/data/scope_work/work/Source/Toolbox/Public",
+    "-I",
+    "/mnt/data/scope_work/work/Source/DxLibSupport/Public",
+    "/mnt/data/scope_work/validation/SceneContract.cpp"
+  ],
+  "exit_code": 0,
+  "timed_out": false,
+  "started_utc": "2026-09-22T08:59:04.105189+00:00",
+  "seconds": 0.64
+}

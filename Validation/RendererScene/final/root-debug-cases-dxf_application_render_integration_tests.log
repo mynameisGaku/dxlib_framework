@@ -1,0 +1,39 @@
+$ Build\Integration-debug\dxf_application_render_integration_tests.exe
+[INFO][Scene] Activating scene with task scope 1/2 (SceneNavigator.cpp:215)
+[INFO][Application] Started (execution lanes=1) (Application.cpp:117)
+[INFO][Application] Shutting down (Application.cpp:318)
+[INFO][Scene] Activating scene with task scope 1/2 (SceneNavigator.cpp:215)
+[INFO][Application] Started (execution lanes=1) (Application.cpp:117)
+[INFO][Application] Shutting down (Application.cpp:318)
+[INFO][Scene] Activating scene with task scope 1/2 (SceneNavigator.cpp:215)
+[INFO][Application] Started (execution lanes=4) (Application.cpp:117)
+[INFO][Application] Shutting down (Application.cpp:318)
+[INFO][Scene] Activating scene with task scope 1/2 (SceneNavigator.cpp:215)
+[INFO][Application] Started (execution lanes=1) (Application.cpp:117)
+[ERROR][Application] Frame failed: expected geometry failure (Application.cpp:282)
+[INFO][Application] Shutting down (Application.cpp:318)
+[INFO][Scene] Activating scene with task scope 1/2 (SceneNavigator.cpp:215)
+[INFO][Application] Started (execution lanes=1) (Application.cpp:117)
+[ERROR][Application] Frame failed: expected geometry failure (Application.cpp:282)
+[INFO][Application] Shutting down (Application.cpp:318)
+[INFO][Scene] Activating scene with task scope 1/2 (SceneNavigator.cpp:215)
+[INFO][Application] Started (execution lanes=1) (Application.cpp:117)
+[INFO][Application] Shutting down (Application.cpp:318)
+[INFO][Scene] Activating scene with task scope 1/2 (SceneNavigator.cpp:215)
+[INFO][Application] Started (execution lanes=1) (Application.cpp:117)
+[INFO][Scene] Activating scene with task scope 2/3 (SceneNavigator.cpp:215)
+[INFO][Application] Shutting down (Application.cpp:318)
+[INFO][Scene] Activating scene with task scope 1/2 (SceneNavigator.cpp:215)
+[INFO][Application] Started (execution lanes=4) (Application.cpp:117)
+[ERROR][Application] Frame failed: expected generation failure (Application.cpp:282)
+[INFO][Application] Shutting down (Application.cpp:318)
+[PASS] application executes 3D then restores 2D then presents
+[PASS] application automatically shares its single execution lane with rendering
+[PASS] application automatically shares its worker pool with rendering
+[PASS] application does not present after a 3D backend failure
+[PASS] application preserves the first 3D error when cleanup throws
+[PASS] application discards both dimensions when a scene requests quit during drawing
+[PASS] application scene replacement does not replay the old 3D commands
+[PASS] application waits for a failed generated batch and does not present queued geometry
+8/8 passed
+EXIT_CODE=0

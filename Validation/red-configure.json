@@ -1,0 +1,15 @@
+{
+  "command": [
+    "cmake",
+    "-S",
+    "/mnt/data/scope_work/work/Tools/ScopeTaskValidation",
+    "-B",
+    "/mnt/data/scope_work/build-red",
+    "-DDXF_SCOPE_SOURCE_ROOT=/mnt/data/scope_work/baseline",
+    "-DCMAKE_BUILD_TYPE=Debug"
+  ],
+  "exit_code": 0,
+  "timed_out": false,
+  "started_utc": "2026-09-22T09:03:16.810559+00:00",
+  "seconds": 0.107
+}

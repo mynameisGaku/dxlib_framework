@@ -1,0 +1,67 @@
+$ /opt/pyvenv/bin/python /mnt/data/work_next/delivery_snapshot/dxf_physics_snapshot/Testing/run_core.py --build /mnt/data/work_next/delivery_snapshot_core
+-- The CXX compiler identification is GNU 14.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Configuring done (0.2s)
+-- Generating done (0.0s)
+-- Build files have been written to: /mnt/data/work_next/delivery_snapshot_core/build
+[ 33%] Building CXX object CMakeFiles/dxf_physics_snapshot_core_tests.dir/Main.cpp.o
+[ 66%] Building CXX object CMakeFiles/dxf_physics_snapshot_core_tests.dir/mnt/data/work_next/delivery_snapshot_core/source/Tests/PhysicsSnapshotCoreTests.cpp.o
+[100%] Linking CXX executable dxf_physics_snapshot_core_tests
+[100%] Built target dxf_physics_snapshot_core_tests
+Internal ctest changing into directory: /mnt/data/work_next/delivery_snapshot_core/build
+Test project /mnt/data/work_next/delivery_snapshot_core/build
+      Start  1: snapshot_core_empty_zero_limits
+ 1/20 Test  #1: snapshot_core_empty_zero_limits .................................   Passed    0.00 sec
+      Start  2: snapshot_core_includes_bodies_without_colliders
+ 2/20 Test  #2: snapshot_core_includes_bodies_without_colliders .................   Passed    0.00 sec
+      Start  3: snapshot_core_sparse_slots_keep_original_ids_and_order
+ 3/20 Test  #3: snapshot_core_sparse_slots_keep_original_ids_and_order ..........   Passed    0.00 sec
+      Start  4: snapshot_core_multiple_colliders_and_deleted_slots
+ 4/20 Test  #4: snapshot_core_multiple_colliders_and_deleted_slots ..............   Passed    0.00 sec
+      Start  5: snapshot_core_copies_motion_and_material_values
+ 5/20 Test  #5: snapshot_core_copies_motion_and_material_values .................   Passed    0.00 sec
+      Start  6: snapshot_core_survives_source_destruction
+ 6/20 Test  #6: snapshot_core_survives_source_destruction .......................   Passed    0.00 sec
+      Start  7: snapshot_core_copies_do_not_alias_source_or_each_other
+ 7/20 Test  #7: snapshot_core_copies_do_not_alias_source_or_each_other ..........   Passed    0.00 sec
+      Start  8: snapshot_core_body_limit_does_not_truncate
+ 8/20 Test  #8: snapshot_core_body_limit_does_not_truncate ......................   Passed    0.00 sec
+      Start  9: snapshot_core_collider_limit_does_not_truncate
+ 9/20 Test  #9: snapshot_core_collider_limit_does_not_truncate ..................   Passed    0.00 sec
+      Start 10: snapshot_core_wrong_world_parent_is_rejected
+10/20 Test #10: snapshot_core_wrong_world_parent_is_rejected ....................   Passed    0.00 sec
+      Start 11: snapshot_core_out_of_range_parent_is_rejected
+11/20 Test #11: snapshot_core_out_of_range_parent_is_rejected ...................   Passed    0.00 sec
+      Start 12: snapshot_core_dead_parent_is_rejected
+12/20 Test #12: snapshot_core_dead_parent_is_rejected ...........................   Passed    0.00 sec
+      Start 13: snapshot_core_reused_parent_generation_is_rejected
+13/20 Test #13: snapshot_core_reused_parent_generation_is_rejected ..............   Passed    0.00 sec
+      Start 14: snapshot_core_step_counts_once_not_per_substep
+14/20 Test #14: snapshot_core_step_counts_once_not_per_substep ..................   Passed    0.00 sec
+      Start 15: snapshot_core_in_progress_capture_is_rejected
+15/20 Test #15: snapshot_core_in_progress_capture_is_rejected ...................   Passed    0.00 sec
+      Start 16: snapshot_core_failed_step_does_not_publish_completed_metadata
+16/20 Test #16: snapshot_core_failed_step_does_not_publish_completed_metadata ...   Passed    0.00 sec
+      Start 17: snapshot_core_success_after_failure_allows_capture
+17/20 Test #17: snapshot_core_success_after_failure_allows_capture ..............   Passed    0.00 sec
+      Start 18: snapshot_core_step_overflow_is_rejected_before_changes
+18/20 Test #18: snapshot_core_step_overflow_is_rejected_before_changes ..........   Passed    0.00 sec
+      Start 19: snapshot_core_reentrant_step_is_rejected
+19/20 Test #19: snapshot_core_reentrant_step_is_rejected ........................   Passed    0.00 sec
+      Start 20: snapshot_core_copy_failure_preserves_previous_result
+20/20 Test #20: snapshot_core_copy_failure_preserves_previous_result ............   Passed    0.00 sec
+
+100% tests passed, 0 tests failed out of 20
+
+Label Time Summary:
+physics-snapshot    =   0.03 sec*proc (20 tests)
+snapshot_core_      =   0.03 sec*proc (20 tests)
+
+Total Test time (real) =   0.03 sec
+Shared capture unit tests completed. Real Physics World integration was NOT tested.
+
+EXIT_CODE=0

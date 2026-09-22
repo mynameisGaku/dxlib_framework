@@ -5,7 +5,7 @@
 #include "Dxf/GameScene.h"
 #include "Dxf/SpriteRendererComponent.h"
 #include "Dxf/AssetService.h"
-#include "Dxf/RenderSystem2D.h"
+#include "Dxf/RenderSystem.h"
 using namespace Dxf;
 using namespace Dxf::Testing;
 
@@ -123,7 +123,7 @@ TEST("Built-in sprite component draws through automatic child dispatch")
 	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
 	// 描画を実行する検証用レンダラー。
-	FRenderSystem2D Renderer(Backend);
+	FRenderSystem Renderer(Backend);
 	// 検証対象のオブジェクト。
 	DTestObject Object;
 	// 検証するスプライト。
@@ -146,7 +146,7 @@ TEST("Unconfigured sprite component is inert instead of issuing an invalid draw"
 	// 検証に使用する資源管理。
 	FAssetService Assets(Backend, Backend, Backend);
 	// 描画を実行する検証用レンダラー。
-	FRenderSystem2D Renderer(Backend);
+	FRenderSystem Renderer(Backend);
 	// 検証対象のオブジェクト。
 	DTestObject Object;
 	REQUIRE(Object.AddComponent<DSpriteRendererComponent>());

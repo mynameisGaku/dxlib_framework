@@ -1,0 +1,152 @@
+MSBuild のバージョン 18.10.1-1.26427.6+3cd27c13e (.NET Framework)
+
+  Checking File Globs
+  1>Checking Build System
+  Building Custom Rule C:/Users/g0190/AppData/Local/Temp/dxfmut/CMakeLists.txt
+  Building Custom Rule C:/Users/g0190/AppData/Local/Temp/dxfmut/CMakeLists.txt
+  Building Custom Rule C:/Users/g0190/AppData/Local/Temp/dxfmut/CMakeLists.txt
+  Threading.cpp
+  JobSystem.cpp
+  Platform.cpp
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\Toolbox\Private\Toolbox\Platform.cpp(535,55): warning C4459: 'Out' を宣言すると、グローバル宣言が隠蔽されます [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_toolbox.vcxproj]
+      C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\Toolbox\Public\Toolbox\Platform.h(221,23):
+      'Toolbox::Out' の宣言を確認してください
+  
+  ProjectPaths.cpp
+  Vector3.cpp
+  Matrix4.cpp
+  Quaternion.cpp
+  Complex.cpp
+  CollisionShapes.cpp
+  Collision2D.cpp
+  Contact2D.cpp
+  Contact3D.cpp
+  ContinuousCollision.cpp
+  FixedStepScheduler.cpp
+  Mesh.cpp
+  CollisionWorld.cpp
+  コードを生成中...
+  dxf_toolbox.vcxproj -> C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\Debug\dxf_toolboxd.lib
+  Building Custom Rule C:/Users/g0190/AppData/Local/Temp/dxfmut/CMakeLists.txt
+  PhysicsWorld2D.cpp
+  PhysicsWorld3D.cpp
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\Physics\Public\Dxf\RigidBody3D.h(49,20): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_physics.vcxproj]
+  (ソース ファイル '../../../../../../../AppData/Local/Temp/dxfmut/Source/Physics/Private/Dxf/PhysicsWorld3D.cpp' をコンパイルしています)
+  
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\Physics\Public\Dxf\RigidBody3D.h(69,44): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_physics.vcxproj]
+  (ソース ファイル '../../../../../../../AppData/Local/Temp/dxfmut/Source/Physics/Private/Dxf/PhysicsWorld3D.cpp' をコンパイルしています)
+  
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(108,51): warning C4324: 'Dxf::FBodyRecord3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_physics.vcxproj]
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(128,20): warning C4324: 'Dxf::FBodyRecord3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_physics.vcxproj]
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(168,20): warning C4324: 'Dxf::FSolvePoint3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_physics.vcxproj]
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(200,35): warning C4324: 'Dxf::FCachedImpulse3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_physics.vcxproj]
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(204,20): warning C4324: 'Dxf::FCachedImpulse3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_physics.vcxproj]
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(471,21): warning C4456: 'AxisA' を宣言すると、以前のローカル宣言が隠蔽されます [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_physics.vcxproj]
+      C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(448,22):
+      'AxisA' の宣言を確認してください
+  
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(472,21): warning C4456: 'AxisB' を宣言すると、以前のローカル宣言が隠蔽されます [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_physics.vcxproj]
+      C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(450,23):
+      'AxisB' の宣言を確認してください
+  
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324: 'Dxf::TPhysicsBodySnapshot<TBodyId,TVector,TRotation,TAngular>': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_physics.vcxproj]
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324:         with [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_physics.vcxproj]
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324:         [ [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_physics.vcxproj]
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324:             TBodyId=Dxf::FBodyId3D, [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_physics.vcxproj]
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324:             TVector=Toolbox::FVector3, [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_physics.vcxproj]
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324:             TRotation=Toolbox::FQuaternion, [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_physics.vcxproj]
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324:             TAngular=Toolbox::FVector3 [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_physics.vcxproj]
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324:         ] [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_physics.vcxproj]
+  (ソース ファイル '../../../../../../../AppData/Local/Temp/dxfmut/Source/Physics/Private/Dxf/PhysicsWorld3D.cpp' をコンパイルしています)
+      C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2):
+      テンプレートインスタンス化コンテキスト (最初に最も古いもの) は
+          C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(2687,12):
+          コンパイル対象の クラス テンプレート インスタンス化 'Dxf::TPhysicsBodySnapshot<TBodyId,TVector,TRotation,TAngular>' のリファレンスを確認してください
+          with
+          [
+              TBodyId=Dxf::FBodyId3D,
+              TVector=Toolbox::FVector3,
+              TRotation=Toolbox::FQuaternion,
+              TAngular=Toolbox::FVector3
+          ]
+  
+  ParallelPhysicsCore.cpp
+  コードを生成中...
+  dxf_physics.vcxproj -> C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\Debug\dxf_physicsd.lib
+  Building Custom Rule C:/Users/g0190/AppData/Local/Temp/dxfmut/CMakeLists.txt
+  RenderGeometry3D.cpp
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\DxLibSupport\Public\Dxf\RenderView3D.h(61,33): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_support.vcxproj]
+  (ソース ファイル '../../../../../../../AppData/Local/Temp/dxfmut/Source/DxLibSupport/Private/Dxf/RenderGeometry3D.cpp' をコンパイルしています)
+  
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\DxLibSupport\Public\Dxf\RenderView3D.h(85,44): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_support.vcxproj]
+  (ソース ファイル '../../../../../../../AppData/Local/Temp/dxfmut/Source/DxLibSupport/Private/Dxf/RenderGeometry3D.cpp' をコンパイルしています)
+  
+  Render2DContext.cpp
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\DxLibSupport\Public\Dxf\RenderView3D.h(61,33): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_support.vcxproj]
+  (ソース ファイル '../../../../../../../AppData/Local/Temp/dxfmut/Source/DxLibSupport/Private/Dxf/Render2DContext.cpp' をコンパイルしています)
+  
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\DxLibSupport\Public\Dxf\RenderView3D.h(85,44): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_support.vcxproj]
+  (ソース ファイル '../../../../../../../AppData/Local/Temp/dxfmut/Source/DxLibSupport/Private/Dxf/Render2DContext.cpp' をコンパイルしています)
+  
+  Render3DContext.cpp
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\DxLibSupport\Public\Dxf\RenderView3D.h(61,33): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_support.vcxproj]
+  (ソース ファイル '../../../../../../../AppData/Local/Temp/dxfmut/Source/DxLibSupport/Private/Dxf/Render3DContext.cpp' をコンパイルしています)
+  
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\DxLibSupport\Public\Dxf\RenderView3D.h(85,44): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_support.vcxproj]
+  (ソース ファイル '../../../../../../../AppData/Local/Temp/dxfmut/Source/DxLibSupport/Private/Dxf/Render3DContext.cpp' をコンパイルしています)
+  
+  RenderPass3D.cpp
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\DxLibSupport\Public\Dxf\RenderView3D.h(61,33): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_support.vcxproj]
+  (ソース ファイル '../../../../../../../AppData/Local/Temp/dxfmut/Source/DxLibSupport/Private/Dxf/RenderPass3D.cpp' をコンパイルしています)
+  
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\DxLibSupport\Public\Dxf\RenderView3D.h(85,44): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_support.vcxproj]
+  (ソース ファイル '../../../../../../../AppData/Local/Temp/dxfmut/Source/DxLibSupport/Private/Dxf/RenderPass3D.cpp' をコンパイルしています)
+  
+  DebugDrawAdapters.cpp
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\DxLibSupport\Public\Dxf\RenderView3D.h(61,33): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_support.vcxproj]
+  (ソース ファイル '../../../../../../../AppData/Local/Temp/dxfmut/Source/DxLibSupport/Private/Dxf/DebugDrawAdapters.cpp' をコンパイルしています)
+  
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\DxLibSupport\Public\Dxf\RenderView3D.h(85,44): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_support.vcxproj]
+  (ソース ファイル '../../../../../../../AppData/Local/Temp/dxfmut/Source/DxLibSupport/Private/Dxf/DebugDrawAdapters.cpp' をコンパイルしています)
+  
+  AssetService.cpp
+  AsyncAsset.cpp
+  AssetDecode.cpp
+  TextureLoader.cpp
+  SoundLoader.cpp
+  FontLoader.cpp
+  RenderSystem.cpp
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\DxLibSupport\Public\Dxf\RenderView3D.h(61,33): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_support.vcxproj]
+  (ソース ファイル '../../../../../../../AppData/Local/Temp/dxfmut/Source/DxLibSupport/Private/Dxf/RenderSystem.cpp' をコンパイルしています)
+  
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\DxLibSupport\Public\Dxf\RenderView3D.h(85,44): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_support.vcxproj]
+  (ソース ファイル '../../../../../../../AppData/Local/Temp/dxfmut/Source/DxLibSupport/Private/Dxf/RenderSystem.cpp' をコンパイルしています)
+  
+  RenderQueue2D.cpp
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\DxLibSupport\Public\Dxf\RenderView3D.h(61,33): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_support.vcxproj]
+  (ソース ファイル '../../../../../../../AppData/Local/Temp/dxfmut/Source/DxLibSupport/Private/Dxf/RenderQueue2D.cpp' をコンパイルしています)
+  
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\DxLibSupport\Public\Dxf\RenderView3D.h(85,44): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_support.vcxproj]
+  (ソース ファイル '../../../../../../../AppData/Local/Temp/dxfmut/Source/DxLibSupport/Private/Dxf/RenderQueue2D.cpp' をコンパイルしています)
+  
+  AudioPlayer.cpp
+  コードを生成中...
+  dxf_support.vcxproj -> C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\Debug\dxf_supportd.lib
+  Building Custom Rule C:/Users/g0190/AppData/Local/Temp/dxfmut/CMakeLists.txt
+  LifecycleObject.cpp
+  SceneNavigator.cpp
+  TaskDispatcher.cpp
+  Application.cpp
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\DxLibSupport\Public\Dxf\RenderView3D.h(61,33): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_runtime.vcxproj]
+  (ソース ファイル '../../../../../../../AppData/Local/Temp/dxfmut/Source/Runtime/Private/Dxf/Application.cpp' をコンパイルしています)
+  
+C:\Users\g0190\AppData\Local\Temp\dxfmut\Source\DxLibSupport\Public\Dxf\RenderView3D.h(85,44): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\dxf_runtime.vcxproj]
+  (ソース ファイル '../../../../../../../AppData/Local/Temp/dxfmut/Source/Runtime/Private/Dxf/Application.cpp' をコンパイルしています)
+  
+  コードを生成中...
+  dxf_runtime.vcxproj -> C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\framework\Debug\dxf_runtimed.lib
+  Building Custom Rule C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Tools/SceneTaskValidation/CMakeLists.txt
+  Main.cpp
+  SceneTaskIntegrationTests.cpp
+  コードを生成中...
+  dxf_scene_task_integration_tests.vcxproj -> C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneMutation\Debug\dxf_scene_task_integration_tests.exe

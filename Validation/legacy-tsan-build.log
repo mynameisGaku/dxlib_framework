@@ -1,0 +1,8 @@
+[ 28%] Building CXX object CMakeFiles/dxf_task_dispatcher_recovery_tests.dir/Main.cpp.o
+[ 28%] Building CXX object CMakeFiles/dxf_task_dispatcher_recovery_tests.dir/mnt/data/scope_work/work/Source/Runtime/Private/Dxf/TaskDispatcher.cpp.o
+[ 42%] Building CXX object CMakeFiles/dxf_task_dispatcher_recovery_tests.dir/mnt/data/scope_work/work/Tests/TaskDispatcherRecoveryTests.cpp.o
+[ 57%] Building CXX object CMakeFiles/dxf_task_dispatcher_recovery_tests.dir/mnt/data/scope_work/work/Source/Toolbox/Private/Toolbox/JobSystem.cpp.o
+[ 71%] Building CXX object CMakeFiles/dxf_task_dispatcher_recovery_tests.dir/mnt/data/scope_work/work/Source/Toolbox/Private/Toolbox/Threading.cpp.o
+[ 85%] Building CXX object CMakeFiles/dxf_task_dispatcher_recovery_tests.dir/mnt/data/scope_work/work/Source/Toolbox/Private/Toolbox/Testing/AllocationFault.cpp.o
+[100%] Linking CXX executable dxf_task_dispatcher_recovery_tests
+[100%] Built target dxf_task_dispatcher_recovery_tests

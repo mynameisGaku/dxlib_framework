@@ -1,0 +1,45 @@
+cmake_minimum_required(VERSION 3.24)
+project(DxfScopeTaskIsolation LANGUAGES CXX)
+get_filename_component(_default_root "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+set(DXF_SCOPE_SOURCE_ROOT "${_default_root}" CACHE PATH "Framework source root to compile (also used for baseline regression)")
+option(DXF_SCOPE_SANITIZERS "Enable ASan and UBSan on GCC/Clang" OFF)
+option(DXF_SCOPE_THREAD_SANITIZER "Enable TSan on GCC/Clang" OFF)
+if(DXF_SCOPE_SANITIZERS AND DXF_SCOPE_THREAD_SANITIZER)
+    message(FATAL_ERROR "Use separate build directories for ASan/UBSan and TSan")
+endif()
+find_package(Threads REQUIRED)
+add_executable(dxf_scope_task_tests
+    Main.cpp
+    "${_default_root}/Tests/TaskScopeIsolationTests.cpp"
+    "${DXF_SCOPE_SOURCE_ROOT}/Source/Runtime/Private/Dxf/TaskDispatcher.cpp"
+    "${DXF_SCOPE_SOURCE_ROOT}/Source/Toolbox/Private/Toolbox/JobSystem.cpp"
+    "${DXF_SCOPE_SOURCE_ROOT}/Source/Toolbox/Private/Toolbox/Threading.cpp")
+target_compile_features(dxf_scope_task_tests PRIVATE cxx_std_20)
+set_target_properties(dxf_scope_task_tests PROPERTIES CXX_EXTENSIONS OFF)
+target_include_directories(dxf_scope_task_tests PRIVATE
+    "${DXF_SCOPE_SOURCE_ROOT}/Source/Runtime/Public"
+    "${DXF_SCOPE_SOURCE_ROOT}/Source/Toolbox/Public"
+    "${DXF_SCOPE_SOURCE_ROOT}/Tests")
+target_link_libraries(dxf_scope_task_tests PRIVATE Threads::Threads)
+if(MSVC)
+    target_compile_options(dxf_scope_task_tests PRIVATE /W4 /WX /utf-8 /permissive- /EHsc)
+    if(DXF_SCOPE_SANITIZERS OR DXF_SCOPE_THREAD_SANITIZER)
+        message(FATAL_ERROR "These sanitizer profiles require GCC or Clang")
+    endif()
+else()
+    target_compile_options(dxf_scope_task_tests PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
+    if(DXF_SCOPE_SANITIZERS)
+        target_compile_options(dxf_scope_task_tests PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(dxf_scope_task_tests PRIVATE -fsanitize=address,undefined)
+    elseif(DXF_SCOPE_THREAD_SANITIZER)
+        target_compile_options(dxf_scope_task_tests PRIVATE -fsanitize=thread -fno-omit-frame-pointer)
+        target_link_options(dxf_scope_task_tests PRIVATE -fsanitize=thread)
+    endif()
+endif()
+enable_testing()
+file(STRINGS "${_default_root}/Tests/TaskScopeIsolationTests.cpp" _cases REGEX "^TEST\\(\"scope_[^\"]+\"\\)")
+foreach(_case IN LISTS _cases)
+    string(REGEX REPLACE "^TEST\\(\"([^\"]+)\"\\).*" "\\1" _name "${_case}")
+    add_test(NAME "${_name}" COMMAND dxf_scope_task_tests "${_name}")
+    set_tests_properties("${_name}" PROPERTIES TIMEOUT 10 LABELS "task-scope;focused")
+endforeach()

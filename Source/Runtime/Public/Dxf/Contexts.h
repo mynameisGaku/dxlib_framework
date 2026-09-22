@@ -3,6 +3,7 @@
 #include "Dxf/Input.h"
 #include "Dxf/InputSnapshot.h"
 #include "Toolbox/Vector.h"
+#include "Dxf/TaskDispatcher.h"
 namespace Dxf
 {
 class FAssetService;
@@ -50,6 +51,15 @@ struct FTickContext
 	 * シーンに紐づく音声の識別番号。
 	 */
 	Toolbox::uint64 AudioScope = 0;
+	/**
+	 * Applicationが所有するTaskの窓口。低レベルの単独利用ではnullptr。
+	 */
+	FTaskDispatcher* Tasks = nullptr;
+	/**
+	 * このSceneの有効化から終了までを保護する所属。OnEnter以降に使用する。
+	 * GameInstanceの更新ではRoot。Scopeなしの単独利用では無効。
+	 */
+	FTaskScope TaskScope{};
 };
 /**
  * 固定時間更新時の入力・時間・物理情報を管理する型。
@@ -239,5 +249,14 @@ struct FSceneActivationContext
 	 * シーンに紐づく音声の識別番号。
 	 */
 	Toolbox::uint64 AudioScope = 0;
+	/**
+	 * Applicationが所有するTaskの窓口。低レベルの単独利用ではnullptr。
+	 */
+	FTaskDispatcher* Tasks = nullptr;
+	/**
+	 * このSceneの有効化から終了までを保護する所属。OnEnter以降に使用する。
+	 * GameInstanceの更新ではRoot。Scopeなしの単独利用では無効。
+	 */
+	FTaskScope TaskScope{};
 };
 } // namespace Dxf

@@ -1,0 +1,121 @@
+$ cmake --build Build\PhysicsDebug --config Debug --target debug_tests debug_physics_tests
+MSBuild のバージョン 18.10.1-1.26427.6+3cd27c13e (.NET Framework)
+
+  DebugSnapshotHistory.cpp
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\RigidBody3D.h(49,20): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\core.vcxproj]
+  (ソース ファイル '../../Source/Debug/Private/Dxf/DebugSnapshotHistory.cpp' をコンパイルしています)
+  
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\RigidBody3D.h(69,44): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\core.vcxproj]
+  (ソース ファイル '../../Source/Debug/Private/Dxf/DebugSnapshotHistory.cpp' をコンパイルしています)
+  
+  PhysicsDebugDisplay2D.cpp
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf\RenderView3D.h(61,33): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\core.vcxproj]
+  (ソース ファイル '../../Source/Debug/Private/Dxf/PhysicsDebugDisplay2D.cpp' をコンパイルしています)
+  
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf\RenderView3D.h(85,44): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\core.vcxproj]
+  (ソース ファイル '../../Source/Debug/Private/Dxf/PhysicsDebugDisplay2D.cpp' をコンパイルしています)
+  
+  PhysicsDebugDisplay3D.cpp
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\RigidBody3D.h(49,20): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\core.vcxproj]
+  (ソース ファイル '../../Source/Debug/Private/Dxf/PhysicsDebugDisplay3D.cpp' をコンパイルしています)
+  
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\RigidBody3D.h(69,44): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\core.vcxproj]
+  (ソース ファイル '../../Source/Debug/Private/Dxf/PhysicsDebugDisplay3D.cpp' をコンパイルしています)
+  
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf\RenderView3D.h(61,33): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\core.vcxproj]
+  (ソース ファイル '../../Source/Debug/Private/Dxf/PhysicsDebugDisplay3D.cpp' をコンパイルしています)
+  
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf\RenderView3D.h(85,44): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\core.vcxproj]
+  (ソース ファイル '../../Source/Debug/Private/Dxf/PhysicsDebugDisplay3D.cpp' をコンパイルしています)
+  
+  PhysicsDebugRecorder3D.cpp
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\RigidBody3D.h(49,20): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\core.vcxproj]
+  (ソース ファイル '../../Source/Debug/Private/Dxf/PhysicsDebugRecorder3D.cpp' をコンパイルしています)
+  
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\RigidBody3D.h(69,44): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\core.vcxproj]
+  (ソース ファイル '../../Source/Debug/Private/Dxf/PhysicsDebugRecorder3D.cpp' をコンパイルしています)
+  
+  PhysicsDebugSnapshot2D.cpp
+  PhysicsDebugSnapshot3D.cpp
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\RigidBody3D.h(49,20): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\core.vcxproj]
+  (ソース ファイル '../../Source/Debug/Private/Dxf/PhysicsDebugSnapshot3D.cpp' をコンパイルしています)
+  
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\RigidBody3D.h(69,44): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\core.vcxproj]
+  (ソース ファイル '../../Source/Debug/Private/Dxf/PhysicsDebugSnapshot3D.cpp' をコンパイルしています)
+  
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324: 'Dxf::TPhysicsBodySnapshot<TBodyId,TVector,TRotation,TAngular>': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\core.vcxproj]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324:         with [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\core.vcxproj]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324:         [ [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\core.vcxproj]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324:             TBodyId=Dxf::FBodyId3D, [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\core.vcxproj]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324:             TVector=Toolbox::FVector3, [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\core.vcxproj]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324:             TRotation=Toolbox::FQuaternion, [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\core.vcxproj]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324:             TAngular=Toolbox::FVector3 [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\core.vcxproj]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324:         ] [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\core.vcxproj]
+  (ソース ファイル '../../Source/Debug/Private/Dxf/PhysicsDebugSnapshot3D.cpp' をコンパイルしています)
+      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2):
+      テンプレートインスタンス化コンテキスト (最初に最も古いもの) は
+          C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Debug\Private\Dxf\PhysicsDebugSnapshot3D.cpp(50,27):
+          コンパイル対象の クラス テンプレート インスタンス化 'Dxf::TPhysicsBodySnapshot<TBodyId,TVector,TRotation,TAngular>' のリファレンスを確認してください
+          with
+          [
+              TBodyId=Dxf::FBodyId3D,
+              TVector=Toolbox::FVector3,
+              TRotation=Toolbox::FQuaternion,
+              TAngular=Toolbox::FVector3
+          ]
+  
+  コードを生成中...
+  core.vcxproj -> C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\Debug\core.lib
+  DebugToolsTests.cpp
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf\RenderView3D.h(61,33): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\debug_tests.vcxproj]
+  (ソース ファイル '../../Tests/DebugToolsTests.cpp' をコンパイルしています)
+  
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf\RenderView3D.h(85,44): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\debug_tests.vcxproj]
+  (ソース ファイル '../../Tests/DebugToolsTests.cpp' をコンパイルしています)
+  
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\RigidBody3D.h(49,20): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\debug_tests.vcxproj]
+  (ソース ファイル '../../Tests/DebugToolsTests.cpp' をコンパイルしています)
+  
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\RigidBody3D.h(69,44): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\debug_tests.vcxproj]
+  (ソース ファイル '../../Tests/DebugToolsTests.cpp' をコンパイルしています)
+  
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324: 'Dxf::TPhysicsBodySnapshot<TBodyId,TVector,TRotation,TAngular>': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\debug_tests.vcxproj]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324:         with [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\debug_tests.vcxproj]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324:         [ [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\debug_tests.vcxproj]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324:             TBodyId=Dxf::FBodyId3D, [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\debug_tests.vcxproj]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324:             TVector=Toolbox::FVector3, [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\debug_tests.vcxproj]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324:             TRotation=Toolbox::FQuaternion, [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\debug_tests.vcxproj]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324:             TAngular=Toolbox::FVector3 [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\debug_tests.vcxproj]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324:         ] [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\debug_tests.vcxproj]
+  (ソース ファイル '../../Tests/DebugToolsTests.cpp' をコンパイルしています)
+      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2):
+      テンプレートインスタンス化コンテキスト (最初に最も古いもの) は
+          C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\DebugToolsTests.cpp(140,28):
+          コンパイル対象の クラス テンプレート インスタンス化 'Dxf::TPhysicsBodySnapshot<TBodyId,TVector,TRotation,TAngular>' のリファレンスを確認してください
+          with
+          [
+              TBodyId=Dxf::FBodyId3D,
+              TVector=Toolbox::FVector3,
+              TRotation=Toolbox::FQuaternion,
+              TAngular=Toolbox::FVector3
+          ]
+  
+  debug_tests.vcxproj -> C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\Debug\debug_tests.exe
+MSBuild のバージョン 18.10.1-1.26427.6+3cd27c13e (.NET Framework)
+
+  core.vcxproj -> C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\Debug\core.lib
+  DebugPhysicsIntegrationTests.cpp
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\RigidBody3D.h(49,20): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\debug_physics_tests.vcxproj]
+  (ソース ファイル '../../Tests/DebugPhysicsIntegrationTests.cpp' をコンパイルしています)
+  
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\RigidBody3D.h(69,44): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\debug_physics_tests.vcxproj]
+  (ソース ファイル '../../Tests/DebugPhysicsIntegrationTests.cpp' をコンパイルしています)
+  
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf\RenderView3D.h(61,33): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\debug_physics_tests.vcxproj]
+  (ソース ファイル '../../Tests/DebugPhysicsIntegrationTests.cpp' をコンパイルしています)
+  
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf\RenderView3D.h(85,44): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\debug_physics_tests.vcxproj]
+  (ソース ファイル '../../Tests/DebugPhysicsIntegrationTests.cpp' をコンパイルしています)
+  
+  debug_physics_tests.vcxproj -> C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\PhysicsDebug\Debug\debug_physics_tests.exe
+EXIT_CODE=0

@@ -2,6 +2,7 @@
 #ifndef DXF_PHYSICS_RIGID_BODY_3D_H
 #define DXF_PHYSICS_RIGID_BODY_3D_H
 #include "Dxf/BodyType.h"
+#include "Dxf/PhysicsSnapshot.h"
 #include "Dxf/PhysicsExecution.h"
 #include "Toolbox/Contact3D.h"
 #include "Toolbox/Variant.h"
@@ -219,6 +220,11 @@ struct FSleepSettings3D
 	 */
 	Toolbox::f32 AngularSpeedLimit = 0.05f;
 };
+/**
+ * 3D Worldの値所有Snapshot。形状の世代はCollider IDで識別する。
+ */
+using FPhysicsSnapshot3D = TPhysicsSnapshot<FBodyId3D, FColliderId3D,
+    Toolbox::FVector3, Toolbox::FQuaternion, Toolbox::FVector3, decltype(FColliderDescription3D::Shape)>;
 /**
  * 力・重力・Impulseで動く立体剛体を所有し、接触拘束を解く。
  * 単一スレッドで使用し、DxLibや描画を知らない。
@@ -444,6 +450,16 @@ public:
 	 * @param SubSteps 1〜1024の分割数。
 	 */
 	void Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps = 1);
+	/**
+	 * 生存Body・Colliderを全件複製する。戻り値はWorld破棄後も保持できる。
+	 * 明示呼出し時だけ採取し、上限超過・確保失敗は例外で通知する。
+	 * Stepや他のWorld操作と並行実行しない。中断したStepの後は正常Step完了まで拒否する。
+	 * StepIndexは正常完了したStep呼出し数であり、SubStepsや描画フレーム数ではない。
+	 * 形状はローカル座標。現在の公開APIでは同一Collider ID中の形状は不変。
+	 * @param Limits 生存Body・Colliderの最大保持件数。
+	 */
+	FPhysicsSnapshot3D CaptureSnapshot(const FPhysicsSnapshotLimits& Limits = {}) const;
+
 
 private:
 	/**

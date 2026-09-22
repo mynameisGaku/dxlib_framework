@@ -1,0 +1,9 @@
+MSBuild のバージョン 18.10.1-1.26427.6+3cd27c13e (.NET Framework)
+
+  Checking File Globs
+  dxf_toolbox.vcxproj -> C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\Debug\dxf_toolboxd.lib
+  dxf_physics.vcxproj -> C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\Debug\dxf_physicsd.lib
+  dxf_support.vcxproj -> C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\Debug\dxf_supportd.lib
+  dxf_runtime.vcxproj -> C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\Debug\dxf_runtimed.lib
+  SceneTaskIntegrationTests.cpp
+  dxf_scene_task_integration_tests.vcxproj -> C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\Debug\dxf_scene_task_integration_tests.exe

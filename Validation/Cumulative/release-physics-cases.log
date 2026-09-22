@@ -1,0 +1,162 @@
+PASS sphere touches 1734 face-grid positions in both orders
+PASS sphere corner separation uses Euclidean distance
+PASS sphere box tolerance band
+PASS zero-radius sphere and zero-thickness box
+PASS sphere OBB and cube contacts
+PASS finite large coordinates do not overflow distances
+PASS large offset preserves a small real gap
+PASS mesh surface regression
+PASS invalid collision inputs are rejected
+PASS constructibility constraints remain copyable
+RESULT 10/10 passed
+PASS continuous sphere pass-through
+PASS relative motion and swapped sweep normals
+PASS sweep tangent and near miss
+PASS initial overlap and exact endpoint contact
+PASS stationary receding late and co-moving misses
+PASS high speed keeps finite contact normals
+PASS sphere crosses a zero-thickness wall
+PASS sphere sweep uses rounded corners not expanded AABB
+PASS moving box and zero-radius point
+PASS 2D circle and thin wall sweeps
+PASS 2D static Euclidean distances
+PASS 2D and XY-3D sweep equivalence
+PASS invalid sweep inputs
+PASS 20000 sphere-box trajectories against a scalar search oracle
+PASS sweep tolerance and reversed 2D normal
+PASS tiny shapes preserve continuous contacts
+RESULT 16/16 passed
+PASS fractional frames accumulate fixed steps
+PASS 30 60 120 144 240 Hz produce the same 60 steps
+PASS large frame obeys a bounded catch-up budget
+PASS frame clamp retains interpolation remainder
+PASS discarded backlog time is explicit
+PASS invalid elapsed time does not mutate the scheduler
+PASS invalid scheduler settings are rejected
+PASS reset keeps configuration and clears time
+PASS huge elapsed and tiny steps avoid integer overflow
+PASS accumulator overflow leaves state unchanged
+PASS 10000-frame time accounting
+RESULT 11/11 passed
+PASS 2D body rests without gravity
+PASS 2D body moves uniformly without forces
+PASS 2D gravity acceleration ignores mass
+PASS 2D free fall converges linearly with step
+PASS 3D body rests without gravity
+PASS 3D body moves uniformly without forces
+PASS 3D gravity acceleration ignores mass
+PASS 2D force accelerates and clears after step
+PASS 2D force is held across sub steps
+PASS 2D impulse acts once regardless of sub steps
+PASS 2D off-center impulse rotates the body
+PASS 2D static and kinematic bodies behave
+PASS 2D invalid inputs throw without changing state
+PASS 3D force and torque accelerate the body
+PASS 3D off-center impulse rotates the body
+PASS 3D free rotation conserves angular momentum
+PASS 3D static and kinematic bodies behave
+PASS 3D invalid inputs throw without changing state
+PASS 2D damping and gravity scale behave
+PASS 3D damping reduces speeds
+RESULT 20/20 passed
+PASS circle pair reports separation and normal
+PASS circle pair reports negative penetration
+PASS circle and box face contact
+PASS circle and box corner contact
+PASS circle penetrating box face
+PASS circle center inside box
+PASS sphere pair reports separation and normal
+PASS sphere and box face contact
+PASS sphere penetrating box face
+PASS sphere and rotated box contact
+PASS invalid contact inputs throw
+RESULT 11/11 passed
+PASS ball rests on static floor
+PASS frictionless slide keeps tangential speed
+PASS friction decelerates sliding ball
+PASS ball slides down a slope
+PASS ball bounces with restitution
+PASS mass ratio collision matches analysis
+PASS initial penetration resolves safely
+PASS kinematic platform carries the ball
+PASS restitution mixing is symmetric
+PASS thin edge supports the ball
+PASS dynamic box lands flat on floor
+PASS sphere rests on static floor
+PASS sphere pair collides elastically
+PASS sphere friction decelerates sliding
+PASS sphere bounces with restitution
+PASS kinematic rotating box pushes the ball
+PASS collider lifetime is tracked
+PASS collider lifetime is tracked in 3D
+PASS wide floor supports centered box
+PASS wide floor supports offset box
+PASS wide floor supports offset box with reversed creation order
+PASS wide floor supports box near its end
+PASS tall wall pushes out box near its top
+PASS tall wall pushes out box near its bottom
+PASS narrow column supports box
+PASS rotated floor supports offset box
+PASS separated boxes stay put
+PASS self colliders do not disturb free rotation
+PASS self mixed colliders do not disturb free rotation
+PASS self separated colliders keep uniform motion
+PASS self colliders do not disturb free rotation in 3D
+PASS self mixed colliders do not disturb free rotation in 3D
+PASS self separated colliders keep uniform motion in 3D
+PASS self contacts do not put body to sleep
+PASS self contacts do not put body to sleep reversed
+PASS self contacts do not put body to sleep in 3D
+PASS self contacts do not put body to sleep reversed in 3D
+PASS recontact does not inherit stale impulse
+PASS recontact does not inherit stale impulse in 3D
+PASS sleeping box wakes when platform moves
+PASS sleeping box wakes when platform spins
+PASS sleeping stack wakes through contacts
+PASS sleeping sphere wakes when platform moves in 3D
+PASS disabling sleep wakes sleeping body
+PASS changing gravity wakes sleeping body
+PASS setting same gravity keeps sleep
+PASS disabling sleep wakes sleeping body in 3D
+PASS changing gravity wakes sleeping body in 3D
+PASS setting same gravity keeps sleep in 3D
+RESULT 49/49 passed
+PASS fast ball hits thin wall with CCD
+PASS discrete ball tunnels through thin wall
+PASS both moving bodies collide with CCD
+PASS multiple impacts resolve in one step
+PASS grazing corner trajectory misses
+PASS separating contact leaves cleanly
+PASS initial overlap with CCD stays safe
+PASS iteration cap reports unprocessed time
+PASS rotated wall falls back to discrete
+PASS resting contact unaffected by CCD
+PASS fast sphere hits thin wall with CCD
+PASS both moving spheres collide with CCD
+PASS still ball is hit by kinematic wall with CCD
+PASS still ball is hit by kinematic wall in reversed order
+PASS co-moving wall and ball stay separated
+PASS still sphere is hit by kinematic wall with CCD
+PASS still sphere is hit by kinematic wall in reversed order
+PASS self box pair is excluded from CCD fallback
+PASS self box pair is excluded from CCD fallback reversed
+PASS self box pair is excluded from CCD fallback in 3D
+PASS self box pair is excluded from CCD fallback reversed in 3D
+RESULT 21/21 passed
+PASS box lands flat on floor in 3D
+PASS stack stays awake in 2D
+PASS stack sleeps in 2D
+PASS stack stays awake in 3D
+PASS stack sleeps in 3D
+PASS box stays on gentle slope
+PASS box squeezed by walls
+PASS box squeezed by walls in 3D
+RESULT 8/8 passed
+PASS null execution matches borrowed single lane
+PASS parallel 2D physics matches one execution lane
+PASS parallel 3D physics matches one execution lane
+PASS broad phase keeps ContactSlop near pair
+PASS broad phase preserves small extent at large coordinate
+PASS shared static support does not merge dynamic islands
+RESULT 6/6 passed
+EXIT_CODE=0

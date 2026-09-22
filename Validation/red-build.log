@@ -1,0 +1,3 @@
+[ 16%] Building CXX object CMakeFiles/dxf_scope_task_tests.dir/mnt/data/scope_work/work/Tests/TaskScopeIsolationTests.cpp.o
+[ 33%] Linking CXX executable dxf_scope_task_tests
+[100%] Built target dxf_scope_task_tests

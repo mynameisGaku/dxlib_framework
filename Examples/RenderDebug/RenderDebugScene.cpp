@@ -2,7 +2,9 @@
 #include "RenderDebugScene.h"
 #include "TransparencyDemo.h"
 #include "Dxf/AssetService.h"
+#include "Dxf/RenderContext.h"
 #include "Dxf/SceneNavigator.h"
+#include "Toolbox/Log.h"
 #include "Toolbox/Platform.h"
 namespace Dxf::RenderDebug
 {
@@ -15,6 +17,42 @@ void Require_Internal(TResult<void> Result)
 		throw Toolbox::FException(Result.Error().Message);
 	}
 }
+// 採取の成否だけを確認する。無効中の未採取は成功として扱う。
+void Require_Internal(const TResult<bool>& Result)
+{
+	if (!Result)
+	{
+		throw Toolbox::FException(Result.Error().Message);
+	}
+}
+// 2D観察の最小例。床・傾いた箱・円を実FPhysicsWorld2Dへ登録する。
+Toolbox::TUniquePtr<FPhysicsWorld2D> MakeWorld2D_Internal()
+{
+	auto World = Toolbox::MakeUnique<FPhysicsWorld2D>();
+	FBodyDescription2D Ground;
+	Ground.Type = EBodyType::Static;
+	Toolbox::FOrientedBox2D Floor;
+	Floor.HalfExtents = {3, 0.25f};
+	FColliderDescription2D FloorCollider;
+	FloorCollider.Shape = Floor;
+	World->AttachCollider(World->CreateBody(Ground), FloorCollider);
+	FBodyDescription2D Crate;
+	Crate.Position = {-1, 4};
+	Crate.Angle = 0.3f;
+	FColliderDescription2D CrateCollider;
+	CrateCollider.Shape = Toolbox::FOrientedBox2D{};
+	CrateCollider.Friction = 0.6f;
+	World->AttachCollider(World->CreateBody(Crate), CrateCollider);
+	FBodyDescription2D Ball;
+	Ball.Position = {1, 5};
+	Toolbox::FCircle2D Circle;
+	Circle.Radius = 0.4f;
+	FColliderDescription2D BallCollider;
+	BallCollider.Shape = Circle;
+	BallCollider.Restitution = 0.4f;
+	World->AttachCollider(World->CreateBody(Ball), BallCollider);
+	return World;
+}
 Toolbox::f32 Axis_Internal(const FInputSnapshot& Input, EKey Negative, EKey Positive)
 {
 	return static_cast<Toolbox::f32>(Input.IsDown(Positive)) - static_cast<Toolbox::f32>(Input.IsDown(Negative));
@@ -23,6 +61,9 @@ Toolbox::f32 Axis_Internal(const FInputSnapshot& Input, EKey Negative, EKey Posi
 ARenderDebugScene::ARenderDebugScene(Toolbox::FJobSystem& Jobs) : m_pJobs(&Jobs)
 {
 	m_View.Id = 1;
+	// 画面右下へ2D観察を置く。1メートルを30ピクセルで表示する。
+	m_View2D.ScreenOrigin = {1060, 690};
+	m_View2D.PixelsPerMeter = 30;
 }
 TResult<void> ARenderDebugScene::OnInitialize(const FInitContext& Context)
 {
@@ -41,7 +82,6 @@ void ARenderDebugScene::ResetSimulation_Internal()
 	FPhysicsExecutionSettings Execution;
 	Execution.JobSystem = m_pJobs;
 	World->SetExecutionSettings(Execution);
-	Toolbox::TVector<FWatch> Watches;
 	for (Toolbox::uint32 Index = 0; Index < 3; ++Index)
 	{
 		FBodyDescription3D Body;
@@ -62,47 +102,54 @@ void ARenderDebugScene::ResetSimulation_Internal()
 			Shape.HalfExtents = Index == 0 ? Toolbox::FVector3{6, 0.5f, 6} : Toolbox::FVector3{0.6f, 0.6f, 0.6f};
 			Collider.Shape = Shape;
 		}
-		FWatch Watch;
-		Watch.Collider = World->AttachCollider(Id, Collider);
-		Watch.LocalShape = Collider.Shape;
-		Watch.Motion = Index == 0 ? EDebugBodyMotion::Static : EDebugBodyMotion::Dynamic;
-		Watches.PushBack(Toolbox::Move(Watch));
+		// 表示用の別登録は作らない。形状と運動区分はWorld自身の採取から得る。
+		World->AttachCollider(Id, Collider);
 	}
-	auto Initial = CapturePhysicsDebugSnapshot3D(*World, Watches, 0, 0);
-	if (!Initial)
+	auto World2D = MakeWorld2D_Internal();
+	// 観察の有効状態を引き継ぎ、初回採取と履歴確保を完了させてから一括交換する。
+	FPhysicsDebugRecorder3D Recorder;
+	Recorder.SetEnabled(m_Recorder.IsEnabled());
+	Require_Internal(Recorder.Record(*World, 0, true));
+	FPhysicsDebugSnapshot2D Live2D;
+	if (m_b2D)
 	{
-		throw Toolbox::FException(Initial.Error().Message);
+		auto Captured = CapturePhysicsDebugSnapshot2D(*World2D, 0);
+		if (!Captured)
+		{
+			throw Toolbox::FException(Captured.Error().Message);
+		}
+		Live2D = Toolbox::Move(Captured).Value();
 	}
-	// 履歴の初期確保も完了させてから、例外のない移動で状態を一括交換する。
-	FDebugSnapshotHistory History;
-	Require_Internal(History.Push(Initial.Value()));
 	// 新Worldの作成と初回採取が成功してから既存状態を置き換える。
 	m_pWorld = Toolbox::Move(World);
-	m_Watches = Toolbox::Move(Watches);
-	m_Live = Toolbox::Move(Initial).Value();
+	m_pWorld2D = Toolbox::Move(World2D);
+	m_Recorder = Toolbox::Move(Recorder);
+	m_Live2D = Toolbox::Move(Live2D);
 	m_Selected = {};
-	m_History = Toolbox::Move(History);
 	m_Simulation.Reset();
-	m_Tick = 0;
-	m_HistoryTick = 0;
 	m_HistoryAge = 0;
 	m_SimSeconds = 0;
 	m_PhysicsMicros = 0;
 	m_DroppedSeconds = 0;
+	DXF_LOG_INFO("RenderDebug", "Physics worlds reset (3D colliders=%u, observation %s)",
+	             static_cast<unsigned>(m_Recorder.GetLive().Items.Size()), m_Recorder.IsEnabled() ? "on" : "off");
 }
 void ARenderDebugScene::Capture_Internal(bool ForceHistory)
 {
-	auto Snapshot = CapturePhysicsDebugSnapshot3D(*m_pWorld, m_Watches, m_Tick, m_SimSeconds);
-	if (!Snapshot)
+	Require_Internal(m_Recorder.Record(*m_pWorld, m_SimSeconds, ForceHistory));
+}
+void ARenderDebugScene::Capture2D_Internal()
+{
+	if (!m_b2D)
 	{
-		throw Toolbox::FException(Snapshot.Error().Message);
+		return;
 	}
-	m_Live = Toolbox::Move(Snapshot).Value();
-	if (m_Tick > m_HistoryTick && (ForceHistory || m_Tick % 6 == 0))
+	auto Captured = CapturePhysicsDebugSnapshot2D(*m_pWorld2D, m_SimSeconds);
+	if (!Captured)
 	{
-		Require_Internal(m_History.Push(m_Live));
-		m_HistoryTick = m_Tick;
+		throw Toolbox::FException(Captured.Error().Message);
 	}
+	m_Live2D = Toolbox::Move(Captured).Value();
 }
 void ARenderDebugScene::UpdateCamera_Internal(const FInputSnapshot& Input, Toolbox::f64 Seconds)
 {
@@ -186,6 +233,22 @@ void ARenderDebugScene::OnTick(const FTickContext& Context)
 	{
 		m_bPanel = !m_bPanel;
 	}
+	if (Input.WasPressed(EKey::F8))
+	{
+		// 無効中は採取も履歴保存も行わない。有効化時は現在の状態を一度だけ採取する。
+		m_Recorder.SetEnabled(!m_Recorder.IsEnabled());
+		DXF_LOG_INFO("RenderDebug", "3D physics observation %s", m_Recorder.IsEnabled() ? "enabled" : "disabled");
+		m_HistoryAge = 0;
+		m_Selected = {};
+		Capture_Internal(true);
+	}
+	if (Input.WasPressed(EKey::F9))
+	{
+		m_b2D = !m_b2D;
+		DXF_LOG_INFO("RenderDebug", "2D physics observation %s", m_b2D ? "shown" : "hidden");
+		m_Live2D = {};
+		Capture2D_Internal();
+	}
 	if (Input.WasPressed(EKey::P))
 	{
 		m_Simulation.SetPaused(!m_Simulation.IsPaused());
@@ -213,22 +276,21 @@ void ARenderDebugScene::OnTick(const FTickContext& Context)
 	m_DroppedSeconds = Plan.Value().DroppedSeconds;
 	for (Toolbox::uint32 Index = 0; Index < Plan.Value().StepCount; ++Index)
 	{
-		if (m_Tick == Toolbox::TNumericLimits<Toolbox::uint64>::Max())
-		{
-			throw Toolbox::FException("Debug fixed tick overflow");
-		}
 		const Toolbox::uint64 Begin = Toolbox::MonotonicNanoseconds();
 		m_pWorld->Step(Plan.Value().StepSeconds);
 		m_PhysicsMicros = (Toolbox::MonotonicNanoseconds() - Begin) / 1000;
-		++m_Tick;
+		m_pWorld2D->Step(Plan.Value().StepSeconds);
+		// 正常完了したStepの秒数だけを時計へ加える。Step番号との積から求めない。
 		m_SimSeconds += Plan.Value().StepSeconds;
 		Capture_Internal(m_Simulation.IsPaused());
+		Capture2D_Internal();
 	}
-	if (m_Simulation.IsPaused() && m_History.GetCount() != 0)
+	const auto& History = m_Recorder.GetHistory();
+	if (m_Simulation.IsPaused() && History.GetCount() != 0)
 	{
 		if (Input.WasPressed(EKey::Z))
 		{
-			m_HistoryAge = Toolbox::Min(m_HistoryAge + 1, m_History.GetCount() - 1);
+			m_HistoryAge = Toolbox::Min(m_HistoryAge + 1, History.GetCount() - 1);
 		}
 		if (Input.WasPressed(EKey::X) && m_HistoryAge != 0)
 		{
@@ -236,7 +298,7 @@ void ARenderDebugScene::OnTick(const FTickContext& Context)
 		}
 		if (m_HistoryAge != 0)
 		{
-			auto Selected = m_History.ReadAge(m_HistoryAge);
+			auto Selected = History.ReadAge(m_HistoryAge);
 			if (!Selected)
 			{
 				throw Toolbox::FException(Selected.Error().Message);
@@ -254,12 +316,13 @@ void ARenderDebugScene::OnDraw(FRenderContext& Render) const
 	}
 	Require_Internal(Render.Get3D().SetView(View.Value()));
 	// 固定更新直後の値を描く。履歴選択は描画だけを変更し、Worldへ書き戻さない。
-	const auto& Snapshot = m_HistoryAge == 0 ? m_Live : m_Selected;
+	// 観察無効中は空の値になり、Worldを直接読んで代わりに描くことはしない。
+	const auto& Snapshot = m_HistoryAge == 0 ? m_Recorder.GetLive() : m_Selected;
 	for (Toolbox::size_t Index = 0; Index < Snapshot.Items.Size(); ++Index)
 	{
 		const auto& Item = Snapshot.Items[Index];
 		FDrawStyle3D Style;
-		Style.Color = Item.Motion == EDebugBodyMotion::Static ? FColor{100, 100, 100, 255} :
+		Style.Color = Item.Type == EBodyType::Static ? FColor{100, 100, 100, 255} :
 			(Index % 2 == 0 ? FColor{255, 150, 60, 255} : FColor{80, 160, 255, 255});
 		Item.Shape.Visit([&](const auto& Shape)
 		{
@@ -291,6 +354,14 @@ void ARenderDebugScene::OnDraw(FRenderContext& Render) const
 	{
 		Require_Internal(SubmitPhysicsDebugSnapshot3D(Snapshot, m_Display, Render.Get3D()));
 	}
+	if (m_b2D)
+	{
+		FDrawStyle Back;
+		Back.Color = {20, 20, 28, 255};
+		Back.Layer = 899;
+		Require_Internal(Render.Get2D().FillRectangle({950, 520, 1270, 710}, Back));
+		Require_Internal(SubmitPhysicsDebugSnapshot2D(m_Live2D, m_View2D, {}, Render.Get2D()));
+	}
 	if (m_bPanel)
 	{
 		DrawPanel_Internal(Render.Get2D());
@@ -301,7 +372,7 @@ void ARenderDebugScene::DrawPanel_Internal(FRender2DContext& Render) const
 	FDrawStyle Panel;
 	Panel.Color = {0, 0, 0, 255};
 	Panel.Layer = 1000;
-	Require_Internal(Render.FillRectangle({0, 0, 1280, 182}, Panel));
+	Require_Internal(Render.FillRectangle({0, 0, 1280, 208}, Panel));
 	FDrawStyle Text;
 	Text.Layer = 1001;
 	const char* Surfaces[] = {"Solid", "Wireframe", "Solid+Edges"};
@@ -311,22 +382,31 @@ void ARenderDebugScene::DrawPanel_Internal(FRender2DContext& Render) const
 	Require_Internal(Render.DrawText(m_Font, Mode, {16, 10}, Text));
 	Require_Internal(Render.DrawText(m_Font, "F1:面表示  F2:照明方式  F3:方向光  F4:Collider  F5:速度線  F6:透視  F7:半透明比較  Tab:説明", {16, 36}, Text));
 	Require_Internal(Render.DrawText(m_Font, "矢印/右ドラッグ:回転  WASD/QE:平行移動  ホイール:距離  Shift:加速  R:カメラ初期化", {16, 62}, Text));
-	Require_Internal(Render.DrawText(m_Font, "P:物理停止  N:固定更新1回  O:0.25倍速  Z/X:停止中の履歴  Enter:物理初期化  Esc:終了", {16, 88}, Text));
-	const Toolbox::uint64 ShownTick = m_HistoryAge == 0 ? m_Live.Step : m_Selected.Step;
+	Require_Internal(Render.DrawText(m_Font, "P:物理停止  N:固定更新1回  O:0.25倍速  Z/X:停止中の履歴  Enter:物理初期化  F8:観察ON/OFF  F9:2D観察  Esc:終了", {16, 88}, Text));
+	const auto& Live = m_Recorder.GetLive();
+	const Toolbox::FString Shown = m_Recorder.HasLive() ?
+		Toolbox::ToString(m_HistoryAge == 0 ? Live.Step : m_Selected.Step) : Toolbox::FString("-");
+	// Stepは3D Worldが数えた正常Step数。時計はサンプルが実際にStepへ渡した秒数の合計。
 	const Toolbox::FString Status = Toolbox::FString(m_Simulation.IsPaused() ? "PAUSED" : "RUNNING") +
-		(m_bSlow ? " x0.25" : " x1.0") + " | live tick=" + Toolbox::ToString(m_Tick) +
-		" | displayed tick=" + Toolbox::ToString(ShownTick) + " | history=" + Toolbox::ToString(m_History.GetCount()) +
+		(m_bSlow ? " x0.25" : " x1.0") + " | displayed world step=" + Shown +
+		" | sample clock(ms)=" + Toolbox::ToString(static_cast<Toolbox::uint64>(m_SimSeconds * 1000.0)) +
+		" | history=" + Toolbox::ToString(m_Recorder.GetHistory().GetCount()) +
 		" | last live physics CPU wall(us)=" + Toolbox::ToString(m_PhysicsMicros);
 	Require_Internal(Render.DrawText(m_Font, Status, {16, 114}, Text));
+	const Toolbox::FString Observed = m_Recorder.HasLive() ?
+		Toolbox::FString("観察ON: World全件を採取 Body=") + Toolbox::ToString(Live.BodyCount) + " Collider=" +
+			Toolbox::ToString(Live.Items.Size()) + "。表示用の別登録なし。" :
+		Toolbox::FString("観察OFF: 採取と履歴保存を停止中。Worldの更新は継続。");
+	Require_Internal(Render.DrawText(m_Font, Observed, {16, 140}, Text));
 	Require_Internal(Render.DrawText(m_Font, m_DroppedSeconds > 0 ? "更新上限でゲーム時間を破棄。GPU時間は未計測。" :
-		"履歴は観察専用。Colliderは登録した3件を採取。接触点/Impulse/GPU時間は未計測。", {16, 140}, Text));
+		"履歴は観察専用でWorldへ書き戻さない。接触点/Impulse/GPU時間は未計測。", {16, 166}, Text));
 }
 void ARenderDebugScene::OnDeinitialize() noexcept
 {
-	m_History.Clear();
+	m_Recorder.Clear();
 	m_Selected = {};
-	m_Live = {};
-	m_Watches.Clear();
+	m_Live2D = {};
+	m_pWorld2D.Reset();
 	m_pWorld.Reset();
 	m_Font = {};
 }

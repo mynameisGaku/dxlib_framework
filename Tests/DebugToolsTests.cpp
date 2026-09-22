@@ -5,6 +5,7 @@
 #include "Dxf/PhysicsDebugSnapshot3D.h"
 #include "Dxf/DebugSnapshotHistory.h"
 #include "Dxf/PhysicsDebugDisplay3D.h"
+#include "Dxf/PhysicsDebugDisplay2D.h"
 #include "Dxf/RenderContext.h"
 using namespace Dxf;
 using namespace Toolbox;
@@ -128,66 +129,29 @@ TEST("camera rejects poses whose float rounding collapses the view basis")
 }
 namespace
 {
-struct FSampleBodyId
+// 実Worldが返す値型と同じFPhysicsSnapshot3Dを手で組み、変換だけを検証する。
+FPhysicsSnapshot3D MakeSource_Internal()
 {
-	uint64 World = 3;
-	size_t Index = 1;
-	uint64 Generation = 1;
-	bool operator==(const FSampleBodyId&) const = default;
-};
-struct FSampleColliderId
-{
-	FSampleBodyId Body;
-	size_t Index = 1;
-	uint64 Generation = 1;
-	bool operator==(const FSampleColliderId&) const = default;
-};
-// 採取契約のテストダブル。物理ソルバーの正しさを検証するものではない。
-struct FSampleRotation
-{
-	FVector3 Rotate(FVector3 Value) const
-	{
-		return {-Value.Y, Value.X, Value.Z};
-	}
-};
-struct FSampleWorld
-{
-	bool Alive = true;
-	FVector3 Position{10, 20, 30};
-	FVector3 Velocity{1, 2, 3};
-	bool IsColliderAlive(FSampleColliderId) const
-	{
-		return Alive;
-	}
-	FVector3 GetPosition(FSampleBodyId) const
-	{
-		return Position;
-	}
-	FSampleRotation GetOrientation(FSampleBodyId) const
-	{
-		return {};
-	}
-	FVector3 GetVelocity(FSampleBodyId) const
-	{
-		return Velocity;
-	}
-	FVector3 GetAngularVelocity(FSampleBodyId) const
-	{
-		return {0, 0, 1};
-	}
-	bool IsSleeping(FSampleBodyId) const
-	{
-		return false;
-	}
-};
+	FPhysicsSnapshot3D Source;
+	Source.World = 3;
+	Source.StepIndex = 1;
+	Source.LastDeltaSeconds = 1.0 / 60.0;
+	Source.LastSubSteps = 1;
+	FPhysicsSnapshot3D::FBody Body;
+	Body.Id = {3, 1, 1};
+	Body.Position = {10, 20, 30};
+	Body.Velocity = {1, 2, 3};
+	Body.AngularVelocity = {0, 0, 1};
+	Source.Bodies.PushBack(Body);
+	FPhysicsSnapshot3D::FCollider Collider;
+	Collider.Id = {Body.Id, 1, 1};
+	Collider.LocalShape = FOBB{};
+	Source.Colliders.PushBack(Collider);
+	return Source;
+}
 FPhysicsDebugSnapshot3D MakeSnapshot_Internal()
 {
-	FSampleWorld World;
-	TVector<TPhysicsDebugWatch3D<FSampleColliderId>> Watches;
-	TPhysicsDebugWatch3D<FSampleColliderId> Watch;
-	Watch.LocalShape = FOBB{};
-	Watches.PushBack(Watch);
-	return CapturePhysicsDebugSnapshot3D(World, Watches, 1, 1.0 / 60.0).Value();
+	return BuildPhysicsDebugSnapshot3D(MakeSource_Internal(), 1.0 / 60.0).Value();
 }
 class FDebugTraceBackend final : public IRenderBackend
 {
@@ -238,56 +202,74 @@ public:
 	}
 };
 }
-TEST("capture applies body rotation to collider offset and box axes")
+TEST("conversion applies body rotation to collider offset and box axes once")
 {
-	FSampleWorld World;
-	TVector<TPhysicsDebugWatch3D<FSampleColliderId>> Watches;
-	TPhysicsDebugWatch3D<FSampleColliderId> Watch;
+	auto Source = MakeSource_Internal();
+	// Z軸回り90度。重心相対(2,0,0)はワールドで(0,2,0)だけずれる。
+	Source.Bodies[0].Rotation = FQuaternion::FromAxisAngle({0, 0, 1}, 1.57079632679f);
 	FOBB Local;
 	Local.Center = {2, 0, 0};
-	Watch.LocalShape = Local;
-	Watches.PushBack(Watch);
-	const auto Captured = CapturePhysicsDebugSnapshot3D(World, Watches, 42, 0.7);
-	REQUIRE(Captured);
-	const auto& Item = Captured.Value().Items[0];
-	REQUIRE(Get<FOBB>(Item.Shape).Center == FVector3(10, 22, 30));
-	REQUIRE(Get<FOBB>(Item.Shape).Axes[0] == FVector3(0, 1, 0));
+	Source.Colliders[0].LocalShape = Local;
+	const auto Converted = BuildPhysicsDebugSnapshot3D(Source, 0.7);
+	REQUIRE(Converted);
+	const auto& Item = Converted.Value().Items[0];
+	const auto& Box = Get<FOBB>(Item.Shape);
+	REQUIRE(Near_Internal(Box.Center.X, 10) && Near_Internal(Box.Center.Y, 22) && Near_Internal(Box.Center.Z, 30));
+	REQUIRE(Near_Internal(Box.Axes[0].X, 0) && Near_Internal(Box.Axes[0].Y, 1));
+	REQUIRE(Near_Internal(Box.Axes[1].X, -1) && Near_Internal(Box.Axes[1].Y, 0));
 	REQUIRE(Item.CenterOfMass == FVector3(10, 20, 30));
 	REQUIRE(Item.Velocity == FVector3(1, 2, 3));
-	REQUIRE(Captured.Value().Step == 42);
-	World.Position = {99, 99, 99};
-	Watches.Clear();
+	REQUIRE(Item.Collider == Source.Colliders[0].Id);
+	REQUIRE(Converted.Value().Step == 1 && Converted.Value().SimulationSeconds == 0.7);
+	REQUIRE(Converted.Value().BodyCount == 1);
+	// 変換結果は入力を参照しない。
+	Source.Bodies[0].Position = {99, 99, 99};
+	Source.Colliders.Clear();
 	REQUIRE(Item.CenterOfMass == FVector3(10, 20, 30));
 }
-TEST("capture counts stale colliders and never queries their body state")
+TEST("conversion rejects colliders whose body generation or world does not match")
 {
-	FSampleWorld World;
-	World.Alive = false;
-	TVector<TPhysicsDebugWatch3D<FSampleColliderId>> Watches(1);
-	auto Frame = CapturePhysicsDebugSnapshot3D(World, Watches, 4, 0.1);
-	REQUIRE(Frame);
-	REQUIRE(Frame.Value().Items.IsEmpty());
-	REQUIRE(Frame.Value().SkippedCount == 1);
-	REQUIRE(Frame.Value().World == 3);
+	auto Stale = MakeSource_Internal();
+	Stale.Colliders[0].Id.Body.Generation = 2;
+	REQUIRE(!BuildPhysicsDebugSnapshot3D(Stale, 0.1));
+	auto Foreign = MakeSource_Internal();
+	Foreign.Colliders[0].Id.Body.World = 9;
+	REQUIRE(!BuildPhysicsDebugSnapshot3D(Foreign, 0.1));
+	auto Missing = MakeSource_Internal();
+	Missing.Colliders[0].Id.Body.Index = 7;
+	REQUIRE(!BuildPhysicsDebugSnapshot3D(Missing, 0.1));
 }
-TEST("capture rejects duplicate watches and mixed world identifiers")
+TEST("conversion keeps bodies without colliders counted and never truncates")
 {
-	FSampleWorld World;
-	TVector<TPhysicsDebugWatch3D<FSampleColliderId>> Watches(2);
-	REQUIRE(!CapturePhysicsDebugSnapshot3D(World, Watches, 1, 0.1));
-	Watches[1].Collider.Body.World = 9;
-	REQUIRE(!CapturePhysicsDebugSnapshot3D(World, Watches, 1, 0.1));
+	auto Source = MakeSource_Internal();
+	FPhysicsSnapshot3D::FBody Bare;
+	Bare.Id = {3, 4, 2};
+	Source.Bodies.PushBack(Bare);
+	const auto Converted = BuildPhysicsDebugSnapshot3D(Source, 0);
+	REQUIRE(Converted);
+	REQUIRE(Converted.Value().BodyCount == 2 && Converted.Value().Items.Size() == 1);
+	// 表示上限を超える場合は、先頭だけを残さず失敗する。
+	auto Many = MakeSource_Internal();
+	while (Many.Colliders.Size() <= MaxPhysicsDebugColliders3D)
+	{
+		auto Extra = Many.Colliders[0];
+		Extra.Id.Index = Many.Colliders.Size() + 1;
+		Many.Colliders.PushBack(Extra);
+	}
+	REQUIRE(!BuildPhysicsDebugSnapshot3D(Many, 0));
 }
-TEST("capture handles empty inputs and refuses invalid state or unbounded watches")
+TEST("conversion handles empty worlds and refuses invalid state or time")
 {
-	FSampleWorld World;
-	TVector<TPhysicsDebugWatch3D<FSampleColliderId>> Watches;
-	REQUIRE(CapturePhysicsDebugSnapshot3D(World, Watches, 0, 0));
-	Watches.Resize(257);
-	REQUIRE(!CapturePhysicsDebugSnapshot3D(World, Watches, 0, 0));
-	Watches.Resize(1);
-	World.Velocity.X = Toolbox::Sqrt(-1.0f);
-	REQUIRE(!CapturePhysicsDebugSnapshot3D(World, Watches, 0, 0));
+	FPhysicsSnapshot3D Empty;
+	Empty.World = 5;
+	const auto Converted = BuildPhysicsDebugSnapshot3D(Empty, 0);
+	REQUIRE(Converted && Converted.Value().Items.IsEmpty() && Converted.Value().World == 5);
+	REQUIRE(!BuildPhysicsDebugSnapshot3D(FPhysicsSnapshot3D{}, 0));
+	REQUIRE(!BuildPhysicsDebugSnapshot3D(MakeSource_Internal(), -1));
+	REQUIRE(!BuildPhysicsDebugSnapshot3D(MakeSource_Internal(), Toolbox::Sqrt(-1.0)));
+	auto Broken = MakeSource_Internal();
+	Broken.Bodies[0].Velocity.X = Toolbox::Sqrt(-1.0f);
+	REQUIRE(!BuildPhysicsDebugSnapshot3D(Broken, 0));
 }
 TEST("physics overlay contains only edges centers and measured velocity")
 {
@@ -420,4 +402,147 @@ TEST("clock reset discards fractional time while preserving pause and scale")
 	Clock.Reset();
 	REQUIRE(Clock.IsPaused());
 	REQUIRE(Clock.Plan(0).Value().StepCount == 0);
+}
+namespace
+{
+// 実Worldが返す値型と同じFPhysicsSnapshot2Dを手で組み、変換だけを検証する。
+FPhysicsSnapshot2D MakeSource2D_Internal()
+{
+	FPhysicsSnapshot2D Source;
+	Source.World = 6;
+	Source.StepIndex = 3;
+	FPhysicsSnapshot2D::FBody Body;
+	Body.Id = {6, 0, 1};
+	Body.Position = {1, 2};
+	Body.Rotation = 1.57079632679f;
+	Body.Velocity = {4, 0};
+	Source.Bodies.PushBack(Body);
+	FOrientedBox2D Box;
+	Box.Center = {1, 0};
+	Box.HalfExtents = {0.5f, 0.25f};
+	Box.Angle = 0.25f;
+	FPhysicsSnapshot2D::FCollider Collider;
+	Collider.Id = {Body.Id, 0, 1};
+	Collider.LocalShape = Box;
+	Source.Colliders.PushBack(Collider);
+	FCircle2D Circle;
+	Circle.Center = {0, 1};
+	Circle.Radius = 0.5f;
+	Collider.Id = {Body.Id, 1, 1};
+	Collider.LocalShape = Circle;
+	Source.Colliders.PushBack(Collider);
+	return Source;
+}
+// 2D線・円の実行順を記録する診断用Backend。
+class FDebugTraceBackend2D final : public IRenderBackend
+{
+public:
+	TVector<FLineCommand2D> m_Lines;
+	TVector<FCircleCommand2D> m_Circles;
+	bool SupportsShapes2D() const noexcept override
+	{
+		return true;
+	}
+	TResult<void> SetTarget(int32, int32, int32) override
+	{
+		return {};
+	}
+	TResult<void> Clear(FColor) override
+	{
+		return {};
+	}
+	TResult<void> ResetState(int32, int32) override
+	{
+		return {};
+	}
+	TResult<void> DrawSprite(const FSpriteCommand&) override
+	{
+		return {};
+	}
+	TResult<void> DrawText(const FTextCommand&) override
+	{
+		return {};
+	}
+	TResult<void> DrawRectangle(const FRectangleCommand&) override
+	{
+		return {};
+	}
+	TResult<void> DrawLine2D(const FLineCommand2D& Command) override
+	{
+		m_Lines.PushBack(Command);
+		return {};
+	}
+	TResult<void> DrawCircle2D(const FCircleCommand2D& Command) override
+	{
+		m_Circles.PushBack(Command);
+		return {};
+	}
+	TResult<void> Present() override
+	{
+		return {};
+	}
+};
+}
+TEST("2d conversion rotates local centers and adds body angle to boxes once")
+{
+	const auto Converted = BuildPhysicsDebugSnapshot2D(MakeSource2D_Internal(), 0.05);
+	REQUIRE(Converted);
+	const auto& Frame = Converted.Value();
+	REQUIRE(Frame.Items.Size() == 2 && Frame.Step == 3 && Frame.BodyCount == 1);
+	// 90度回転で重心相対(1,0)は(0,1)、(0,1)は(-1,0)だけずれる。
+	const auto& Box = Get<FOrientedBox2D>(Frame.Items[0].Shape);
+	REQUIRE(Near_Internal(Box.Center.X, 1) && Near_Internal(Box.Center.Y, 3));
+	REQUIRE(Near_Internal(Box.Angle, 1.57079632679 + 0.25));
+	REQUIRE(Box.HalfExtents.X == 0.5f && Box.HalfExtents.Y == 0.25f);
+	const auto& Circle = Get<FCircle2D>(Frame.Items[1].Shape);
+	REQUIRE(Near_Internal(Circle.Center.X, 0) && Near_Internal(Circle.Center.Y, 2));
+	REQUIRE(Frame.Items[1].BodyAngle == 1.57079632679f);
+	auto Stale = MakeSource2D_Internal();
+	Stale.Colliders[1].Id.Body.Generation = 5;
+	REQUIRE(!BuildPhysicsDebugSnapshot2D(Stale, 0));
+}
+TEST("2d overlay maps meters to screen pixels with the y axis flipped")
+{
+	const auto Frame = BuildPhysicsDebugSnapshot2D(MakeSource2D_Internal(), 0).Value();
+	FPhysicsDebugView2D View;
+	View.ScreenOrigin = {100, 200};
+	View.PixelsPerMeter = 10;
+	FPhysicsDebugDisplaySettings2D Settings;
+	Settings.bVelocities = false;
+	Settings.bCenters = false;
+	TVector<FRenderCommand> Commands;
+	REQUIRE(BuildPhysicsDebugCommands2D(Frame.Items[1], View, Settings, Commands));
+	// 円一つと、Body角の方向を示す半径線一本。
+	REQUIRE(Commands.Size() == 2);
+	const auto& Circle = Get<FCircleCommand2D>(Commands[0]);
+	REQUIRE(Near_Internal(Circle.Center.X, 100) && Near_Internal(Circle.Center.Y, 180));
+	REQUIRE(Near_Internal(Circle.Radius, 5));
+	const auto& Marker = Get<FLineCommand2D>(Commands[1]);
+	REQUIRE(Near_Internal(Marker.End.X, 100, 1e-4) && Near_Internal(Marker.End.Y, 175, 1e-4));
+	Commands.Clear();
+	REQUIRE(BuildPhysicsDebugCommands2D(Frame.Items[0], View, Settings, Commands));
+	REQUIRE(Commands.Size() == 4);
+	View.PixelsPerMeter = 0;
+	REQUIRE(!BuildPhysicsDebugCommands2D(Frame.Items[0], View, Settings, Commands));
+	REQUIRE(Commands.Size() == 4);
+}
+TEST("2d overlay submits existing line and circle commands through the 2d context")
+{
+	const auto Frame = BuildPhysicsDebugSnapshot2D(MakeSource2D_Internal(), 0).Value();
+	FRenderQueue2D Queue;
+	FJobSystem Jobs(4);
+	FRenderContext Render(Queue, nullptr, &Jobs);
+	Queue.SetAccepting_Internal(true);
+	REQUIRE(SubmitPhysicsDebugSnapshot2D(Frame, {}, {}, Render.Get2D()));
+	FDebugTraceBackend2D Backend;
+	REQUIRE(Queue.Execute_Internal(Backend));
+	// 箱4辺+円1+半径線1、速度線2本、重心十字2組。
+	REQUIRE(Backend.m_Circles.Size() == 1);
+	REQUIRE(Backend.m_Lines.Size() == 4 + 1 + 2 + 4);
+	auto Broken = Frame;
+	Broken.Items[1].Velocity.X = Toolbox::Sqrt(-1.0f);
+	REQUIRE(!SubmitPhysicsDebugSnapshot2D(Broken, {}, {}, Render.Get2D()));
+	FDebugTraceBackend2D Empty;
+	REQUIRE(Queue.Execute_Internal(Empty));
+	REQUIRE(Empty.m_Lines.IsEmpty() && Empty.m_Circles.IsEmpty());
 }

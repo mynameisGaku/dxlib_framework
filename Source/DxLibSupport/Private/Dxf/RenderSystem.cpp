@@ -141,25 +141,30 @@ TResult<void> FRenderSystem::Flush_Internal()
 		{
 			return TResult<void>::Failure(EErrorCode::InvalidState, "Target was invalidated");
 		}
-		auto Geometry = CallBackend_Internal([&]
+		// 3D命令がなければBackend状態を変更しないため、3D実行とその後の2D状態復元を行わない。
+		// 2Dだけのフレームで描画先切替前に復元を挟み、切替の失敗をフレーム全体の失敗にしない。
+		if (m_Context.HasPending3D_Internal())
 		{
-			return m_Context.Execute3D_Internal(*m_pBackend);
-		}
-		);
-		// 3Dが例外になっても復元し、最初の失敗を結果として保持する。
-		auto Reset = CallBackend_Internal([&]
-		{
-			return m_pBackend->ResetState(m_Target.IsValid() ? m_Target.GetWidth() : m_Width,
-			m_Target.IsValid() ? m_Target.GetHeight() : m_Height);
-		}
-		);
-		if (!Geometry)
-		{
-			return Geometry;
-		}
-		if (!Reset)
-		{
-			return Reset;
+			auto Geometry = CallBackend_Internal([&]
+			{
+				return m_Context.Execute3D_Internal(*m_pBackend);
+			}
+			);
+			// 3Dが例外になっても復元し、最初の失敗を結果として保持する。
+			auto Reset = CallBackend_Internal([&]
+			{
+				return m_pBackend->ResetState(m_Target.IsValid() ? m_Target.GetWidth() : m_Width,
+				m_Target.IsValid() ? m_Target.GetHeight() : m_Height);
+			}
+			);
+			if (!Geometry)
+			{
+				return Geometry;
+			}
+			if (!Reset)
+			{
+				return Reset;
+			}
 		}
 		return m_Queue.Execute_Internal(*m_pBackend);
 	}

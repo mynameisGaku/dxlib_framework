@@ -1,0 +1,84 @@
+$ ctest.exe --test-dir Build\Cumulative-release --output-on-failure --no-tests=error --timeout 600
+Test project C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release
+    Start 1: PhysicsContinuation
+1/6 Test #1: PhysicsContinuation ..............   Passed    0.18 sec
+    Start 2: NoStl
+2/6 Test #2: NoStl ............................   Passed    0.24 sec
+    Start 3: Framework
+Could not find executable C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/dxf_tests.exe
+Looked in the following places:
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/dxf_tests.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/dxf_tests.exe.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/Release/dxf_tests.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/Release/dxf_tests.exe.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/Debug/dxf_tests.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/Debug/dxf_tests.exe.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/MinSizeRel/dxf_tests.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/MinSizeRel/dxf_tests.exe.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/RelWithDebInfo/dxf_tests.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/RelWithDebInfo/dxf_tests.exe.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/Deployment/dxf_tests.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/Deployment/dxf_tests.exe.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/Development/dxf_tests.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/Development/dxf_tests.exe.exe
+Unable to find executable: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/dxf_tests.exe
+3/6 Test #3: Framework ........................***Not Run   0.00 sec
+    Start 4: NativeContract
+Could not find executable C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/dxf_native_contract_tests.exe
+Looked in the following places:
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/dxf_native_contract_tests.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/dxf_native_contract_tests.exe.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/Release/dxf_native_contract_tests.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/Release/dxf_native_contract_tests.exe.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/Debug/dxf_native_contract_tests.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/Debug/dxf_native_contract_tests.exe.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/MinSizeRel/dxf_native_contract_tests.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/MinSizeRel/dxf_native_contract_tests.exe.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/RelWithDebInfo/dxf_native_contract_tests.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/RelWithDebInfo/dxf_native_contract_tests.exe.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/Deployment/dxf_native_contract_tests.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/Deployment/dxf_native_contract_tests.exe.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/Development/dxf_native_contract_tests.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/Development/dxf_native_contract_tests.exe.exe
+Unable to find executable: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/dxf_native_contract_tests.exe
+4/6 Test #4: NativeContract ...................***Not Run   0.00 sec
+    Start 5: FrameworkAltCwd
+Could not find executable C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/dxf_tests.exe
+Looked in the following places:
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/dxf_tests.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/dxf_tests.exe.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/Release/dxf_tests.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/Release/dxf_tests.exe.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/Debug/dxf_tests.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/Debug/dxf_tests.exe.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/MinSizeRel/dxf_tests.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/MinSizeRel/dxf_tests.exe.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/RelWithDebInfo/dxf_tests.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/RelWithDebInfo/dxf_tests.exe.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/Deployment/dxf_tests.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/Deployment/dxf_tests.exe.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/Development/dxf_tests.exe
+C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/Development/dxf_tests.exe.exe
+Unable to find executable: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-release/dxf_tests.exe
+5/6 Test #5: FrameworkAltCwd ..................***Not Run   0.00 sec
+    Start 6: AssetRootLaunch
+6/6 Test #6: AssetRootLaunch ..................   Passed    0.63 sec
+
+50% tests passed, 3 tests failed out of 6
+
+Label Time Summary:
+alt-cwd          =   0.00 sec*proc (1 test)
+contract         =   0.00 sec*proc (1 test)
+not-real-sdk     =   0.00 sec*proc (1 test)
+physics          =   0.18 sec*proc (1 test)
+portable         =   0.82 sec*proc (4 tests)
+source-policy    =   0.24 sec*proc (1 test)
+
+Total Test time (real) =   1.13 sec
+
+The following tests FAILED:
+	  3 - Framework (Not Run)                               portable
+	  4 - NativeContract (Not Run)                          contract not-real-sdk
+	  5 - FrameworkAltCwd (Not Run)                         alt-cwd portable
+Errors while running CTest
+EXIT_CODE=8

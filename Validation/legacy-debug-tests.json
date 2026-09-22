@@ -1,0 +1,14 @@
+{
+  "command": [
+    "ctest",
+    "--test-dir",
+    "/mnt/data/scope_work/legacy-debug",
+    "-j",
+    "4",
+    "--output-on-failure"
+  ],
+  "exit_code": 0,
+  "timed_out": false,
+  "started_utc": "2026-09-22T08:52:57.769097+00:00",
+  "seconds": 0.299
+}

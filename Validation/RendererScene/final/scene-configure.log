@@ -1,0 +1,6 @@
+$ cmake -S Tools\SceneTaskValidation -B Build\ClaudeSceneIntegration -A x64
+-- Selecting Windows SDK version 10.0.28000.0 to target Windows 10.0.26200.
+-- Configuring done (0.0s)
+-- Generating done (0.1s)
+-- Build files have been written to: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/ClaudeSceneIntegration
+EXIT_CODE=0

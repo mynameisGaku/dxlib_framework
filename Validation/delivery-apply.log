@@ -1,0 +1,8 @@
+ADD     Docs/TaskScopeIsolation.md
+REPLACE Source/Runtime/Private/Dxf/TaskDispatcher.cpp
+REPLACE Source/Runtime/Public/Dxf/TaskDispatcher.h
+ADD     Tests/TaskScopeIsolationTests.cpp
+ADD     Tools/ScopeTaskValidation/CMakeLists.txt
+ADD     Tools/ScopeTaskValidation/Main.cpp
+Applied 6 files. Backup: /mnt/data/scope_work/delivery/repo.scope-isolation-backup-femc28yf
+No git reset, stash, commit, push, or index changes were performed.

@@ -1,0 +1,91 @@
+$ cmake --build Build\ClaudeSceneIntegration --config Release --target dxf_scene_task_integration_tests
+MSBuild のバージョン 18.10.1-1.26427.6+3cd27c13e (.NET Framework)
+
+  Checking File Globs
+  Log.cpp
+  dxf_toolbox.vcxproj -> C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\Release\dxf_toolbox.lib
+  PhysicsWorld2D.cpp
+  PhysicsWorld3D.cpp
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\RigidBody3D.h(49,20): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\dxf_physics.vcxproj]
+  (ソース ファイル '../../../Source/Physics/Private/Dxf/PhysicsWorld3D.cpp' をコンパイルしています)
+  
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\RigidBody3D.h(69,44): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\dxf_physics.vcxproj]
+  (ソース ファイル '../../../Source/Physics/Private/Dxf/PhysicsWorld3D.cpp' をコンパイルしています)
+  
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(108,51): warning C4324: 'Dxf::FBodyRecord3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\dxf_physics.vcxproj]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(128,20): warning C4324: 'Dxf::FBodyRecord3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\dxf_physics.vcxproj]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(168,20): warning C4324: 'Dxf::FSolvePoint3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\dxf_physics.vcxproj]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(200,35): warning C4324: 'Dxf::FCachedImpulse3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\dxf_physics.vcxproj]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(204,20): warning C4324: 'Dxf::FCachedImpulse3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\dxf_physics.vcxproj]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(471,21): warning C4456: 'AxisA' を宣言すると、以前のローカル宣言が隠蔽されます [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\dxf_physics.vcxproj]
+      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(448,22):
+      'AxisA' の宣言を確認してください
+  
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(472,21): warning C4456: 'AxisB' を宣言すると、以前のローカル宣言が隠蔽されます [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\dxf_physics.vcxproj]
+      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(450,23):
+      'AxisB' の宣言を確認してください
+  
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324: 'Dxf::TPhysicsBodySnapshot<TBodyId,TVector,TRotation,TAngular>': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\dxf_physics.vcxproj]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324:         with [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\dxf_physics.vcxproj]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324:         [ [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\dxf_physics.vcxproj]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324:             TBodyId=Dxf::FBodyId3D, [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\dxf_physics.vcxproj]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324:             TVector=Toolbox::FVector3, [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\dxf_physics.vcxproj]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324:             TRotation=Toolbox::FQuaternion, [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\dxf_physics.vcxproj]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324:             TAngular=Toolbox::FVector3 [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\dxf_physics.vcxproj]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2): warning C4324:         ] [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\dxf_physics.vcxproj]
+  (ソース ファイル '../../../Source/Physics/Private/Dxf/PhysicsWorld3D.cpp' をコンパイルしています)
+      C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf\PhysicsSnapshot.h(39,2):
+      テンプレートインスタンス化コンテキスト (最初に最も古いもの) は
+          C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(2687,12):
+          コンパイル対象の クラス テンプレート インスタンス化 'Dxf::TPhysicsBodySnapshot<TBodyId,TVector,TRotation,TAngular>' のリファレンスを確認してください
+          with
+          [
+              TBodyId=Dxf::FBodyId3D,
+              TVector=Toolbox::FVector3,
+              TRotation=Toolbox::FQuaternion,
+              TAngular=Toolbox::FVector3
+          ]
+  
+  コードを生成中...
+  dxf_physics.vcxproj -> C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\Release\dxf_physics.lib
+  AsyncAsset.cpp
+  DebugDrawAdapters.cpp
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf\RenderView3D.h(61,33): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\dxf_support.vcxproj]
+  (ソース ファイル '../../../Source/DxLibSupport/Private/Dxf/DebugDrawAdapters.cpp' をコンパイルしています)
+  
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf\RenderView3D.h(85,44): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\dxf_support.vcxproj]
+  (ソース ファイル '../../../Source/DxLibSupport/Private/Dxf/DebugDrawAdapters.cpp' をコンパイルしています)
+  
+  Render3DContext.cpp
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf\RenderView3D.h(61,33): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\dxf_support.vcxproj]
+  (ソース ファイル '../../../Source/DxLibSupport/Private/Dxf/Render3DContext.cpp' をコンパイルしています)
+  
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf\RenderView3D.h(85,44): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\dxf_support.vcxproj]
+  (ソース ファイル '../../../Source/DxLibSupport/Private/Dxf/Render3DContext.cpp' をコンパイルしています)
+  
+  RenderSystem.cpp
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf\RenderView3D.h(61,33): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\dxf_support.vcxproj]
+  (ソース ファイル '../../../Source/DxLibSupport/Private/Dxf/RenderSystem.cpp' をコンパイルしています)
+  
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf\RenderView3D.h(85,44): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\dxf_support.vcxproj]
+  (ソース ファイル '../../../Source/DxLibSupport/Private/Dxf/RenderSystem.cpp' をコンパイルしています)
+  
+  コードを生成中...
+  dxf_support.vcxproj -> C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\Release\dxf_support.lib
+  Application.cpp
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf\RenderView3D.h(61,33): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\dxf_runtime.vcxproj]
+  (ソース ファイル '../../../Source/Runtime/Private/Dxf/Application.cpp' をコンパイルしています)
+  
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf\RenderView3D.h(85,44): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました [C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\dxf_runtime.vcxproj]
+  (ソース ファイル '../../../Source/Runtime/Private/Dxf/Application.cpp' をコンパイルしています)
+  
+  LifecycleObject.cpp
+  SceneNavigator.cpp
+  TaskDispatcher.cpp
+  コードを生成中...
+  dxf_runtime.vcxproj -> C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\framework\Release\dxf_runtime.lib
+  SceneTaskIntegrationTests.cpp
+  Main.cpp
+  コードを生成中...
+  dxf_scene_task_integration_tests.vcxproj -> C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\ClaudeSceneIntegration\Release\dxf_scene_task_integration_tests.exe
+EXIT_CODE=0

@@ -1,0 +1,5 @@
+$ cmake.exe -S C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework -B Build\Cumulative-debug -G Ninja -DCMAKE_CXX_COMPILER=cl -DCMAKE_BUILD_TYPE=Debug -DDXLIB_ROOT=C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\ThirdParty\DxLib-3.25a\DxLib_VC\????????????????_VC? -UDXF_MSVC_INCLUDE_PREFIX -DDXF_BUILD_NATIVE=ON -DDXF_BUILD_EXAMPLE=ON -DDXF_BUILD_TESTS=ON -DDXF_BUILD_NATIVE_SMOKE=ON -DDXF_RUN_DEVICE_TESTS=OFF -DDXF_INSTALL=ON
+-- Configuring done (0.5s)
+-- Generating done (0.1s)
+-- Build files have been written to: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Cumulative-debug
+EXIT_CODE=0

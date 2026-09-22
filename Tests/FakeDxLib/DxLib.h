@@ -519,3 +519,5 @@ FORCEINLINE Toolbox::int32 ScreenFlip()
 	return 0;
 }
 } // namespace DxLib
+// 幾何・3Dビュー用のテスト宣言を、包括的な契約用ヘッダーへ追補する。限定用FakeNativeで置き換えない。
+#include "RenderViewsApi.h"

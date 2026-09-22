@@ -1,0 +1,7 @@
+MSBuild のバージョン 18.10.1-1.26427.6+3cd27c13e (.NET Framework)
+
+  TaskDispatcherRecoveryTests.cpp
+  AllocationFault.cpp
+  コードを生成中...
+  dxf_task_dispatcher_recovery_tests.vcxproj -> C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Build\TaskRecovery\Debug\dxf_task_dispatcher_recovery_tests.exe
+  Building Custom Rule C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Tools/TaskValidation/CMakeLists.txt

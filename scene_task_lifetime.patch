@@ -1,0 +1,1803 @@
+diff --git a/CMake/SceneTaskIntegrationTests.cmake b/CMake/SceneTaskIntegrationTests.cmake
+new file mode 100644
+index 0000000000000000000000000000000000000000..dc89b9b9b3ded17fdd6662828f48ee5998cf7cab
+--- /dev/null
++++ b/CMake/SceneTaskIntegrationTests.cmake
+@@ -0,0 +1,22 @@
++# 実装ライブラリだけを差し替え、同じ実Application回帰を登録する。
++function(dxf_add_scene_task_integration_tests Target RuntimeLibrary)
++    get_filename_component(_test_root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/.." ABSOLUTE)
++    add_executable(${Target}
++        "${_test_root}/Tools/SceneTaskValidation/Main.cpp"
++        "${_test_root}/Tests/SceneTaskIntegrationTests.cpp")
++    target_link_libraries(${Target} PRIVATE ${RuntimeLibrary})
++    target_include_directories(${Target} PRIVATE "${_test_root}/Tests")
++    target_compile_features(${Target} PRIVATE cxx_std_20)
++    set_target_properties(${Target} PROPERTIES CXX_EXTENSIONS OFF)
++    if(MSVC)
++        target_compile_options(${Target} PRIVATE /W4 /WX /utf-8 /permissive- /EHsc)
++    else()
++        target_compile_options(${Target} PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
++    endif()
++    file(STRINGS "${_test_root}/Tests/SceneTaskIntegrationTests.cpp" _case_lines REGEX "^TEST\\(\"scene_task_[^\"]+\"\\)")
++    foreach(_line IN LISTS _case_lines)
++        string(REGEX REPLACE "^TEST\\(\"([^\"]+)\"\\).*" "\\1" _name "${_line}")
++        add_test(NAME "${_name}" COMMAND ${Target} "${_name}")
++        set_tests_properties("${_name}" PROPERTIES TIMEOUT 20 LABELS "scene-task;application-integration")
++    endforeach()
++endfunction()
+diff --git a/Docs/SceneTaskLifetime.md b/Docs/SceneTaskLifetime.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..5e3c7d5746b9faa663ac20e58f9462224547e1f9
+--- /dev/null
++++ b/Docs/SceneTaskLifetime.md
+@@ -0,0 +1,104 @@
++# SceneとTaskの寿命
++
++## 今回の境界
++
++Applicationが所有するTaskDispatcherをSceneNavigatorへ接続し、SceneのScopeはNavigatorが管理します。
++`OnEnter`を呼ぶ前にScopeが確定し、`FSceneActivationContext`と`FTickContext`の
++`Tasks` / `TaskScope`から利用できます。GameInstanceのTickは同じ窓口とRoot Scopeを受け取ります。
++
++Sceneを切り替える順序は次のとおりです。
++
++```text
++遷移先の同期初期化
++  → 新Scopeの確保（まだ利用者には公開しない）
++  → 旧Scopeと子Scopeを退役（準備完了・取消済み捕捉の解放）
++  → 旧SceneのOnExit
++  → 子オブジェクトと旧SceneのOnDeinitialize
++  → 旧Sceneの破棄
++  → 新Scopeを現在Sceneの所属にする
++  → 新SceneのOnEnter
++```
++
++遷移先の初期化・新Scopeの確保が失敗した場合、旧SceneのScopeは取り消しません。
++旧Sceneの終了が始まった後に終了要求が出た場合は切替を中断し、初期化だけ済んだ候補も後始末します。
++終了フックと旧Sceneのデストラクタの間は、`Application.GetSceneScope()`は空ではなく失効済み旧ハンドルを返します。
++空ハンドルをRootへ解釈するTaskDispatcherの仕様により、終了中の再投入が全体Taskへ化けることを防ぎます。
++
++## 利用例
++
++以下はSceneの`OnTick(const FTickContext& Context)`など、結果を扱える区間の例です。
++CPU準備ではSceneやDxLibへ書き込まず、Taskの捕捉内の結果だけを作ります。
++
++```cpp
++if (Context.Tasks == nullptr || !Context.TaskScope.IsValid())
++{
++    return;
++}
++
++Dxf::FTaskRequest Request;
++Request.Scope = Context.TaskScope;
++Request.Prepare = []()
++{
++    // CPUデータの準備を行う。
++    return Dxf::ETaskPrepare::Success;
++};
++Request.Commit = []()
++{
++    // 所有スレッドで結果を反映する。
++    return true;
++};
++
++const bool bAccepted = Context.Tasks->Submit(Toolbox::Move(Request));
++if (!bAccepted)
++{
++    // 受付停止・取り消し・保留上限に応じて処理する。
++    return;
++}
++```
++
++`Submit`は確保失敗を例外で通知することがあります。`OnEnter`は既存のnoexcept契約のままなので、
++その中で投入する場合は例外を捕捉して失敗を処理してください。設定したレーン数が1の場合、Prepareは投入中に同期実行されます。
++
++## 再入と終了
++
++TaskのCommitや捕捉解放の中で`Application.Shutdown()` / `SceneNavigator.Shutdown()`が呼ばれた場合、
++その場ではSceneを破棄しません。要求を保存して安全な所有スレッドの境界へ遅延します。
++ApplicationのStepはPump後にも終了を調べ、終了要求後に新しい描画フレームを開始しません。
++Task内からの直接のScene切替反映や再帰Stepは失敗を返します。次の切替要求をキューへ積むことはできます。
++
++Application外からNavigatorを直接呼んだ場合のScene通知・旧Scene破棄も同様に保護します。
++手動Pumpで発生した終了要求は、次の`Step`または安全な位置での`Shutdown`で完了させます。
++ApplicationとNavigatorは所有スレッドで操作・破棄する契約です。WorkerはTaskのCommit経由で要求を渡してください。
++Dispatcherの`IsOwnerThread()`と`CanSynchronize()`はこの接続用の観測APIであり、WorkerからScene操作を許可するものではありません。
++
++## 意図的に扱わないこと
++
++- `OnInitialize`には新SceneのTask Scopeを提供しません。Scene用Taskは`OnEnter`以降に投入します。
++  初期化中の`Application.GetSceneScope()`は遷移元のScopeです。初回起動時は空です。
++- Root Scopeや無所属で投入したTaskはScene切替では退役しません。Sceneへ生ポインタで依存するTaskをRootへ置かないでください。
++- Sceneより先に単体破棄されるGameObject/Componentの寿命までは延長しません。Commitでは世代付きハンドルの生存確認などが別途必要です。
++- 現状の`RetireScope`はDispatcher全体のPrepareを待ちます。無関係なRoot Taskも待機対象になり得ます。
++  強制終了・タイムアウトはなく、Prepareが終了しなければ退役も完了しません。
++- `CanSynchronize`の観測後に行う外部の破棄を一般に保証するAPIではありません。対象退役には`RetireScope`の成功が必要です。
++- Sceneのコンストラクタや同期初期化で、外部に保存したポインタから勝手に開始した非同期処理は管理できません。
++
++## 検証入口
++
++専用構成の既定値は、本体の`dxf::framework`へリンクします。root CMakeを上書きせずに利用できます。
++
++```powershell
++cmake -S .\Tools\SceneTaskValidation -B .\Build\scene-task-integration -A x64
++if ($LASTEXITCODE -ne 0) { throw "Scene Taskの生成に失敗しました。" }
++cmake --build .\Build\scene-task-integration --config Debug --target dxf_scene_task_integration_tests
++if ($LASTEXITCODE -ne 0) { throw "Scene Taskのビルドに失敗しました。" }
++ctest --test-dir .\Build\scene-task-integration -C Debug -L scene-task --output-on-failure
++if ($LASTEXITCODE -ne 0) { throw "Scene Taskのテストに失敗しました。" }
++```
++
++Visual Studio用の新規ビルドディレクトリを想定しています。Ninja等を選んでいる環境では`-A x64`を付けず、そのGeneratorを明示してください。
++Releaseも別途ビルド・CTestしてください。実DxLib SDKの動作と既存テスト一式は、この専用テストとは別に確認します。
++
++`-DDXF_SCENE_FOCUSED=ON`はApplicationが実際に使う依存部分だけをビルドする検証用の明示オプションです。
++Application/Scene/Dispatcher/Job/Asset/Audio/Rendererの本体を使い、外部Backendのみをテスト実装へ置き換えます。
++今回のLinux環境で実行したのはこちらです。Physics・Native・既存全テストを含む全体ビルド成功という意味ではありません。
++新規変更したRuntime実装と新規テストには警告エラー扱いを適用し、変更対象外の依存の既存警告は表示したまま保持します。
+diff --git a/Source/Runtime/Private/Dxf/Application.cpp b/Source/Runtime/Private/Dxf/Application.cpp
+index f4d6ccefb0d79ce57bf48aee02a2e78981e34db0..aa305cd5740a5d771a9e5638e189651db915cf3c 100644
+--- a/Source/Runtime/Private/Dxf/Application.cpp
++++ b/Source/Runtime/Private/Dxf/Application.cpp
+@@ -1,5 +1,5 @@
+-#include "Toolbox/UniquePtr.h"
+ #include "Dxf/Application.h"
++#include "Toolbox/UniquePtr.h"
+ #include "Dxf/GuardValue.h"
+ #include "Toolbox/Utility.h"
+ namespace Dxf
+@@ -14,7 +14,7 @@ FApplication::FApplication(FBackendServices Services, FApplicationSettings Setti
+       m_Input(Services.Input), m_Assets(Services.Textures, Services.Sounds, Services.Fonts),
+       m_Renderer(Services.Renderer), m_Audio(Services.Sounds), m_ExecutionJobs(m_Settings.ExecutionThreadCount),
+       m_TaskDispatcher(m_ExecutionJobs), m_pGame(Toolbox::Move(Game)),
+-      m_Scenes(m_Assets, m_Audio, m_pGame.Get()), m_Clock(m_Settings.MaxDeltaSeconds)
++      m_Scenes(m_Assets, m_Audio, m_pGame.Get(), &m_TaskDispatcher), m_Clock(m_Settings.MaxDeltaSeconds)
+ {
+ }
+ // 所有する状態を終了し、必要なリソースを解放する。
+@@ -22,27 +22,6 @@ FApplication::~FApplication()
+ {
+ 	Shutdown();
+ }
+-// Sceneの切り替わりに合わせてScopeを付け替える。
+-// 切替失敗では旧SceneとそのScopeを維持する。
+-void FApplication::SyncSceneScope_Internal()
+-{
+-	// 追跡中のScene。
+-	DScene* Current = m_Scenes.GetCurrent();
+-	if (Current == m_pTaskScene)
+-	{
+-		return;
+-	}
+-	if (m_SceneScope.IsValid())
+-	{
+-		m_TaskDispatcher.DestroyScope(m_SceneScope);
+-		m_SceneScope = {};
+-	}
+-	m_pTaskScene = Current;
+-	if (Current != nullptr)
+-	{
+-		m_SceneScope = m_TaskDispatcher.CreateScope();
+-	}
+-}
+ // 初期化を行い実行を開始する。
+ // @param InitialScene 最初に開始するシーン。
+ TResult<void> FApplication::Start_Internal(Toolbox::TUniquePtr<DScene> InitialScene)
+@@ -91,7 +70,6 @@ TResult<void> FApplication::Start_Internal(Toolbox::TUniquePtr<DScene> InitialSc
+ 	{
+ 		return TResult<void>::Failure(Commit.Error());
+ 	}
+-	SyncSceneScope_Internal();
+ 	m_bStarted = true;
+ 	return {};
+ }
+@@ -99,7 +77,8 @@ TResult<void> FApplication::Start_Internal(Toolbox::TUniquePtr<DScene> InitialSc
+ // @param InitialScene 最初に開始するシーン。
+ TResult<void> FApplication::Start(Toolbox::TUniquePtr<DScene> InitialScene)
+ {
+-	if (m_bAttemptedStart || m_bShutdown || m_bBusy)
++	if (!m_TaskDispatcher.CanSynchronize() || m_Scenes.IsDispatching() ||
++	    m_bAttemptedStart || m_bShutdown || m_bBusy)
+ 	{
+ 		return TResult<void>::Failure(EErrorCode::InvalidState, "Application is single-use or busy");
+ 	}
+@@ -187,7 +166,8 @@ TResult<bool> FApplication::Step_Internal(Toolbox::f64 NowSeconds)
+ 	{
+ 		// ゲーム更新に渡すコンテキスト。
+ 		auto GameTick =
+-		    m_pGame->Tick_Internal({m_Input.GetSnapshot(), Time.Value(), &m_Scenes, m_pGame.Get(), &m_Audio, 0});
++		    m_pGame->Tick_Internal({m_Input.GetSnapshot(), Time.Value(), &m_Scenes, m_pGame.Get(), &m_Audio, 0,
++		                               &m_TaskDispatcher, m_TaskDispatcher.GetRootScope()});
+ 		if (!GameTick)
+ 		{
+ 			return TResult<bool>::Failure(GameTick.Error());
+@@ -207,9 +187,12 @@ TResult<bool> FApplication::Step_Internal(Toolbox::f64 NowSeconds)
+ 	{
+ 		return TResult<bool>::Success(false);
+ 	}
+-	// 共有Taskの反映とScene Scopeの追従。失敗した反映はDispatcher内で集計し、フレームは継続する。
++	// Scene Scopeは切替の中で更新済み。Commit中の終了要求は描画開始前に処理する。
+ 	m_TaskDispatcher.PumpCommits();
+-	SyncSceneScope_Internal();
++	if (WantsQuit_Internal())
++	{
++		return TResult<bool>::Success(false);
++	}
+ 	// 音声再生のサービス。
+ 	auto Audio = m_Audio.Tick();
+ 	if (!Audio)
+@@ -246,6 +229,16 @@ TResult<bool> FApplication::Step_Internal(Toolbox::f64 NowSeconds)
+ // @param NowSeconds 単調増加する現在時刻の秒数。
+ TResult<bool> FApplication::Step(Toolbox::f64 NowSeconds)
+ {
++	if (!m_TaskDispatcher.CanSynchronize() || m_Scenes.IsDispatching())
++	{
++		return TResult<bool>::Failure(EErrorCode::InvalidState, "Application Step requires a safe owner boundary");
++	}
++	// Step外で手動PumpしたCommitからの終了要求も、安全な次回境界で完了する。
++	if (!m_bBusy && !m_bShutdown && m_bShutdownRequested)
++	{
++		Shutdown();
++		return TResult<bool>::Success(false);
++	}
+ 	if (m_bBusy || !IsRunning())
+ 	{
+ 		return TResult<bool>::Failure(EErrorCode::InvalidState, "Application is stopped or Step is reentrant");
+@@ -280,7 +273,12 @@ TResult<bool> FApplication::Step(Toolbox::f64 NowSeconds)
+ // 管理する処理とリソースを順序どおり終了する。
+ void FApplication::Shutdown() noexcept
+ {
+-	if (m_bBusy)
++	// Applicationの操作は所有スレッド限定。WorkerはCommit経由で終了を要求する。
++	if (!m_TaskDispatcher.IsOwnerThread())
++	{
++		return;
++	}
++	if (m_bBusy || m_Scenes.IsDispatching() || !m_TaskDispatcher.CanSynchronize())
+ 	{
+ 		m_bShutdownRequested = true;
+ 		m_Scenes.RequestQuit();
+@@ -297,12 +295,6 @@ void FApplication::Shutdown() noexcept
+ 	m_bShutdown = true;
+ 	// 処理終了時に状態を戻すガード。
+ 	TGuardValue Guard(m_bBusy, true);
+-	if (m_SceneScope.IsValid())
+-	{
+-		m_TaskDispatcher.DestroyScope(m_SceneScope);
+-		m_SceneScope = {};
+-	}
+-	m_pTaskScene = nullptr;
+ 	m_TaskDispatcher.Shutdown();
+ 	m_ExecutionJobs.Shutdown();
+ 	m_Scenes.Shutdown();
+diff --git a/Source/Runtime/Private/Dxf/SceneNavigator.cpp b/Source/Runtime/Private/Dxf/SceneNavigator.cpp
+index d44424ca2f73533a47c6b79ba133ff4e8ec47c3a..c040badc3a39add94b126ad1905d3d5190a093bd 100644
+--- a/Source/Runtime/Private/Dxf/SceneNavigator.cpp
++++ b/Source/Runtime/Private/Dxf/SceneNavigator.cpp
+@@ -1,22 +1,96 @@
+-#include "Toolbox/UniquePtr.h"
+ #include "Dxf/SceneNavigator.h"
++#include "Toolbox/UniquePtr.h"
+ #include "Dxf/AssetService.h"
+ #include "Dxf/GuardValue.h"
+ namespace Dxf
+ {
++namespace
++{
++// 有効化前のSceneと未公開Scopeを、例外・中断経路でも後始末する。
++class FSceneCandidateGuard
++{
++public:
++	// Nextの所有権は呼び出し元が持ち、ガードは借用だけを行う。
++	FSceneCandidateGuard(Toolbox::TUniquePtr<DScene>& Next, FTaskDispatcher* Tasks) noexcept
++	    : m_pNext(&Next), m_pTasks(Tasks)
++	{
++	}
++	// 中断した候補だけを終了し、現Sceneの所属には触れない。
++	~FSceneCandidateGuard()
++	{
++		// ScopeはOnEnter前まで外へ公開しないため、未使用の登録だけを失効させる。
++		if (m_pTasks && m_Scope.IsValid())
++		{
++			m_pTasks->DestroyScope(m_Scope);
++		}
++		if (*m_pNext)
++		{
++			(*m_pNext)->Shutdown_Internal();
++		}
++	}
++	// 同じ候補を二重に後始末しない。
++	FSceneCandidateGuard(const FSceneCandidateGuard&) = delete;
++	FSceneCandidateGuard& operator=(const FSceneCandidateGuard&) = delete;
++	// 初期化成功後に確保し、失敗しても遷移元には触れない。
++	bool CreateScope()
++	{
++		if (!m_pTasks)
++		{
++			return true;
++		}
++		m_Scope = m_pTasks->CreateScope();
++		return m_Scope.IsValid();
++	}
++	// 終了フックによるDispatcher停止も、有効化前に確認する。
++	bool CanActivate() const noexcept
++	{
++		return !m_pTasks || !m_pTasks->IsCanceled(m_Scope);
++	}
++	// 現在Sceneへ所属の管理を渡す。
++	FTaskScope ReleaseScope() noexcept
++	{
++		const FTaskScope Scope = m_Scope;
++		m_Scope = {};
++		return Scope;
++	}
++
++private:
++	// 呼び出し元にある遷移候補の所有権。
++	Toolbox::TUniquePtr<DScene>* m_pNext;
++	// Applicationが所有する非同期窓口。
++	FTaskDispatcher* m_pTasks;
++	// まだSceneへ公開していない所属。
++	FTaskScope m_Scope;
++};
++} // namespace
+ // 必要な依存関係を受け取り、初期状態を構築する。
+ // @param Assets アセットを読み込むサービス。
+ // @param Audio 音声再生のサービス。
+ // @param Game シーン間で共有するゲーム状態。
+-FSceneNavigator::FSceneNavigator(FAssetService& Assets, FAudioPlayer& Audio, DGameInstance* Game)
+-    : m_pAssets(&Assets), m_pAudio(&Audio), m_pGame(Game), m_Lifecycle(Audio)
++FSceneNavigator::FSceneNavigator(FAssetService& Assets, FAudioPlayer& Audio, DGameInstance* Game,
++                                 FTaskDispatcher* Tasks)
++    : m_pAssets(&Assets), m_pAudio(&Audio), m_pGame(Game), m_pTasks(Tasks), m_Lifecycle(Audio)
+ {
++	if (m_pTasks && !m_pTasks->IsOwnerThread())
++	{
++		throw Toolbox::FException("Scene navigator and task dispatcher require the same owner thread");
++	}
+ }
+ // 所有する状態を終了し、必要なリソースを解放する。
+ FSceneNavigator::~FSceneNavigator()
+ {
+ 	Shutdown();
+ }
++// Taskの自己待機や反映中のScene破棄を起こさない境界かを調べる。
++bool FSceneNavigator::CanSynchronizeTasks_Internal() const noexcept
++{
++	return !m_pTasks || m_pTasks->CanSynchronize();
++}
++// 失効ハンドルは停止フック・デストラクタの終了まで保持し、再投入を拒否する。
++bool FSceneNavigator::RetireCurrentScope_Internal() noexcept
++{
++	return !m_pTasks || !m_SceneScope.IsValid() || m_pTasks->RetireScope(m_SceneScope);
++}
+ // 次の処理境界でのシーン変更を要求する。
+ // @param Scene 対象のシーン。
+ TResult<void> FSceneNavigator::RequestChange(Toolbox::TUniquePtr<DScene> Scene)
+@@ -57,6 +131,8 @@ TResult<bool> FSceneNavigator::Commit_Internal()
+ 	{
+ 		return TResult<bool>::Success(false);
+ 	}
++	// 初期化の失敗や例外でも候補を終了する。
++	FSceneCandidateGuard Candidate(Next, m_pTasks);
+ 	// 準備済みのシーン。
+ 	TResult<void> Prepared;
+ 	{
+@@ -81,6 +157,30 @@ TResult<bool> FSceneNavigator::Commit_Internal()
+ 		m_LastTransitionError = FError{EErrorCode::InvalidState, "Scene destroyed during preparation"};
+ 		return TResult<bool>::Failure(*m_LastTransitionError);
+ 	}
++	// 新Scopeの確保失敗では旧SceneのScopeを取り消さない。
++	try
++	{
++		if (!Candidate.CreateScope())
++		{
++			m_LastTransitionError = FError{EErrorCode::InvalidState, "Scene task scope could not be created"};
++			return TResult<bool>::Failure(*m_LastTransitionError);
++		}
++	}
++	catch (...)
++	{
++		m_LastTransitionError = FError{EErrorCode::InvalidState, "Scene task scope allocation failed"};
++		return TResult<bool>::Failure(*m_LastTransitionError);
++	}
++	// OnExit・子の終了・Scene破棄より前に、準備完了と捕捉の解放を確認する。
++	if (!RetireCurrentScope_Internal())
++	{
++		m_LastTransitionError = FError{EErrorCode::InvalidState, "Scene task retirement was not completed"};
++		return TResult<bool>::Failure(*m_LastTransitionError);
++	}
++	if (WantsQuit() || m_bShutdownRequested)
++	{
++		return TResult<bool>::Success(false);
++	}
+ 	// 現在の状態を取得して有効性を確認する。
+ 	if (auto* Current = m_Storage.GetCurrent())
+ 	{
+@@ -91,15 +191,31 @@ TResult<bool> FSceneNavigator::Commit_Internal()
+ 		Next->Shutdown_Internal();
+ 		return TResult<bool>::Success(false);
+ 	}
++	if (!Candidate.CanActivate())
++	{
++		// 旧Sceneの終了後は継続できないため、停止された窓口で新Sceneを開始しない。
++		m_bShutdownRequested = true;
++		RequestQuit();
++		return TResult<bool>::Success(false);
++	}
+ 	m_Storage.SetCurrent_Internal(Toolbox::Move(Next));
++	m_SceneScope = Candidate.ReleaseScope();
++	// 差し替えで走る旧Sceneのデストラクタも終了を要求できる。
++	if (WantsQuit() || m_bShutdownRequested || (m_pTasks && m_pTasks->IsCanceled(m_SceneScope)))
++	{
++		m_bShutdownRequested = true;
++		RequestQuit();
++		return TResult<bool>::Success(false);
++	}
+ 	m_LastTransitionError.Reset();
+-	m_Lifecycle.Activate_Internal(*m_Storage.GetCurrent(), {*m_pAudio, *this, m_pGame, AllocateDomain_Internal()});
++	m_Lifecycle.Activate_Internal(*m_Storage.GetCurrent(),
++	                             {*m_pAudio, *this, m_pGame, AllocateDomain_Internal(), m_pTasks, m_SceneScope});
+ 	return TResult<bool>::Success(true);
+ }
+ // 境界で確定した変更を反映する。
+ TResult<bool> FSceneNavigator::Commit()
+ {
+-	if (m_bBusy || m_bShutdown)
++	if (!CanSynchronizeTasks_Internal() || m_bBusy || m_bShutdown)
+ 	{
+ 		return TResult<bool>::Failure(EErrorCode::InvalidState, "Invalid or reentrant scene commit");
+ 	}
+@@ -120,7 +236,7 @@ TResult<bool> FSceneNavigator::Commit()
+ // 保留中のオブジェクト変更を反映する。
+ TResult<void> FSceneNavigator::CommitObjects()
+ {
+-	if (m_bBusy || m_bShutdown)
++	if (!CanSynchronizeTasks_Internal() || m_bBusy || m_bShutdown)
+ 	{
+ 		return TResult<void>::Failure(EErrorCode::InvalidState, "Invalid scene boundary");
+ 	}
+@@ -152,7 +268,7 @@ TResult<void> FSceneNavigator::CommitObjects()
+ // @param Input フレームの入力情報。
+ TResult<void> FSceneNavigator::Tick(FFrameTime Time, const FInputSnapshot& Input)
+ {
+-	if (m_bBusy || m_bShutdown)
++	if (!CanSynchronizeTasks_Internal() || m_bBusy || m_bShutdown)
+ 	{
+ 		return TResult<void>::Failure(EErrorCode::InvalidState, "Invalid or reentrant scene tick");
+ 	}
+@@ -169,7 +285,8 @@ TResult<void> FSceneNavigator::Tick(FFrameTime Time, const FInputSnapshot& Input
+ 		if (auto* Scene = GetCurrent())
+ 		{
+ 			Time = Scene->GetClock().Advance(Time);
+-			Result = Scene->Tick_Internal({Input, Time, this, m_pGame, m_pAudio, Scene->GetAudioScope()});
++			Result = Scene->Tick_Internal({Input, Time, this, m_pGame, m_pAudio, Scene->GetAudioScope(),
++			                               m_pTasks, m_SceneScope});
+ 		}
+ 	}
+ 	FinishDispatch_Internal();
+@@ -179,7 +296,7 @@ TResult<void> FSceneNavigator::Tick(FFrameTime Time, const FInputSnapshot& Input
+ // @param Render 現在の描画コンテキスト。
+ TResult<void> FSceneNavigator::Draw(FRenderContext& Render)
+ {
+-	if (m_bBusy || m_bShutdown)
++	if (!CanSynchronizeTasks_Internal() || m_bBusy || m_bShutdown)
+ 	{
+ 		return TResult<void>::Failure(EErrorCode::InvalidState, "Invalid or reentrant scene draw");
+ 	}
+@@ -228,25 +345,33 @@ void FSceneNavigator::RequestQuit() noexcept
+ // 管理する処理とリソースを順序どおり終了する。
+ void FSceneNavigator::Shutdown() noexcept
+ {
+-	if (m_bBusy)
++	// WorkerからはSceneに触れない。終了要求は所有スレッドのCommitへ渡す。
++	if (m_pTasks && !m_pTasks->IsOwnerThread())
+ 	{
+-		m_bShutdownRequested = true;
+-		RequestQuit();
+ 		return;
+ 	}
+ 	if (m_bShutdown)
+ 	{
+ 		return;
+ 	}
+-	m_bShutdown = true;
+-	m_bQuit = true;
+-	// 処理終了時に状態を戻すガード。
++	m_bShutdownRequested = true;
++	RequestQuit();
++	if (m_bBusy || !CanSynchronizeTasks_Internal())
++	{
++		return;
++	}
++	// 捕捉のデストラクタからの再入でも、終了はこの境界だけで完了させる。
+ 	TGuardValue Guard(m_bBusy, true);
+-	// 現在の状態を取得して有効性を確認する。
++	if (!RetireCurrentScope_Internal())
++	{
++		return;
++	}
++	m_bShutdown = true;
+ 	if (auto* Current = GetCurrent())
+ 	{
+ 		m_Lifecycle.Stop_Internal(*Current);
+ 	}
+ 	m_Storage.Clear_Internal();
++	m_SceneScope = {};
+ }
+ } // namespace Dxf
+diff --git a/Source/Runtime/Public/Dxf/Application.h b/Source/Runtime/Public/Dxf/Application.h
+index aefbd63a0908079f19edc1900ba80354a1796df3..92ca35cc1515091408387cd24914970e783354c3 100644
+--- a/Source/Runtime/Public/Dxf/Application.h
++++ b/Source/Runtime/Public/Dxf/Application.h
+@@ -119,18 +119,21 @@ public:
+ 		return m_ExecutionJobs;
+ 	}
+ 	/**
+-	 * 共有Task Dispatcherを取得する。反映はStepの境界でのみ行う。
++	 * 共有Task Dispatcherを取得する。通常の反映はStepの境界で行う。
++	 * 手動Pumpを使う場合も、所有スレッドかつScene通知の外で実行する。
+ 	 */
+ 	FORCEINLINE FTaskDispatcher& GetTaskDispatcher() noexcept
+ 	{
+ 		return m_TaskDispatcher;
+ 	}
+ 	/**
+-	 * 現在SceneのScopeを返す。Sceneがない場合は無効。
++	 * 有効化した現在SceneのScopeを返す。OnEnterの前に確定し、終了通知中は失効ハンドルを返す。
++	 * Scene破棄完了後は空になる。所有スレッドでのみ取得する。
++	 * OnInitialize中は遷移元のScopeであり、遷移先のTask投入には使わない。
+ 	 */
+ 	FORCEINLINE FTaskScope GetSceneScope() noexcept
+ 	{
+-		return m_SceneScope;
++		return m_Scenes.GetTaskScope();
+ 	}
+ 
+ private:
+@@ -144,11 +147,6 @@ private:
+ 	 * @param NowSeconds 単調増加する現在時刻の秒数。
+ 	 */
+ 	TResult<bool> Step_Internal(Toolbox::f64 NowSeconds);
+-	/**
+-	 * Sceneの切り替わりに合わせてScopeを付け替える。
+-	 * 切替失敗では旧SceneとそのScopeを維持する。
+-	 */
+-	void SyncSceneScope_Internal();
+ 	/**
+ 	 * 正常終了が要求されているかを調べる。
+ 	 */
+@@ -189,14 +187,6 @@ private:
+ 	 * 共有実行のTask Dispatcher。
+ 	 */
+ 	FTaskDispatcher m_TaskDispatcher;
+-	/**
+-	 * 現在SceneのScope。Sceneがない場合は無効。
+-	 */
+-	FTaskScope m_SceneScope;
+-	/**
+-	 * Scopeを追跡中のScene。
+-	 */
+-	DScene* m_pTaskScene = nullptr;
+ 	/**
+ 	 * シーン間で共有するゲーム状態。
+ 	 */
+diff --git a/Source/Runtime/Public/Dxf/Contexts.h b/Source/Runtime/Public/Dxf/Contexts.h
+index 7a6e26eecadcc08916cd00a2a5449a76740ef3d7..d4b8d03b3a4a345fd491bc57ea7355fda446c1ca 100644
+--- a/Source/Runtime/Public/Dxf/Contexts.h
++++ b/Source/Runtime/Public/Dxf/Contexts.h
+@@ -3,6 +3,7 @@
+ #include "Dxf/Input.h"
+ #include "Dxf/InputSnapshot.h"
+ #include "Toolbox/Vector.h"
++#include "Dxf/TaskDispatcher.h"
+ namespace Dxf
+ {
+ class FAssetService;
+@@ -50,6 +51,15 @@ struct FTickContext
+ 	 * シーンに紐づく音声の識別番号。
+ 	 */
+ 	Toolbox::uint64 AudioScope = 0;
++	/**
++	 * Applicationが所有するTaskの窓口。低レベルの単独利用ではnullptr。
++	 */
++	FTaskDispatcher* Tasks = nullptr;
++	/**
++	 * このSceneの有効化から終了までを保護する所属。OnEnter以降に使用する。
++	 * GameInstanceの更新ではRoot。Scopeなしの単独利用では無効。
++	 */
++	FTaskScope TaskScope{};
+ };
+ /**
+  * 固定時間更新時の入力・時間・物理情報を管理する型。
+@@ -239,5 +249,14 @@ struct FSceneActivationContext
+ 	 * シーンに紐づく音声の識別番号。
+ 	 */
+ 	Toolbox::uint64 AudioScope = 0;
++	/**
++	 * Applicationが所有するTaskの窓口。低レベルの単独利用ではnullptr。
++	 */
++	FTaskDispatcher* Tasks = nullptr;
++	/**
++	 * このSceneの有効化から終了までを保護する所属。OnEnter以降に使用する。
++	 * GameInstanceの更新ではRoot。Scopeなしの単独利用では無効。
++	 */
++	FTaskScope TaskScope{};
+ };
+ } // namespace Dxf
+diff --git a/Source/Runtime/Public/Dxf/SceneNavigator.h b/Source/Runtime/Public/Dxf/SceneNavigator.h
+index 8aeec246119edbfa57b4f82506f3c1ac97cd7792..0a935d1e5670955a421b8060a3d72652a634d879 100644
+--- a/Source/Runtime/Public/Dxf/SceneNavigator.h
++++ b/Source/Runtime/Public/Dxf/SceneNavigator.h
+@@ -4,11 +4,12 @@
+ #include "Dxf/SceneLifecycle.h"
+ #include "Toolbox/Optional.h"
+ #include "Toolbox/Utility.h"
++#include "Dxf/TaskDispatcher.h"
+ namespace Dxf
+ {
+ class FAssetService;
+ /**
+- * シーン遷移の要求と反映を管理する型。
++ * シーン遷移の要求と反映を管理する型。すべての操作は所有スレッドで行う。
+  */
+ class FSceneNavigator
+ {
+@@ -18,8 +19,10 @@ public:
+ 	 * @param Assets アセットを読み込むサービス。
+ 	 * @param Audio 音声再生のサービス。
+ 	 * @param Game シーン間で共有するゲーム状態。
++	 * @param Tasks 借用するTask窓口。指定時は同じ所有スレッドで操作し、Navigatorより長く生存させる。
+ 	 */
+-	FSceneNavigator(FAssetService& Assets, FAudioPlayer& Audio, DGameInstance* Game = nullptr);
++	FSceneNavigator(FAssetService& Assets, FAudioPlayer& Audio, DGameInstance* Game = nullptr,
++	                FTaskDispatcher* Tasks = nullptr);
+ 	/**
+ 	 * 所有する状態を終了し、必要なリソースを解放する。
+ 	 */
+@@ -63,7 +66,8 @@ public:
+ 		}
+ 	}
+ 	/**
+-	 * 境界で確定した変更を反映する。
++	 * 境界で確定した変更を反映する。Task反映中や準備中の再入は失敗で拒否する。
++	 * 初期化と新Scope確保の成功後、旧Scopeを退役してから終了通知を行う。
+ 	 */
+ 	TResult<bool> Commit();
+ 	/**
+@@ -84,10 +88,25 @@ public:
+ 	/**
+ 	 * 現在の状態を取得する。
+ 	 */
+-	DScene* GetCurrent() const noexcept
++	FORCEINLINE DScene* GetCurrent() const noexcept
+ 	{
+ 		return m_Storage.GetCurrent();
+ 	}
++	/**
++	 * 利用者フックまたはSceneの破棄を実行中か。所有スレッドでのみ参照する。
++	 */
++	FORCEINLINE bool IsDispatching() const noexcept
++	{
++		return m_bBusy;
++	}
++	/**
++	 * 現在SceneのTask Scope。終了フック中は失効した旧ハンドルを保つ。
++	 * OnInitializeには遷移先のScopeを提供しない。Scene用TaskはOnEnter以降に投入する。
++	 */
++	FORCEINLINE FTaskScope GetTaskScope() const noexcept
++	{
++		return m_SceneScope;
++	}
+ 	/**
+ 	 * 直近のシーン遷移のエラーを取得する。
+ 	 */
+@@ -107,7 +126,8 @@ public:
+ 		return m_bQuit || m_bShutdown;
+ 	}
+ 	/**
+-	 * 管理する処理とリソースを順序どおり終了する。
++	 * 所属Taskの退役後にSceneを終了する。TaskやSceneの通知中は要求だけを記録する。
++	 * 遅延時は所有スレッドの安全な境界で再度呼び、完了させる。
+ 	 */
+ 	void Shutdown() noexcept;
+ 
+@@ -119,6 +139,14 @@ private:
+ 	{
+ 		return !WantsQuit() && !m_bShutdownRequested && !m_bReplacingPending;
+ 	}
++	/**
++	 * Taskの反映・捕捉破棄に再入せずSceneを操作できるかを調べる。
++	 */
++	bool CanSynchronizeTasks_Internal() const noexcept;
++	/**
++	 * 現在SceneのPrepareと捕捉を退役する。失敗時はSceneを停止・破棄しない。
++	 */
++	bool RetireCurrentScope_Internal() noexcept;
+ 	/**
+ 	 * 境界で確定した変更を反映する。
+ 	 */
+@@ -139,6 +167,14 @@ private:
+ 	 * シーン間で共有するゲーム状態。
+ 	 */
+ 	DGameInstance* m_pGame;
++	/**
++	 * Applicationが所有するTask窓口。単独利用では未接続。
++	 */
++	FTaskDispatcher* m_pTasks;
++	/**
++	 * 有効化した現在Sceneの所属。ポインタのアドレス比較では追跡しない。
++	 */
++	FTaskScope m_SceneScope;
+ 	/**
+ 	 * 初期化中のシーンへの非所有参照。
+ 	 */
+diff --git a/Source/Runtime/Public/Dxf/TaskDispatcher.h b/Source/Runtime/Public/Dxf/TaskDispatcher.h
+index 2c25ef4bffdb9708ca0f824082130256cf82ad18..5608b3bdda80e0a0aa95351fda8294c5a8ea4360 100644
+--- a/Source/Runtime/Public/Dxf/TaskDispatcher.h
++++ b/Source/Runtime/Public/Dxf/TaskDispatcher.h
+@@ -206,6 +206,22 @@ public:
+ 		return m_DispatcherId;
+ 	}
+ 
++	/**
++	 * 構築したスレッドから呼ばれているかを調べる。
++	 */
++	FORCEINLINE bool IsOwnerThread() const noexcept
++	{
++		return Toolbox::FThread::CurrentThreadId() == m_OwnerThread;
++	}
++	/**
++	 * 所有スレッドの、Scene終了などの同期を開始できる実行区間かを調べる。
++	 * Job・Commit・捕捉破棄・進行中の待機からはfalse。停止完了の判定ではない。
++	 */
++	FORCEINLINE bool CanSynchronize() const noexcept
++	{
++		return CanDrain_Internal();
++	}
++
+ private:
+ 	/**
+ 	 * 要求の進行状態。
+diff --git a/Tests/SceneTaskIntegrationTests.cpp b/Tests/SceneTaskIntegrationTests.cpp
+new file mode 100644
+index 0000000000000000000000000000000000000000..77991166d81147e31d56eab991a07baebadf05ae
+--- /dev/null
++++ b/Tests/SceneTaskIntegrationTests.cpp
+@@ -0,0 +1,659 @@
++// SPDX-License-Identifier: NOASSERTION
++#include "Support/Test.h"
++#include "Support/SceneTaskBackend.h"
++#include "Dxf/Application.h"
++#include "Toolbox/Atomic.h"
++#include "Toolbox/SharedPtr.h"
++#include "Toolbox/Thread.h"
++using namespace Dxf;
++using namespace Dxf::Testing;
++namespace
++{
++// Scene外で観測し、旧版の誤った寿命順序も解放済みポインタを読まずに検出する。
++struct FSceneTaskObservation
++{
++	FApplication* App = nullptr;
++	FTaskScope EnterScope{};
++	FTaskScope TickScope{};
++	Toolbox::FAtomicCounter Entered;
++	Toolbox::FAtomicCounter Exited;
++	Toolbox::FAtomicCounter Stopped;
++	Toolbox::FAtomicCounter Destroyed;
++	Toolbox::FAtomicCounter Started;
++	Toolbox::FAtomicCounter Prepared;
++	Toolbox::FAtomicCounter Released;
++	Toolbox::FAtomicCounter Committed;
++	bool bScopeAliveInEnter = false;
++	bool bContextConnected = false;
++	bool bExitAfterPrepare = false;
++	bool bStopAfterPrepare = false;
++	bool bExitAfterRelease = false;
++	bool bStopAfterRelease = false;
++	bool bFailInitialize = false;
++	bool bThrowInitialize = false;
++	bool bTryPostInExit = false;
++	bool bExitPostAccepted = false;
++	bool bExitSawExpiredHandle = false;
++	Toolbox::TFunction<void()> Initialize;
++	Toolbox::TFunction<void()> Enter;
++	Toolbox::TFunction<void()> Exit;
++	Toolbox::TFunction<void()> Destroy;
++	Toolbox::TFunction<void(const FSceneActivationContext&)> EnterContext;
++	Toolbox::TFunction<void(const FTickContext&)> Tick;
++	Toolbox::TFunction<void()> Draw;
++};
++// 旧版でも同じ回帰を実行し、追加Context入口がない場合はfalseとして観測する。
++template <typename T> bool ContextIsConnected_Internal(const T& Context, FApplication& App, FTaskScope Scope)
++{
++	if constexpr (requires { Context.Tasks; Context.TaskScope; })
++	{
++		return Context.Tasks == &App.GetTaskDispatcher() && Context.TaskScope == Scope;
++	}
++	return false;
++}
++// Contextだけから所属を指定して投入できるか調べる。
++template <typename T> bool SubmitFromContext_Internal(const T& Context, FSceneTaskObservation& State)
++{
++	if constexpr (requires { Context.Tasks; Context.TaskScope; })
++	{
++		if (!Context.Tasks || !Context.TaskScope.IsValid())
++		{
++			return false;
++		}
++		FTaskRequest Request;
++		Request.Scope = Context.TaskScope;
++		Request.Prepare = [&State]()
++		{
++			State.Prepared.FetchAdd(1);
++			return ETaskPrepare::Success;
++		};
++		Request.Commit = [&State]()
++		{
++			State.Committed.FetchAdd(1);
++			return true;
++		};
++		return Context.Tasks->Submit(Toolbox::Move(Request));
++	}
++	return false;
++}
++// 確保済みの共有捕捉が退役で解放されたかを観測する。
++class FCaptureProbe
++{
++public:
++	explicit FCaptureProbe(FSceneTaskObservation& Observation) noexcept : m_pObservation(&Observation)
++	{
++	}
++	~FCaptureProbe()
++	{
++		m_pObservation->Released.FetchAdd(1);
++	}
++private:
++	FSceneTaskObservation* m_pObservation;
++};
++// 任意の再入を最後の捕捉破棄時だけ実行する。
++class FReleaseAction
++{
++public:
++	explicit FReleaseAction(Toolbox::TFunction<void()> Action) : m_Action(Toolbox::Move(Action))
++	{
++	}
++	~FReleaseAction()
++	{
++		m_Action();
++	}
++private:
++	Toolbox::TFunction<void()> m_Action;
++};
++// 実Sceneの開始・更新・停止を観測する。noexceptフックでは例外型のREQUIREを使わない。
++class DTaskObservedScene final : public DScene
++{
++public:
++	explicit DTaskObservedScene(FSceneTaskObservation& Observation) noexcept : m_pObservation(&Observation)
++	{
++	}
++	~DTaskObservedScene() override
++	{
++		m_pObservation->Destroyed.FetchAdd(1);
++		if (m_pObservation->Destroy)
++		{
++			m_pObservation->Destroy();
++		}
++	}
++protected:
++	TResult<void> OnInitialize(const FInitContext&) override
++	{
++		if (m_pObservation->Initialize)
++		{
++			m_pObservation->Initialize();
++		}
++		if (m_pObservation->bThrowInitialize)
++		{
++			throw Toolbox::FException("scene task transition preparation failed");
++		}
++		return m_pObservation->bFailInitialize
++		           ? TResult<void>::Failure(EErrorCode::InitializationFailed, "scene task initialization failed")
++		           : TResult<void>{};
++	}
++	void OnEnter(const FSceneActivationContext& Context) noexcept override
++	{
++		auto& State = *m_pObservation;
++		State.Entered.FetchAdd(1);
++		State.EnterScope = State.App->GetSceneScope();
++		State.bScopeAliveInEnter = State.App->GetTaskDispatcher().IsScopeAlive(State.EnterScope);
++		State.bContextConnected = ContextIsConnected_Internal(Context, *State.App, State.EnterScope);
++		if (State.EnterContext)
++		{
++			State.EnterContext(Context);
++		}
++		if (State.Enter)
++		{
++			State.Enter();
++		}
++	}
++	void OnExit() noexcept override
++	{
++		auto& State = *m_pObservation;
++		State.bExitAfterPrepare = State.Prepared.Load() != 0;
++		State.bExitAfterRelease = State.Released.Load() != 0;
++		State.Exited.FetchAdd(1);
++		if (State.bTryPostInExit)
++		{
++			const FTaskScope Scope = State.App->GetSceneScope();
++			State.bExitSawExpiredHandle = Scope.IsValid() && !State.App->GetTaskDispatcher().IsScopeAlive(Scope);
++			FTaskRequest Request;
++			Request.Scope = Scope;
++			State.bExitPostAccepted = State.App->GetTaskDispatcher().Submit(Toolbox::Move(Request));
++		}
++		if (State.Exit)
++		{
++			State.Exit();
++		}
++	}
++	void OnDeinitialize() noexcept override
++	{
++		m_pObservation->bStopAfterPrepare = m_pObservation->Prepared.Load() != 0;
++		m_pObservation->bStopAfterRelease = m_pObservation->Released.Load() != 0;
++		m_pObservation->Stopped.FetchAdd(1);
++	}
++	void OnTick(const FTickContext& Context) override
++	{
++		m_pObservation->TickScope = m_pObservation->App->GetSceneScope();
++		if (m_pObservation->Tick)
++		{
++			m_pObservation->Tick(Context);
++		}
++	}
++	void OnDraw(FRenderContext&) const override
++	{
++		if (m_pObservation->Draw)
++		{
++			m_pObservation->Draw();
++		}
++	}
++private:
++	FSceneTaskObservation* m_pObservation;
++};
++// 観測先と窓口を結び付ける。
++Toolbox::TUniquePtr<DTaskObservedScene> MakeScene_Internal(FApplication& App, FSceneTaskObservation& State)
++{
++	State.App = &App;
++	return Toolbox::MakeUnique<DTaskObservedScene>(State);
++}
++// レーン数を明示し、検証機のCPU数に依存させない。
++FApplicationSettings Settings_Internal(Toolbox::uint32 Lanes = 1)
++{
++	FApplicationSettings Settings;
++	Settings.ExecutionThreadCount = Lanes;
++	return Settings;
++}
++// 反映待ちの所属Taskを作る。捕捉解放はCommitの有無とは独立して観測する。
++void SubmitReady_Internal(FApplication& App, FTaskScope Scope, FSceneTaskObservation& State)
++{
++	auto Capture = Toolbox::MakeShared<FCaptureProbe>(State);
++	FTaskRequest Request;
++	Request.Scope = Scope;
++	Request.Prepare = [&State]()
++	{
++		State.Prepared.Store(1);
++		return ETaskPrepare::Success;
++	};
++	Request.Commit = [Capture, &State]()
++	{
++		State.Committed.FetchAdd(1);
++		return true;
++	};
++	REQUIRE(App.GetTaskDispatcher().Submit(Toolbox::Move(Request)));
++}
++// 取り消しまで準備を保留する。取消を確認して戻るため、任意sleepによる待機判定を使わない。
++void SubmitRunning_Internal(FApplication& App, FTaskScope Scope, FSceneTaskObservation& State)
++{
++	auto Capture = Toolbox::MakeShared<FCaptureProbe>(State);
++	FTaskRequest Request;
++	Request.Scope = Scope;
++	Request.Prepare = [&App, Scope, &State]()
++	{
++		State.Started.Store(1);
++		while (!App.GetTaskDispatcher().IsCanceled(Scope))
++		{
++			Toolbox::FThread::Yield();
++		}
++		State.Prepared.Store(1);
++		return ETaskPrepare::Canceled;
++	};
++	Request.Commit = [Capture, &State]()
++	{
++		State.Committed.FetchAdd(1);
++		return true;
++	};
++	REQUIRE(App.GetTaskDispatcher().Submit(Toolbox::Move(Request)));
++	while (State.Started.Load() == 0)
++	{
++		Toolbox::FThread::Yield();
++	}
++}
++} // namespace
++TEST("scene_task_scope_exists_in_enter_and_first_tick")
++{
++	FSceneTaskBackendTrace Trace;
++	FSceneTaskBackend Backend(Trace);
++	FSceneTaskObservation First;
++	FSceneTaskObservation Second;
++	FApplication App(Backend.Services(), Settings_Internal());
++	bool bTickContext = false;
++	First.Tick = [&](const FTickContext& Context)
++	{
++		bTickContext = ContextIsConnected_Internal(Context, App, First.EnterScope);
++	};
++	REQUIRE(App.Start(MakeScene_Internal(App, First)));
++	REQUIRE(First.bScopeAliveInEnter);
++	REQUIRE(First.bContextConnected);
++	REQUIRE(App.Step(0.0));
++	REQUIRE(bTickContext);
++	REQUIRE(First.EnterScope == First.TickScope);
++	REQUIRE(App.GetScenes().RequestChange(MakeScene_Internal(App, Second)));
++	REQUIRE(App.Step(0.1));
++	REQUIRE(Second.bScopeAliveInEnter);
++	REQUIRE(Second.bContextConnected);
++	REQUIRE(Second.EnterScope == Second.TickScope);
++	REQUIRE(!(Second.EnterScope == First.EnterScope));
++}
++TEST("scene_task_ready_capture_retires_before_exit_and_stop")
++{
++	for (const Toolbox::uint32 Lanes : {1u, 4u})
++	{
++		FSceneTaskBackendTrace Trace;
++		FSceneTaskBackend Backend(Trace);
++		FSceneTaskObservation First;
++		FSceneTaskObservation Second;
++		FApplication App(Backend.Services(), Settings_Internal(Lanes));
++		REQUIRE(App.Start(MakeScene_Internal(App, First)));
++		const FTaskScope Scope = App.GetSceneScope();
++		SubmitReady_Internal(App, Scope, First);
++		App.GetTaskDispatcher().WaitForPrepares();
++		REQUIRE(App.GetScenes().RequestChange(MakeScene_Internal(App, Second)));
++		REQUIRE(App.Step(0.0));
++		REQUIRE(First.bExitAfterRelease);
++		REQUIRE(First.bStopAfterRelease);
++		REQUIRE(First.Committed.Load() == 0);
++		REQUIRE(First.Destroyed.Load() == 1);
++		REQUIRE(!App.GetTaskDispatcher().IsScopeAlive(Scope));
++	}
++}
++TEST("scene_task_running_child_prepares_finish_before_scene_exit")
++{
++	FSceneTaskBackendTrace Trace;
++	FSceneTaskBackend Backend(Trace);
++	FSceneTaskObservation First;
++	FSceneTaskObservation Second;
++	FApplication App(Backend.Services(), Settings_Internal(4));
++	REQUIRE(App.Start(MakeScene_Internal(App, First)));
++	const FTaskScope Parent = App.GetSceneScope();
++	const FTaskScope Child = App.GetTaskDispatcher().CreateScope(Parent);
++	SubmitRunning_Internal(App, Child, First);
++	REQUIRE(App.GetScenes().RequestChange(MakeScene_Internal(App, Second)));
++	REQUIRE(App.Step(0.0));
++	App.GetTaskDispatcher().WaitForPrepares();
++	REQUIRE(First.bExitAfterPrepare);
++	REQUIRE(First.bStopAfterPrepare);
++	REQUIRE(First.bExitAfterRelease);
++	REQUIRE(First.Committed.Load() == 0);
++	REQUIRE(App.GetTaskDispatcher().IsCanceled(Child));
++}
++TEST("scene_task_failed_transition_preserves_current_scope_and_commit")
++{
++	for (const bool bThrow : {false, true})
++	{
++		FSceneTaskBackendTrace Trace;
++		FSceneTaskBackend Backend(Trace);
++		FSceneTaskObservation First;
++		FSceneTaskObservation Failed;
++		Failed.bFailInitialize = !bThrow;
++		Failed.bThrowInitialize = bThrow;
++		FApplication App(Backend.Services(), Settings_Internal());
++		REQUIRE(App.Start(MakeScene_Internal(App, First)));
++		const FTaskScope Scope = App.GetSceneScope();
++		SubmitReady_Internal(App, Scope, First);
++		REQUIRE(App.GetScenes().RequestChange(MakeScene_Internal(App, Failed)));
++		REQUIRE(App.Step(0.0));
++		REQUIRE(App.GetSceneScope() == Scope);
++		REQUIRE(App.GetTaskDispatcher().IsScopeAlive(Scope));
++		REQUIRE(First.Exited.Load() == 0);
++		REQUIRE(First.Committed.Load() == 1);
++		REQUIRE(Failed.Entered.Load() == 0);
++		REQUIRE(Failed.Stopped.Load() == 1);
++		REQUIRE(Failed.Destroyed.Load() == 1);
++	}
++}
++TEST("scene_task_exit_cannot_submit_using_expired_current_handle")
++{
++	FSceneTaskBackendTrace Trace;
++	FSceneTaskBackend Backend(Trace);
++	FSceneTaskObservation First;
++	FSceneTaskObservation Second;
++	First.bTryPostInExit = true;
++	FApplication App(Backend.Services(), Settings_Internal());
++	REQUIRE(App.Start(MakeScene_Internal(App, First)));
++	REQUIRE(App.GetScenes().RequestChange(MakeScene_Internal(App, Second)));
++	REQUIRE(App.Step(0.0));
++	REQUIRE(First.bExitSawExpiredHandle);
++	REQUIRE(!First.bExitPostAccepted);
++}
++TEST("scene_task_switch_does_not_cancel_root_work")
++{
++	FSceneTaskBackendTrace Trace;
++	FSceneTaskBackend Backend(Trace);
++	FSceneTaskObservation First;
++	FSceneTaskObservation Second;
++	FSceneTaskObservation Root;
++	FApplication App(Backend.Services(), Settings_Internal());
++	REQUIRE(App.Start(MakeScene_Internal(App, First)));
++	SubmitReady_Internal(App, App.GetSceneScope(), First);
++	SubmitReady_Internal(App, App.GetTaskDispatcher().GetRootScope(), Root);
++	REQUIRE(App.GetScenes().RequestChange(MakeScene_Internal(App, Second)));
++	REQUIRE(App.Step(0.0));
++	REQUIRE(First.Committed.Load() == 0);
++	REQUIRE(Root.Committed.Load() == 1);
++}
++TEST("scene_task_navigator_shutdown_waits_before_ending_scene")
++{
++	FSceneTaskBackendTrace Trace;
++	FSceneTaskBackend Backend(Trace);
++	FSceneTaskObservation First;
++	FApplication App(Backend.Services(), Settings_Internal(4));
++	REQUIRE(App.Start(MakeScene_Internal(App, First)));
++	SubmitRunning_Internal(App, App.GetSceneScope(), First);
++	App.GetScenes().Shutdown();
++	// 旧版でもWorkerを必ず回収してから結果を判定する。
++	App.Shutdown();
++	REQUIRE(First.bExitAfterPrepare);
++	REQUIRE(First.bStopAfterRelease);
++	REQUIRE(First.Destroyed.Load() == 1);
++	REQUIRE(!App.GetSceneScope().IsValid());
++	REQUIRE(Trace.Shutdowns == 1);
++}
++TEST("scene_task_shutdown_from_tick_waits_after_callback_returns")
++{
++	FSceneTaskBackendTrace Trace;
++	FSceneTaskBackend Backend(Trace);
++	FSceneTaskObservation First;
++	FApplication App(Backend.Services(), Settings_Internal(4));
++	bool bDestroyedInside = false;
++	First.Tick = [&](const FTickContext& Context)
++	{
++		Context.Scenes->Shutdown();
++		bDestroyedInside = First.Destroyed.Load() != 0;
++	};
++	REQUIRE(App.Start(MakeScene_Internal(App, First)));
++	SubmitRunning_Internal(App, App.GetSceneScope(), First);
++	const auto Step = App.Step(0.0);
++	REQUIRE(Step && !Step.Value());
++	REQUIRE(!bDestroyedInside);
++	REQUIRE(First.bExitAfterPrepare);
++	REQUIRE(First.bStopAfterRelease);
++	REQUIRE(Trace.Presents == 0);
++}
++TEST("scene_task_commit_cannot_force_reentrant_scene_switch")
++{
++	FSceneTaskBackendTrace Trace;
++	FSceneTaskBackend Backend(Trace);
++	FSceneTaskObservation First;
++	FSceneTaskObservation Second;
++	FApplication App(Backend.Services(), Settings_Internal());
++	REQUIRE(App.Start(MakeScene_Internal(App, First)));
++	bool bRequested = false;
++	bool bCommitRejected = false;
++	FTaskRequest Request;
++	Request.Scope = App.GetSceneScope();
++	Request.Commit = [&]()
++	{
++		bRequested = static_cast<bool>(App.GetScenes().RequestChange(MakeScene_Internal(App, Second)));
++		bCommitRejected = !App.GetScenes().Commit();
++		return true;
++	};
++	REQUIRE(App.GetTaskDispatcher().Submit(Toolbox::Move(Request)));
++	REQUIRE(App.Step(0.0));
++	REQUIRE(bRequested);
++	REQUIRE(bCommitRejected);
++	REQUIRE(First.Destroyed.Load() == 0);
++	REQUIRE(App.Step(0.1));
++	REQUIRE(First.Destroyed.Load() == 1);
++	REQUIRE(Second.bScopeAliveInEnter);
++}
++TEST("scene_task_manual_pump_shutdown_defers_application_destruction")
++{
++	FSceneTaskBackendTrace Trace;
++	FSceneTaskBackend Backend(Trace);
++	FSceneTaskObservation First;
++	FApplication App(Backend.Services(), Settings_Internal());
++	REQUIRE(App.Start(MakeScene_Internal(App, First)));
++	bool bStillAliveInCommit = false;
++	FTaskRequest Request;
++	Request.Scope = App.GetSceneScope();
++	Request.Commit = [&]()
++	{
++		App.Shutdown();
++		bStillAliveInCommit = First.Destroyed.Load() == 0 && Trace.Shutdowns == 0;
++		return true;
++	};
++	REQUIRE(App.GetTaskDispatcher().Submit(Toolbox::Move(Request)));
++	App.GetTaskDispatcher().PumpCommits();
++	REQUIRE(bStillAliveInCommit);
++	const auto Step = App.Step(0.0);
++	REQUIRE(Step && !Step.Value());
++	REQUIRE(First.Destroyed.Load() == 1);
++	REQUIRE(Trace.Shutdowns == 1);
++}
++TEST("scene_task_capture_shutdown_is_deferred_and_skips_frame_begin")
++{
++	FSceneTaskBackendTrace Trace;
++	FSceneTaskBackend Backend(Trace);
++	FSceneTaskObservation First;
++	FApplication App(Backend.Services(), Settings_Internal());
++	REQUIRE(App.Start(MakeScene_Internal(App, First)));
++	bool bAliveInDestructor = false;
++	{
++		auto Action = Toolbox::MakeShared<FReleaseAction>([&]()
++		{
++			App.GetScenes().Shutdown();
++			bAliveInDestructor = First.Destroyed.Load() == 0;
++		});
++		FTaskRequest Request;
++		Request.Scope = App.GetSceneScope();
++		Request.Commit = [Action]()
++		{
++			return true;
++		};
++		REQUIRE(App.GetTaskDispatcher().Submit(Toolbox::Move(Request)));
++	}
++	const auto Step = App.Step(0.0);
++	REQUIRE(Step && !Step.Value());
++	REQUIRE(bAliveInDestructor);
++	REQUIRE(First.Destroyed.Load() == 1);
++	REQUIRE(Trace.Clears == 0);
++	REQUIRE(Trace.Presents == 0);
++}
++TEST("scene_task_exit_quit_does_not_enter_prepared_scene")
++{
++	FSceneTaskBackendTrace Trace;
++	FSceneTaskBackend Backend(Trace);
++	FSceneTaskObservation First;
++	FSceneTaskObservation Second;
++	FApplication App(Backend.Services(), Settings_Internal());
++	First.Exit = [&]()
++	{
++		App.GetScenes().RequestQuit();
++	};
++	REQUIRE(App.Start(MakeScene_Internal(App, First)));
++	SubmitReady_Internal(App, App.GetSceneScope(), First);
++	REQUIRE(App.GetScenes().RequestChange(MakeScene_Internal(App, Second)));
++	const auto Step = App.Step(0.0);
++	REQUIRE(Step && !Step.Value());
++	REQUIRE(First.bExitAfterRelease);
++	REQUIRE(First.Stopped.Load() == 1);
++	REQUIRE(Second.Entered.Load() == 0);
++	REQUIRE(Second.Stopped.Load() == 1);
++	REQUIRE(Second.Destroyed.Load() == 1);
++}
++TEST("scene_task_stopped_dispatcher_prevents_initial_activation")
++{
++	FSceneTaskBackendTrace Trace;
++	FSceneTaskBackend Backend(Trace);
++	FSceneTaskObservation First;
++	FApplication App(Backend.Services(), Settings_Internal());
++	First.Initialize = [&]()
++	{
++		App.GetTaskDispatcher().Shutdown();
++	};
++	REQUIRE(!App.Start(MakeScene_Internal(App, First)));
++	REQUIRE(First.Entered.Load() == 0);
++	REQUIRE(First.Stopped.Load() == 1);
++	REQUIRE(First.Destroyed.Load() == 1);
++	REQUIRE(Trace.Shutdowns == 1);
++}
++TEST("scene_task_direct_transitions_rotate_scope_without_application_step")
++{
++	FSceneTaskBackendTrace Trace;
++	FSceneTaskBackend Backend(Trace);
++	FSceneTaskObservation First;
++	FSceneTaskObservation Second;
++	FSceneTaskObservation Third;
++	FApplication App(Backend.Services(), Settings_Internal());
++	REQUIRE(App.Start(MakeScene_Internal(App, First)));
++	const FTaskScope FirstScope = App.GetSceneScope();
++	REQUIRE(App.GetScenes().RequestChange(MakeScene_Internal(App, Second)));
++	REQUIRE(App.GetScenes().Commit());
++	const FTaskScope SecondScope = App.GetSceneScope();
++	REQUIRE(SecondScope.IsValid() && !(SecondScope == FirstScope));
++	REQUIRE(App.GetScenes().RequestChange(MakeScene_Internal(App, Third)));
++	REQUIRE(App.GetScenes().Commit());
++	const FTaskScope ThirdScope = App.GetSceneScope();
++	REQUIRE(ThirdScope.IsValid() && !(ThirdScope == SecondScope));
++	REQUIRE(!App.GetTaskDispatcher().IsScopeAlive(FirstScope));
++	REQUIRE(!App.GetTaskDispatcher().IsScopeAlive(SecondScope));
++	REQUIRE(App.GetTaskDispatcher().IsScopeAlive(ThirdScope));
++}
++
++TEST("scene_task_direct_navigator_callback_defers_application_shutdown")
++{
++	FSceneTaskBackendTrace Trace;
++	FSceneTaskBackend Backend(Trace);
++	FSceneTaskObservation First;
++	FApplication App(Backend.Services(), Settings_Internal(4));
++	bool bAliveInside = false;
++	bool bRecursiveStepRejected = false;
++	First.Tick = [&](const FTickContext&)
++	{
++		bRecursiveStepRejected = !App.Step(0.0);
++		App.Shutdown();
++		bAliveInside = First.Destroyed.Load() == 0 && Trace.Shutdowns == 0;
++	};
++	REQUIRE(App.Start(MakeScene_Internal(App, First)));
++	SubmitRunning_Internal(App, App.GetSceneScope(), First);
++	FInputSnapshot Input;
++	REQUIRE(App.GetScenes().Tick({}, Input));
++	App.Shutdown();
++	REQUIRE(bAliveInside);
++	REQUIRE(bRecursiveStepRejected);
++	REQUIRE(First.bStopAfterPrepare);
++	REQUIRE(First.bStopAfterRelease);
++	REQUIRE(First.Destroyed.Load() == 1);
++	REQUIRE(Trace.Shutdowns == 1);
++}
++TEST("scene_task_old_destructor_quit_prevents_new_scene_enter")
++{
++	FSceneTaskBackendTrace Trace;
++	FSceneTaskBackend Backend(Trace);
++	FSceneTaskObservation First;
++	FSceneTaskObservation Second;
++	FApplication App(Backend.Services(), Settings_Internal());
++	bool bExpiredInside = false;
++	First.Destroy = [&]()
++	{
++		const auto Scope = App.GetSceneScope();
++		bExpiredInside = Scope.IsValid() && !App.GetTaskDispatcher().IsScopeAlive(Scope);
++		App.GetScenes().RequestQuit();
++	};
++	REQUIRE(App.Start(MakeScene_Internal(App, First)));
++	REQUIRE(App.GetScenes().RequestChange(MakeScene_Internal(App, Second)));
++	const auto Step = App.Step(0.0);
++	REQUIRE(Step && !Step.Value());
++	REQUIRE(bExpiredInside);
++	REQUIRE(First.Destroyed.Load() == 1);
++	REQUIRE(Second.Entered.Load() == 0);
++	REQUIRE(Second.Stopped.Load() == 1);
++	REQUIRE(Second.Destroyed.Load() == 1);
++	REQUIRE(Trace.Presents == 0);
++}
++TEST("scene_task_enter_and_tick_submit_through_context_on_one_and_four_lanes")
++{
++	for (const Toolbox::uint32 Lanes : {1u, 4u})
++	{
++		FSceneTaskBackendTrace Trace;
++		FSceneTaskBackend Backend(Trace);
++		FSceneTaskObservation First;
++		FApplication App(Backend.Services(), Settings_Internal(Lanes));
++		bool bEnterAccepted = false;
++		bool bTickAccepted = false;
++		First.EnterContext = [&](const FSceneActivationContext& Context)
++		{
++			bEnterAccepted = SubmitFromContext_Internal(Context, First);
++		};
++		First.Tick = [&](const FTickContext& Context)
++		{
++			if (!bTickAccepted)
++			{
++				bTickAccepted = SubmitFromContext_Internal(Context, First);
++			}
++		};
++		REQUIRE(App.Start(MakeScene_Internal(App, First)));
++		App.GetTaskDispatcher().WaitForPrepares();
++		REQUIRE(App.Step(0.0));
++		App.GetTaskDispatcher().WaitForPrepares();
++		REQUIRE(App.Step(0.1));
++		REQUIRE(bEnterAccepted);
++		REQUIRE(bTickAccepted);
++		REQUIRE(First.Prepared.Load() == 2);
++		REQUIRE(First.Committed.Load() == 2);
++	}
++}
++TEST("scene_task_draw_shutdown_finishes_worker_without_presenting")
++{
++	FSceneTaskBackendTrace Trace;
++	FSceneTaskBackend Backend(Trace);
++	FSceneTaskObservation First;
++	FApplication App(Backend.Services(), Settings_Internal(4));
++	bool bAliveInside = false;
++	First.Draw = [&]()
++	{
++		App.Shutdown();
++		bAliveInside = First.Destroyed.Load() == 0;
++	};
++	REQUIRE(App.Start(MakeScene_Internal(App, First)));
++	SubmitRunning_Internal(App, App.GetSceneScope(), First);
++	const auto Step = App.Step(0.0);
++	REQUIRE(Step && !Step.Value());
++	REQUIRE(bAliveInside);
++	REQUIRE(First.bExitAfterPrepare);
++	REQUIRE(First.bStopAfterRelease);
++	REQUIRE(Trace.Presents == 0);
++}
+diff --git a/Tests/Support/SceneTaskBackend.h b/Tests/Support/SceneTaskBackend.h
+new file mode 100644
+index 0000000000000000000000000000000000000000..f866cadabe2d8a2f59a7f06daee6809a27a6d402
+--- /dev/null
++++ b/Tests/Support/SceneTaskBackend.h
+@@ -0,0 +1,234 @@
++// SPDX-License-Identifier: NOASSERTION
++#ifndef DXF_TEST_SCENE_TASK_BACKEND_H
++#define DXF_TEST_SCENE_TASK_BACKEND_H
++#include "Dxf/BackendServices.h"
++namespace Dxf::Testing
++{
++/**
++ * Sceneの終了境界で観測する外部バックエンドの呼び出し回数。
++ */
++struct FSceneTaskBackendTrace
++{
++	/**
++	 * プラットフォームの終了回数。
++	 */
++	Toolbox::uint32 Shutdowns = 0;
++	/**
++	 * 描画開始時の消去回数。
++	 */
++	Toolbox::uint32 Clears = 0;
++	/**
++	 * 画面への提示回数。
++	 */
++	Toolbox::uint32 Presents = 0;
++};
++/**
++ * OS・入力・資源・描画の外部境界だけを置き換える。Runtimeは本体を使う。
++ */
++class FSceneTaskBackend final : public IPlatform, public IInputSource, public ITextureBackend,
++                                public ISoundBackend, public IFontBackend, public IRenderBackend
++{
++public:
++	/**
++	 * Applicationより長く生存する観測先を借用する。
++	 * @param Trace 呼び出し回数の記録先。
++	 */
++	explicit FSceneTaskBackend(FSceneTaskBackendTrace& Trace) noexcept : m_pTrace(&Trace)
++	{
++	}
++	/**
++	 * 同じ検証用Backendを各インターフェースへ接続する。
++	 */
++	FBackendServices Services() noexcept
++	{
++		return {*this, *this, *this, *this, *this, *this};
++	}
++	/**
++	 * 外部ウィンドウを作らずに起動する。
++	 */
++	TResult<void> Initialize(const FWindowSettings&) override
++	{
++		return {};
++	}
++	/**
++	 * プラットフォームの終了を記録する。
++	 */
++	void Shutdown() noexcept override
++	{
++		++m_pTrace->Shutdowns;
++	}
++	/**
++	 * OSからの終了要求がないフレームを返す。
++	 */
++	TResult<bool> PumpEvents() override
++	{
++		return TResult<bool>::Success(true);
++	}
++	/**
++	 * 操作されていない入力を返す。
++	 */
++	TResult<FRawInput> Poll() override
++	{
++		return TResult<FRawInput>::Success({});
++	}
++	/**
++	 * この検証で使わないテクスチャ生成を拒否する。
++	 */
++	TResult<FTextureAllocation> LoadTexture(const Toolbox::FString&, const FTextureLoadOptions&) override
++	{
++		return Unsupported_Internal<FTextureAllocation>();
++	}
++	/**
++	 * この検証で使わないメモリからのテクスチャ生成を拒否する。
++	 */
++	TResult<FTextureAllocation> LoadTextureMemory(const void*, Toolbox::size_t, const FTextureLoadOptions&) override
++	{
++		return Unsupported_Internal<FTextureAllocation>();
++	}
++	/**
++	 * この検証で使わない描画先生成を拒否する。
++	 */
++	TResult<FTextureAllocation> CreateRenderTarget(Toolbox::int32, Toolbox::int32, bool) override
++	{
++		return Unsupported_Internal<FTextureAllocation>();
++	}
++	/**
++	 * 実資源を所有しないため何もしない。
++	 */
++	void DeleteTexture(Toolbox::int32) noexcept override
++	{
++	}
++	/**
++	 * この検証で使わない音声生成を拒否する。
++	 */
++	TResult<Toolbox::int32> LoadSound(const Toolbox::FString&, const FSoundLoadOptions&) override
++	{
++		return Unsupported_Internal<Toolbox::int32>();
++	}
++	/**
++	 * この検証で使わないメモリからの音声生成を拒否する。
++	 */
++	TResult<Toolbox::int32> LoadSoundMemory(const void*, Toolbox::size_t, const FSoundLoadOptions&) override
++	{
++		return Unsupported_Internal<Toolbox::int32>();
++	}
++	/**
++	 * この検証で使わない音声複製を拒否する。
++	 */
++	TResult<Toolbox::int32> DuplicateSound(Toolbox::int32) override
++	{
++		return Unsupported_Internal<Toolbox::int32>();
++	}
++	/**
++	 * この検証で使わない音声再生を拒否する。
++	 */
++	TResult<void> StartSound(Toolbox::int32, bool) override
++	{
++		return Unsupported_Internal<void>();
++	}
++	/**
++	 * 実音声を所有しないため何もしない。
++	 */
++	void StopSound(Toolbox::int32) noexcept override
++	{
++	}
++	/**
++	 * 実音声を所有しないため何もしない。
++	 */
++	void DeleteSound(Toolbox::int32) noexcept override
++	{
++	}
++	/**
++	 * この検証で使わない音量設定を拒否する。
++	 */
++	TResult<void> SetSoundVolume(Toolbox::int32, Toolbox::f32) override
++	{
++		return Unsupported_Internal<void>();
++	}
++	/**
++	 * 再生中の音声がないことを返す。
++	 */
++	TResult<bool> IsSoundPlaying(Toolbox::int32) override
++	{
++		return TResult<bool>::Success(false);
++	}
++	/**
++	 * この検証で使わないフォント生成を拒否する。
++	 */
++	TResult<Toolbox::int32> CreateFont(const FFontOptions&) override
++	{
++		return Unsupported_Internal<Toolbox::int32>();
++	}
++	/**
++	 * 実フォントを所有しないため何もしない。
++	 */
++	void DeleteFont(Toolbox::int32) noexcept override
++	{
++	}
++	/**
++	 * 描画先を受け付ける。
++	 */
++	TResult<void> SetTarget(Toolbox::int32, Toolbox::int32, Toolbox::int32) override
++	{
++		return {};
++	}
++	/**
++	 * フレーム開始を記録する。
++	 */
++	TResult<void> Clear(FColor) override
++	{
++		++m_pTrace->Clears;
++		return {};
++	}
++	/**
++	 * 2D状態の復元を受け付ける。
++	 */
++	TResult<void> ResetState(Toolbox::int32, Toolbox::int32) override
++	{
++		return {};
++	}
++	/**
++	 * 本検証では空描画のため、想定外の描画要求を拒否する。
++	 */
++	TResult<void> DrawSprite(const FSpriteCommand&) override
++	{
++		return Unsupported_Internal<void>();
++	}
++	/**
++	 * 本検証では空描画のため、想定外の文字描画を拒否する。
++	 */
++	TResult<void> DrawText(const FTextCommand&) override
++	{
++		return Unsupported_Internal<void>();
++	}
++	/**
++	 * 本検証では空描画のため、想定外の矩形描画を拒否する。
++	 */
++	TResult<void> DrawRectangle(const FRectangleCommand&) override
++	{
++		return Unsupported_Internal<void>();
++	}
++	/**
++	 * フレームの提示を記録する。
++	 */
++	TResult<void> Present() override
++	{
++		++m_pTrace->Presents;
++		return {};
++	}
++
++private:
++	/**
++	 * 検証範囲外の外部処理を成功に見せない。
++	 */
++	template <typename T> static TResult<T> Unsupported_Internal()
++	{
++		return TResult<T>::Failure(EErrorCode::BackendFailure, "Unused scene-task test backend capability");
++	}
++	/**
++	 * 外部呼び出しの記録先。
++	 */
++	FSceneTaskBackendTrace* m_pTrace;
++};
++} // namespace Dxf::Testing
++#endif
+diff --git a/Tools/SceneTaskValidation/CMakeLists.txt b/Tools/SceneTaskValidation/CMakeLists.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..cf695b460d4e1e3181e169c7d5788b5efae1cd0b
+--- /dev/null
++++ b/Tools/SceneTaskValidation/CMakeLists.txt
+@@ -0,0 +1,89 @@
++cmake_minimum_required(VERSION 3.24)
++project(DxfSceneTaskIntegration LANGUAGES CXX)
++get_filename_component(_default_root "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
++set(DXF_SCENE_SOURCE_ROOT "${_default_root}" CACHE PATH "Framework source root (allows comparison with an unchanged baseline)")
++option(DXF_SCENE_FOCUSED "Compile only the real Application dependency subset, not the full framework" OFF)
++option(DXF_SCENE_SANITIZERS "Use address and undefined sanitizers (GCC/Clang)" OFF)
++option(DXF_SCENE_THREAD_SANITIZER "Use thread sanitizer (GCC/Clang)" OFF)
++if(DXF_SCENE_SANITIZERS AND DXF_SCENE_THREAD_SANITIZER)
++    message(FATAL_ERROR "AddressSanitizer and ThreadSanitizer require separate build directories")
++endif()
++if(MSVC AND (DXF_SCENE_SANITIZERS OR DXF_SCENE_THREAD_SANITIZER))
++    message(FATAL_ERROR "These sanitizer profiles require GCC or Clang on Linux")
++endif()
++if(DXF_SCENE_SANITIZERS)
++    add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
++    add_link_options(-fsanitize=address,undefined)
++elseif(DXF_SCENE_THREAD_SANITIZER)
++    add_compile_options(-fsanitize=thread -fno-omit-frame-pointer)
++    add_link_options(-fsanitize=thread)
++endif()
++set(CMAKE_CXX_EXTENSIONS OFF)
++enable_testing()
++if(DXF_SCENE_FOCUSED)
++    # 外部Backend以外のApplication依存は、指定Rootの実装をそのままコンパイルする。
++    # この経路の成功をPhysics/Nativeを含む全体ビルドとは数えない。
++    find_package(Threads REQUIRED)
++    set(_sources
++        Source/Runtime/Private/Dxf/Application.cpp
++        Source/Runtime/Private/Dxf/SceneNavigator.cpp
++        Source/Runtime/Private/Dxf/LifecycleObject.cpp
++        Source/Runtime/Private/Dxf/TaskDispatcher.cpp
++        Source/Toolbox/Private/Toolbox/Threading.cpp
++        Source/Toolbox/Private/Toolbox/JobSystem.cpp
++        Source/Toolbox/Private/Toolbox/Platform.cpp
++        Source/Toolbox/Private/Toolbox/ProjectPaths.cpp
++        Source/Toolbox/Private/Toolbox/Vector3.cpp
++        Source/DxLibSupport/Private/Dxf/AssetService.cpp
++        Source/DxLibSupport/Private/Dxf/AudioPlayer.cpp
++        Source/DxLibSupport/Private/Dxf/TextureLoader.cpp
++        Source/DxLibSupport/Private/Dxf/SoundLoader.cpp
++        Source/DxLibSupport/Private/Dxf/FontLoader.cpp
++        Source/DxLibSupport/Private/Dxf/RenderQueue2D.cpp
++        Source/DxLibSupport/Private/Dxf/Render2DContext.cpp
++        Source/DxLibSupport/Private/Dxf/Render3DContext.cpp
++        Source/DxLibSupport/Private/Dxf/RenderGeometry3D.cpp)
++    # ローカルに適用済みのRenderer統合を逆戻りさせない。
++    file(READ "${DXF_SCENE_SOURCE_ROOT}/Source/Runtime/Public/Dxf/Application.h" _application_header)
++    if(_application_header MATCHES "Dxf/RenderSystem2D.h")
++        list(APPEND _sources Source/DxLibSupport/Private/Dxf/RenderSystem2D.cpp)
++    elseif(_application_header MATCHES "Dxf/RenderSystem.h")
++        list(APPEND _sources Source/DxLibSupport/Private/Dxf/RenderSystem.cpp
++            Source/DxLibSupport/Private/Dxf/RenderPass3D.cpp)
++    else()
++        message(FATAL_ERROR "Unknown Application renderer; do not guess a replacement")
++    endif()
++    list(TRANSFORM _sources PREPEND "${DXF_SCENE_SOURCE_ROOT}/")
++    add_library(dxf_scene_task_runtime STATIC ${_sources})
++    target_link_libraries(dxf_scene_task_runtime PUBLIC Threads::Threads)
++    target_compile_features(dxf_scene_task_runtime PUBLIC cxx_std_20)
++    foreach(_layer Runtime Toolbox Foundation DxLibSupport)
++        target_include_directories(dxf_scene_task_runtime PUBLIC "${DXF_SCENE_SOURCE_ROOT}/Source/${_layer}/Public")
++    endforeach()
++    if(MSVC)
++        target_compile_options(dxf_scene_task_runtime PRIVATE /W4 /utf-8 /permissive- /EHsc)
++        set(_strict /WX)
++    else()
++        target_compile_options(dxf_scene_task_runtime PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow)
++        set(_strict -Werror)
++    endif()
++    # 既存依存の警告は保持し、新規変更した実装には警告エラー扱いを適用する。
++    set_property(SOURCE
++        "${DXF_SCENE_SOURCE_ROOT}/Source/Runtime/Private/Dxf/Application.cpp"
++        "${DXF_SCENE_SOURCE_ROOT}/Source/Runtime/Private/Dxf/SceneNavigator.cpp"
++        "${DXF_SCENE_SOURCE_ROOT}/Source/Runtime/Private/Dxf/TaskDispatcher.cpp"
++        APPEND PROPERTY COMPILE_OPTIONS ${_strict})
++    set(_runtime dxf_scene_task_runtime)
++else()
++    # 通常はリポジトリ本体のターゲットへリンクする。旧テストをこの専用構成で再登録しない。
++    set(DXF_BUILD_TESTS OFF CACHE BOOL "Enable unrelated framework tests" )
++    set(DXF_BUILD_NATIVE OFF CACHE BOOL "Enable real DxLib adapter" )
++    set(DXF_BUILD_NATIVE_SMOKE OFF CACHE BOOL "Enable real SDK smoke" )
++    set(DXF_BUILD_EXAMPLE OFF CACHE BOOL "Enable example" )
++    set(DXF_BUILD_STARTER OFF CACHE BOOL "Enable starter" )
++    set(DXF_INSTALL OFF CACHE BOOL "Enable installation" )
++    add_subdirectory("${DXF_SCENE_SOURCE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}/framework")
++    set(_runtime dxf::framework)
++endif()
++include("${_default_root}/CMake/SceneTaskIntegrationTests.cmake")
++dxf_add_scene_task_integration_tests(dxf_scene_task_integration_tests ${_runtime})
+diff --git a/Tools/SceneTaskValidation/Main.cpp b/Tools/SceneTaskValidation/Main.cpp
+new file mode 100644
+index 0000000000000000000000000000000000000000..1c58efc97aaf952d28bf74c5b0bb4566a5c3300e
+--- /dev/null
++++ b/Tools/SceneTaskValidation/Main.cpp
+@@ -0,0 +1,35 @@
++// SPDX-License-Identifier: NOASSERTION
++#include "Support/Test.h"
++#include <stdio.h>
++#include <string.h>
++
++int main(int ArgumentCount, char** Arguments)
++{
++	// 任意の名前による絞り込みは、失敗ケースの独立した再現に使用する。
++	Toolbox::size_t Passed = 0;
++	Toolbox::size_t Total = 0;
++	for (const auto& Entry : Test::Cases_Internal())
++	{
++		if (ArgumentCount > 1 && strcmp(Entry.Name, Arguments[1]) != 0)
++		{
++			continue;
++		}
++		++Total;
++		try
++		{
++			Entry.Run();
++			++Passed;
++			printf("PASS %s\n", Entry.Name);
++		}
++		catch (const Toolbox::FException& Error)
++		{
++			printf("FAIL %s: %s\n", Entry.Name, Error.What());
++		}
++		catch (...)
++		{
++			printf("FAIL %s: unknown exception\n", Entry.Name);
++		}
++	}
++	printf("%llu/%llu passed\n", static_cast<unsigned long long>(Passed), static_cast<unsigned long long>(Total));
++	return Total != 0 && Passed == Total ? 0 : 1;
++}

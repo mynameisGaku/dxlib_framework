@@ -2,10 +2,12 @@
 #ifndef DXF_RENDER_DEBUG_SCENE_H
 #define DXF_RENDER_DEBUG_SCENE_H
 #include "Dxf/GameScene.h"
+#include "Dxf/RigidBody2D.h"
 #include "Dxf/RigidBody3D.h"
 #include "Dxf/DebugCamera3D.h"
 #include "Dxf/DebugStepController.h"
-#include "Dxf/DebugSnapshotHistory.h"
+#include "Dxf/PhysicsDebugRecorder3D.h"
+#include "Dxf/PhysicsDebugDisplay2D.h"
 #include "Dxf/PhysicsDebugDisplay3D.h"
 #include "Dxf/Font.h"
 namespace Dxf::RenderDebug
@@ -45,11 +47,7 @@ private:
 	bool m_bTransparencyDemo = false;
 
 	/**
-	 * 観察登録の実Collider ID型。
-	 */
-	using FWatch = TPhysicsDebugWatch3D<FColliderId3D>;
-	/**
-	 * Worldと観察登録を一組で作り直す。失敗時は既存Worldを維持する。
+	 * 2D・3D Worldと観察値を作り直す。失敗時は既存Worldを維持する。
 	 */
 	void ResetSimulation_Internal();
 	/**
@@ -58,9 +56,14 @@ private:
 	 */
 	void UpdateCamera_Internal(const FInputSnapshot& Input, Toolbox::f64 Seconds);
 	/**
+	 * 正常Step完了後にWorldから明示採取する。観察無効時はWorldへ触れない。
 	 * @param ForceHistory 手送り・停止では現在の実状態も履歴へ保存する。
 	 */
 	void Capture_Internal(bool ForceHistory);
+	/**
+	 * 2D表示が有効な場合だけ2D Worldを採取する。
+	 */
+	void Capture2D_Internal();
 	/**
 	 * @param Render 2D描画入口。
 	 */
@@ -74,21 +77,25 @@ private:
 	 */
 	Toolbox::TUniquePtr<FPhysicsWorld3D> m_pWorld;
 	/**
-	 * 作成時のCollider定義を保持する登録。
+	 * 2D観察の最小例に使う2D World。
 	 */
-	Toolbox::TVector<FWatch> m_Watches;
+	Toolbox::TUniquePtr<FPhysicsWorld2D> m_pWorld2D;
 	/**
-	 * 固定更新直後の実状態。
+	 * Worldが採取した値の最新値と、6 Stepごと最大120件の履歴。手送り時は各Stepを保存する。
 	 */
-	FPhysicsDebugSnapshot3D m_Live;
+	FPhysicsDebugRecorder3D m_Recorder;
 	/**
 	 * 観察のみの履歴から選択した値。
 	 */
 	FPhysicsDebugSnapshot3D m_Selected;
 	/**
-	 * 10Hz、最大120件を基準に記録する履歴。手送り時は各tickを保存する。
+	 * 2D表示が有効な間だけ採取した2D観察値。
 	 */
-	FDebugSnapshotHistory m_History;
+	FPhysicsDebugSnapshot2D m_Live2D;
+	/**
+	 * 2D観察の表示位置と縮尺。
+	 */
+	FPhysicsDebugView2D m_View2D;
 	/**
 	 * ゲーム側の停止と固定時間の計画。
 	 */
@@ -110,19 +117,11 @@ private:
 	 */
 	FFont m_Font;
 	/**
-	 * 実行済み固定更新番号。
-	 */
-	Toolbox::uint64 m_Tick = 0;
-	/**
-	 * 最後に履歴へ保存した更新番号。
-	 */
-	Toolbox::uint64 m_HistoryTick = 0;
-	/**
 	 * 履歴選択の古さ。0は最新のliveを使う。
 	 */
 	Toolbox::size_t m_HistoryAge = 0;
 	/**
-	 * 実行した物理更新の合計ゲーム秒数。
+	 * サンプルの時計。実際に正常完了したStepへ渡した秒数の合計。
 	 */
 	Toolbox::f64 m_SimSeconds = 0;
 	/**
@@ -141,6 +140,10 @@ private:
 	 * 物理の観察線を表示するか。
 	 */
 	bool m_bOverlay = false;
+	/**
+	 * 2D観察の最小例を表示・採取するか。F9で切り替える。
+	 */
+	bool m_b2D = false;
 	/**
 	 * ゲーム側だけを0.25倍速にするか。
 	 */

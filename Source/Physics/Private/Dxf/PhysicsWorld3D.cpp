@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: NOASSERTION
 #include "Dxf/RigidBody3D.h"
+#include "PhysicsSnapshotBuilder.h"
 #include "ParallelPhysicsCore.h"
 #include "Toolbox/ContinuousCollision.h"
 #include "Toolbox/Vector.h"
@@ -710,6 +711,8 @@ struct FPhysicsWorld3D::FImpl
 	FPhysicsExecutionSettings Execution;
 	// 直近更新で集計した並列実行診断。
 	FPhysicsExecutionDiagnostics ExecutionDiagnostics;
+	// 明示的なSnapshot採取に渡すStep完了情報。
+	PhysicsPrivate::FSnapshotStepState SnapshotState;
 	// 休止の条件。
 	FSleepSettings3D Sleep;
 	// 新しいワールドへ重ならない識別子を発行する。
@@ -2674,6 +2677,16 @@ bool FPhysicsWorld3D::IsColliderAlive(FColliderId3D Id) const noexcept
 {
 	return m_pImpl->FindCollider_Internal(Id) != nullptr;
 }
+// 登録配列から直接採取する。外部の観察登録一覧は使用しない。
+FPhysicsSnapshot3D FPhysicsWorld3D::CaptureSnapshot(const FPhysicsSnapshotLimits& Limits) const
+{
+	return PhysicsPrivate::CaptureSnapshot_Internal<FPhysicsSnapshot3D>(
+	    m_pImpl->World, m_pImpl->SnapshotState, m_pImpl->Slots, m_pImpl->Colliders, Limits,
+	    [](const FBodyRecord3D& Body, FPhysicsSnapshot3D::FBody& Item)
+	    {
+		    Item.Rotation = Body.Orientation;
+	    });
+}
 void FPhysicsWorld3D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 {
 	if (!Toolbox::IsFinite(DeltaSeconds) || DeltaSeconds <= 0)
@@ -2684,6 +2697,8 @@ void FPhysicsWorld3D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 	{
 		throw Toolbox::FException("Invalid 3D sub step count");
 	}
+	// 引数検証後に観測を開始し、更新途中の例外では採取を禁止する。
+	PhysicsPrivate::FSnapshotStepGuard SnapshotStep(m_pImpl->SnapshotState, DeltaSeconds, SubSteps);
 	// 一回の更新を等分割し、蓄積力は全分割で保持する。
 	const Toolbox::f64 Slice = DeltaSeconds / static_cast<Toolbox::f64>(SubSteps);
 	// 診断は更新ごとに作り直す。
@@ -2814,5 +2829,6 @@ void FPhysicsWorld3D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 		Record.Force = {};
 		Record.Torque = {};
 	}
+	SnapshotStep.Complete();
 }
 } // namespace Dxf

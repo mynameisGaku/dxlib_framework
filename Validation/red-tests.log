@@ -1,0 +1,75 @@
+Internal ctest changing into directory: /mnt/data/scope_work/build-red
+Test project /mnt/data/scope_work/build-red
+      Start  1: scope_empty_does_not_wait_root
+      Start  2: scope_descendants_finish_without_waiting_root
+      Start  3: scope_retire_does_not_collect_canceled_sibling
+      Start  4: scope_ignores_unrelated_inline_submission
+      Start  5: scope_destroy_pins_running_ancestry
+      Start  6: scope_old_generation_does_not_wait_new
+      Start  7: scope_pin_survives_capture_destructor
+      Start 13: scope_rejected_submission_keeps_pin_until_capture_release
+ 1/16 Test  #3: scope_retire_does_not_collect_canceled_sibling ..............***Failed    0.05 sec
+FAIL scope_retire_does_not_collect_canceled_sibling: Released == 0 at line 160
+0/1 passed
+
+ 2/16 Test  #5: scope_destroy_pins_running_ancestry .........................***Failed    0.04 sec
+FAIL scope_destroy_pins_running_ancestry: New.Index != Parent.Index at line 212
+0/1 passed
+
+      Start 14: scope_concurrent_producers_retire_beside_blocked_root
+      Start 10: scope_generation_churn_with_tasks
+ 3/16 Test  #7: scope_pin_survives_capture_destructor .......................***Failed    0.04 sec
+FAIL scope_pin_survives_capture_destructor: DuringRelease.Index != Scope.Index at line 264
+0/1 passed
+
+ 4/16 Test #13: scope_rejected_submission_keeps_pin_until_capture_release ...***Failed    0.03 sec
+FAIL scope_rejected_submission_keeps_pin_until_capture_release: DuringRelease.Index != Scope.Index at line 433
+0/1 passed
+
+      Start 12: scope_target_inline_prepare_and_capture_are_finished
+      Start 11: scope_invalid_handles_do_not_change_live_scope
+ 5/16 Test #12: scope_target_inline_prepare_and_capture_are_finished ........   Passed    0.02 sec
+      Start  9: scope_shutdown_still_drains_root
+ 6/16 Test #10: scope_generation_churn_with_tasks ...........................   Passed    0.05 sec
+      Start  8: scope_retirement_preserves_commit_order
+ 7/16 Test #11: scope_invalid_handles_do_not_change_live_scope ..............   Passed    0.03 sec
+      Start 15: scope_queued_prepare_is_canceled_without_worker_slot
+ 8/16 Test  #9: scope_shutdown_still_drains_root ............................   Passed    0.03 sec
+      Start 16: scope_queued_cancel_preserves_pending_bound
+ 9/16 Test  #8: scope_retirement_preserves_commit_order .....................   Passed    0.03 sec
+10/16 Test  #1: scope_empty_does_not_wait_root ..............................***Timeout  10.01 sec
+
+11/16 Test  #4: scope_ignores_unrelated_inline_submission ...................***Timeout   9.99 sec
+
+12/16 Test  #6: scope_old_generation_does_not_wait_new ......................***Timeout   9.98 sec
+
+13/16 Test  #2: scope_descendants_finish_without_waiting_root ...............***Timeout  10.01 sec
+
+14/16 Test #14: scope_concurrent_producers_retire_beside_blocked_root .......***Timeout  10.00 sec
+
+15/16 Test #15: scope_queued_prepare_is_canceled_without_worker_slot ........***Timeout  10.00 sec
+
+16/16 Test #16: scope_queued_cancel_preserves_pending_bound .................***Timeout  10.00 sec
+
+
+31% tests passed, 11 tests failed out of 16
+
+Label Time Summary:
+focused       =  70.31 sec*proc (16 tests)
+task-scope    =  70.31 sec*proc (16 tests)
+
+Total Test time (real) =  10.15 sec
+
+The following tests FAILED:
+	  1 - scope_empty_does_not_wait_root (Timeout)          focused task-scope
+	  2 - scope_descendants_finish_without_waiting_root (Timeout) focused task-scope
+	  3 - scope_retire_does_not_collect_canceled_sibling (Failed) focused task-scope
+	  4 - scope_ignores_unrelated_inline_submission (Timeout) focused task-scope
+	  5 - scope_destroy_pins_running_ancestry (Failed)      focused task-scope
+	  6 - scope_old_generation_does_not_wait_new (Timeout)  focused task-scope
+	  7 - scope_pin_survives_capture_destructor (Failed)    focused task-scope
+	 13 - scope_rejected_submission_keeps_pin_until_capture_release (Failed) focused task-scope
+	 14 - scope_concurrent_producers_retire_beside_blocked_root (Timeout) focused task-scope
+	 15 - scope_queued_prepare_is_canceled_without_worker_slot (Timeout) focused task-scope
+	 16 - scope_queued_cancel_preserves_pending_bound (Timeout) focused task-scope
+Errors while running CTest

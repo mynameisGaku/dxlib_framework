@@ -1,0 +1,48 @@
+﻿
+Step                                                        Exit
+----                                                        ----
+root-debug-configure                                           0
+root-debug-build                                               0
+root-debug-ctest-list                                          0
+root-debug-ctest                                               0
+root-debug-cases-dxf_tests                                     0
+root-debug-cases-dxf_native_contract_tests                     0
+root-debug-cases-dxf_application_render_integration_tests      0
+root-debug-cases-dxf_physics_tests                             0
+root-debug-cases-dxf_debug_tools_tests                         0
+root-debug-cases-dxf_debug_physics_tests                       0
+root-release-configure                                         0
+root-release-build                                            -1
+root-release-ctest-list                                        0
+root-release-ctest                                             0
+root-release-cases-dxf_tests                                   0
+root-release-cases-dxf_native_contract_tests                   0
+root-release-cases-dxf_application_render_integration_tests    0
+root-release-cases-dxf_physics_tests                           0
+root-release-cases-dxf_debug_tools_tests                       0
+root-release-cases-dxf_debug_physics_tests                     0
+snapshot-configure                                             0
+snapshot-debug-build                                           0
+snapshot-debug-ctest                                           0
+snapshot-release-build                                         0
+snapshot-release-ctest                                         0
+task-configure                                                 0
+task-debug-build                                               0
+task-debug-ctest                                               0
+task-release-build                                             0
+task-release-ctest                                             0
+scope-configure                                                0
+scope-debug-build                                              0
+scope-debug-ctest                                              0
+scope-release-build                                            0
+scope-release-ctest                                            0
+scene-configure                                                0
+scene-debug-build                                              0
+scene-debug-ctest                                              0
+scene-release-build                                            0
+scene-release-ctest                                            0
+nostl                                                          0
+diff-check                                                     0
+
+
+

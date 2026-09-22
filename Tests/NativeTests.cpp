@@ -3,7 +3,7 @@
 #include "Dxf/NativeBackends.h"
 #include "Dxf/NativeRun.h"
 #include "Dxf/AssetService.h"
-#include "Dxf/RenderSystem2D.h"
+#include "Dxf/RenderSystem.h"
 #include "Dxf/AudioPlayer.h"
 #include "DxLib.h"
 #include "Toolbox/Utility.h"
@@ -103,16 +103,16 @@ TEST("Native render applies per-command color and opacity without leaking sprite
 	// 検証で使用するフォント資源。
 	auto Font = Assets.LoadFont().Value();
 	// 描画を実行する検証用レンダラー。
-	FRenderSystem2D Renderer(Services.Renderer);
+	FRenderSystem Renderer(Services.Renderer);
 	REQUIRE(Renderer.BeginFrame(640, 480));
 	// 描画時に適用するスタイル。
 	FSpriteDrawOptions Style;
 	Style.Opacity = 0.5f;
 	Style.Color = {128, 64, 32, 128};
-	REQUIRE(Renderer.GetContext().Draw(Texture, {10, 20}, Style));
+	REQUIRE(Renderer.GetContext().Get2D().DrawSprite(Texture, {10, 20}, Style));
 	REQUIRE(Renderer.Flush());
 	REQUIRE(DxLib::Trace.Alpha == 64 && DxLib::Trace.Brightness[0] == 128);
-	REQUIRE(Renderer.GetContext().DrawText(Font, "日本語", {0, 0}));
+	REQUIRE(Renderer.GetContext().Get2D().DrawText(Font, "日本語", {0, 0}));
 	REQUIRE(Renderer.EndFrame());
 	REQUIRE(DxLib::Trace.Brightness[0] == 255 && DxLib::Trace.Text == "日本語");
 }
@@ -128,14 +128,14 @@ TEST("Native sprite geometry supports pivot scale and both flip directions")
 	// 検証で使用する画像資源。
 	auto Texture = Assets.LoadTexture("sprite.bmp").Value();
 	// 描画を実行する検証用レンダラー。
-	FRenderSystem2D Renderer(Services.Renderer);
+	FRenderSystem Renderer(Services.Renderer);
 	REQUIRE(Renderer.BeginFrame(100, 100));
 	// 描画時に適用するスタイル。
 	FSpriteDrawOptions Style;
 	Style.Pivot = {32, 32};
 	Style.bFlipX = true;
 	Style.bFlipY = true;
-	REQUIRE(Renderer.GetContext().Draw(Texture, {50, 50}, Style));
+	REQUIRE(Renderer.GetContext().Get2D().DrawSprite(Texture, {50, 50}, Style));
 	REQUIRE(Renderer.Flush());
 	REQUIRE(DxLib::Trace.Vertices[0] == 82 && DxLib::Trace.Vertices[1] == 82);
 	REQUIRE(DxLib::Trace.Vertices[4] == 18 && DxLib::Trace.Vertices[5] == 18);
@@ -146,10 +146,10 @@ TEST("Native backend errors abort presentation and preserve explicit target stat
 	// 検証用のバックエンド。
 	FDxLibRenderBackend Backend;
 	// 描画を実行する検証用レンダラー。
-	FRenderSystem2D Renderer(Backend);
+	FRenderSystem Renderer(Backend);
 	REQUIRE(Renderer.BeginFrame(100, 100));
 	DxLib::Trace.bFailDraw = true;
-	REQUIRE(Renderer.GetContext().FillRectangle({0, 0, 10, 10}));
+	REQUIRE(Renderer.GetContext().Get2D().FillRectangle({0, 0, 10, 10}));
 	REQUIRE(!Renderer.EndFrame());
 	REQUIRE(DxLib::Trace.Presentations == 0);
 }

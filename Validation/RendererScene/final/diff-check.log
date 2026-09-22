@@ -1,0 +1,9 @@
+$ git diff --check
+warning: in the working copy of 'AUDIT.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'MANIFEST.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'README.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'SHA256.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'STATUS.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'Validation/environment.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'test_applier.py', LF will be replaced by CRLF the next time Git touches it
+EXIT_CODE=0

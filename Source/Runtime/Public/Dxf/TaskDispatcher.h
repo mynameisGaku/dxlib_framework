@@ -100,7 +100,7 @@ struct FCommitSummary
 struct FTaskSettings
 {
 	/**
-	 * 未完了のまま保持する上限件数。これを超える投入は拒否する。
+	 * 保持する要求の上限件数。取消後にJobキューへ残る空通知も数え、超過投入を拒否する。
 	 */
 	Toolbox::uint32 MaxPending = 256;
 };
@@ -145,10 +145,13 @@ public:
 	void DestroyScope(const FTaskScope& Scope) noexcept;
 	/**
 	 * 子孫を失効させ、投入処理・準備の完了と取消済み捕捉の解放を待つ。
-	 * 現段階はDispatcher全体のPrepareを待つ保守的な同期。無関係な準備も待つ。
-	 * Commitは実行しない。取消済み要求は他Scope分も回収する。
+	 * 対象Scopeと子孫だけを待ち、Rootや兄弟の準備・投入・捕捉には待機しない。
+	 * Commitは実行しない。他Scopeの取消済み要求もこの操作では回収しない。
+	 * 未開始のPrepareは実行せず捕捉を回収する。実行中のPrepareは終了まで待つ。
+	 * Jobキューに残る空の通知はDispatcher全体のFenceで追跡し、受付上限にも含める。
 	 * 所有スレッドの非再入区間のみ。Job/Commit/捕捉破棄中、Root、別Dispatcherはfalse。
 	 * 同じDispatcherが発行した旧世代は、新世代を取り消さず完了待ちできる。
+	 * 世代の再利用はTaskと捕捉の解放後だけ。別世代へ再利用済みなら退役済みとする。
 	 * falseの場合は退役完了を保証しないため、対象を破棄してはいけない。
 	 * @param Scope 破棄前に同期するScene等のScope。
 	 */
@@ -206,6 +209,22 @@ public:
 		return m_DispatcherId;
 	}
 
+	/**
+	 * 構築したスレッドから呼ばれているかを調べる。
+	 */
+	FORCEINLINE bool IsOwnerThread() const noexcept
+	{
+		return Toolbox::FThread::CurrentThreadId() == m_OwnerThread;
+	}
+	/**
+	 * 所有スレッドの、Scene終了などの同期を開始できる実行区間かを調べる。
+	 * Job・Commit・捕捉破棄・進行中の待機からはfalse。停止完了の判定ではない。
+	 */
+	FORCEINLINE bool CanSynchronize() const noexcept
+	{
+		return CanDrain_Internal();
+	}
+
 private:
 	/**
 	 * 要求の進行状態。
@@ -258,6 +277,14 @@ private:
 		 * 進行状態。
 		 */
 		ETaskState State = ETaskState::Submitted;
+		/**
+		 * Job Systemへの投入呼び出しが確定していない間は、反映・回収しない。
+		 */
+		bool bSubmitting = true;
+		/**
+		 * WorkerがPrepareの実行権を取得したか。未開始の要求だけを先行回収できる。
+		 */
+		bool bPreparing = false;
 	};
 	/**
 	 * Scopeの有効性と取り消し状態。
@@ -284,6 +311,10 @@ private:
 		 * 取り消し済みか。
 		 */
 		bool bCanceled = false;
+		/**
+		 * 自身と子孫のTaskが保持する参照数。捕捉の解放まで祖先の再利用を防ぐ。
+		 */
+		Toolbox::uint64 PendingTasks = 0;
 	};
 	/**
 	 * 指定Scopeと子孫を取り消す。呼び出し側で同期していること。
@@ -317,6 +348,17 @@ private:
 	 * @param Record ロック外で破棄する移動先。
 	 */
 	void TakeTask_Internal(Toolbox::size_t Index, FTaskRecord& Record) noexcept;
+	/**
+	 * Task所属からRootまでの保持数を更新する。生存中または保持中の系譜とMutexが必要。
+	 * @param ScopeIndex 対象Taskの所属位置。
+	 * @param bAdd 受理時は加算、最終捕捉解放後は減算する。
+	 */
+	void AdjustPending_Internal(Toolbox::uint32 ScopeIndex, bool bAdd) noexcept;
+	/**
+	 * 捕捉をロック外で解放し、所属と祖先の保持数を減らす。Mutex外から呼ぶ。
+	 * @param Record 登録領域から取り出したTask。空記録には何もしない。
+	 */
+	void ReleaseTask_Internal(FTaskRecord& Record) noexcept;
 	/**
 	 * Scopeが有効か調べる。呼び出し側で同期していること。
 	 * @param Scope 調べるScope。
@@ -377,13 +419,17 @@ private:
 	 */
 	Toolbox::FMutex m_Mutex;
 	/**
-	 * 投入中の処理数が0になることを通知する。
+	 * 投入確定・準備完了・捕捉解放を通知し、全体待機とScope単位待機を起こす。
 	 */
-	Toolbox::FConditionVariable m_SubmissionsChanged;
+	Toolbox::FConditionVariable m_ProgressChanged;
 	/**
 	 * 登録後、Job投入または撤回と捕捉の解放を完了していない呼び出し数。
 	 */
 	Toolbox::uint64 m_Submitting = 0;
+	/**
+	 * 捕捉回収後もJobキューに残る空通知の数。受付上限は通知消費まで回復させない。
+	 */
+	Toolbox::uint64 m_CanceledQueuedJobs = 0;
 	/**
 	 * 所有スレッドで反映・完了待ち・捕捉解放を行っているか。
 	 */

@@ -1,0 +1,7 @@
+ADD     Docs/TaskScopeIsolation.md
+REPLACE Source/Runtime/Private/Dxf/TaskDispatcher.cpp
+REPLACE Source/Runtime/Public/Dxf/TaskDispatcher.h
+ADD     Tests/TaskScopeIsolationTests.cpp
+ADD     Tools/ScopeTaskValidation/CMakeLists.txt
+ADD     Tools/ScopeTaskValidation/Main.cpp
+Dry-run OK: 6 files. No files changed. Re-run with --apply to install.

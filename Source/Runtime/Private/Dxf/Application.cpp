@@ -1,6 +1,7 @@
-#include "Toolbox/UniquePtr.h"
 #include "Dxf/Application.h"
+#include "Toolbox/UniquePtr.h"
 #include "Dxf/GuardValue.h"
+#include "Toolbox/Log.h"
 #include "Toolbox/Utility.h"
 namespace Dxf
 {
@@ -14,34 +15,19 @@ FApplication::FApplication(FBackendServices Services, FApplicationSettings Setti
       m_Input(Services.Input), m_Assets(Services.Textures, Services.Sounds, Services.Fonts),
       m_Renderer(Services.Renderer), m_Audio(Services.Sounds), m_ExecutionJobs(m_Settings.ExecutionThreadCount),
       m_TaskDispatcher(m_ExecutionJobs), m_pGame(Toolbox::Move(Game)),
-      m_Scenes(m_Assets, m_Audio, m_pGame.Get()), m_Clock(m_Settings.MaxDeltaSeconds)
+      m_Scenes(m_Assets, m_Audio, m_pGame.Get(), &m_TaskDispatcher), m_Clock(m_Settings.MaxDeltaSeconds)
 {
+	// 全メンバー構築後に共有実行器を結び付け、Scene側へ所有権を渡さない。
+	auto Connected = m_Renderer.SetExecutionJobs(m_ExecutionJobs);
+	if (!Connected)
+	{
+		throw Toolbox::FException(Connected.Error().Message);
+	}
 }
 // 所有する状態を終了し、必要なリソースを解放する。
 FApplication::~FApplication()
 {
 	Shutdown();
-}
-// Sceneの切り替わりに合わせてScopeを付け替える。
-// 切替失敗では旧SceneとそのScopeを維持する。
-void FApplication::SyncSceneScope_Internal()
-{
-	// 追跡中のScene。
-	DScene* Current = m_Scenes.GetCurrent();
-	if (Current == m_pTaskScene)
-	{
-		return;
-	}
-	if (m_SceneScope.IsValid())
-	{
-		m_TaskDispatcher.DestroyScope(m_SceneScope);
-		m_SceneScope = {};
-	}
-	m_pTaskScene = Current;
-	if (Current != nullptr)
-	{
-		m_SceneScope = m_TaskDispatcher.CreateScope();
-	}
 }
 // 初期化を行い実行を開始する。
 // @param InitialScene 最初に開始するシーン。
@@ -91,7 +77,6 @@ TResult<void> FApplication::Start_Internal(Toolbox::TUniquePtr<DScene> InitialSc
 	{
 		return TResult<void>::Failure(Commit.Error());
 	}
-	SyncSceneScope_Internal();
 	m_bStarted = true;
 	return {};
 }
@@ -99,7 +84,8 @@ TResult<void> FApplication::Start_Internal(Toolbox::TUniquePtr<DScene> InitialSc
 // @param InitialScene 最初に開始するシーン。
 TResult<void> FApplication::Start(Toolbox::TUniquePtr<DScene> InitialScene)
 {
-	if (m_bAttemptedStart || m_bShutdown || m_bBusy)
+	if (!m_TaskDispatcher.CanSynchronize() || m_Scenes.IsDispatching() ||
+	    m_bAttemptedStart || m_bShutdown || m_bBusy)
 	{
 		return TResult<void>::Failure(EErrorCode::InvalidState, "Application is single-use or busy");
 	}
@@ -120,6 +106,15 @@ TResult<void> FApplication::Start(Toolbox::TUniquePtr<DScene> InitialScene)
 	catch (...)
 	{
 		Result = TResult<void>::Failure(EErrorCode::UserException, "Unknown startup exception");
+	}
+	if (!Result)
+	{
+		DXF_LOG_ERROR("Application", "Start failed: %s", Result.Error().Message.CStr());
+	}
+	else
+	{
+		DXF_LOG_INFO("Application", "Started (execution lanes=%u)",
+		             static_cast<unsigned>(m_ExecutionJobs.GetExecutionThreadCount()));
 	}
 	if (!Result || WantsQuit_Internal())
 	{
@@ -187,7 +182,8 @@ TResult<bool> FApplication::Step_Internal(Toolbox::f64 NowSeconds)
 	{
 		// ゲーム更新に渡すコンテキスト。
 		auto GameTick =
-		    m_pGame->Tick_Internal({m_Input.GetSnapshot(), Time.Value(), &m_Scenes, m_pGame.Get(), &m_Audio, 0});
+		    m_pGame->Tick_Internal({m_Input.GetSnapshot(), Time.Value(), &m_Scenes, m_pGame.Get(), &m_Audio, 0,
+		                               &m_TaskDispatcher, m_TaskDispatcher.GetRootScope()});
 		if (!GameTick)
 		{
 			return TResult<bool>::Failure(GameTick.Error());
@@ -207,9 +203,12 @@ TResult<bool> FApplication::Step_Internal(Toolbox::f64 NowSeconds)
 	{
 		return TResult<bool>::Success(false);
 	}
-	// 共有Taskの反映とScene Scopeの追従。失敗した反映はDispatcher内で集計し、フレームは継続する。
+	// Scene Scopeは切替の中で更新済み。Commit中の終了要求は描画開始前に処理する。
 	m_TaskDispatcher.PumpCommits();
-	SyncSceneScope_Internal();
+	if (WantsQuit_Internal())
+	{
+		return TResult<bool>::Success(false);
+	}
 	// 音声再生のサービス。
 	auto Audio = m_Audio.Tick();
 	if (!Audio)
@@ -246,6 +245,16 @@ TResult<bool> FApplication::Step_Internal(Toolbox::f64 NowSeconds)
 // @param NowSeconds 単調増加する現在時刻の秒数。
 TResult<bool> FApplication::Step(Toolbox::f64 NowSeconds)
 {
+	if (!m_TaskDispatcher.CanSynchronize() || m_Scenes.IsDispatching())
+	{
+		return TResult<bool>::Failure(EErrorCode::InvalidState, "Application Step requires a safe owner boundary");
+	}
+	// Step外で手動PumpしたCommitからの終了要求も、安全な次回境界で完了する。
+	if (!m_bBusy && !m_bShutdown && m_bShutdownRequested)
+	{
+		Shutdown();
+		return TResult<bool>::Success(false);
+	}
 	if (m_bBusy || !IsRunning())
 	{
 		return TResult<bool>::Failure(EErrorCode::InvalidState, "Application is stopped or Step is reentrant");
@@ -267,6 +276,11 @@ TResult<bool> FApplication::Step(Toolbox::f64 NowSeconds)
 	{
 		Result = TResult<bool>::Failure(EErrorCode::UserException, "Unknown frame exception");
 	}
+	if (!Result)
+	{
+		// フレームを止めた最初の失敗を、終了処理の前に記録する。
+		DXF_LOG_ERROR("Application", "Frame failed: %s", Result.Error().Message.CStr());
+	}
 	if (!Result || !Result.Value() || WantsQuit_Internal())
 	{
 		Shutdown();
@@ -280,8 +294,14 @@ TResult<bool> FApplication::Step(Toolbox::f64 NowSeconds)
 // 管理する処理とリソースを順序どおり終了する。
 void FApplication::Shutdown() noexcept
 {
-	if (m_bBusy)
+	// Applicationの操作は所有スレッド限定。WorkerはCommit経由で終了を要求する。
+	if (!m_TaskDispatcher.IsOwnerThread())
 	{
+		return;
+	}
+	if (m_bBusy || m_Scenes.IsDispatching() || !m_TaskDispatcher.CanSynchronize())
+	{
+		DXF_LOG_VERBOSE("Application", "Shutdown deferred to the next owner-thread boundary");
 		m_bShutdownRequested = true;
 		m_Scenes.RequestQuit();
 		if (m_pGame)
@@ -295,14 +315,9 @@ void FApplication::Shutdown() noexcept
 		return;
 	}
 	m_bShutdown = true;
+	DXF_LOG_INFO("Application", "Shutting down");
 	// 処理終了時に状態を戻すガード。
 	TGuardValue Guard(m_bBusy, true);
-	if (m_SceneScope.IsValid())
-	{
-		m_TaskDispatcher.DestroyScope(m_SceneScope);
-		m_SceneScope = {};
-	}
-	m_pTaskScene = nullptr;
 	m_TaskDispatcher.Shutdown();
 	m_ExecutionJobs.Shutdown();
 	m_Scenes.Shutdown();

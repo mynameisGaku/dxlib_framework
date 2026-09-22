@@ -1,0 +1,51 @@
+$ ctest --test-dir Build\ClaudeSceneIntegration -C Release --output-on-failure --no-tests=error -L scene-task
+Test project C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/ClaudeSceneIntegration
+      Start  1: scene_task_scope_exists_in_enter_and_first_tick
+ 1/20 Test  #1: scene_task_scope_exists_in_enter_and_first_tick ...........................   Passed    0.02 sec
+      Start  2: scene_task_ready_capture_retires_before_exit_and_stop
+ 2/20 Test  #2: scene_task_ready_capture_retires_before_exit_and_stop .....................   Passed    0.01 sec
+      Start  3: scene_task_running_child_prepares_finish_before_scene_exit
+ 3/20 Test  #3: scene_task_running_child_prepares_finish_before_scene_exit ................   Passed    0.01 sec
+      Start  4: scene_task_failed_transition_preserves_current_scope_and_commit
+ 4/20 Test  #4: scene_task_failed_transition_preserves_current_scope_and_commit ...........   Passed    0.01 sec
+      Start  5: scene_task_exit_cannot_submit_using_expired_current_handle
+ 5/20 Test  #5: scene_task_exit_cannot_submit_using_expired_current_handle ................   Passed    0.01 sec
+      Start  6: scene_task_switch_does_not_cancel_root_work
+ 6/20 Test  #6: scene_task_switch_does_not_cancel_root_work ...............................   Passed    0.01 sec
+      Start  7: scene_task_navigator_shutdown_waits_before_ending_scene
+ 7/20 Test  #7: scene_task_navigator_shutdown_waits_before_ending_scene ...................   Passed    0.01 sec
+      Start  8: scene_task_shutdown_from_tick_waits_after_callback_returns
+ 8/20 Test  #8: scene_task_shutdown_from_tick_waits_after_callback_returns ................   Passed    0.01 sec
+      Start  9: scene_task_commit_cannot_force_reentrant_scene_switch
+ 9/20 Test  #9: scene_task_commit_cannot_force_reentrant_scene_switch .....................   Passed    0.01 sec
+      Start 10: scene_task_manual_pump_shutdown_defers_application_destruction
+10/20 Test #10: scene_task_manual_pump_shutdown_defers_application_destruction ............   Passed    0.01 sec
+      Start 11: scene_task_capture_shutdown_is_deferred_and_skips_frame_begin
+11/20 Test #11: scene_task_capture_shutdown_is_deferred_and_skips_frame_begin .............   Passed    0.01 sec
+      Start 12: scene_task_exit_quit_does_not_enter_prepared_scene
+12/20 Test #12: scene_task_exit_quit_does_not_enter_prepared_scene ........................   Passed    0.01 sec
+      Start 13: scene_task_stopped_dispatcher_prevents_initial_activation
+13/20 Test #13: scene_task_stopped_dispatcher_prevents_initial_activation .................   Passed    0.01 sec
+      Start 14: scene_task_direct_transitions_rotate_scope_without_application_step
+14/20 Test #14: scene_task_direct_transitions_rotate_scope_without_application_step .......   Passed    0.01 sec
+      Start 15: scene_task_direct_navigator_callback_defers_application_shutdown
+15/20 Test #15: scene_task_direct_navigator_callback_defers_application_shutdown ..........   Passed    0.01 sec
+      Start 16: scene_task_old_destructor_quit_prevents_new_scene_enter
+16/20 Test #16: scene_task_old_destructor_quit_prevents_new_scene_enter ...................   Passed    0.01 sec
+      Start 17: scene_task_enter_and_tick_submit_through_context_on_one_and_four_lanes
+17/20 Test #17: scene_task_enter_and_tick_submit_through_context_on_one_and_four_lanes ....   Passed    0.01 sec
+      Start 18: scene_task_draw_shutdown_finishes_worker_without_presenting
+18/20 Test #18: scene_task_draw_shutdown_finishes_worker_without_presenting ...............   Passed    0.01 sec
+      Start 19: scene_task_switch_completes_while_root_and_sibling_prepares_are_blocked
+19/20 Test #19: scene_task_switch_completes_while_root_and_sibling_prepares_are_blocked ...   Passed    0.01 sec
+      Start 20: scene_task_exit_waits_for_gated_scene_prepare_and_capture_release
+20/20 Test #20: scene_task_exit_waits_for_gated_scene_prepare_and_capture_release .........   Passed    0.06 sec
+
+100% tests passed, 0 tests failed out of 20
+
+Label Time Summary:
+application-integration    =   0.18 sec*proc (20 tests)
+scene-task                 =   0.18 sec*proc (20 tests)
+
+Total Test time (real) =   0.21 sec
+EXIT_CODE=0

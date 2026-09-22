@@ -1,0 +1,7 @@
+PASS debug capture reads an actual stepped 3d world without a watch list
+PASS debug capture reaches the 3d render queue from an actual world
+PASS debug capture reports refusals as results and leaves no partial output
+PASS recorder does not capture while disabled and keeps paused history stable
+PASS 2d debug capture reads an actual world and reaches the 2d render queue
+PASS actual worlds preserve debug geometry in one and four execution lanes
+6/6 passed

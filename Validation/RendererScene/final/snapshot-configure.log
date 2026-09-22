@@ -1,0 +1,6 @@
+$ cmake -S Tools\PhysicsSnapshotValidation -B Build\PhysicsSnapshot -DDXF_SNAPSHOT_CORE_ONLY=OFF
+-- Selecting Windows SDK version 10.0.28000.0 to target Windows 10.0.26200.
+-- Configuring done (0.0s)
+-- Generating done (0.1s)
+-- Build files have been written to: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/PhysicsSnapshot
+EXIT_CODE=0

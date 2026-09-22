@@ -1,0 +1,42 @@
+Internal ctest changing into directory: /mnt/data/scope_work/build-asan
+Test project /mnt/data/scope_work/build-asan
+      Start 10: scope_generation_churn_with_tasks
+      Start  2: scope_descendants_finish_without_waiting_root
+      Start  4: scope_ignores_unrelated_inline_submission
+      Start  6: scope_old_generation_does_not_wait_new
+ 1/16 Test  #2: scope_descendants_finish_without_waiting_root ...............   Passed    0.14 sec
+      Start  8: scope_retirement_preserves_commit_order
+ 2/16 Test  #4: scope_ignores_unrelated_inline_submission ...................   Passed    0.14 sec
+      Start  1: scope_empty_does_not_wait_root
+ 3/16 Test  #6: scope_old_generation_does_not_wait_new ......................   Passed    0.14 sec
+      Start  9: scope_shutdown_still_drains_root
+ 4/16 Test #10: scope_generation_churn_with_tasks ...........................   Passed    0.21 sec
+      Start  3: scope_retire_does_not_collect_canceled_sibling
+ 5/16 Test  #1: scope_empty_does_not_wait_root ..............................   Passed    0.13 sec
+      Start 14: scope_concurrent_producers_retire_beside_blocked_root
+ 6/16 Test  #8: scope_retirement_preserves_commit_order .....................   Passed    0.15 sec
+      Start 11: scope_invalid_handles_do_not_change_live_scope
+ 7/16 Test  #9: scope_shutdown_still_drains_root ............................   Passed    0.15 sec
+      Start 12: scope_target_inline_prepare_and_capture_are_finished
+ 8/16 Test  #3: scope_retire_does_not_collect_canceled_sibling ..............   Passed    0.14 sec
+      Start  5: scope_destroy_pins_running_ancestry
+ 9/16 Test #11: scope_invalid_handles_do_not_change_live_scope ..............   Passed    0.12 sec
+      Start  7: scope_pin_survives_capture_destructor
+10/16 Test #14: scope_concurrent_producers_retire_beside_blocked_root .......   Passed    0.16 sec
+      Start 13: scope_rejected_submission_keeps_pin_until_capture_release
+11/16 Test #12: scope_target_inline_prepare_and_capture_are_finished ........   Passed    0.14 sec
+      Start 15: scope_queued_prepare_is_canceled_without_worker_slot
+12/16 Test  #5: scope_destroy_pins_running_ancestry .........................   Passed    0.13 sec
+      Start 16: scope_queued_cancel_preserves_pending_bound
+13/16 Test  #7: scope_pin_survives_capture_destructor .......................   Passed    0.14 sec
+14/16 Test #13: scope_rejected_submission_keeps_pin_until_capture_release ...   Passed    0.12 sec
+15/16 Test #15: scope_queued_prepare_is_canceled_without_worker_slot ........   Passed    0.13 sec
+16/16 Test #16: scope_queued_cancel_preserves_pending_bound .................   Passed    0.12 sec
+
+100% tests passed, 0 tests failed out of 16
+
+Label Time Summary:
+focused       =   2.25 sec*proc (16 tests)
+task-scope    =   2.25 sec*proc (16 tests)
+
+Total Test time (real) =   0.61 sec

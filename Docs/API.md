@@ -148,3 +148,8 @@ Objectのコンストラクタ中に所属Collectionへ終了が要求された�
 `FAudioPlayer::Play()`中に音声バックエンドから終了された場合、部分的に確保した再生を回収してInvalidStateを返します。バックエンドが例外を投げる場合はBackendFailureです。`Tick()`中にShutdown／Stopで他の再生が無効化されても、ハンドルを解決し直して無効な対象を飛ばします。ポーリングに失敗した対象は停止し、そのTickはエラーを返します。
 
 `FResourceRegistry::Shutdown()`は冪等です。解放対象を内部リストから切り離してから解放コールバックを実行します。停止後に新しいResourceをRegisterした場合は、それを解放してfalseを返す従来の契約を維持します。バックエンドの寿命とnoexceptの解放契約は引き続き利用側の責任です。
+
+## ログ
+
+`Toolbox/Log.h`の`DXF_LOG_VERBOSE` / `DXF_LOG_INFO` / `DXF_LOG_WARNING` / `DXF_LOG_ERROR`で、分類名とprintf形式の本文を記録します。
+既定の出力先はVisual Studioの出力ウィンドウと標準エラーで、`SetLogSink`で差し替えられます。詳細は[Logging.md](Logging.md)を参照してください。

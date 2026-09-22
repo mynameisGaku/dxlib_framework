@@ -1,7 +1,7 @@
 #include "Support/Test.h"
 #include "Support/FakeBackend.h"
 #include "Dxf/AssetService.h"
-#include "Dxf/RenderSystem2D.h"
+#include "Dxf/RenderSystem.h"
 #include "Toolbox/Utility.h"
 
 using namespace Dxf;
@@ -105,7 +105,7 @@ TEST("native callback failure poisons the entire frame even when ignored")
 	// 検証用のバックエンド。
 	FFailingRenderer Backend;
 	// フックへ渡す描画環境。
-	FRenderSystem2D Render(Backend);
+	FRenderSystem Render(Backend);
 	REQUIRE(Render.BeginFrame(320, 240));
 	auto Native = Render.Native(
 	    []
@@ -127,7 +127,7 @@ TEST("native callback exception rejects further commands and cannot be presented
 	// 検証用のバックエンド。
 	FFailingRenderer Backend;
 	// フックへ渡す描画環境。
-	FRenderSystem2D Render(Backend);
+	FRenderSystem Render(Backend);
 	REQUIRE(Render.BeginFrame(320, 240));
 	auto Native = Render.Native(
 	    []() -> TResult<void>
@@ -135,7 +135,7 @@ TEST("native callback exception rejects further commands and cannot be presented
 		    throw Toolbox::FException("user draw exception");
 	    });
 	REQUIRE(!Native && Native.Error().Code == EErrorCode::UserException);
-	REQUIRE(!Render.GetContext().FillRectangle({0, 0, 10, 10}));
+	REQUIRE(!Render.GetContext().Get2D().FillRectangle({0, 0, 10, 10}));
 	REQUIRE(!Render.EndFrame());
 	REQUIRE(Backend.GetPresentations() == 0);
 }
@@ -145,7 +145,7 @@ TEST("failed clear cannot present a partially cleared frame")
 	// 検証用のバックエンド。
 	FFailingRenderer Backend;
 	// フックへ渡す描画環境。
-	FRenderSystem2D Render(Backend);
+	FRenderSystem Render(Backend);
 	REQUIRE(Render.BeginFrame(320, 240));
 	Backend.FailNext(ERenderOperation::Clear);
 	REQUIRE(!Render.ClearTarget({0, 0, 0, 255}));
@@ -160,7 +160,7 @@ TEST("begin frame contains backend exceptions at each startup stage and is reusa
 		// 検証用のバックエンド。
 		FFailingRenderer Backend;
 		// フックへ渡す描画環境。
-		FRenderSystem2D Render(Backend);
+		FRenderSystem Render(Backend);
 		Backend.FailNext(Operation, true);
 		auto Begin = Render.BeginFrame(320, 240);
 		REQUIRE(!Begin && Begin.Error().Code == EErrorCode::BackendFailure);
@@ -174,7 +174,7 @@ TEST("clear target contains backend exceptions and retains the first failure")
 	// 検証用のバックエンド。
 	FFailingRenderer Backend;
 	// フックへ渡す描画環境。
-	FRenderSystem2D Render(Backend);
+	FRenderSystem Render(Backend);
 	REQUIRE(Render.BeginFrame(320, 240));
 	Backend.FailNext(ERenderOperation::Clear, true);
 	auto Clear = Render.ClearTarget({0, 0, 0, 255});
@@ -189,7 +189,7 @@ TEST("present exception closes the failed frame so the next frame can begin")
 	// 検証用のバックエンド。
 	FFailingRenderer Backend;
 	// フックへ渡す描画環境。
-	FRenderSystem2D Render(Backend);
+	FRenderSystem Render(Backend);
 	REQUIRE(Render.BeginFrame(320, 240));
 	Backend.FailNext(ERenderOperation::Present, true);
 	auto End = Render.EndFrame();
@@ -213,7 +213,7 @@ TEST("render target backend exception is contained and rollback keeps the frame 
 		// 検証用のバックエンド。
 		FFailingRenderer Backend;
 		// フックへ渡す描画環境。
-		FRenderSystem2D Render(Backend);
+		FRenderSystem Render(Backend);
 		REQUIRE(Render.BeginFrame(320, 240));
 		Backend.FailNext(Operation, true);
 		auto Switch = Render.SetRenderTarget(Target.Value());
@@ -227,7 +227,7 @@ TEST("native state restoration exception is contained and blocks presentation")
 	// 検証用のバックエンド。
 	FFailingRenderer Backend;
 	// フックへ渡す描画環境。
-	FRenderSystem2D Render(Backend);
+	FRenderSystem Render(Backend);
 	REQUIRE(Render.BeginFrame(320, 240));
 	Backend.FailNext(ERenderOperation::Reset, true);
 	auto Native = Render.Native(

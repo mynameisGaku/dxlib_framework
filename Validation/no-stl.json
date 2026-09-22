@@ -1,0 +1,12 @@
+{
+  "command": [
+    "python",
+    "/mnt/data/scope_work/work/Tools/CheckNoStl.py",
+    "--root",
+    "/mnt/data/scope_work/work"
+  ],
+  "exit_code": 0,
+  "timed_out": false,
+  "started_utc": "2026-09-22T08:57:56.947912+00:00",
+  "seconds": 1.609
+}

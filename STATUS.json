@@ -1,345 +1,635 @@
 {
-  "format": 1,
-  "created_utc": "2026-09-21T18:47:36.581780+00:00",
-  "source_commit": "4868dc9811d60e227aa0d7c4d2c18410388d3d63",
-  "previous_task_patch_required": false,
-  "identical_reissue_of_previous_zip": false,
-  "scope": "Exact TaskDispatcher/JobSystem/Threading dependency slice; not Application or full framework",
-  "final_checks_passed": true,
+  "status": "passed_focused_application_integration",
+  "base_commit": "15f5df42571dddee2a0dcaede16e0fa826a9061b",
+  "scope": "Real Application/Scene/Dispatcher/Jobs/Asset/Audio/Renderer dependency subset; external backend double only",
+  "complete_repository_checkout": false,
+  "root_framework_target_mode_verified": false,
+  "windows_msvc_verified": false,
+  "real_dxlib_sdk_verified": false,
+  "full_existing_suite_executed": false,
+  "remote_modified": false,
+  "modified_existing_files": 6,
+  "added_files": 6,
+  "integration_cases": 18,
+  "baseline": {
+    "passed": 2,
+    "failed": 16,
+    "timed_out": 0,
+    "ctest_exit": 8
+  },
   "profiles": {
-    "gcc-debug": {
-      "passed": 26,
-      "total": 26,
-      "exit_code": 0,
-      "log": "Validation/final-gcc-debug-ctest.log"
+    "gcc_debug": {
+      "passed": 18,
+      "total": 18
     },
-    "gcc-release": {
-      "passed": 26,
-      "total": 26,
-      "exit_code": 0,
-      "log": "Validation/final-gcc-release-ctest.log"
+    "gcc_release": {
+      "passed": 18,
+      "total": 18
     },
-    "clang-asan-ubsan": {
-      "passed": 26,
-      "total": 26,
-      "exit_code": 0,
-      "log": "Validation/final-clang-asan-ubsan-ctest.log"
+    "clang_asan_ubsan": {
+      "passed": 18,
+      "total": 18
     },
-    "gcc-tsan": {
-      "passed": 26,
-      "total": 26,
-      "exit_code": 0,
-      "log": "Validation/final-gcc-tsan-ctest.log"
+    "gcc_thread_sanitizer": {
+      "passed": 18,
+      "total": 18
+    },
+    "renderer_integrated_variant_gcc_debug": {
+      "passed": 18,
+      "total": 18
     }
   },
-  "release_repeat": {
-    "cases": 26,
-    "repetitions_per_case": 50,
-    "passed_executions": 1300,
-    "exit_code": 0,
-    "log": "Validation/final-gcc-release-repeat50.log"
+  "release_repetition": {
+    "times_per_case": 50,
+    "observed_passed": 900,
+    "exit_code": 0
   },
-  "installer": {
-    "passed": 15,
-    "total": 15,
-    "exit_code": 0,
-    "log": "Validation/delivery-applier-tests.log"
+  "installer_tests": {
+    "passed": 18,
+    "total": 18,
+    "skipped": 0
   },
-  "package_replay": {
-    "dry_run": true,
-    "apply": true,
-    "idempotent": true,
-    "patch_check": true,
-    "diff_check": true,
-    "release_cases_passed": 26,
-    "installer_and_payload_equal_to_tested_package": true,
-    "log": "Validation/delivery-release-ctest.log"
+  "unpacked_applied_package": {
+    "release_passed": 18,
+    "release_total": 18,
+    "installer_passed": 18,
+    "installer_total": 18,
+    "same_source_and_installer_bytes": true
   },
   "no_stl": {
-    "scanned_files": 20,
+    "scanned_files_in_subset": 103,
     "violations": 0,
-    "full_repository_scan": false,
-    "log": "Validation/final-no-stl.log"
+    "full_repository": false
   },
-  "expected_red": {
-    "base_unchanged": true,
-    "passed": 5,
-    "assertion_failures": 15,
-    "timeouts": 6,
-    "total": 26,
-    "exit_code": 8,
-    "log": "Validation/final-original-ctest.log",
-    "note": "Includes unavailable RetireScope API; not 21 distinct proven bugs"
-  },
-  "limitations": {
-    "retire_waits_all_dispatcher_prepares": true,
-    "scope_specific_fence_implemented": false,
-    "scene_pre_destruction_integration_implemented": false,
-    "real_application_tested": false,
-    "full_repository_build_tested": false,
-    "existing_framework_tests_run": false,
-    "windows_msvc_tested": false,
-    "real_dxlib_sdk_tested": false,
-    "remote_commit_or_push_performed": false
-  },
-  "changed_paths": [
-    "Source/Runtime/Public/Dxf/TaskDispatcher.h",
-    "Source/Runtime/Private/Dxf/TaskDispatcher.cpp",
-    "Tests/TaskDispatcherRecoveryTests.cpp",
-    "Tools/TaskValidation/CMakeLists.txt",
-    "Tools/TaskValidation/Main.cpp",
-    "Docs/TaskDispatcherRecovery.md"
+  "known_warnings": [
+    "Unchanged Platform.cpp: Out argument shadows Toolbox::Out",
+    "GCC Release, unchanged Toolbox Vector<char>/Platform.cpp: stringop-overflow optimization diagnostics retained, not diagnosed in this update"
   ],
-  "final_commands": [
+  "intentional_limits": [
+    "RetireScope waits all dispatcher prepares",
+    "Scene tasks start at OnEnter, not OnInitialize",
+    "Root tasks and objects destroyed before their Scene require independent lifetime handling"
+  ],
+  "tested_file_sha256": {
+    "Payload/Source/Runtime/Public/Dxf/Application.h": "2df618557593a51d9dfb905e49f6ed47f74a10fb42bbb8c2b60fa2b0f3eff81b",
+    "Variants/renderer-integrated/Source/Runtime/Public/Dxf/Application.h": "27dbee9cfa4983d30540b930ebdb7fd5747cc6f6ca79814b30fe91cf108da1f7",
+    "Payload/Source/Runtime/Public/Dxf/SceneNavigator.h": "a52b6b8c840db637e985787b807e057a1256856b65c275c083f7bd4c5c6a1363",
+    "Payload/Source/Runtime/Public/Dxf/Contexts.h": "172a48a6916739ac4b537339f88f8153f0799a77110c06c1774151c56cdacdfb",
+    "Payload/Source/Runtime/Public/Dxf/TaskDispatcher.h": "f189a11aa17a867480cb4d2bf8231dd265112ffb691330d7269f06567b8a1c34",
+    "Payload/Source/Runtime/Private/Dxf/Application.cpp": "eb021d11d52dfbc95e02f0e7177ad5ea3f9bdb9038ec086d2be187b652d6ba57",
+    "Variants/renderer-integrated/Source/Runtime/Private/Dxf/Application.cpp": "00602edbfa0334eedcd3ed5d8cf91319fcd70094dbbe96986ec50292b4613f38",
+    "Payload/Source/Runtime/Private/Dxf/SceneNavigator.cpp": "182bbfb2020c8d43fd88fd669dc1ac8ab8fd92d4cb9b1bfd4df296fc1d654ce3",
+    "Payload/Tests/SceneTaskIntegrationTests.cpp": "5dd2860f1142b08e696c9035056c49dc993acba718b62a4f63fa2bac3458bde4",
+    "Payload/Tests/Support/SceneTaskBackend.h": "95e281d71af1b9bbfea51513f611f410c51e303552e50136e47df7d35599566c",
+    "Payload/CMake/SceneTaskIntegrationTests.cmake": "590e0164350c6d6597d52ceea49124cc16ef6c79db8109858e2aff38a4106fec",
+    "Payload/Tools/SceneTaskValidation/CMakeLists.txt": "52ada79ea98aca377515a9bf7a9db88ec23d195289cafdb7f4f8093912cc5f61",
+    "Payload/Tools/SceneTaskValidation/Main.cpp": "7ef693322ca1639151b9c9cb1daa3d6b40cad57d6a4ab20796aa0f414e1bc838",
+    "Payload/Docs/SceneTaskLifetime.md": "516555bd4b4a9d65f577a09966f9325323fe7099c740ebb0fc6933dc7ce9648c",
+    "apply_scene_tasks.py": "c02e1b9f4d7af2e8a731e17369fee3442800bf06cab5caa84640d47b25ed729a",
+    "test_applier.py": "acf0dcdf6cd40139939f82d56605bfdc98e7933932ff550ff01869e95374359f"
+  },
+  "commands": [
     {
-      "name": "delivery-review-patch-check",
-      "command": [
-        "git",
-        "-C",
-        "/mnt/data/task_work/delivery-check-final/fixture-repo",
-        "apply",
-        "--check",
-        "--whitespace=error-all",
-        "/mnt/data/task_work/delivery-check-final/dxf_task_recovery/task_dispatcher_recovery.patch"
-      ],
-      "exit_code": 0,
-      "seconds": 0.003,
-      "log": "delivery-review-patch-check.log"
-    },
-    {
-      "name": "delivery-dry-run",
-      "command": [
-        "python",
-        "/mnt/data/task_work/delivery-check-final/dxf_task_recovery/apply_task_dispatcher.py",
-        "--root",
-        "/mnt/data/task_work/delivery-check-final/fixture-repo"
-      ],
-      "exit_code": 0,
-      "seconds": 0.834,
-      "log": "delivery-dry-run.log"
-    },
-    {
-      "name": "delivery-apply",
-      "command": [
-        "python",
-        "/mnt/data/task_work/delivery-check-final/dxf_task_recovery/apply_task_dispatcher.py",
-        "--root",
-        "/mnt/data/task_work/delivery-check-final/fixture-repo",
-        "--apply"
-      ],
-      "exit_code": 0,
-      "seconds": 0.941,
-      "log": "delivery-apply.log"
-    },
-    {
-      "name": "delivery-idempotence",
-      "command": [
-        "python",
-        "/mnt/data/task_work/delivery-check-final/dxf_task_recovery/apply_task_dispatcher.py",
-        "--root",
-        "/mnt/data/task_work/delivery-check-final/fixture-repo",
-        "--apply"
-      ],
-      "exit_code": 0,
-      "seconds": 0.918,
-      "log": "delivery-idempotence.log"
-    },
-    {
-      "name": "delivery-diff-check",
-      "command": [
-        "git",
-        "-C",
-        "/mnt/data/task_work/delivery-check-final/fixture-repo",
-        "diff",
-        "--check"
-      ],
-      "exit_code": 0,
-      "seconds": 0.005,
-      "log": "delivery-diff-check.log"
-    },
-    {
-      "name": "delivery-release-configure",
+      "name": "02-debug-configure",
       "command": [
         "cmake",
         "-S",
-        "/mnt/data/task_work/delivery-check-final/fixture-repo/Tools/TaskValidation",
+        "Tools/SceneTaskValidation",
         "-B",
-        "/mnt/data/task_work/delivery-check-final/build-release",
+        "Build/scene-debug",
         "-G",
         "Ninja",
+        "-DDXF_SCENE_FOCUSED=ON",
+        "-DCMAKE_BUILD_TYPE=Debug"
+      ],
+      "started_utc": "2026-09-22T03:10:47.622232+00:00",
+      "seconds": 0.38,
+      "exit_code": 0,
+      "timeout": false
+    },
+    {
+      "name": "03-debug-build",
+      "command": [
+        "cmake",
+        "--build",
+        "Build/scene-debug",
+        "-j",
+        "6"
+      ],
+      "started_utc": "2026-09-22T03:10:48.912635+00:00",
+      "seconds": 1.902,
+      "exit_code": 1,
+      "timeout": false
+    },
+    {
+      "name": "04-debug-build",
+      "command": [
+        "cmake",
+        "--build",
+        "Build/scene-debug",
+        "-j",
+        "6"
+      ],
+      "started_utc": "2026-09-22T03:11:25.940203+00:00",
+      "seconds": 3.495,
+      "exit_code": 0,
+      "timeout": false
+    },
+    {
+      "name": "05-debug-tests",
+      "command": [
+        "ctest",
+        "--test-dir",
+        "Build/scene-debug",
+        "--output-on-failure",
+        "-j",
+        "6"
+      ],
+      "started_utc": "2026-09-22T03:11:30.419176+00:00",
+      "seconds": 0.047,
+      "exit_code": 0,
+      "timeout": false
+    },
+    {
+      "name": "06-baseline-configure",
+      "command": [
+        "cmake",
+        "-S",
+        "Tools/SceneTaskValidation",
+        "-B",
+        "Build/scene-red",
+        "-G",
+        "Ninja",
+        "-DDXF_SCENE_FOCUSED=ON",
+        "-DDXF_SCENE_SOURCE_ROOT=/mnt/data/dxf_scene_before",
+        "-DCMAKE_BUILD_TYPE=Debug"
+      ],
+      "started_utc": "2026-09-22T03:11:43.517513+00:00",
+      "seconds": 0.277,
+      "exit_code": 0,
+      "timeout": false
+    },
+    {
+      "name": "07-baseline-build",
+      "command": [
+        "cmake",
+        "--build",
+        "Build/scene-red",
+        "-j",
+        "6"
+      ],
+      "started_utc": "2026-09-22T03:11:44.656131+00:00",
+      "seconds": 3.6,
+      "exit_code": 0,
+      "timeout": false
+    },
+    {
+      "name": "08-baseline-tests",
+      "command": [
+        "ctest",
+        "--test-dir",
+        "Build/scene-red",
+        "--output-on-failure",
+        "-j",
+        "8"
+      ],
+      "started_utc": "2026-09-22T03:11:49.156201+00:00",
+      "seconds": 0.045,
+      "exit_code": 8,
+      "timeout": false
+    },
+    {
+      "name": "09-release-configure",
+      "command": [
+        "cmake",
+        "-S",
+        "Tools/SceneTaskValidation",
+        "-B",
+        "Build/scene-release",
+        "-G",
+        "Ninja",
+        "-DDXF_SCENE_FOCUSED=ON",
         "-DCMAKE_BUILD_TYPE=Release"
       ],
+      "started_utc": "2026-09-22T03:12:35.317814+00:00",
+      "seconds": 0.293,
       "exit_code": 0,
-      "seconds": 0.529,
-      "log": "delivery-release-configure.log"
+      "timeout": false
     },
     {
-      "name": "delivery-release-build",
+      "name": "10-release-build",
       "command": [
         "cmake",
         "--build",
-        "/mnt/data/task_work/delivery-check-final/build-release",
+        "Build/scene-release",
         "-j",
-        "4"
+        "6"
       ],
+      "started_utc": "2026-09-22T03:12:36.479319+00:00",
+      "seconds": 11.032,
       "exit_code": 0,
-      "seconds": 2.89,
-      "log": "delivery-release-build.log"
+      "timeout": false
     },
     {
-      "name": "delivery-release-ctest",
+      "name": "11-release-tests",
       "command": [
         "ctest",
         "--test-dir",
-        "/mnt/data/task_work/delivery-check-final/build-release",
+        "Build/scene-release",
         "--output-on-failure",
-        "--no-tests=error"
+        "-j",
+        "6"
       ],
+      "started_utc": "2026-09-22T03:12:48.346357+00:00",
+      "seconds": 0.092,
       "exit_code": 0,
-      "seconds": 0.106,
-      "log": "delivery-release-ctest.log"
+      "timeout": false
     },
     {
-      "name": "delivery-applier-tests",
+      "name": "12-asan-configure",
       "command": [
-        "python",
-        "/mnt/data/task_work/delivery-check-final/dxf_task_recovery/test_applier.py"
+        "cmake",
+        "-S",
+        "Tools/SceneTaskValidation",
+        "-B",
+        "Build/scene-asan",
+        "-G",
+        "Ninja",
+        "-DDXF_SCENE_FOCUSED=ON",
+        "-DDXF_SCENE_SANITIZERS=ON",
+        "-DCMAKE_CXX_COMPILER=clang++",
+        "-DCMAKE_BUILD_TYPE=Debug"
       ],
+      "started_utc": "2026-09-22T03:12:49.286037+00:00",
+      "seconds": 0.538,
       "exit_code": 0,
-      "seconds": 2.726,
-      "log": "delivery-applier-tests.log"
+      "timeout": false
     },
     {
-      "name": "final-gcc-debug-build",
+      "name": "13-asan-build",
       "command": [
         "cmake",
         "--build",
-        "/mnt/data/task_work/verify-gcc-debug",
+        "Build/scene-asan",
         "-j",
-        "4"
+        "6"
       ],
+      "started_utc": "2026-09-22T03:12:50.694682+00:00",
+      "seconds": 4.404,
       "exit_code": 0,
-      "seconds": 0.944,
-      "log": "final-gcc-debug-build.log"
+      "timeout": false
     },
     {
-      "name": "final-gcc-debug-ctest",
+      "name": "14-asan-tests",
       "command": [
         "ctest",
         "--test-dir",
-        "/mnt/data/task_work/verify-gcc-debug",
+        "Build/scene-asan",
         "--output-on-failure",
-        "--no-tests=error"
+        "-j",
+        "6"
       ],
+      "started_utc": "2026-09-22T03:12:55.957706+00:00",
+      "seconds": 0.093,
       "exit_code": 0,
-      "seconds": 0.112,
-      "log": "final-gcc-debug-ctest.log"
+      "timeout": false
     },
     {
-      "name": "final-gcc-release-build",
+      "name": "15-tsan-configure",
+      "command": [
+        "cmake",
+        "-S",
+        "Tools/SceneTaskValidation",
+        "-B",
+        "Build/scene-tsan",
+        "-G",
+        "Ninja",
+        "-DDXF_SCENE_FOCUSED=ON",
+        "-DDXF_SCENE_THREAD_SANITIZER=ON",
+        "-DCMAKE_BUILD_TYPE=Debug"
+      ],
+      "started_utc": "2026-09-22T03:13:39.294503+00:00",
+      "seconds": 0.336,
+      "exit_code": 0,
+      "timeout": false
+    },
+    {
+      "name": "16-tsan-build",
       "command": [
         "cmake",
         "--build",
-        "/mnt/data/task_work/verify-gcc-release",
+        "Build/scene-tsan",
         "-j",
-        "4"
+        "6"
       ],
+      "started_utc": "2026-09-22T03:13:40.568283+00:00",
+      "seconds": 4.147,
       "exit_code": 0,
-      "seconds": 2.983,
-      "log": "final-gcc-release-build.log"
+      "timeout": false
     },
     {
-      "name": "final-gcc-release-ctest",
+      "name": "17-tsan-tests",
       "command": [
         "ctest",
         "--test-dir",
-        "/mnt/data/task_work/verify-gcc-release",
+        "Build/scene-tsan",
         "--output-on-failure",
-        "--no-tests=error"
-      ],
-      "exit_code": 0,
-      "seconds": 0.139,
-      "log": "final-gcc-release-ctest.log"
-    },
-    {
-      "name": "final-clang-asan-ubsan-build",
-      "command": [
-        "cmake",
-        "--build",
-        "/mnt/data/task_work/verify-clang-asan-ubsan",
         "-j",
-        "4"
+        "6"
       ],
+      "started_utc": "2026-09-22T03:13:45.852952+00:00",
+      "seconds": 0.135,
       "exit_code": 0,
-      "seconds": 1.568,
-      "log": "final-clang-asan-ubsan-build.log"
+      "timeout": false
     },
     {
-      "name": "final-clang-asan-ubsan-ctest",
+      "name": "18-release-repeat",
       "command": [
         "ctest",
         "--test-dir",
-        "/mnt/data/task_work/verify-clang-asan-ubsan",
-        "--output-on-failure",
-        "--no-tests=error"
-      ],
-      "exit_code": 0,
-      "seconds": 0.876,
-      "log": "final-clang-asan-ubsan-ctest.log"
-    },
-    {
-      "name": "final-gcc-tsan-build",
-      "command": [
-        "cmake",
-        "--build",
-        "/mnt/data/task_work/verify-gcc-tsan",
-        "-j",
-        "4"
-      ],
-      "exit_code": 0,
-      "seconds": 1.91,
-      "log": "final-gcc-tsan-build.log"
-    },
-    {
-      "name": "final-gcc-tsan-ctest",
-      "command": [
-        "ctest",
-        "--test-dir",
-        "/mnt/data/task_work/verify-gcc-tsan",
-        "--output-on-failure",
-        "--no-tests=error"
-      ],
-      "exit_code": 0,
-      "seconds": 0.639,
-      "log": "final-gcc-tsan-ctest.log"
-    },
-    {
-      "name": "final-gcc-release-repeat50",
-      "command": [
-        "ctest",
-        "--test-dir",
-        "/mnt/data/task_work/verify-gcc-release",
+        "Build/scene-release",
         "--repeat",
         "until-fail:50",
         "--output-on-failure",
-        "--no-tests=error"
+        "-j",
+        "6"
       ],
+      "started_utc": "2026-09-22T03:13:46.955393+00:00",
+      "seconds": 2.111,
       "exit_code": 0,
-      "seconds": 6.593,
-      "log": "final-gcc-release-repeat50.log"
+      "timeout": false
     },
     {
-      "name": "final-no-stl",
+      "name": "19-policy",
       "command": [
         "python",
-        "/mnt/data/task_work/updated/Tools/CheckNoStl.py",
-        "--root",
-        "/mnt/data/task_work/updated"
+        "Tools/CheckNoStl.py"
       ],
+      "started_utc": "2026-09-22T03:13:50.459397+00:00",
+      "seconds": 1.496,
       "exit_code": 0,
-      "seconds": 1.864,
-      "log": "final-no-stl.log"
+      "timeout": false
+    },
+    {
+      "name": "20-installer-tests",
+      "command": [
+        "python",
+        "/mnt/data/dxf_scene_task_lifetime/test_applier.py"
+      ],
+      "started_utc": "2026-09-22T03:16:45.619405+00:00",
+      "seconds": 6.182,
+      "exit_code": 0,
+      "timeout": false
+    },
+    {
+      "name": "21-renderer-variant-configure",
+      "command": [
+        "cmake",
+        "-S",
+        "Tools/SceneTaskValidation",
+        "-B",
+        "Build/scene-renderer-variant",
+        "-G",
+        "Ninja",
+        "-DDXF_SCENE_FOCUSED=ON",
+        "-DDXF_SCENE_SOURCE_ROOT=/mnt/data/dxf_scene_renderer_variant",
+        "-DCMAKE_BUILD_TYPE=Debug"
+      ],
+      "started_utc": "2026-09-22T03:18:07.434690+00:00",
+      "seconds": 0.683,
+      "exit_code": 0,
+      "timeout": false
+    },
+    {
+      "name": "22-renderer-variant-build",
+      "command": [
+        "cmake",
+        "--build",
+        "Build/scene-renderer-variant",
+        "-j",
+        "6"
+      ],
+      "started_utc": "2026-09-22T03:18:09.293912+00:00",
+      "seconds": 4.393,
+      "exit_code": 0,
+      "timeout": false
+    },
+    {
+      "name": "23-renderer-variant-tests",
+      "command": [
+        "ctest",
+        "--test-dir",
+        "Build/scene-renderer-variant",
+        "--output-on-failure",
+        "-j",
+        "6"
+      ],
+      "started_utc": "2026-09-22T03:18:14.572931+00:00",
+      "seconds": 0.064,
+      "exit_code": 0,
+      "timeout": false
+    },
+    {
+      "name": "24-final-debug-build",
+      "command": [
+        "cmake",
+        "--build",
+        "Build/scene-debug",
+        "-j",
+        "6"
+      ],
+      "started_utc": "2026-09-22T03:18:15.588355+00:00",
+      "seconds": 1.606,
+      "exit_code": 0,
+      "timeout": false
+    },
+    {
+      "name": "25-final-debug-tests",
+      "command": [
+        "ctest",
+        "--test-dir",
+        "Build/scene-debug",
+        "--output-on-failure",
+        "-j",
+        "6"
+      ],
+      "started_utc": "2026-09-22T03:18:18.173062+00:00",
+      "seconds": 0.053,
+      "exit_code": 0,
+      "timeout": false
+    },
+    {
+      "name": "26-final-release-build",
+      "command": [
+        "cmake",
+        "--build",
+        "Build/scene-release",
+        "-j",
+        "6"
+      ],
+      "started_utc": "2026-09-22T03:19:14.975444+00:00",
+      "seconds": 9.229,
+      "exit_code": 0,
+      "timeout": false
+    },
+    {
+      "name": "27-final-release-tests",
+      "command": [
+        "ctest",
+        "--test-dir",
+        "Build/scene-release",
+        "--repeat",
+        "until-fail:50",
+        "--output-on-failure",
+        "--no-tests=error",
+        "-j",
+        "6"
+      ],
+      "started_utc": "2026-09-22T03:19:25.521445+00:00",
+      "seconds": 2.36,
+      "exit_code": 0,
+      "timeout": false
+    },
+    {
+      "name": "28-final-asan-build",
+      "command": [
+        "cmake",
+        "--build",
+        "Build/scene-asan",
+        "-j",
+        "6"
+      ],
+      "started_utc": "2026-09-22T03:19:29.144297+00:00",
+      "seconds": 1.83,
+      "exit_code": 0,
+      "timeout": false
+    },
+    {
+      "name": "29-final-asan-tests",
+      "command": [
+        "ctest",
+        "--test-dir",
+        "Build/scene-asan",
+        "--output-on-failure",
+        "--no-tests=error",
+        "-j",
+        "6"
+      ],
+      "started_utc": "2026-09-22T03:19:31.846392+00:00",
+      "seconds": 0.108,
+      "exit_code": 0,
+      "timeout": false
+    },
+    {
+      "name": "30-final-tsan-build",
+      "command": [
+        "cmake",
+        "--build",
+        "Build/scene-tsan",
+        "-j",
+        "6"
+      ],
+      "started_utc": "2026-09-22T03:19:33.163952+00:00",
+      "seconds": 3.801,
+      "exit_code": 0,
+      "timeout": false
+    },
+    {
+      "name": "31-final-tsan-tests",
+      "command": [
+        "ctest",
+        "--test-dir",
+        "Build/scene-tsan",
+        "--output-on-failure",
+        "--no-tests=error",
+        "-j",
+        "6"
+      ],
+      "started_utc": "2026-09-22T03:19:38.379791+00:00",
+      "seconds": 0.23,
+      "exit_code": 0,
+      "timeout": false
+    },
+    {
+      "name": "32-delivery-apply",
+      "command": [
+        "python",
+        "/mnt/data/verify_scene_delivery.py"
+      ],
+      "started_utc": "2026-09-22T03:21:46.199287+00:00",
+      "seconds": 4.39,
+      "exit_code": 0,
+      "timeout": false
+    },
+    {
+      "name": "33-delivered-configure",
+      "command": [
+        "cmake",
+        "-S",
+        "Tools/SceneTaskValidation",
+        "-B",
+        "Build/scene-delivery-release",
+        "-G",
+        "Ninja",
+        "-DDXF_SCENE_FOCUSED=ON",
+        "-DCMAKE_BUILD_TYPE=Release"
+      ],
+      "started_utc": "2026-09-22T03:22:27.533836+00:00",
+      "seconds": 0.572,
+      "exit_code": 0,
+      "timeout": false
+    },
+    {
+      "name": "34-delivered-build",
+      "command": [
+        "cmake",
+        "--build",
+        "Build/scene-delivery-release",
+        "-j",
+        "6"
+      ],
+      "started_utc": "2026-09-22T03:22:29.636650+00:00",
+      "seconds": 16.097,
+      "exit_code": 0,
+      "timeout": false
+    },
+    {
+      "name": "35-delivered-tests",
+      "command": [
+        "ctest",
+        "--test-dir",
+        "Build/scene-delivery-release",
+        "--output-on-failure",
+        "--no-tests=error",
+        "-j",
+        "6"
+      ],
+      "started_utc": "2026-09-22T03:22:46.582561+00:00",
+      "seconds": 0.043,
+      "exit_code": 0,
+      "timeout": false
+    },
+    {
+      "name": "36-delivered-installer-tests",
+      "command": [
+        "python",
+        "/mnt/data/scene_candidate_unpacked/dxf_scene_task_lifetime/test_applier.py"
+      ],
+      "started_utc": "2026-09-22T03:22:47.481432+00:00",
+      "seconds": 3.553,
+      "exit_code": 0,
+      "timeout": false
+    },
+    {
+      "name": "37-delivered-policy",
+      "command": [
+        "python",
+        "Tools/CheckNoStl.py"
+      ],
+      "started_utc": "2026-09-22T03:22:51.914677+00:00",
+      "seconds": 0.98,
+      "exit_code": 0,
+      "timeout": false
     }
-  ],
-  "all_attempts_log": "Validation/steps.json"
+  ]
 }

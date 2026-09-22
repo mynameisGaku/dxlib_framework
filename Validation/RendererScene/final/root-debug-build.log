@@ -1,0 +1,279 @@
+$ cmake --build Build\Integration-debug --parallel 8 -- -k 0
+[0/2] Re-checking globbed directories...
+[1/95] Building CXX object CMakeFiles\dxf_runtime.dir\Source\Runtime\Private\Dxf\LifecycleObject.cpp.obj
+[2/95] Building CXX object CMakeFiles\dxf_support.dir\Source\DxLibSupport\Private\Dxf\Render3DContext.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[3/95] Building CXX object CMakeFiles\dxf_support.dir\Source\DxLibSupport\Private\Dxf\RenderSystem.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[4/95] Building CXX object CMakeFiles\dxf_physics.dir\Source\Physics\Private\Dxf\PhysicsWorld2D.cpp.obj
+[5/95] Building CXX object CMakeFiles\dxf_physics.dir\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(49): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(69): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(108): warning C4324: 'Dxf::FBodyRecord3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(128): warning C4324: 'Dxf::FBodyRecord3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(168): warning C4324: 'Dxf::FSolvePoint3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(200): warning C4324: 'Dxf::FCachedImpulse3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(204): warning C4324: 'Dxf::FCachedImpulse3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(471): warning C4456: 'AxisA' を宣言すると、以前のローカル宣言が隠蔽されます
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(448): note: 'AxisA' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(472): warning C4456: 'AxisB' を宣言すると、以前のローカル宣言が隠蔽されます
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(450): note: 'AxisB' の宣言を確認してください
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/PhysicsSnapshot.h(39): warning C4324: 'Dxf::TPhysicsBodySnapshot<TBodyId,TVector,TRotation,TAngular>': アラインメント指定子のために構造体がパッドされました
+        with
+        [
+            TBodyId=Dxf::FBodyId3D,
+            TVector=Toolbox::FVector3,
+            TRotation=Toolbox::FQuaternion,
+            TAngular=Toolbox::FVector3
+        ]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/PhysicsSnapshot.h(39): note: テンプレートインスタンス化コンテキスト (最初に最も古いもの) は
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Private\Dxf\PhysicsWorld3D.cpp(2687): note: コンパイル対象の クラス テンプレート インスタンス化 'Dxf::TPhysicsBodySnapshot<TBodyId,TVector,TRotation,TAngular>' のリファレンスを確認してください
+        with
+        [
+            TBodyId=Dxf::FBodyId3D,
+            TVector=Toolbox::FVector3,
+            TRotation=Toolbox::FQuaternion,
+            TAngular=Toolbox::FVector3
+        ]
+[6/95] Building CXX object CMakeFiles\dxf_support.dir\Source\DxLibSupport\Private\Dxf\AsyncAsset.cpp.obj
+[7/95] Building CXX object CMakeFiles\dxf_support.dir\Source\DxLibSupport\Private\Dxf\DebugDrawAdapters.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[8/95] Building CXX object CMakeFiles\dxf_runtime.dir\Source\Runtime\Private\Dxf\TaskDispatcher.cpp.obj
+[9/95] Building CXX object CMakeFiles\dxf_debug_tools.dir\Source\Debug\Private\Dxf\DebugSnapshotHistory.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(49): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(69): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+[10/95] Building CXX object CMakeFiles\dxf_toolbox.dir\Source\Toolbox\Private\Toolbox\Log.cpp.obj
+[11/95] Building CXX object CMakeFiles\dxf_debug_tools.dir\Source\Debug\Private\Dxf\PhysicsDebugSnapshot2D.cpp.obj
+[12/95] Building CXX object CMakeFiles\dxf_debug_tools.dir\Source\Debug\Private\Dxf\PhysicsDebugSnapshot3D.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(49): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(69): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/PhysicsSnapshot.h(39): warning C4324: 'Dxf::TPhysicsBodySnapshot<TBodyId,TVector,TRotation,TAngular>': アラインメント指定子のために構造体がパッドされました
+        with
+        [
+            TBodyId=Dxf::FBodyId3D,
+            TVector=Toolbox::FVector3,
+            TRotation=Toolbox::FQuaternion,
+            TAngular=Toolbox::FVector3
+        ]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/PhysicsSnapshot.h(39): note: テンプレートインスタンス化コンテキスト (最初に最も古いもの) は
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Debug\Private\Dxf\PhysicsDebugSnapshot3D.cpp(51): note: コンパイル対象の クラス テンプレート インスタンス化 'Dxf::TPhysicsBodySnapshot<TBodyId,TVector,TRotation,TAngular>' のリファレンスを確認してください
+        with
+        [
+            TBodyId=Dxf::FBodyId3D,
+            TVector=Toolbox::FVector3,
+            TRotation=Toolbox::FQuaternion,
+            TAngular=Toolbox::FVector3
+        ]
+[13/95] Building CXX object CMakeFiles\dxf_debug_tools.dir\Source\Debug\Private\Dxf\PhysicsDebugRecorder3D.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(49): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(69): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+[14/95] Building CXX object CMakeFiles\dxf_runtime.dir\Source\Runtime\Private\Dxf\SceneNavigator.cpp.obj
+[15/95] Copying sample assets
+[16/95] Linking CXX static library dxf_toolboxd.lib
+[17/95] Building CXX object CMakeFiles\dxf_runtime.dir\Source\Runtime\Private\Dxf\Application.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[18/95] Linking CXX static library dxf_supportd.lib
+[19/95] Linking CXX static library dxf_physicsd.lib
+[20/95] Linking CXX static library dxf_runtimed.lib
+[21/95] Building CXX object CMakeFiles\dxf_physics_tests.dir\Tests\Physics\RigidBodyTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(49): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(69): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+[22/95] Building CXX object CMakeFiles\dxf_physics_tests.dir\Tests\Physics\SolverTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(49): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(69): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+[23/95] Building CXX object CMakeFiles\dxf_physics_tests.dir\Tests\Physics\ContinuousTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(49): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(69): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+[24/95] Building CXX object CMakeFiles\dxf_physics_tests.dir\Tests\Physics\StabilityTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(49): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(69): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+[25/95] Building CXX object CMakeFiles\dxf_debug_tools.dir\Source\Debug\Private\Dxf\PhysicsDebugDisplay3D.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(49): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(69): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[26/95] Building CXX object CMakeFiles\dxf_debug_tools.dir\Source\Debug\Private\Dxf\PhysicsDebugDisplay2D.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[27/95] Building CXX object CMakeFiles\dxf_physics_tests.dir\Tests\Physics\ParallelTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(49): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(69): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+[28/95] Building CXX object CMakeFiles\dxf_tests.dir\Tests\SupportTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[29/95] Building CXX object CMakeFiles\dxf_tests.dir\Tests\FixedTickTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[30/95] Building CXX object CMakeFiles\dxf_tests.dir\Tests\SandboxTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[31/95] Building CXX object CMakeFiles\dxf_tests.dir\Tests\ApplicationTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[32/95] Building CXX object CMakeFiles\dxf_tests.dir\Tests\GameplayTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[33/95] Building CXX object CMakeFiles\dxf_tests.dir\Tests\PhysicsSceneTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(49): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(69): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/RigidBodyComponent3D.h(357): warning C4324: 'Dxf::DRigidBody3DComponent': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Gameplay\Public\Dxf/RigidBodyComponent3D.h(393): warning C4324: 'Dxf::DRigidBody3DComponent': アラインメント指定子のために構造体がパッドされました
+[34/95] Building CXX object CMakeFiles\dxf_tests.dir\Tests\HardeningTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[35/95] Building CXX object CMakeFiles\dxf_tests.dir\Tests\RenderFailureTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[36/95] Building CXX object CMakeFiles\dxf_tests.dir\Tests\LogTests.cpp.obj
+[37/95] Building CXX object CMakeFiles\dxf_tests.dir\Tests\AssetRootTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[38/95] Building CXX object CMakeFiles\dxf_tests.dir\Tests\StarterTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[39/95] Building CXX object CMakeFiles\dxf_tests.dir\Tests\UsabilityTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[40/95] Building CXX object CMakeFiles\dxf_tests.dir\Tests\SceneContinuationTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[41/95] Building CXX object CMakeFiles\dxf_tests.dir\Tests\TaskDispatcherTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[42/95] Building CXX object CMakeFiles\dxf_tests.dir\Tests\AssetAsyncTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[43/95] Building CXX object CMakeFiles\dxf_tests.dir\Examples\Starter\Source\BootScene.cpp.obj
+[44/95] Building CXX object CMakeFiles\dxf_native_contract_tests.dir\Source\Native\Private\Dxf\DxLibPlatform.cpp.obj
+[45/95] Building CXX object CMakeFiles\dxf_native_contract_tests.dir\Source\Native\Private\Dxf\DxLibInputSource.cpp.obj
+[46/95] Building CXX object CMakeFiles\dxf_native_contract_tests.dir\Source\Native\Private\Dxf\DxLibGeometryBackend.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[47/95] Building CXX object CMakeFiles\dxf_native_contract_tests.dir\Tests\NativeMacroTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[48/95] Building CXX object CMakeFiles\dxf_application_render_integration_tests.dir\Tests\ApplicationRenderIntegrationTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[49/95] Building CXX object CMakeFiles\dxf_tests.dir\Examples\Sandbox\SandboxGame.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[50/95] Building CXX object CMakeFiles\dxf_native_contract_tests.dir\Source\Native\Private\Dxf\DxLibTextureBackend.cpp.obj
+[51/95] Building CXX object CMakeFiles\dxf_native_contract_tests.dir\Tests\NativeSmoke\Smoke.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[52/95] Building CXX object CMakeFiles\dxf_native_contract_tests.dir\Tests\NativeTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[53/95] Building CXX object CMakeFiles\dxf_native_contract_tests.dir\Source\Native\Private\Dxf\DxLibFontBackend.cpp.obj
+[54/95] Building CXX object CMakeFiles\dxf_native_contract_tests.dir\Source\Native\Private\Dxf\DxLibSoundBackend.cpp.obj
+[55/95] Linking CXX static library dxf_debug_toolsd.lib
+[56/95] Building CXX object CMakeFiles\dxf_native_contract_tests.dir\Source\Native\Private\Dxf\DxLibRenderBackend.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[57/95] Building CXX object CMakeFiles\Starter.dir\Examples\Starter\Source\BootScene.cpp.obj
+[58/95] Building CXX object CMakeFiles\NativeSmoke.dir\Tests\NativeSmoke\Smoke.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[59/95] Building CXX object CMakeFiles\dxf_debug_tools_tests.dir\Tests\DebugRendererIntegrationTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[60/95] Building CXX object CMakeFiles\Sandbox.dir\Examples\Sandbox\SandboxGame.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[61/95] Building CXX object CMakeFiles\dxf_debug_tools_tests.dir\Tests\DebugToolsTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(49): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(69): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/PhysicsSnapshot.h(39): warning C4324: 'Dxf::TPhysicsBodySnapshot<TBodyId,TVector,TRotation,TAngular>': アラインメント指定子のために構造体がパッドされました
+        with
+        [
+            TBodyId=Dxf::FBodyId3D,
+            TVector=Toolbox::FVector3,
+            TRotation=Toolbox::FQuaternion,
+            TAngular=Toolbox::FVector3
+        ]
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/PhysicsSnapshot.h(39): note: テンプレートインスタンス化コンテキスト (最初に最も古いもの) は
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Tests\DebugToolsTests.cpp(140): note: コンパイル対象の クラス テンプレート インスタンス化 'Dxf::TPhysicsBodySnapshot<TBodyId,TVector,TRotation,TAngular>' のリファレンスを確認してください
+        with
+        [
+            TBodyId=Dxf::FBodyId3D,
+            TVector=Toolbox::FVector3,
+            TRotation=Toolbox::FQuaternion,
+            TAngular=Toolbox::FVector3
+        ]
+[62/95] Building CXX object CMakeFiles\dxf_debug_physics_tests.dir\Tests\DebugPhysicsIntegrationTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(49): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(69): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[63/95] Building CXX object CMakeFiles\dxf_transparency_tests.dir\Tests\RenderTransparencyTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[64/95] Building CXX object CMakeFiles\dxf_transparency_tests.dir\Examples\RenderDebug\TransparencyDemo.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[65/95] Building CXX object CMakeFiles\dxf_transparency_fault_tests.dir\Source\Toolbox\Private\Toolbox\Testing\AllocationFault.cpp.obj
+[66/95] Building CXX object CMakeFiles\dxf_transparency_fault_tests.dir\Tools\RenderValidation\TransparencyFaultTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[67/95] Building CXX object CMakeFiles\Starter.dir\Examples\Starter\Source\WindowsMain.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[68/95] Building CXX object CMakeFiles\Sandbox.dir\Examples\Sandbox\WindowsMain.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[69/95] Building CXX object CMakeFiles\dxf_native_transparency_tests.dir\Tests\NativeTransparencyTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[70/95] Building CXX object CMakeFiles\dxf_native_views_tests.dir\Tests\NativeRenderViewsTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[71/95] Building CXX object CMakeFiles\dxf_render_continuation_tests.dir\Tests\RenderContinuationTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[72/95] Building CXX object CMakeFiles\dxf_render_views_tests.dir\Tests\DebugDrawStoreTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[73/95] Building CXX object CMakeFiles\dxf_render_views_tests.dir\Tests\RenderViewsTests.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[74/95] Linking CXX executable dxf_physics_tests.exe
+[75/95] Building CXX object CMakeFiles\RenderDebug.dir\Examples\RenderDebug\TransparencyDemo.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[76/95] Linking CXX executable dxf_application_render_integration_tests.exe
+[77/95] Linking CXX executable dxf_native_contract_tests.exe
+[78/95] Linking CXX executable dxf_asset_probe.exe
+[79/95] Linking CXX executable dxf_tests.exe
+[80/95] Building CXX object CMakeFiles\RenderDebug.dir\Examples\RenderDebug\RenderDebugScene.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(49): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(69): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+[81/95] Linking CXX executable Sandbox.exe; Writing Sandbox.dxfpaths
+[82/95] Linking CXX executable dxf_debug_physics_tests.exe
+[83/95] Linking CXX executable dxf_debug_tools_tests.exe
+[84/95] Linking CXX executable Starter.exe; Writing Starter.dxfpaths
+[85/95] Linking CXX executable dxf_transparency_tests.exe
+[86/95] Linking CXX executable dxf_transparency_fault_tests.exe
+[87/95] Linking CXX executable NativeSmoke.exe
+[88/95] Linking CXX executable dxf_job_fault_tests.exe
+[89/95] Linking CXX executable dxf_native_transparency_tests.exe
+[90/95] Linking CXX executable dxf_render_continuation_tests.exe
+[91/95] Building CXX object CMakeFiles\RenderDebug.dir\Examples\RenderDebug\WindowsMain.cpp.obj
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(61): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\DxLibSupport\Public\Dxf/RenderView3D.h(85): warning C4324: 'Dxf::FRenderView3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(49): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Source\Physics\Public\Dxf/RigidBody3D.h(69): warning C4324: 'Dxf::FBodyDescription3D': アラインメント指定子のために構造体がパッドされました
+[92/95] Linking CXX executable dxf_native_views_tests.exe
+[93/95] Linking CXX executable dxf_render_views_tests.exe
+[94/95] Linking CXX executable RenderDebug.exe; Writing RenderDebug.dxfpaths
+EXIT_CODE=0

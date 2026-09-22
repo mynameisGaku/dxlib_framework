@@ -76,6 +76,13 @@ public:
 		m_Draw3D.Clear_Internal();
 	}
 	/**
+	 * 未実行の3D命令があるか。3D後の2D状態復元が必要かの判定に使う。
+	 */
+	FORCEINLINE bool HasPending3D_Internal() const noexcept
+	{
+		return m_Draw3D.HasCommands_Internal();
+	}
+	/**
 	 * 描画先のテクスチャを設定する。
 	 * @param Target 描画先またはその設定結果。
 	 */

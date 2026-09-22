@@ -1,0 +1,27 @@
+test_apply_backup_and_idempotence (__main__.InstallerTests.test_apply_backup_and_idempotence) ... ok
+test_apply_rolls_back_on_write_failure (__main__.InstallerTests.test_apply_rolls_back_on_write_failure) ... ok
+test_bom_and_crlf_are_preserved (__main__.InstallerTests.test_bom_and_crlf_are_preserved) ... ok
+test_change_after_planning_is_rejected (__main__.InstallerTests.test_change_after_planning_is_rejected) ... ok
+test_changed_dependency_is_rejected (__main__.InstallerTests.test_changed_dependency_is_rejected) ... ok
+test_committed_scene_variant_preserves_contract (__main__.InstallerTests.test_committed_scene_variant_preserves_contract) ... ok
+test_corrupt_payload_is_rejected (__main__.InstallerTests.test_corrupt_payload_is_rejected) ... ok
+test_crlf_is_preserved (__main__.InstallerTests.test_crlf_is_preserved) ... ok
+test_dry_run_is_read_only (__main__.InstallerTests.test_dry_run_is_read_only) ... ok
+test_exact_previous_zip_overlay_needs_no_commit (__main__.InstallerTests.test_exact_previous_zip_overlay_needs_no_commit) ... ok
+test_index_change_during_apply_stops_and_preserves_index (__main__.InstallerTests.test_index_change_during_apply_stops_and_preserves_index) ... ok
+test_missing_dependency_is_rejected (__main__.InstallerTests.test_missing_dependency_is_rejected) ... ok
+test_modified_previous_update_is_rejected (__main__.InstallerTests.test_modified_previous_update_is_rejected) ... ok
+test_path_traversal_is_rejected (__main__.InstallerTests.test_path_traversal_is_rejected) ... ok
+test_rollback_preserves_concurrent_edit (__main__.InstallerTests.test_rollback_preserves_concurrent_edit) ... ok
+test_staged_previous_update_is_not_overwritten (__main__.InstallerTests.test_staged_previous_update_is_not_overwritten) ... ok
+test_staged_target_with_original_working_bytes_is_rejected (__main__.InstallerTests.test_staged_target_with_original_working_bytes_is_rejected) ... ok
+test_subdirectory_is_rejected (__main__.InstallerTests.test_subdirectory_is_rejected) ... ok
+test_symlink_is_rejected (__main__.InstallerTests.test_symlink_is_rejected) ... ok
+test_unrelated_assets_are_preserved (__main__.InstallerTests.test_unrelated_assets_are_preserved) ... ok
+test_unstaged_target_edit_is_rejected (__main__.InstallerTests.test_unstaged_target_edit_is_rejected) ... ok
+test_untracked_new_target_collision_is_rejected (__main__.InstallerTests.test_untracked_new_target_collision_is_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 22 tests in 12.009s
+
+OK

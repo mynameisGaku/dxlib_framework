@@ -1,0 +1,13 @@
+{
+  "command": [
+    "cmake",
+    "--build",
+    "/mnt/data/scope_work/build-red",
+    "-j",
+    "4"
+  ],
+  "exit_code": 0,
+  "timed_out": false,
+  "started_utc": "2026-09-22T09:03:16.918046+00:00",
+  "seconds": 2.19
+}

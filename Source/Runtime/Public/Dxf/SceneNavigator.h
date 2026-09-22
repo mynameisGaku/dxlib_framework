@@ -4,11 +4,12 @@
 #include "Dxf/SceneLifecycle.h"
 #include "Toolbox/Optional.h"
 #include "Toolbox/Utility.h"
+#include "Dxf/TaskDispatcher.h"
 namespace Dxf
 {
 class FAssetService;
 /**
- * シーン遷移の要求と反映を管理する型。
+ * シーン遷移の要求と反映を管理する型。すべての操作は所有スレッドで行う。
  */
 class FSceneNavigator
 {
@@ -18,8 +19,10 @@ public:
 	 * @param Assets アセットを読み込むサービス。
 	 * @param Audio 音声再生のサービス。
 	 * @param Game シーン間で共有するゲーム状態。
+	 * @param Tasks 借用するTask窓口。指定時は同じ所有スレッドで操作し、Navigatorより長く生存させる。
 	 */
-	FSceneNavigator(FAssetService& Assets, FAudioPlayer& Audio, DGameInstance* Game = nullptr);
+	FSceneNavigator(FAssetService& Assets, FAudioPlayer& Audio, DGameInstance* Game = nullptr,
+	                FTaskDispatcher* Tasks = nullptr);
 	/**
 	 * 所有する状態を終了し、必要なリソースを解放する。
 	 */
@@ -63,7 +66,8 @@ public:
 		}
 	}
 	/**
-	 * 境界で確定した変更を反映する。
+	 * 境界で確定した変更を反映する。Task反映中や準備中の再入は失敗で拒否する。
+	 * 初期化と新Scope確保の成功後、旧Scopeを退役してから終了通知を行う。
 	 */
 	TResult<bool> Commit();
 	/**
@@ -84,9 +88,24 @@ public:
 	/**
 	 * 現在の状態を取得する。
 	 */
-	DScene* GetCurrent() const noexcept
+	FORCEINLINE DScene* GetCurrent() const noexcept
 	{
 		return m_Storage.GetCurrent();
+	}
+	/**
+	 * 利用者フックまたはSceneの破棄を実行中か。所有スレッドでのみ参照する。
+	 */
+	FORCEINLINE bool IsDispatching() const noexcept
+	{
+		return m_bBusy;
+	}
+	/**
+	 * 現在SceneのTask Scope。終了フック中は失効した旧ハンドルを保つ。
+	 * OnInitializeには遷移先のScopeを提供しない。Scene用TaskはOnEnter以降に投入する。
+	 */
+	FORCEINLINE FTaskScope GetTaskScope() const noexcept
+	{
+		return m_SceneScope;
 	}
 	/**
 	 * 直近のシーン遷移のエラーを取得する。
@@ -107,7 +126,8 @@ public:
 		return m_bQuit || m_bShutdown;
 	}
 	/**
-	 * 管理する処理とリソースを順序どおり終了する。
+	 * 所属Taskの退役後にSceneを終了する。TaskやSceneの通知中は要求だけを記録する。
+	 * 遅延時は所有スレッドの安全な境界で再度呼び、完了させる。
 	 */
 	void Shutdown() noexcept;
 
@@ -119,6 +139,14 @@ private:
 	{
 		return !WantsQuit() && !m_bShutdownRequested && !m_bReplacingPending;
 	}
+	/**
+	 * Taskの反映・捕捉破棄に再入せずSceneを操作できるかを調べる。
+	 */
+	bool CanSynchronizeTasks_Internal() const noexcept;
+	/**
+	 * 現在SceneのPrepareと捕捉を退役する。失敗時はSceneを停止・破棄しない。
+	 */
+	bool RetireCurrentScope_Internal() noexcept;
 	/**
 	 * 境界で確定した変更を反映する。
 	 */
@@ -139,6 +167,14 @@ private:
 	 * シーン間で共有するゲーム状態。
 	 */
 	DGameInstance* m_pGame;
+	/**
+	 * Applicationが所有するTask窓口。単独利用では未接続。
+	 */
+	FTaskDispatcher* m_pTasks;
+	/**
+	 * 有効化した現在Sceneの所属。ポインタのアドレス比較では追跡しない。
+	 */
+	FTaskScope m_SceneScope;
 	/**
 	 * 初期化中のシーンへの非所有参照。
 	 */

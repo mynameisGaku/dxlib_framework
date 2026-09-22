@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/opt/pyvenv/bin/python",
+    "/mnt/data/scope_work/delivery/package/dxf_scope_isolation/apply_scope_isolation.py",
+    "--root",
+    "/mnt/data/scope_work/delivery/repo",
+    "--apply"
+  ],
+  "exit_code": 0,
+  "timed_out": false,
+  "started_utc": "2026-09-22T09:07:01.843690+00:00",
+  "seconds": 2.458
+}

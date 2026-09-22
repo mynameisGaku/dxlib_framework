@@ -1,0 +1,13 @@
+{
+  "command": [
+    "cmake",
+    "--build",
+    "/mnt/data/scope_work/legacy-tsan",
+    "-j",
+    "4"
+  ],
+  "exit_code": 0,
+  "timed_out": false,
+  "started_utc": "2026-09-22T08:53:12.871238+00:00",
+  "seconds": 2.71
+}

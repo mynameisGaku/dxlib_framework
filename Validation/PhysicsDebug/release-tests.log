@@ -1,0 +1,11 @@
+$ ctest --test-dir Build\PhysicsDebug -C Release -R "^(DebugTools|DebugPhysicsCapture)$" --output-on-failure --no-tests=error
+Test project C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/PhysicsDebug
+    Start 1: DebugTools
+1/2 Test #1: DebugTools .......................   Passed    0.02 sec
+    Start 2: DebugPhysicsCapture
+2/2 Test #2: DebugPhysicsCapture ..............   Passed    0.03 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =   0.09 sec
+EXIT_CODE=0

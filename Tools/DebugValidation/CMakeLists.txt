@@ -11,8 +11,17 @@ find_package(Threads REQUIRED)
 add_library(core STATIC
  ${ROOT}/Source/Toolbox/Private/Toolbox/Threading.cpp
  ${ROOT}/Source/Toolbox/Private/Toolbox/JobSystem.cpp
+ ${ROOT}/Source/Toolbox/Private/Toolbox/Log.cpp
  ${ROOT}/Source/Toolbox/Private/Toolbox/Vector3.cpp
  ${ROOT}/Source/Toolbox/Private/Toolbox/FixedStepScheduler.cpp
+ ${ROOT}/Source/Toolbox/Private/Toolbox/Collision2D.cpp
+ ${ROOT}/Source/Toolbox/Private/Toolbox/CollisionShapes.cpp
+ ${ROOT}/Source/Toolbox/Private/Toolbox/Contact2D.cpp
+ ${ROOT}/Source/Toolbox/Private/Toolbox/Contact3D.cpp
+ ${ROOT}/Source/Toolbox/Private/Toolbox/ContinuousCollision.cpp
+ ${ROOT}/Source/Toolbox/Private/Toolbox/Matrix4.cpp
+ ${ROOT}/Source/Toolbox/Private/Toolbox/Mesh.cpp
+ ${ROOT}/Source/Toolbox/Private/Toolbox/Quaternion.cpp
  ${ROOT}/Source/DxLibSupport/Private/Dxf/RenderPass3D.cpp
  ${ROOT}/Source/DxLibSupport/Private/Dxf/RenderGeometry3D.cpp
  ${ROOT}/Source/DxLibSupport/Private/Dxf/DebugDrawAdapters.cpp
@@ -24,9 +33,16 @@ add_library(core STATIC
  ${ROOT}/Source/Debug/Private/Dxf/DebugStepController.cpp
  ${ROOT}/Source/Debug/Private/Dxf/DebugSnapshotHistory.cpp
  ${ROOT}/Source/Debug/Private/Dxf/PhysicsDebugSnapshot3D.cpp
- ${ROOT}/Source/Debug/Private/Dxf/PhysicsDebugDisplay3D.cpp)
+ ${ROOT}/Source/Debug/Private/Dxf/PhysicsDebugSnapshot2D.cpp
+ ${ROOT}/Source/Debug/Private/Dxf/PhysicsDebugRecorder3D.cpp
+ ${ROOT}/Source/Debug/Private/Dxf/PhysicsDebugDisplay3D.cpp
+ ${ROOT}/Source/Debug/Private/Dxf/PhysicsDebugDisplay2D.cpp
+ # Debug reads snapshots captured by the actual Physics worlds, not a validation stand-in.
+ ${ROOT}/Source/Physics/Private/Dxf/PhysicsWorld2D.cpp
+ ${ROOT}/Source/Physics/Private/Dxf/PhysicsWorld3D.cpp
+ ${ROOT}/Source/Physics/Private/Dxf/ParallelPhysicsCore.cpp)
 target_include_directories(core PUBLIC ${ROOT}/Source/Toolbox/Public ${ROOT}/Source/Foundation/Public
- ${ROOT}/Source/DxLibSupport/Public ${ROOT}/Source/Debug/Public)
+ ${ROOT}/Source/DxLibSupport/Public ${ROOT}/Source/Debug/Public ${ROOT}/Source/Physics/Public)
 target_link_libraries(core PUBLIC Threads::Threads)
 target_compile_features(core PUBLIC cxx_std_20)
 if(MSVC)
@@ -47,6 +63,11 @@ target_include_directories(debug_tests PRIVATE ${ROOT}/Tests)
 target_link_libraries(debug_tests PRIVATE core)
 add_test(NAME DebugTools COMMAND debug_tests)
 set_tests_properties(DebugTools PROPERTIES TIMEOUT 60)
+add_executable(debug_physics_tests ${ROOT}/Tools/RenderValidation/Main.cpp ${ROOT}/Tests/DebugPhysicsIntegrationTests.cpp)
+target_include_directories(debug_physics_tests PRIVATE ${ROOT}/Tests)
+target_link_libraries(debug_physics_tests PRIVATE core)
+add_test(NAME DebugPhysicsCapture COMMAND debug_physics_tests)
+set_tests_properties(DebugPhysicsCapture PROPERTIES TIMEOUT 60)
 include(${ROOT}/CMake/RenderContinuationTests.cmake)
 dxf_add_render_continuation_tests(core)
 include(${ROOT}/CMake/RenderViewsTests.cmake)

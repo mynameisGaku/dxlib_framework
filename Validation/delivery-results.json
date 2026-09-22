@@ -1,0 +1,22 @@
+[
+  {
+    "name": "delivery-core-clean",
+    "command": [
+      "/opt/pyvenv/bin/python",
+      "/mnt/data/work_next/delivery_snapshot/dxf_physics_snapshot/Testing/run_core.py",
+      "--build",
+      "/mnt/data/work_next/delivery_snapshot_core"
+    ],
+    "exit_code": 0,
+    "seconds": 2.601
+  },
+  {
+    "name": "delivery-applier",
+    "command": [
+      "/opt/pyvenv/bin/python",
+      "test_applier.py"
+    ],
+    "exit_code": 0,
+    "seconds": 1.05
+  }
+]

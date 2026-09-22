@@ -1,0 +1,19 @@
+{
+  "byte_identical_to_tested_unpacked_candidate": true,
+  "files": [
+    "MANIFEST.json",
+    "apply_scope_isolation.py",
+    "test_applier.py",
+    "Payload/Tests/TaskScopeIsolationTests.cpp",
+    "Payload/Docs/TaskScopeIsolation.md",
+    "Payload/Tools/ScopeTaskValidation/Main.cpp",
+    "Payload/Tools/ScopeTaskValidation/CMakeLists.txt",
+    "Payload/Source/Runtime/Public/Dxf/TaskDispatcher.h",
+    "Payload/Source/Runtime/Private/Dxf/TaskDispatcher.cpp",
+    "Variants/scene-integrated/Source/Runtime/Public/Dxf/TaskDispatcher.h",
+    "Testing/scene_header_before.h",
+    "Testing/installer_fixture.zip",
+    "patches/scope_isolation_scene-integrated.patch",
+    "patches/scope_isolation_base.patch"
+  ]
+}

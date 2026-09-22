@@ -2,194 +2,106 @@
 #ifndef DXF_PHYSICS_DEBUG_SNAPSHOT_3D_H
 #define DXF_PHYSICS_DEBUG_SNAPSHOT_3D_H
 #include "Dxf/Result.h"
+#include "Dxf/RigidBody3D.h"
 #include "Toolbox/CollisionShapes.h"
 namespace Dxf
 {
 /**
- * 観察登録時の運動区分。実Worldの設定を変更しない。
+ * 1回の観察で表示用に変換するColliderの上限。超過は切り詰めず失敗する。
  */
-enum class EDebugBodyMotion
-{
-	/**
-	 * 静止Body。
-	 */
-	Static,
-	/**
-	 * 指定運動のBody。
-	 */
-	Kinematic,
-	/**
-	 * 力と接触に応答するBody。
-	 */
-	Dynamic
-};
+inline constexpr Toolbox::size_t MaxPhysicsDebugColliders3D = 256;
 /**
- * 値として採取したColliderとBody状態。Native資源やWorldへの参照を持たない。
+ * 1回の観察でWorldから複製するBodyの上限。Colliderを持たないBodyも数える。
+ */
+inline constexpr Toolbox::size_t MaxPhysicsDebugBodies3D = 4096;
+/**
+ * 一つのColliderを表示用のワールド座標へ変換した値。Native資源やWorldへの参照を持たない。
  */
 struct FPhysicsDebugItem3D
 {
 	/**
-	 * 登録Bodyのスロット番号。
+	 * 採取元Colliderの世代付きID。取り付け先BodyのIDを含む。
 	 */
-	Toolbox::size_t BodyIndex = 0;
+	FColliderId3D Collider;
 	/**
-	 * 登録Bodyの世代。
-	 */
-	Toolbox::uint64 BodyGeneration = 0;
-	/**
-	 * Colliderのスロット番号。
-	 */
-	Toolbox::size_t ColliderIndex = 0;
-	/**
-	 * Colliderの世代。
-	 */
-	Toolbox::uint64 ColliderGeneration = 0;
-	/**
-	 * ワールド座標へ変換した、登録対象の形状。
+	 * Bodyの位置・姿勢で重心相対形状をワールド座標へ変換した形状。
 	 */
 	Toolbox::TVariant<Toolbox::FSphere, Toolbox::FOBB> Shape;
 	/**
-	 * 実Worldから読んだ重心位置。
+	 * 採取時のBody重心位置。メートル単位。
 	 */
 	Toolbox::FVector3 CenterOfMass;
 	/**
-	 * 実Worldから読んだ毎秒メートルの速度。
+	 * 採取時のBody重心速度。メートル毎秒。
 	 */
 	Toolbox::FVector3 Velocity;
 	/**
-	 * 実Worldから読んだワールド角速度。
+	 * 採取時のBody角速度。ワールド軸回りのラジアン毎秒。
 	 */
 	Toolbox::FVector3 AngularVelocity;
 	/**
-	 * 登録時に渡された運動区分。
+	 * 採取時の実Worldの運動区分。
 	 */
-	EDebugBodyMotion Motion = EDebugBodyMotion::Dynamic;
+	EBodyType Type = EBodyType::Dynamic;
 	/**
 	 * 採取時の休止状態。
 	 */
 	bool bSleeping = false;
 };
 /**
- * 固定更新直後に採取する表示専用Snapshot。接触・Impulseの再計算は行わない。
+ * Worldが採取したFPhysicsSnapshot3Dを表示用に変換した値。接触・Impulseの再計算は行わない。
  */
 struct FPhysicsDebugSnapshot3D
 {
 	/**
-	 * 観察対象のWorld識別子。
+	 * 採取元World。0は未採取を表す。
 	 */
 	Toolbox::uint64 World = 0;
 	/**
-	 * 呼出し側が管理する、実行済み固定更新番号。
+	 * Worldが数えた正常完了Step数。描画回数や内部SubStepsではない。
 	 */
 	Toolbox::uint64 Step = 0;
 	/**
-	 * 実行済み固定更新の経過秒数。
+	 * 最後に正常完了したStepの秒数。未更新なら0。
+	 */
+	Toolbox::f64 LastDeltaSeconds = 0;
+	/**
+	 * 最後に正常完了したStepの分割数。未更新なら0。
+	 */
+	Toolbox::uint32 LastSubSteps = 0;
+	/**
+	 * 呼出し側の時計で記録したシミュレーション経過秒数。Step数から逆算しない。
 	 */
 	Toolbox::f64 SimulationSeconds = 0;
 	/**
-	 * 明示登録した、生存するColliderの採取結果。
+	 * 採取時の生存Body数。Colliderを持たないBodyも含む。
+	 */
+	Toolbox::size_t BodyCount = 0;
+	/**
+	 * 採取時の生存Collider全件。元スロット番号の昇順で、切り詰めない。
 	 */
 	Toolbox::TVector<FPhysicsDebugItem3D> Items;
-	/**
-	 * 削除済みまたは期限切れになった登録の数。
-	 */
-	Toolbox::size_t SkippedCount = 0;
 };
 /**
- * Colliderを作成した際の定義を保存する観察登録。World全走査ではない。
- * 同じIDのShapeを変更するAPIを将来追加する場合は、登録側の定義も更新すること。
- */
-template <typename TColliderId> struct TPhysicsDebugWatch3D
-{
-	/**
-	 * Worldから受け取った世代付きCollider識別子。
-	 */
-	TColliderId Collider;
-	/**
-	 * AttachColliderへ実際に渡した重心相対形状。
-	 */
-	Toolbox::TVariant<Toolbox::FSphere, Toolbox::FOBB> LocalShape;
-	/**
-	 * CreateBodyへ実際に渡した運動区分。
-	 */
-	EDebugBodyMotion Motion = EDebugBodyMotion::Dynamic;
-};
-/**
- * @param Snapshot 所有状態を変えずに検査する固定更新の観察値。
+ * 表示用Snapshotの値域・件数・形状を検査する。
+ * @param Snapshot 所有状態を変えずに検査する観察値。
  */
 bool IsValidPhysicsDebugSnapshot3D(const FPhysicsDebugSnapshot3D& Snapshot) noexcept;
 /**
- * 明示登録したColliderを公開読取APIから採取する。Step完了後、所有スレッドで呼ぶ。
- * Worldと登録配列を並行変更しない。戻り値は値所有で、World破棄後も利用できる。
- * 接触点・Impulse・Islandは取得していない。接触判定を再実行して実測値と偽らない。
- * @param World IsColliderAlive/GetPosition/GetOrientation/GetVelocity/GetAngularVelocity/IsSleepingを持つWorld。
- * @param Watches 作成時に記録した最大256件の観察対象。
- * @param Step 実行済み固定更新番号。
-	 * @param Seconds 実行済みシミュレーション秒数。
+ * Worldが採取した値を表示用のワールド座標へ変換する。Worldへは触れない。
+ * BodyとColliderは世代付きIDで対応を確認し、不一致・非有限値・上限超過は失敗にする。
+ * @param Source FPhysicsWorld3D::CaptureSnapshotの戻り値。
+ * @param SimulationSeconds 呼出し側の時計で記録した0以上の経過秒数。
  */
-template <typename TWorld, typename TColliderId>
-TResult<FPhysicsDebugSnapshot3D> CapturePhysicsDebugSnapshot3D(const TWorld& World,
-	const Toolbox::TVector<TPhysicsDebugWatch3D<TColliderId>>& Watches,
-	Toolbox::uint64 Step, Toolbox::f64 Seconds)
-{
-	if (Watches.Size() > 256 || !Toolbox::IsFinite(Seconds) || Seconds < 0)
-	{
-		return TResult<FPhysicsDebugSnapshot3D>::Failure(EErrorCode::InvalidArgument, "Invalid snapshot request");
-	}
-	FPhysicsDebugSnapshot3D Snapshot;
-	Snapshot.Step = Step;
-	Snapshot.SimulationSeconds = Seconds;
-	Snapshot.World = Watches.IsEmpty() ? 0 : Watches[0].Collider.Body.World;
-	for (Toolbox::size_t Index = 0; Index < Watches.Size(); ++Index)
-	{
-		const auto& Watch = Watches[Index];
-		if (Watch.Collider.Body.World != Snapshot.World || Snapshot.World == 0)
-		{
-			return TResult<FPhysicsDebugSnapshot3D>::Failure(EErrorCode::InvalidArgument, "Mixed or invalid worlds");
-		}
-		for (Toolbox::size_t Previous = 0; Previous < Index; ++Previous)
-		{
-			if (Watches[Previous].Collider == Watch.Collider)
-			{
-				return TResult<FPhysicsDebugSnapshot3D>::Failure(EErrorCode::InvalidArgument, "Duplicate collider watch");
-			}
-		}
-		if (!World.IsColliderAlive(Watch.Collider))
-		{
-			++Snapshot.SkippedCount;
-			continue;
-		}
-		FPhysicsDebugItem3D Item;
-		Item.BodyIndex = Watch.Collider.Body.Index;
-		Item.BodyGeneration = Watch.Collider.Body.Generation;
-		Item.ColliderIndex = Watch.Collider.Index;
-		Item.ColliderGeneration = Watch.Collider.Generation;
-		Item.CenterOfMass = World.GetPosition(Watch.Collider.Body);
-		const auto Orientation = World.GetOrientation(Watch.Collider.Body);
-		Item.Velocity = World.GetVelocity(Watch.Collider.Body);
-		Item.AngularVelocity = World.GetAngularVelocity(Watch.Collider.Body);
-		Item.bSleeping = World.IsSleeping(Watch.Collider.Body);
-		Item.Motion = Watch.Motion;
-		Watch.LocalShape.Visit([&](const auto& Local)
-		{
-			auto Transformed = Local;
-			Transformed.Center = Item.CenterOfMass + Orientation.Rotate(Local.Center);
-			if constexpr (Toolbox::IsSame<Toolbox::TDecay<decltype(Local)>, Toolbox::FOBB>)
-			{
-				for (Toolbox::size_t Axis = 0; Axis < 3; ++Axis)
-				{
-					Transformed.Axes[Axis] = Orientation.Rotate(Local.Axes[Axis]);
-				}
-			}
-			Item.Shape = Toolbox::Move(Transformed);
-		});
-		Snapshot.Items.PushBack(Toolbox::Move(Item));
-	}
-	if (!IsValidPhysicsDebugSnapshot3D(Snapshot))
-	{
-		return TResult<FPhysicsDebugSnapshot3D>::Failure(EErrorCode::InvalidState, "Invalid captured physics state");
-	}
-	return TResult<FPhysicsDebugSnapshot3D>::Success(Toolbox::Move(Snapshot));
-}
-}
+TResult<FPhysicsDebugSnapshot3D> BuildPhysicsDebugSnapshot3D(const FPhysicsSnapshot3D& Source,
+                                                             Toolbox::f64 SimulationSeconds);
+/**
+ * 正常Step完了後のWorldを明示的に採取し、表示用に変換する。Stepと並行して呼ばない。
+ * 採取の拒否・上限超過・確保失敗は例外ではなくTResultの失敗として返す。
+ * @param World 採取するWorld。変更しない。
+ * @param SimulationSeconds 呼出し側の時計で記録した0以上の経過秒数。
+ */
+TResult<FPhysicsDebugSnapshot3D> CapturePhysicsDebugSnapshot3D(const FPhysicsWorld3D& World,
+                                                               Toolbox::f64 SimulationSeconds);
+} // namespace Dxf
 #endif

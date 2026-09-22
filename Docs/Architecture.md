@@ -16,7 +16,7 @@ FApplication
   ├─ FDxLibSession                     DxLibの初期化・終了
   ├─ FInputSystem                      入力の取得とSnapshot構築
   ├─ FAssetService                     Loader・Cache・Registryの組み合わせ
-  ├─ FRenderSystem2D                   描画要求とフレーム処理の組み合わせ
+  ├─ FRenderSystem                     2D/3D描画要求とフレーム処理。共有JobSystemを構築後に接続
   ├─ FAudioPlayer                      再生インスタンスの所有
   ├─ DGameInstance                     ゲーム固有の長期状態
   └─ FSceneNavigator
