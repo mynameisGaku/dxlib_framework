@@ -1,54 +1,345 @@
 {
-  "base_commit": "86a37b9cdb7e3641e41f7838a8c5694de801679c",
-  "remote_modified": false,
-  "full_repository_build_verified": false,
-  "windows_real_sdk_verified": false,
-  "render_debug_sample_compiled": false,
-  "actual_physics_capture_tests_executed": false,
-  "new_core_cases": 23,
-  "prior_render_continuation_cases": 20,
-  "prior_views_store_cases": 30,
-  "prior_native_translation_cases": 4,
-  "prior_job_fault_families": 5,
-  "ctest_profiles": {
+  "format": 1,
+  "created_utc": "2026-09-21T18:47:36.581780+00:00",
+  "source_commit": "4868dc9811d60e227aa0d7c4d2c18410388d3d63",
+  "previous_task_patch_required": false,
+  "identical_reissue_of_previous_zip": false,
+  "scope": "Exact TaskDispatcher/JobSystem/Threading dependency slice; not Application or full framework",
+  "final_checks_passed": true,
+  "profiles": {
     "gcc-debug": {
-      "passed": 9,
-      "total": 9
+      "passed": 26,
+      "total": 26,
+      "exit_code": 0,
+      "log": "Validation/final-gcc-debug-ctest.log"
     },
     "gcc-release": {
-      "passed": 9,
-      "total": 9
+      "passed": 26,
+      "total": 26,
+      "exit_code": 0,
+      "log": "Validation/final-gcc-release-ctest.log"
     },
-    "gcc-asan-ubsan": {
-      "passed": 9,
-      "total": 9
+    "clang-asan-ubsan": {
+      "passed": 26,
+      "total": 26,
+      "exit_code": 0,
+      "log": "Validation/final-clang-asan-ubsan-ctest.log"
     },
     "gcc-tsan": {
-      "passed": 9,
-      "total": 9
-    },
-    "clang-release": {
-      "passed": 9,
-      "total": 9
+      "passed": 26,
+      "total": 26,
+      "exit_code": 0,
+      "log": "Validation/final-gcc-tsan-ctest.log"
     }
   },
-  "release_repetition": {
-    "executables": 3,
-    "runs_per_executable": 100,
-    "passed_runs": 300
+  "release_repeat": {
+    "cases": 26,
+    "repetitions_per_case": 50,
+    "passed_executions": 1300,
+    "exit_code": 0,
+    "log": "Validation/final-gcc-release-repeat50.log"
   },
-  "new_public_header_checks": 10,
-  "applier_tests": 13,
-  "root_cmake_registration_fixture_cases": 23,
+  "installer": {
+    "passed": 15,
+    "total": 15,
+    "exit_code": 0,
+    "log": "Validation/delivery-applier-tests.log"
+  },
+  "package_replay": {
+    "dry_run": true,
+    "apply": true,
+    "idempotent": true,
+    "patch_check": true,
+    "diff_check": true,
+    "release_cases_passed": 26,
+    "installer_and_payload_equal_to_tested_package": true,
+    "log": "Validation/delivery-release-ctest.log"
+  },
   "no_stl": {
-    "partial_source_examples_tests_files": 79,
-    "violations": 0
+    "scanned_files": 20,
+    "violations": 0,
+    "full_repository_scan": false,
+    "log": "Validation/final-no-stl.log"
   },
-  "added_file_count": 20,
-  "capture_scope": "Registered 3D colliders only. Getter contract tested with explicit double locally. Actual FPhysicsWorld3D tests added but not run.",
-  "unpacked_partial_release_ctest": {
-    "passed": 9,
-    "total": 9
+  "expected_red": {
+    "base_unchanged": true,
+    "passed": 5,
+    "assertion_failures": 15,
+    "timeouts": 6,
+    "total": 26,
+    "exit_code": 8,
+    "log": "Validation/final-original-ctest.log",
+    "note": "Includes unavailable RetireScope API; not 21 distinct proven bugs"
   },
-  "unpacked_applier_tests": 13
+  "limitations": {
+    "retire_waits_all_dispatcher_prepares": true,
+    "scope_specific_fence_implemented": false,
+    "scene_pre_destruction_integration_implemented": false,
+    "real_application_tested": false,
+    "full_repository_build_tested": false,
+    "existing_framework_tests_run": false,
+    "windows_msvc_tested": false,
+    "real_dxlib_sdk_tested": false,
+    "remote_commit_or_push_performed": false
+  },
+  "changed_paths": [
+    "Source/Runtime/Public/Dxf/TaskDispatcher.h",
+    "Source/Runtime/Private/Dxf/TaskDispatcher.cpp",
+    "Tests/TaskDispatcherRecoveryTests.cpp",
+    "Tools/TaskValidation/CMakeLists.txt",
+    "Tools/TaskValidation/Main.cpp",
+    "Docs/TaskDispatcherRecovery.md"
+  ],
+  "final_commands": [
+    {
+      "name": "delivery-review-patch-check",
+      "command": [
+        "git",
+        "-C",
+        "/mnt/data/task_work/delivery-check-final/fixture-repo",
+        "apply",
+        "--check",
+        "--whitespace=error-all",
+        "/mnt/data/task_work/delivery-check-final/dxf_task_recovery/task_dispatcher_recovery.patch"
+      ],
+      "exit_code": 0,
+      "seconds": 0.003,
+      "log": "delivery-review-patch-check.log"
+    },
+    {
+      "name": "delivery-dry-run",
+      "command": [
+        "python",
+        "/mnt/data/task_work/delivery-check-final/dxf_task_recovery/apply_task_dispatcher.py",
+        "--root",
+        "/mnt/data/task_work/delivery-check-final/fixture-repo"
+      ],
+      "exit_code": 0,
+      "seconds": 0.834,
+      "log": "delivery-dry-run.log"
+    },
+    {
+      "name": "delivery-apply",
+      "command": [
+        "python",
+        "/mnt/data/task_work/delivery-check-final/dxf_task_recovery/apply_task_dispatcher.py",
+        "--root",
+        "/mnt/data/task_work/delivery-check-final/fixture-repo",
+        "--apply"
+      ],
+      "exit_code": 0,
+      "seconds": 0.941,
+      "log": "delivery-apply.log"
+    },
+    {
+      "name": "delivery-idempotence",
+      "command": [
+        "python",
+        "/mnt/data/task_work/delivery-check-final/dxf_task_recovery/apply_task_dispatcher.py",
+        "--root",
+        "/mnt/data/task_work/delivery-check-final/fixture-repo",
+        "--apply"
+      ],
+      "exit_code": 0,
+      "seconds": 0.918,
+      "log": "delivery-idempotence.log"
+    },
+    {
+      "name": "delivery-diff-check",
+      "command": [
+        "git",
+        "-C",
+        "/mnt/data/task_work/delivery-check-final/fixture-repo",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "seconds": 0.005,
+      "log": "delivery-diff-check.log"
+    },
+    {
+      "name": "delivery-release-configure",
+      "command": [
+        "cmake",
+        "-S",
+        "/mnt/data/task_work/delivery-check-final/fixture-repo/Tools/TaskValidation",
+        "-B",
+        "/mnt/data/task_work/delivery-check-final/build-release",
+        "-G",
+        "Ninja",
+        "-DCMAKE_BUILD_TYPE=Release"
+      ],
+      "exit_code": 0,
+      "seconds": 0.529,
+      "log": "delivery-release-configure.log"
+    },
+    {
+      "name": "delivery-release-build",
+      "command": [
+        "cmake",
+        "--build",
+        "/mnt/data/task_work/delivery-check-final/build-release",
+        "-j",
+        "4"
+      ],
+      "exit_code": 0,
+      "seconds": 2.89,
+      "log": "delivery-release-build.log"
+    },
+    {
+      "name": "delivery-release-ctest",
+      "command": [
+        "ctest",
+        "--test-dir",
+        "/mnt/data/task_work/delivery-check-final/build-release",
+        "--output-on-failure",
+        "--no-tests=error"
+      ],
+      "exit_code": 0,
+      "seconds": 0.106,
+      "log": "delivery-release-ctest.log"
+    },
+    {
+      "name": "delivery-applier-tests",
+      "command": [
+        "python",
+        "/mnt/data/task_work/delivery-check-final/dxf_task_recovery/test_applier.py"
+      ],
+      "exit_code": 0,
+      "seconds": 2.726,
+      "log": "delivery-applier-tests.log"
+    },
+    {
+      "name": "final-gcc-debug-build",
+      "command": [
+        "cmake",
+        "--build",
+        "/mnt/data/task_work/verify-gcc-debug",
+        "-j",
+        "4"
+      ],
+      "exit_code": 0,
+      "seconds": 0.944,
+      "log": "final-gcc-debug-build.log"
+    },
+    {
+      "name": "final-gcc-debug-ctest",
+      "command": [
+        "ctest",
+        "--test-dir",
+        "/mnt/data/task_work/verify-gcc-debug",
+        "--output-on-failure",
+        "--no-tests=error"
+      ],
+      "exit_code": 0,
+      "seconds": 0.112,
+      "log": "final-gcc-debug-ctest.log"
+    },
+    {
+      "name": "final-gcc-release-build",
+      "command": [
+        "cmake",
+        "--build",
+        "/mnt/data/task_work/verify-gcc-release",
+        "-j",
+        "4"
+      ],
+      "exit_code": 0,
+      "seconds": 2.983,
+      "log": "final-gcc-release-build.log"
+    },
+    {
+      "name": "final-gcc-release-ctest",
+      "command": [
+        "ctest",
+        "--test-dir",
+        "/mnt/data/task_work/verify-gcc-release",
+        "--output-on-failure",
+        "--no-tests=error"
+      ],
+      "exit_code": 0,
+      "seconds": 0.139,
+      "log": "final-gcc-release-ctest.log"
+    },
+    {
+      "name": "final-clang-asan-ubsan-build",
+      "command": [
+        "cmake",
+        "--build",
+        "/mnt/data/task_work/verify-clang-asan-ubsan",
+        "-j",
+        "4"
+      ],
+      "exit_code": 0,
+      "seconds": 1.568,
+      "log": "final-clang-asan-ubsan-build.log"
+    },
+    {
+      "name": "final-clang-asan-ubsan-ctest",
+      "command": [
+        "ctest",
+        "--test-dir",
+        "/mnt/data/task_work/verify-clang-asan-ubsan",
+        "--output-on-failure",
+        "--no-tests=error"
+      ],
+      "exit_code": 0,
+      "seconds": 0.876,
+      "log": "final-clang-asan-ubsan-ctest.log"
+    },
+    {
+      "name": "final-gcc-tsan-build",
+      "command": [
+        "cmake",
+        "--build",
+        "/mnt/data/task_work/verify-gcc-tsan",
+        "-j",
+        "4"
+      ],
+      "exit_code": 0,
+      "seconds": 1.91,
+      "log": "final-gcc-tsan-build.log"
+    },
+    {
+      "name": "final-gcc-tsan-ctest",
+      "command": [
+        "ctest",
+        "--test-dir",
+        "/mnt/data/task_work/verify-gcc-tsan",
+        "--output-on-failure",
+        "--no-tests=error"
+      ],
+      "exit_code": 0,
+      "seconds": 0.639,
+      "log": "final-gcc-tsan-ctest.log"
+    },
+    {
+      "name": "final-gcc-release-repeat50",
+      "command": [
+        "ctest",
+        "--test-dir",
+        "/mnt/data/task_work/verify-gcc-release",
+        "--repeat",
+        "until-fail:50",
+        "--output-on-failure",
+        "--no-tests=error"
+      ],
+      "exit_code": 0,
+      "seconds": 6.593,
+      "log": "final-gcc-release-repeat50.log"
+    },
+    {
+      "name": "final-no-stl",
+      "command": [
+        "python",
+        "/mnt/data/task_work/updated/Tools/CheckNoStl.py",
+        "--root",
+        "/mnt/data/task_work/updated"
+      ],
+      "exit_code": 0,
+      "seconds": 1.864,
+      "log": "final-no-stl.log"
+    }
+  ],
+  "all_attempts_log": "Validation/steps.json"
 }

@@ -1,83 +1,188 @@
+"""Installer regressions. Tests use only disposable Git repositories in temporary directories."""
+from __future__ import annotations
+import hashlib
 import importlib.util
+import json
+import os
 from pathlib import Path
+import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
 
-spec = importlib.util.spec_from_file_location('apply_debug_tools', Path(__file__).with_name('apply_debug_tools.py'))
-m = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(m)
+HERE = Path(__file__).resolve().parent
+spec = importlib.util.spec_from_file_location('task_installer', HERE / 'apply_task_dispatcher.py')
+assert spec is not None and spec.loader is not None
+installer = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = installer
+spec.loader.exec_module(installer)
 
-class ApplierTests(unittest.TestCase):
-    def test_renderer_type_and_header_are_migrated(self):
-        self.assertEqual(m.migrate_cpp('#include "Dxf/RenderSystem2D.h"\nFRenderSystem2D R;', 'x.cpp'),
-                         '#include "Dxf/RenderSystem.h"\nFRenderSystem R;')
-    def test_typed_context_uses_only_get2d(self):
-        text = 'void F(FRenderContext& R) { R.Draw(T, P); R.DrawText(F, S, P); }'
-        updated = m.migrate_cpp(text, 'x.cpp')
-        self.assertIn('R.Get2D().DrawSprite(', updated)
-        self.assertIn('R.Get2D().DrawText(', updated)
-        self.assertEqual(updated, m.migrate_cpp(updated, 'x.cpp'))
-    def test_backend_methods_are_not_migrated(self):
-        text = 'void F(IRenderBackend& B) { B.DrawText(C); }'
-        self.assertEqual(text, m.migrate_cpp(text, 'x.cpp'))
-    def test_comments_and_literals_do_not_make_fake_calls(self):
-        text = 'void F(FRenderContext& R) { /* R.Draw(T,P); */ const char* S="R.DrawText()"; }'
-        self.assertEqual(text, m.migrate_cpp(text, 'x.cpp'))
-    def test_unknown_root_batch_is_rejected(self):
-        with self.assertRaises(RuntimeError):
-            m.migrate_cpp('void F(FRenderContext& R) { R.SubmitGenerated(J, N, F); }', 'x.cpp')
-    def test_bind_after_construction_and_refuse_changed_anchor(self):
-        text='FApplication::FApplication() : m_Clock(m_Settings.MaxDeltaSeconds)\n{\n}'
-        updated=m.bind_application(text)
-        self.assertIn('GetContext().SetExecutionJobs_Internal(&m_ExecutionJobs)',updated)
-        with self.assertRaises(RuntimeError): m.bind_application(updated)
-    def test_cmake_registers_only_new_owner_and_module_before_install(self):
-        text='add_library(dxf_support Source/DxLibSupport/Private/Dxf/RenderSystem2D.cpp)\nif(DXF_INSTALL)\nendif()'
-        result=m.migrate_cmake(text)
-        self.assertNotIn('RenderSystem2D.cpp',result)
-        self.assertLess(result.index('include(CMake/DebugTools.cmake)'),result.index('if(DXF_INSTALL)'))
-    def test_cmake_missing_or_duplicate_anchors_refused(self):
-        with self.assertRaises(RuntimeError): m.migrate_cmake('if(DXF_INSTALL)\nendif()')
-    def test_path_escape_is_refused(self):
-        with tempfile.TemporaryDirectory() as t:
-            with self.assertRaises(RuntimeError):m.checked_path(Path(t),'../unsafe.cpp')
-    def test_line_endings_hash_identically(self):
-        self.assertEqual(m.normalized_blob(b'a\r\nb\r\n'),m.normalized_blob(b'a\nb\n'))
-    def test_success_backups_existing_and_deletes_only_requested(self):
-        with tempfile.TemporaryDirectory() as t:
-            root=Path(t)/'repo';root.mkdir();(root/'old').write_bytes(b'old')
-            m.apply_transaction(root,{'old':None,'new':b'new'},Path(t)/'backup')
-            self.assertFalse((root/'old').exists());self.assertEqual((root/'new').read_bytes(),b'new')
-            self.assertEqual((Path(t)/'backup/old').read_bytes(),b'old')
-    def test_midwrite_exception_rolls_back_completed_operations(self):
-        with tempfile.TemporaryDirectory() as t:
-            root=Path(t)/'repo';root.mkdir();(root/'keep').write_bytes(b'before')
-            original=Path.replace;calls=0
-            def replace(path,target):
-                nonlocal calls
-                calls+=1
-                if calls==2:raise OSError('injected write error')
-                return original(path,target)
-            with patch.object(Path,'replace',replace):
-                with self.assertRaises(OSError):m.apply_transaction(root,{'keep':b'after','new':b'new'},Path(t)/'backup')
-            self.assertEqual((root/'keep').read_bytes(),b'before');self.assertFalse((root/'new').exists())
+# A fixture archive contains only exact pre-patch files required by this installer.
+# It is not an installation payload and is never copied to a real repository.
+FIXTURE = HERE / 'Testing' / 'installer_fixture.zip'
 
-    def test_rollback_preserves_user_edit_after_our_first_write(self):
-        with tempfile.TemporaryDirectory() as t:
-            root=Path(t)/'repo';root.mkdir();(root/'keep').write_bytes(b'before')
-            original=Path.replace;calls=0
-            def replace(path,target):
-                nonlocal calls
-                calls+=1
-                if calls==2:
-                    (root/'keep').write_bytes(b'user concurrent edit')
-                    raise OSError('injected second write error')
-                return original(path,target)
-            with patch.object(Path,'replace',replace):
-                with self.assertRaises((OSError,RuntimeError)):
-                    m.apply_transaction(root,{'keep':b'after','new':b'new'},Path(t)/'backup')
-            self.assertEqual((root/'keep').read_bytes(),b'user concurrent edit')
-            self.assertEqual((Path(t)/'backup/keep').read_bytes(),b'before')
 
-if __name__=='__main__':unittest.main()
+class InstallerTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix='dxf-task-applier-test-')
+        self.addCleanup(self.temp.cleanup)
+        self.parent = Path(self.temp.name)
+        self.root = self.parent / 'repo'
+        self.root.mkdir()
+        import zipfile
+        with zipfile.ZipFile(FIXTURE) as archive:
+            archive.extractall(self.root)
+        self.command('init', '-q')
+        self.command('config', 'user.email', 'fixture@example.invalid')
+        self.command('config', 'user.name', 'Installer fixture')
+        self.command('config', 'core.autocrlf', 'false')
+        self.command('config', 'core.safecrlf', 'false')
+        (self.root / '.gitattributes').write_text('* text=auto\n', encoding='utf-8')
+        self.command('add', '.')
+        self.command('commit', '-qm', 'Local disposable fixture')
+
+    def command(self, *args):
+        return installer.git(self.root, *args)
+
+    def snapshot(self):
+        return {p.relative_to(self.root).as_posix(): p.read_bytes()
+                for p in self.root.rglob('*') if p.is_file()}
+
+    def test_dry_run_is_read_only(self):
+        # Git may refresh the index stat cache; source/index semantic contents must not change.
+        status = self.command('status', '--porcelain=v1')
+        tree = self.command('write-tree')
+        source = {k: v for k, v in self.snapshot().items() if not k.startswith('.git/')}
+        plan = installer.build_plan(self.root)
+        self.assertEqual(len(plan), 6)
+        self.assertEqual(status, self.command('status', '--porcelain=v1'))
+        self.assertEqual(tree, self.command('write-tree'))
+        self.assertEqual(source, {k: v for k, v in self.snapshot().items() if not k.startswith('.git/')})
+        self.assertEqual(list(self.parent.glob('repo.task-backup-*')), [])
+
+    def test_apply_backup_and_idempotence(self):
+        head = self.command('rev-parse', 'HEAD')
+        tree = self.command('write-tree')
+        plan = installer.build_plan(self.root)
+        backup = installer.apply_plan(self.root, plan)
+        self.assertIsNotNone(backup)
+        for change in plan:
+            self.assertEqual((self.root / change.relative).read_bytes(), change.after)
+            if change.before is not None:
+                self.assertEqual((backup / change.relative).read_bytes(), change.before)
+        self.assertEqual(installer.build_plan(self.root), [])
+        self.assertEqual(head, self.command('rev-parse', 'HEAD'))
+        self.assertEqual(tree, self.command('write-tree'))
+
+    def test_unrelated_application_edits_are_preserved(self):
+        path = self.root / 'Source/Runtime/Private/Dxf/Application.cpp'
+        path.write_text('// unrelated renderer integration\n')
+        installer.apply_plan(self.root, installer.build_plan(self.root))
+        self.assertEqual(path.read_text(), '// unrelated renderer integration\n')
+
+    def test_unstaged_target_edit_is_rejected(self):
+        path = self.root / 'Source/Runtime/Public/Dxf/TaskDispatcher.h'
+        path.write_bytes(path.read_bytes() + b'// user edit\n')
+        with self.assertRaises(ValueError):
+            installer.build_plan(self.root)
+
+    def test_staged_target_with_original_working_bytes_is_rejected(self):
+        rel = 'Source/Runtime/Public/Dxf/TaskDispatcher.h'
+        path = self.root / rel
+        original = path.read_bytes()
+        path.write_bytes(original + b'// staged edit\n')
+        self.command('add', rel)
+        path.write_bytes(original)
+        with self.assertRaisesRegex(ValueError, 'Overlapping'):
+            installer.build_plan(self.root)
+
+    def test_untracked_new_target_collision_is_rejected(self):
+        path = self.root / 'Tests/TaskDispatcherRecoveryTests.cpp'
+        path.write_text('// user test\n')
+        with self.assertRaises(ValueError):
+            installer.build_plan(self.root)
+
+    def test_changed_dependency_is_rejected(self):
+        path = self.root / 'Source/Toolbox/Public/Toolbox/JobSystem.h'
+        path.write_bytes(path.read_bytes() + b'// different dependency\n')
+        with self.assertRaisesRegex(ValueError, 'Dependency'):
+            installer.build_plan(self.root)
+
+    def test_missing_dependency_is_rejected(self):
+        (self.root / 'Source/Toolbox/Public/Toolbox/JobSystem.h').unlink()
+        with self.assertRaisesRegex(ValueError, 'Dependency'):
+            installer.build_plan(self.root)
+
+    def test_corrupt_payload_is_rejected(self):
+        package = self.parent / 'package'
+        shutil.copytree(HERE / 'Payload', package / 'Payload')
+        shutil.copy2(HERE / 'MANIFEST.json', package / 'MANIFEST.json')
+        target = package / 'Payload/Tests/TaskDispatcherRecoveryTests.cpp'
+        target.write_text('broken')
+        with self.assertRaisesRegex(ValueError, 'checksum'):
+            installer.build_plan(self.root, package)
+
+    def test_crlf_is_preserved(self):
+        self.command("config", "core.autocrlf", "true")
+        rel = 'Source/Runtime/Public/Dxf/TaskDispatcher.h'
+        path = self.root / rel
+        path.write_bytes(path.read_bytes().replace(b'\n', b'\r\n'))
+        self.assertEqual(self.command('diff', '--name-only', '--', rel), b'')
+        installer.apply_plan(self.root, installer.build_plan(self.root))
+        after = path.read_bytes()
+        self.assertIn(b'\r\n', after)
+        self.assertNotIn(b'\n', after.replace(b'\r\n', b''))
+        self.assertEqual(installer.build_plan(self.root), [])
+
+    def test_apply_rolls_back_on_write_failure(self):
+        plan = installer.build_plan(self.root)
+        before = {k: v for k, v in self.snapshot().items() if not k.startswith('.git/')}
+        real = installer.atomic_write
+        count = 0
+        def failing(path, data, mode):
+            nonlocal count
+            count += 1
+            if count == 4:
+                raise OSError('Injected write failure')
+            return real(path, data, mode)
+        with patch.object(installer, 'atomic_write', side_effect=failing):
+            with self.assertRaisesRegex(RuntimeError, 'rolled back'):
+                installer.apply_plan(self.root, plan)
+        after = {k: v for k, v in self.snapshot().items() if not k.startswith('.git/')}
+        self.assertEqual(before, after)
+        self.assertEqual(self.command('status', '--porcelain=v1'), b'')
+        self.assertEqual(len(list(self.parent.glob('repo.task-backup-*'))), 1)
+
+    def test_change_after_planning_is_rejected(self):
+        plan = installer.build_plan(self.root)
+        path = self.root / 'Source/Runtime/Private/Dxf/TaskDispatcher.cpp'
+        path.write_bytes(path.read_bytes() + b'// edited while installer waits\n')
+        with self.assertRaisesRegex(ValueError, 'after validation'):
+            installer.apply_plan(self.root, plan)
+        self.assertEqual(list(self.parent.glob('repo.task-backup-*')), [])
+
+    def test_symlink_is_rejected(self):
+        path = self.root / 'Source/Runtime/Public/Dxf/TaskDispatcher.h'
+        outside = self.parent / 'outside.h'
+        path.rename(outside)
+        try:
+            path.symlink_to(outside)
+        except OSError as error:
+            self.skipTest(f'OS did not permit symlink creation: {error}')
+        with self.assertRaisesRegex(ValueError, 'Symlink'):
+            installer.build_plan(self.root)
+
+    def test_subdirectory_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, 'repository root'):
+            installer.build_plan(self.root / 'Source')
+
+    def test_path_traversal_is_rejected(self):
+        for rel in ('../outside', '/outside', 'x/../outside', 'x\\outside', './x'):
+            with self.assertRaises(ValueError):
+                installer.safe_path(self.root, rel)
+
+
+if __name__ == '__main__':
+    unittest.main(verbosity=2)

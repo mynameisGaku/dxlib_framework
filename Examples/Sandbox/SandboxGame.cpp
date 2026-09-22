@@ -96,7 +96,7 @@ DSandboxScene::DSandboxScene(Toolbox::FString AssetRoot, bool bAlternate)
 TResult<void> DSandboxScene::OnInitialize(const FInitContext& Context)
 {
 	// 描画するテクスチャ。
-	auto Texture = Context.Assets.LoadTexture(m_AssetRoot + "/player.bmp");
+	auto Texture = Context.Assets.LoadTexture(m_AssetRoot + "/player.abmp");
 	if (!Texture)
 	{
 		return TResult<void>::Failure(Texture.Error());

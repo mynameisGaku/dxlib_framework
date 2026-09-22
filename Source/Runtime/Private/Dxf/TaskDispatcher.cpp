@@ -2,62 +2,96 @@
 #include "Dxf/TaskDispatcher.h"
 namespace Dxf
 {
-// 借用するJob Systemと設定を受け取り、初期状態を構築する。
-// @param Jobs 準備の実行に借用するJob System。
-// @param Settings 動作設定。
-FTaskDispatcher::FTaskDispatcher(Toolbox::FJobSystem& Jobs, FTaskSettings Settings)
-    : m_pJobs(&Jobs), m_Settings(Settings)
+namespace
 {
-	// 発行済みのDispatcherと重ならない識別子。
+// 捕捉破棄から別Dispatcherを経由して戻る場合も、待機の循環を拒否する。
+thread_local Toolbox::uint32 CaptureReleaseDepth = 0;
+// 捕捉の解放中だけ再入する待機を禁止する。
+class FCaptureReleaseGuard
+{
+public:
+	FCaptureReleaseGuard() noexcept
+	{
+		++CaptureReleaseDepth;
+	}
+	~FCaptureReleaseGuard()
+	{
+		--CaptureReleaseDepth;
+	}
+};
+// 所有スレッドの非再入区間を、例外経路でも復元する。
+class FDrainGuard
+{
+public:
+	explicit FDrainGuard(bool& Flag) noexcept : m_pFlag(&Flag)
+	{
+		*m_pFlag = true;
+	}
+	~FDrainGuard()
+	{
+		*m_pFlag = false;
+	}
+private:
+	bool* m_pFlag;
+};
+}
+// 借用先を記録し、Rootと再利用しないDispatcher識別子を発行する。
+FTaskDispatcher::FTaskDispatcher(Toolbox::FJobSystem& Jobs, FTaskSettings Settings)
+    : m_pJobs(&Jobs), m_Settings(Settings), m_DispatcherId(0),
+      m_OwnerThread(Toolbox::FThread::CurrentThreadId())
+{
+	// 識別子が尽きた場合は0を保ち、周回して既存IDと衝突させない。
 	static Toolbox::TAtomic<Toolbox::uint32> NextId{1};
-	m_DispatcherId = NextId.FetchAdd(1);
+	Toolbox::uint32 Candidate = NextId.Load();
+	while (Candidate != 0)
+	{
+		if (NextId.CompareExchange(Candidate, Candidate + 1))
+		{
+			m_DispatcherId = Candidate;
+			break;
+		}
+	}
 	if (m_DispatcherId == 0)
 	{
 		throw Toolbox::FException("Task dispatcher identifier overflow");
 	}
 	// 位置0のRoot Scope。
 	FScopeRecord Root;
-	Root.Parent = 0;
+	Root.ParentGeneration = m_RootGeneration;
 	Root.Generation = m_RootGeneration;
 	Root.bAlive = true;
 	m_Scopes.PushBack(Root);
 }
-// 受付を止め、受理済みを破棄してWorkerと内部資源を解放する。
+// 外部Producer停止後、所有スレッドの非再入区間で破棄する契約。
 FTaskDispatcher::~FTaskDispatcher()
 {
 	Shutdown();
 }
-// 子Scopeを作る。無効な親はRoot Scopeとして扱う。
-// @param Parent 親にするScope。
+// 停止・取消と同じMutexの下で生成を検査する。
 FTaskScope FTaskDispatcher::CreateScope(const FTaskScope& Parent)
 {
 	Toolbox::FScopedLock Lock(m_Mutex);
-	// 親Scopeの位置。無効な指定はRoot Scope。
-	Toolbox::uint32 ParentIndex = 0;
-	if (Parent.IsValid())
+	// 空の親だけがRootを指定する。
+	const FTaskScope EffectiveParent = Parent.IsValid() ? Parent : GetRootScope();
+	if (m_bStopping || m_NextGeneration == 0 || IsCanceled_Internal(EffectiveParent))
 	{
-		if (!IsScopeAlive_Internal(Parent))
-		{
-			return {};
-		}
-		ParentIndex = Parent.Index;
+		return {};
 	}
-	// 再利用する空き位置。
-	Toolbox::uint32 Index = static_cast<Toolbox::uint32>(m_Scopes.Size());
-	for (Toolbox::uint32 Slot = 1; Slot < m_Scopes.Size(); ++Slot)
+	// 空き位置の世代は再使用せず、新しい通し番号を割り当てる。
+	Toolbox::size_t Index = 1;
+	while (Index < m_Scopes.Size() && m_Scopes[Index].bAlive)
 	{
-		if (!m_Scopes[Slot].bAlive)
-		{
-			Index = Slot;
-			break;
-		}
+		++Index;
 	}
-	// 新しい世代のScope記録。
+	if (Index > static_cast<Toolbox::size_t>(static_cast<Toolbox::uint32>(-1)))
+	{
+		return {};
+	}
 	FScopeRecord Record;
-	Record.Parent = ParentIndex;
+	Record.Parent = EffectiveParent.Index;
+	Record.ParentGeneration = EffectiveParent.Generation;
 	Record.Generation = m_NextGeneration;
 	Record.bAlive = true;
-	++m_NextGeneration;
 	if (Index == m_Scopes.Size())
 	{
 		m_Scopes.PushBack(Record);
@@ -66,351 +100,425 @@ FTaskScope FTaskDispatcher::CreateScope(const FTaskScope& Parent)
 	{
 		m_Scopes[Index] = Record;
 	}
-	FTaskScope Scope;
-	Scope.Dispatcher = m_DispatcherId;
-	Scope.Index = Index;
-	Scope.Generation = Record.Generation;
-	return Scope;
+	++m_NextGeneration;
+	return {m_DispatcherId, static_cast<Toolbox::uint32>(Index), Record.Generation};
 }
-// Scopeを失効させ子孫を取り消す。存在しない指定は無視する。
-// @param Scope 失効させるScope。
+// 非同期取消だけを行い、捕捉や準備の終了は待たない。
 void FTaskDispatcher::DestroyScope(const FTaskScope& Scope) noexcept
 {
 	Toolbox::FScopedLock Lock(m_Mutex);
-	if (Scope.Dispatcher != m_DispatcherId || Scope.Index == 0 || Scope.Index >= m_Scopes.Size())
+	if (Scope.Index == 0 || !IsScopeAlive_Internal(Scope))
 	{
 		return;
 	}
-	FScopeRecord& Record = m_Scopes[Scope.Index];
-	if (!Record.bAlive || Record.Generation != Scope.Generation)
-	{
-		return;
-	}
-	Record.bAlive = false;
-	CancelAt_Internal(Scope.Index);
+	CancelAt_Internal(Scope.Index, true);
 }
-// Taskを受け付ける。停止中・上限超過・失効Scopeではfalseを返す。
-// @param Request 実行する準備と反映。
+// Mutexを持った状態では利用者の捕捉を破棄しない。
 bool FTaskDispatcher::Submit(FTaskRequest&& Request)
 {
-	// 要求の所属位置と世代。
-	Toolbox::uint32 ScopeIndex = 0;
-	Toolbox::uint64 ScopeGeneration = m_RootGeneration;
-	// 要求の通し番号。
+	// Recordの解放より後にガードが戻るよう宣言順を固定する。
+	FCaptureReleaseGuard ReleaseGuard;
+	FTaskRecord Record;
 	Toolbox::uint64 Sequence = 0;
 	{
 		Toolbox::FScopedLock Lock(m_Mutex);
-		if (m_bStopping)
-		{
-			return false;
-		}
-		if (Request.Scope.IsValid())
-		{
-			if (!IsScopeAlive_Internal(Request.Scope))
-			{
-				return false;
-			}
-			ScopeIndex = Request.Scope.Index;
-			ScopeGeneration = Request.Scope.Generation;
-		}
-		if (m_Tasks.Size() >= m_Settings.MaxPending)
+		const FTaskScope Scope = Request.Scope.IsValid() ? Request.Scope : GetRootScope();
+		if (m_bStopping || m_NextSequence == 0 || IsCanceled_Internal(Scope) ||
+		    m_Tasks.Size() >= m_Settings.MaxPending)
 		{
 			return false;
 		}
 		Sequence = m_NextSequence;
-		++m_NextSequence;
-		FTaskRecord Record;
+		Record.ScopeIndex = Scope.Index;
+		Record.ScopeGeneration = Scope.Generation;
+		Record.Sequence = Sequence;
 		Record.Prepare = Toolbox::Move(Request.Prepare);
 		Record.Commit = Toolbox::Move(Request.Commit);
-		Record.ScopeIndex = ScopeIndex;
-		Record.ScopeGeneration = ScopeGeneration;
-		Record.Sequence = Sequence;
-		m_Tasks.PushBack(Toolbox::Move(Record));
+		// 空記録を先に確保する。EmplaceBackの再確保用一時変数へ捕捉を移さない。
+		// 既存記録の再配置は捕捉を複製しないnoexcept移動に限定する。
+		static_assert(__is_nothrow_constructible(FTaskRecord, FTaskRecord&&));
+		static_assert(__is_nothrow_assignable(FTaskRecord&, FTaskRecord&&));
+		m_Tasks.EmplaceBack() = Toolbox::Move(Record);
+		++m_NextSequence;
+		++m_Submitting;
 	}
-	// 準備Jobの借用先。
-	FTaskDispatcher* Self = this;
-	if (!m_pJobs->TrySubmit([Self, Sequence]()
-	    {
-		    Self->RunPrepare_Internal(Sequence);
-	    }, &m_Fence))
+	bool bAccepted = false;
+	try
+	{
+		bAccepted = m_pJobs->TrySubmit([this, Sequence]()
+		{
+			RunPrepare_Internal(Sequence);
+		}, &m_Fence);
+	}
+	catch (...)
+	{
+		FinishSubmission_Internal(Sequence, false);
+		throw;
+	}
+	FinishSubmission_Internal(Sequence, bAccepted);
+	return bAccepted;
+}
+// 移動元を空にしてからシフトし、Erase内のユーザーデストラクタを避ける。
+void FTaskDispatcher::TakeTask_Internal(Toolbox::size_t Index, FTaskRecord& Record) noexcept
+{
+	Record = Toolbox::Move(m_Tasks[Index]);
+	m_Tasks.Erase(m_Tasks.Begin() + Index);
+}
+// Fence登録前の隙間と、拒否時の捕捉解放までを投入中として扱う。
+void FTaskDispatcher::FinishSubmission_Internal(Toolbox::uint64 Sequence, bool bAccepted) noexcept
+{
+	FCaptureReleaseGuard ReleaseGuard;
+	FTaskRecord Retired;
+	if (!bAccepted)
 	{
 		Toolbox::FScopedLock Lock(m_Mutex);
 		for (Toolbox::size_t Index = 0; Index < m_Tasks.Size(); ++Index)
 		{
 			if (m_Tasks[Index].Sequence == Sequence)
 			{
-				m_Tasks.Erase(m_Tasks.Begin() + Index);
+				TakeTask_Internal(Index, Retired);
 				break;
 			}
 		}
+	}
+	Retired.Prepare = {};
+	Retired.Commit = {};
+	Toolbox::FScopedLock Lock(m_Mutex);
+	--m_Submitting;
+	m_SubmissionsChanged.NotifyAll();
+}
+// 準備とその捕捉の解放が終わった先頭だけを反映する。
+FCommitSummary FTaskDispatcher::PumpCommits()
+{
+	if (!CanDrain_Internal())
+	{
+		throw Toolbox::FException("Task commits require the owner thread outside callbacks and drains");
+	}
+	FCommitSummary Summary;
+	bool bStopping = false;
+	{
+		FDrainGuard Drain(m_bDraining);
+		for (;;)
+		{
+			FTaskRecord Retired;
+			{
+				Toolbox::FScopedLock Lock(m_Mutex);
+				if (m_Tasks.IsEmpty() || m_Tasks[0].State == ETaskState::Submitted)
+				{
+					break;
+				}
+				TakeTask_Internal(0, Retired);
+			}
+			// この検査がCommit開始の境界。以後の取消は開始済みCommitを中断しない。
+			bool bCanceled = false;
+			{
+				Toolbox::FScopedLock Lock(m_Mutex);
+				const FTaskScope Scope{m_DispatcherId, Retired.ScopeIndex, Retired.ScopeGeneration};
+				bCanceled = m_bStopping || IsCanceled_Internal(Scope) || Retired.State == ETaskState::Canceled;
+			}
+			if (bCanceled)
+			{
+				++Summary.Canceled;
+			}
+			else if (Retired.State == ETaskState::Failed)
+			{
+				++Summary.Failed;
+			}
+			else
+			{
+				bool bCommitted = false;
+				try
+				{
+					bCommitted = Retired.Commit ? Retired.Commit() : true;
+				}
+				catch (...)
+				{
+					bCommitted = false;
+				}
+				if (bCommitted)
+				{
+					++Summary.Committed;
+				}
+				else
+				{
+					++Summary.Failed;
+				}
+			}
+			// 反映・取消・失敗のどの経路でも、捕捉破棄はMutex外。
+			FCaptureReleaseGuard ReleaseGuard;
+			Retired.Prepare = {};
+			Retired.Commit = {};
+		}
+		Toolbox::FScopedLock Lock(m_Mutex);
+		Summary.Stalled = static_cast<Toolbox::uint64>(m_Tasks.Size());
+		bStopping = m_bStopping;
+	}
+	if (bStopping)
+	{
+		Shutdown();
+	}
+	return Summary;
+}
+// 所有スレッド以外では所有スレッド専用フラグにも触れない。
+bool FTaskDispatcher::CanDrain_Internal() const noexcept
+{
+	return Toolbox::FThread::CurrentThreadId() == m_OwnerThread && CaptureReleaseDepth == 0 &&
+	       !Toolbox::FJobSystem::IsExecutingJob() && !m_bDraining;
+}
+// 投入中の要求が後からFenceへ現れることを防ぐ。
+void FTaskDispatcher::WaitForSubmissions_Internal() noexcept
+{
+	Toolbox::FScopedLock Lock(m_Mutex);
+	while (m_Submitting != 0)
+	{
+		m_SubmissionsChanged.Wait(m_Mutex);
+	}
+}
+// 不正な実行区間では待機しない。破棄可否の判定にはRetireScopeを使う。
+void FTaskDispatcher::WaitForPrepares() noexcept
+{
+	if (!CanDrain_Internal())
+	{
+		return;
+	}
+	FDrainGuard Drain(m_bDraining);
+	WaitForSubmissions_Internal();
+	m_pJobs->Wait(m_Fence);
+}
+// 保守的に全Prepareを待ち、取消済み要求と捕捉を回収する。
+bool FTaskDispatcher::RetireScope(const FTaskScope& Scope) noexcept
+{
+	if (!CanDrain_Internal())
+	{
 		return false;
+	}
+	FDrainGuard Drain(m_bDraining);
+	{
+		Toolbox::FScopedLock Lock(m_Mutex);
+		if (Scope.Dispatcher != m_DispatcherId || Scope.Index == 0 || Scope.Index >= m_Scopes.Size() ||
+		    Scope.Generation == 0 || Scope.Generation > m_Scopes[Scope.Index].Generation)
+		{
+			return false;
+		}
+		// 旧世代から新世代を取り消さない。旧世代の準備は下で同期する。
+		if (m_Scopes[Scope.Index].Generation == Scope.Generation)
+		{
+			CancelAt_Internal(Scope.Index, true);
+		}
+	}
+	WaitForSubmissions_Internal();
+	if (!m_pJobs->Wait(m_Fence))
+	{
+		return false;
+	}
+	for (;;)
+	{
+		FCaptureReleaseGuard ReleaseGuard;
+		FTaskRecord Retired;
+		bool bFound = false;
+		{
+			Toolbox::FScopedLock Lock(m_Mutex);
+			for (Toolbox::size_t Index = 0; Index < m_Tasks.Size(); ++Index)
+			{
+				const FTaskRecord& Record = m_Tasks[Index];
+				const FTaskScope Current{m_DispatcherId, Record.ScopeIndex, Record.ScopeGeneration};
+				if (Record.State != ETaskState::Submitted &&
+				    (IsCanceled_Internal(Current) || Record.State == ETaskState::Canceled))
+				{
+					TakeTask_Internal(Index, Retired);
+					bFound = true;
+					break;
+				}
+			}
+		}
+		if (!bFound)
+		{
+			break;
+		}
 	}
 	return true;
 }
-// 準備済みの先頭から投入順に反映する。先頭が未完了なら止まる。
-FCommitSummary FTaskDispatcher::PumpCommits()
-{
-	// 反映の集計。
-	FCommitSummary Summary;
-	for (;;)
-	{
-		// 今回反映する処理。
-		Toolbox::TFunction<bool()> Commit;
-		{
-			Toolbox::FScopedLock Lock(m_Mutex);
-			if (m_Tasks.IsEmpty())
-			{
-				break;
-			}
-			FTaskRecord& Front = m_Tasks[0];
-			FTaskScope Scope;
-			Scope.Dispatcher = m_DispatcherId;
-			Scope.Index = Front.ScopeIndex;
-			Scope.Generation = Front.ScopeGeneration;
-			if (!IsScopeAlive_Internal(Scope) || IsCanceled_Internal(Scope))
-			{
-				++Summary.Canceled;
-				m_Tasks.Erase(m_Tasks.Begin());
-				continue;
-			}
-			if (Front.State == ETaskState::Failed)
-			{
-				++Summary.Failed;
-				m_Tasks.Erase(m_Tasks.Begin());
-				continue;
-			}
-			if (Front.State != ETaskState::Ready)
-			{
-				break;
-			}
-			Commit = Toolbox::Move(Front.Commit);
-			m_Tasks.Erase(m_Tasks.Begin());
-		}
-		// 反映に成功したか。
-		bool bCommitted = false;
-		try
-		{
-			bCommitted = Commit ? Commit() : true;
-		}
-		catch (const Toolbox::FException&)
-		{
-			bCommitted = false;
-		}
-		catch (...)
-		{
-			bCommitted = false;
-		}
-		if (bCommitted)
-		{
-			++Summary.Committed;
-		}
-		else
-		{
-			++Summary.Failed;
-		}
-	}
-	Toolbox::FScopedLock Lock(m_Mutex);
-	Summary.Stalled = static_cast<Toolbox::uint64>(m_Tasks.Size());
-	return Summary;
-}
-// 受理済みの準備がすべて終わるまで待つ。Commitは実行しない。
-void FTaskDispatcher::WaitForPrepares() noexcept
-{
-	m_pJobs->Wait(m_Fence);
-}
-// Scopeと子孫を取り消す。実行中の準備は協調点で止まる。
-// @param Scope 取り消すScope。
+// 子孫への取消は親子の両方の世代を照合する。
 void FTaskDispatcher::Cancel(const FTaskScope& Scope) noexcept
 {
 	Toolbox::FScopedLock Lock(m_Mutex);
-	if (Scope.Dispatcher != m_DispatcherId || Scope.Index >= m_Scopes.Size())
+	if (Scope.Dispatcher == m_DispatcherId && Scope.Index < m_Scopes.Size() &&
+	    m_Scopes[Scope.Index].Generation == Scope.Generation)
 	{
-		return;
+		CancelAt_Internal(Scope.Index);
 	}
-	const FScopeRecord& Record = m_Scopes[Scope.Index];
-	if (Record.Generation != Scope.Generation)
-	{
-		return;
-	}
-	CancelAt_Internal(Scope.Index);
 }
-// Scopeが有効か調べる。
-// @param Scope 調べるScope。
+// 照会は捕捉破棄からも呼び出せる。
 bool FTaskDispatcher::IsScopeAlive(const FTaskScope& Scope) noexcept
 {
 	Toolbox::FScopedLock Lock(m_Mutex);
 	return IsScopeAlive_Internal(Scope);
 }
-// Scopeが取り消し済みか失効しているか調べる。準備側の協調点で使う。
-// @param Scope 調べるScope。
+// 準備中の協調取消点から呼び出せる。
 bool FTaskDispatcher::IsCanceled(const FTaskScope& Scope) noexcept
 {
 	Toolbox::FScopedLock Lock(m_Mutex);
 	return IsCanceled_Internal(Scope);
 }
-// 受付を止め、実行中の準備を待って未反映を破棄する。複数回呼べる。
+// 停止を先に公開し、投入中の処理・全Prepare・捕捉の順で同期する。
 void FTaskDispatcher::Shutdown() noexcept
 {
-	m_Mutex.Lock();
-	if (m_bShutdownComplete)
 	{
-		m_Mutex.Unlock();
+		Toolbox::FScopedLock Lock(m_Mutex);
+		if (m_bShutdownComplete)
+		{
+			return;
+		}
+		m_bStopping = true;
+		CancelAt_Internal(0, true);
+	}
+	if (!CanDrain_Internal())
+	{
 		return;
 	}
-	m_bStopping = true;
-	m_Mutex.Unlock();
+	FDrainGuard Drain(m_bDraining);
+	WaitForSubmissions_Internal();
 	m_pJobs->Wait(m_Fence);
-	m_Mutex.Lock();
-	m_Tasks.Clear();
+	// まとめて所有権だけを外し、利用者のデストラクタはロック外で実行する。
+	Toolbox::TVector<FTaskRecord> Retired;
+	{
+		Toolbox::FScopedLock Lock(m_Mutex);
+		Retired.Swap(m_Tasks);
+	}
+	{
+		FCaptureReleaseGuard ReleaseGuard;
+		Retired.Clear();
+	}
+	Toolbox::FScopedLock Lock(m_Mutex);
 	m_bShutdownComplete = true;
-	m_Mutex.Unlock();
 }
-// 所属しない要求に使うRoot Scopeを返す。
+// Rootのハンドルは不変。停止後の有効性はIsScopeAlive/IsCanceledで調べる。
 FTaskScope FTaskDispatcher::GetRootScope() const noexcept
 {
-	FTaskScope Scope;
-	Scope.Dispatcher = m_DispatcherId;
-	Scope.Index = 0;
-	Scope.Generation = m_RootGeneration;
-	return Scope;
+	return {m_DispatcherId, 0, m_RootGeneration};
 }
-// 指定Scopeと子孫を取り消す。呼び出し側で同期していること。
-// @param ScopeIndex 取り消すScopeの位置。
-void FTaskDispatcher::CancelAt_Internal(Toolbox::uint32 ScopeIndex) noexcept
+// 失効済みノードでも世代を使って古い親子関係を安全に辿る。
+bool FTaskDispatcher::IsDescendant_Internal(FTaskScope Child, const FTaskScope& Parent) const noexcept
 {
-	m_Scopes[ScopeIndex].bCanceled = true;
-	for (Toolbox::uint32 Index = 0; Index < m_Scopes.Size(); ++Index)
+	for (Toolbox::size_t Depth = 0; Depth <= m_Scopes.Size(); ++Depth)
 	{
-		// 祖先を辿って対象を含むか調べる。
-		Toolbox::uint32 Current = Index;
-		for (Toolbox::size_t Depth = 0; Depth <= m_Scopes.Size(); ++Depth)
+		if (Child.Dispatcher != m_DispatcherId || Child.Index >= m_Scopes.Size() ||
+		    m_Scopes[Child.Index].Generation != Child.Generation)
 		{
-			if (Current == ScopeIndex)
+			return false;
+		}
+		if (Child == Parent)
+		{
+			return true;
+		}
+		if (Child.Index == 0)
+		{
+			return false;
+		}
+		const FScopeRecord& Record = m_Scopes[Child.Index];
+		Child.Index = Record.Parent;
+		Child.Generation = Record.ParentGeneration;
+	}
+	return false;
+}
+// 子孫全体を一度に取消・失効させ、旧子Scopeからの再投入を拒否する。
+void FTaskDispatcher::CancelAt_Internal(Toolbox::uint32 ScopeIndex, bool bDestroy) noexcept
+{
+	const FTaskScope Parent{m_DispatcherId, ScopeIndex, m_Scopes[ScopeIndex].Generation};
+	for (Toolbox::size_t Index = 0; Index < m_Scopes.Size(); ++Index)
+	{
+		const FTaskScope Child{m_DispatcherId, static_cast<Toolbox::uint32>(Index), m_Scopes[Index].Generation};
+		if (IsDescendant_Internal(Child, Parent))
+		{
+			m_Scopes[Index].bCanceled = true;
+			if (bDestroy)
 			{
-				m_Scopes[Index].bCanceled = true;
-				break;
+				m_Scopes[Index].bAlive = false;
 			}
-			const Toolbox::uint32 Parent = m_Scopes[Current].Parent;
-			if (Parent == Current)
-			{
-				break;
-			}
-			Current = Parent;
 		}
 	}
 }
-// Scopeが有効か調べる。呼び出し側で同期していること。
-// @param Scope 調べるScope。
+// 自身の世代と生存フラグを照合する。
 bool FTaskDispatcher::IsScopeAlive_Internal(const FTaskScope& Scope) const noexcept
 {
 	return Scope.Dispatcher == m_DispatcherId && Scope.Index < m_Scopes.Size() &&
 	       m_Scopes[Scope.Index].Generation == Scope.Generation && m_Scopes[Scope.Index].bAlive;
 }
-// Scopeか祖先が取り消し済みか失効しているか調べる。呼び出し側で同期していること。
-// @param Scope 調べるScope。
+// 各世代を照合してRootへ辿る。親が再利用されていた場合も失効とする。
 bool FTaskDispatcher::IsCanceled_Internal(const FTaskScope& Scope) const noexcept
 {
-	if (Scope.Dispatcher != m_DispatcherId || Scope.Index >= m_Scopes.Size())
-	{
-		return true;
-	}
-	if (m_Scopes[Scope.Index].Generation != Scope.Generation)
-	{
-		return true;
-	}
-	// 調べるScopeからRootへ辿る位置。
-	Toolbox::uint32 Current = Scope.Index;
+	FTaskScope Current = Scope;
 	for (Toolbox::size_t Depth = 0; Depth <= m_Scopes.Size(); ++Depth)
 	{
-		const FScopeRecord& Record = m_Scopes[Current];
-		if (!Record.bAlive || Record.bCanceled)
+		if (!IsScopeAlive_Internal(Current) || m_Scopes[Current.Index].bCanceled)
 		{
 			return true;
 		}
-		if (Current == 0)
+		if (Current.Index == 0)
 		{
-			return Record.Generation != m_RootGeneration;
+			return false;
 		}
-		Current = Record.Parent;
+		const FScopeRecord& Record = m_Scopes[Current.Index];
+		Current.Index = Record.Parent;
+		Current.Generation = Record.ParentGeneration;
 	}
 	return true;
 }
-// 通し番号の要求を準備する。破棄済みなら何もしない。
-// @param Sequence 実行する記録の通し番号。
+// Prepareの捕捉が解放されるより前にはReadyを公開しない。
 void FTaskDispatcher::RunPrepare_Internal(Toolbox::uint64 Sequence) noexcept
 {
-	// 実行する準備処理。
 	Toolbox::TFunction<ETaskPrepare()> Prepare;
-	// 要求の所属。
 	FTaskScope Scope;
-	// 記録を見つけたか。
-	bool bFound = false;
 	{
 		Toolbox::FScopedLock Lock(m_Mutex);
-		for (Toolbox::size_t Index = 0; Index < m_Tasks.Size(); ++Index)
+		for (FTaskRecord& Record : m_Tasks)
 		{
-			if (m_Tasks[Index].Sequence == Sequence)
+			if (Record.Sequence == Sequence)
 			{
-				bFound = true;
-				Scope.Dispatcher = m_DispatcherId;
-				Scope.Index = m_Tasks[Index].ScopeIndex;
-				Scope.Generation = m_Tasks[Index].ScopeGeneration;
+				Scope = {m_DispatcherId, Record.ScopeIndex, Record.ScopeGeneration};
 				if (IsCanceled_Internal(Scope))
 				{
-					m_Tasks[Index].State = ETaskState::Canceled;
+					Record.State = ETaskState::Canceled;
 					return;
 				}
-				Prepare = Toolbox::Move(m_Tasks[Index].Prepare);
+				Prepare = Toolbox::Move(Record.Prepare);
 				break;
 			}
 		}
-		if (!bFound)
-		{
-			return;
-		}
-		if (!Prepare)
-		{
-			for (Toolbox::size_t Index = 0; Index < m_Tasks.Size(); ++Index)
-			{
-				if (m_Tasks[Index].Sequence == Sequence && m_Tasks[Index].State == ETaskState::Submitted)
-				{
-					m_Tasks[Index].State = ETaskState::Ready;
-					break;
-				}
-			}
-			return;
-		}
 	}
-	// 準備の結果。
+	if (!Scope.IsValid())
+	{
+		return;
+	}
 	ETaskPrepare Outcome = ETaskPrepare::Failed;
 	try
 	{
-		Outcome = Prepare();
-	}
-	catch (const Toolbox::FException&)
-	{
-		Outcome = ETaskPrepare::Failed;
+		Outcome = Prepare ? Prepare() : ETaskPrepare::Success;
 	}
 	catch (...)
 	{
 		Outcome = ETaskPrepare::Failed;
 	}
-	Toolbox::FScopedLock Lock(m_Mutex);
-	for (Toolbox::size_t Index = 0; Index < m_Tasks.Size(); ++Index)
 	{
-		if (m_Tasks[Index].Sequence == Sequence && m_Tasks[Index].State == ETaskState::Submitted)
+		FCaptureReleaseGuard ReleaseGuard;
+		Prepare = {};
+	}
+	Toolbox::FScopedLock Lock(m_Mutex);
+	for (FTaskRecord& Record : m_Tasks)
+	{
+		if (Record.Sequence == Sequence)
 		{
-			if (Outcome == ETaskPrepare::Success)
+			if (IsCanceled_Internal(Scope) || Outcome == ETaskPrepare::Canceled)
 			{
-				m_Tasks[Index].State = ETaskState::Ready;
+				Record.State = ETaskState::Canceled;
 			}
-			else if (Outcome == ETaskPrepare::Canceled)
+			else if (Outcome == ETaskPrepare::Success)
 			{
-				m_Tasks[Index].State = ETaskState::Canceled;
+				Record.State = ETaskState::Ready;
 			}
 			else
 			{
-				m_Tasks[Index].State = ETaskState::Failed;
+				Record.State = ETaskState::Failed;
 			}
 			break;
 		}
