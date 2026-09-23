@@ -793,6 +793,144 @@ TResult<void> WriteAnimations_Internal(FContext_Internal& Context, FWriter_Inter
 
 namespace
 {
+// ufbxの軸指定をカメラのローカル方向へ変換する。
+ufbx_vec3 AxisVector_Internal(ufbx_coordinate_axis Axis)
+{
+	switch (Axis)
+	{
+	case UFBX_COORDINATE_AXIS_POSITIVE_X:
+		return {1, 0, 0};
+	case UFBX_COORDINATE_AXIS_NEGATIVE_X:
+		return {-1, 0, 0};
+	case UFBX_COORDINATE_AXIS_POSITIVE_Y:
+		return {0, 1, 0};
+	case UFBX_COORDINATE_AXIS_NEGATIVE_Y:
+		return {0, -1, 0};
+	case UFBX_COORDINATE_AXIS_POSITIVE_Z:
+		return {0, 0, 1};
+	case UFBX_COORDINATE_AXIS_NEGATIVE_Z:
+		return {0, 0, -1};
+	default:
+		return {};
+	}
+}
+// 浮動小数点の範囲検査はApplyToで行う。
+Toolbox::FVector3 SceneVector_Internal(ufbx_vec3 Value)
+{
+	return {static_cast<Toolbox::f32>(Value.x), static_cast<Toolbox::f32>(Value.y), static_cast<Toolbox::f32>(Value.z)};
+}
+// ノードに接続されたカメラ・ライトを静止時のワールド座標で保持する。
+TResult<void> ImportSceneObjects_Internal(const ufbx_scene& Scene, FImportedModel& Model)
+{
+	// ufbxの角度は度、公開APIはラジアン。
+	constexpr Toolbox::f64 Radians = 0.017453292519943295;
+	for (const ufbx_node* Node : Scene.nodes)
+	{
+		if (Node->camera != nullptr)
+		{
+			const ufbx_camera& Camera = *Node->camera;
+			FModelCameraInfo Info;
+			Info.Name = ToString_Internal(Node->name);
+			Info.Eye = SceneVector_Internal(Node->node_to_world.cols[3]);
+			// ufbx 0.23はtarget_camera_axes未指定時にprojection_axesを初期化しない。
+			const ufbx_coordinate_axes Axes =
+			    ufbx_coordinate_axes_valid(Camera.projection_axes)
+			        ? Camera.projection_axes
+			        : ufbx_coordinate_axes{UFBX_COORDINATE_AXIS_POSITIVE_Z, UFBX_COORDINATE_AXIS_POSITIVE_Y,
+			                               UFBX_COORDINATE_AXIS_NEGATIVE_X};
+			Info.Forward = -Toolbox::Normalize(
+			    SceneVector_Internal(ufbx_transform_direction(&Node->node_to_world, AxisVector_Internal(Axes.front))));
+			Info.Up = Toolbox::Normalize(
+			    SceneVector_Internal(ufbx_transform_direction(&Node->node_to_world, AxisVector_Internal(Axes.up))));
+			Info.bOrthographic = Camera.projection_mode == UFBX_PROJECTION_MODE_ORTHOGRAPHIC;
+			Info.VerticalFov =
+			    Info.bOrthographic ? 1.0f : static_cast<Toolbox::f32>(Camera.field_of_view_deg.y * Radians);
+			Info.NearPlane = static_cast<Toolbox::f32>(Camera.near_plane);
+			Info.FarPlane = static_cast<Toolbox::f32>(Camera.far_plane);
+			Info.AspectRatio = static_cast<Toolbox::f32>(Camera.aspect_ratio);
+			Info.OrthographicHeight = Info.bOrthographic ? static_cast<Toolbox::f32>(Camera.orthographic_size.y) : 1.0f;
+			FRenderView3D Probe;
+			if (!Info.ApplyTo(Probe) || !Toolbox::IsFinite(Info.AspectRatio) || Info.AspectRatio <= 0)
+			{
+				char Details[512];
+				snprintf(Details, sizeof(Details),
+				         "FBX camera has invalid projection or transform: %s eye=%g,%g,%g forward=%g,%g,%g up=%g,%g,%g "
+				         "fov=%g near=%g far=%g height=%g aspect=%g",
+				         Info.Name.CStr(), Info.Eye.X, Info.Eye.Y, Info.Eye.Z, Info.Forward.X, Info.Forward.Y,
+				         Info.Forward.Z, Info.Up.X, Info.Up.Y, Info.Up.Z, Info.VerticalFov, Info.NearPlane,
+				         Info.FarPlane, Info.OrthographicHeight, Info.AspectRatio);
+				return TResult<void>::Failure(EErrorCode::InvalidArgument, Toolbox::FString(Details));
+			}
+			Model.Cameras.PushBack(Toolbox::Move(Info));
+		}
+		if (Node->light != nullptr)
+		{
+			const ufbx_light& Light = *Node->light;
+			if (Light.type == UFBX_LIGHT_AREA || Light.type == UFBX_LIGHT_VOLUME)
+			{
+				Model.Warnings.PushBack("Area and volume lights are omitted: " + ToString_Internal(Node->name));
+				continue;
+			}
+			FModelLightInfo Info;
+			Info.Name = ToString_Internal(Node->name);
+			Info.Type = Light.type == UFBX_LIGHT_POINT
+			                ? EModelLightType::Point
+			                : (Light.type == UFBX_LIGHT_SPOT ? EModelLightType::Spot : EModelLightType::Directional);
+			Info.Position = SceneVector_Internal(Node->node_to_world.cols[3]);
+			Info.Direction = Toolbox::Normalize(
+			    SceneVector_Internal(ufbx_transform_direction(&Node->node_to_world, Light.local_direction)));
+			Info.Radiance = SceneVector_Internal(
+			    {Light.color.x * Light.intensity, Light.color.y * Light.intensity, Light.color.z * Light.intensity});
+			Info.bEnabled = Light.cast_light;
+			if (Info.Type == EModelLightType::Spot)
+			{
+				Info.InnerAngle = static_cast<Toolbox::f32>(Light.inner_angle * Radians);
+				Info.OuterAngle = static_cast<Toolbox::f32>(Light.outer_angle * Radians);
+			}
+			FRenderView3D Probe;
+			// 無効な強度は消灯中でも拒否する。
+			Probe.bModelLightOverride = true;
+			Probe.ModelLightRadiance = Info.Radiance;
+			if (!IsValidRenderView3D(Probe) || !Info.ApplyTo(Probe))
+			{
+				return TResult<void>::Failure(EErrorCode::InvalidArgument,
+				                              "FBX light has invalid intensity, cone or transform");
+			}
+			if (Light.decay != UFBX_LIGHT_DECAY_NONE)
+			{
+				Model.Warnings.PushBack("Light decay requires explicit world-unit attenuation in ApplyTo: " +
+				                        Info.Name);
+			}
+			if (Light.cast_shadows)
+			{
+				Model.Warnings.PushBack("Light shadows are not rendered: " + Info.Name);
+			}
+			Model.Lights.PushBack(Toolbox::Move(Info));
+		}
+	}
+	for (const ufbx_camera* Camera : Scene.cameras)
+	{
+		if (Camera->instances.count == 0)
+			Model.Warnings.PushBack("Unattached cameras and lights have no world transform and are omitted");
+	}
+	for (const ufbx_light* Light : Scene.lights)
+	{
+		if (Light->instances.count == 0)
+			Model.Warnings.PushBack("Unattached cameras and lights have no world transform and are omitted");
+	}
+	if (!Model.Cameras.IsEmpty())
+	{
+		Model.Warnings.PushBack("Camera projection uses the render target aspect; film offsets, roll properties and "
+		                        "look-at targets are not applied");
+	}
+	if ((!Model.Cameras.IsEmpty() || !Model.Lights.IsEmpty()) && Scene.anim_stacks.count > 0)
+	{
+		Model.Warnings.PushBack(
+		    "File cameras and lights expose static transforms and properties; their animation is not applied");
+	}
+	return {};
+}
+
 // 現在の変換で失われる機能を記録し、姿勢を正しく保持できないスキンは拒否する。
 // @param Scene ufbxによる解析結果。
 // @param Warnings 部分読み込みの理由を追記する先。
@@ -885,10 +1023,6 @@ TResult<void> CheckFeatures_Internal(const ufbx_scene& Scene, Toolbox::TVector<T
 		Warnings.PushBack(
 		    "Phong specular, shininess and emission are ignored; only diffuse color and texture are imported");
 	}
-	if (Scene.cameras.count > 0 || Scene.lights.count > 0)
-	{
-		Warnings.PushBack("File cameras and lights are ignored; use the render view settings");
-	}
 	if (Scene.constraints.count > 0)
 	{
 		return TResult<void>::Failure(EErrorCode::InvalidArgument,
@@ -965,6 +1099,11 @@ TResult<FImportedModel> ImportFbxModel(const void* Data, Toolbox::size_t Size, c
 	if (!Features)
 	{
 		return TResult<FImportedModel>::Failure(Features.Error());
+	}
+	auto SceneObjects = ImportSceneObjects_Internal(*Scene, Model);
+	if (!SceneObjects)
+	{
+		return TResult<FImportedModel>::Failure(SceneObjects.Error());
 	}
 	Model.SamplesPerSecond = Options.SamplesPerSecond;
 	FContext_Internal Context;

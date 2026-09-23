@@ -96,6 +96,10 @@ inline Toolbox::int32 SetUseBackCulling(Toolbox::int32)
 {
 	return ViewCall_Internal();
 }
+inline Toolbox::int32 SetupCamera_Ortho(Toolbox::f32)
+{
+	return ViewCall_Internal();
+}
 inline Toolbox::int32 SetupCamera_Perspective(Toolbox::f32)
 {
 	return ViewCall_Internal();

@@ -144,6 +144,8 @@ TResult<FModel> FModelLoader::Load(const Toolbox::FString& Path, const FModelLoa
 	}
 	FModelMetadata Metadata;
 	Metadata.Path = Path;
+	Metadata.Cameras = Toolbox::Move(Imported.Value().Cameras);
+	Metadata.Lights = Toolbox::Move(Imported.Value().Lights);
 	for (const auto& Morph : Imported.Value().Morphs)
 	{
 		Metadata.Morphs.PushBack({Morph.Name, Morph.DefaultWeight});

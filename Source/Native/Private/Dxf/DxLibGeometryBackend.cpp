@@ -74,10 +74,14 @@ TResult<void> FDxLibRenderBackend::BeginView3D(const FRenderView3D& View)
 	m_ModelView = View;
 	// 照明は受け取った頂点色へ評価済み。DxLibのライトで二重評価しない。
 	if (DxLib::SetUseLighting(FALSE) < 0 || DxLib::SetUseBackCulling(FALSE) < 0 ||
-	DxLib::SetDrawBright(255, 255, 255) < 0 || DxLib::SetUseVertexShader(-1) < 0 || DxLib::SetUsePixelShader(-1) < 0 ||
-	DxLib::SetupCamera_Perspective(View.VerticalFov) < 0 || DxLib::SetCameraNearFar(View.NearPlane, View.FarPlane) < 0 ||
-	DxLib::SetCameraPositionAndTargetAndUpVec(NativeVector_Internal(View.Eye), NativeVector_Internal(View.Target), NativeVector_Internal(View.Up)) < 0 ||
-	DxLib::ClearDrawScreenZBuffer() < 0)
+	    DxLib::SetDrawBright(255, 255, 255) < 0 || DxLib::SetUseVertexShader(-1) < 0 ||
+	    DxLib::SetUsePixelShader(-1) < 0 ||
+	    (View.bOrthographic ? DxLib::SetupCamera_Ortho(View.OrthographicHeight)
+	                        : DxLib::SetupCamera_Perspective(View.VerticalFov)) < 0 ||
+	    DxLib::SetCameraNearFar(View.NearPlane, View.FarPlane) < 0 ||
+	    DxLib::SetCameraPositionAndTargetAndUpVec(NativeVector_Internal(View.Eye), NativeVector_Internal(View.Target),
+	                                              NativeVector_Internal(View.Up)) < 0 ||
+	    DxLib::ClearDrawScreenZBuffer() < 0)
 	{
 		return TResult<void>::Failure(EErrorCode::BackendFailure, "3D view setup failed");
 	}

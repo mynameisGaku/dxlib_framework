@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: NOASSERTION
 #ifndef DXF_IMPORTED_MODEL_H
 #define DXF_IMPORTED_MODEL_H
+#include "Dxf/ModelCameraInfo.h"
+#include "Dxf/ModelLightInfo.h"
 #include "Dxf/ImportedModelTexture.h"
 #include "Dxf/ImportedModelMesh.h"
 #include "Dxf/ImportedModelMorph.h"
@@ -44,6 +46,14 @@ struct FImportedModel
 	 * ネイティブのシェイプ番号順のモーフ。
 	 */
 	Toolbox::TVector<FImportedModelMorph> Morphs;
+	/**
+	 * 静止カメラ。自動では適用しない。
+	 */
+	Toolbox::TVector<FModelCameraInfo> Cameras;
+	/**
+	 * 静止ライト。自動では適用しない。
+	 */
+	Toolbox::TVector<FModelLightInfo> Lights;
 };
 } // namespace Dxf
 #endif

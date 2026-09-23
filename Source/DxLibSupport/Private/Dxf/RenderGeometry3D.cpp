@@ -72,6 +72,30 @@ FColor Shade_Internal(const FTriangle3D& Triangle, FColor Base, const FRenderVie
 }
 bool IsValidRenderView3D(const FRenderView3D& View) noexcept
 {
+	// 正射影の大きさとモデル専用光源も、受付時に検証する。
+	if (!Toolbox::IsFinite(View.OrthographicHeight) || View.OrthographicHeight <= 0)
+	{
+		return false;
+	}
+	if (View.bModelLightOverride)
+	{
+		const auto& Color = View.ModelLightRadiance;
+		const auto& Atten = View.ModelLightAttenuation;
+		if (!Color.IsValid() || Color.X < 0 || Color.Y < 0 || Color.Z < 0 || !Atten.IsValid() || Atten.X < 0 ||
+		    Atten.Y < 0 || Atten.Z < 0 || (Atten.X == 0 && Atten.Y == 0 && Atten.Z == 0) ||
+		    !View.ModelLightPosition.IsValid() || !View.ModelLightDirection.IsValid() ||
+		    Toolbox::Normalize(View.ModelLightDirection) == Toolbox::FVector3{} ||
+		    !Toolbox::IsFinite(View.ModelLightRange) || View.ModelLightRange <= 0 ||
+		    !Toolbox::IsFinite(View.ModelLightInnerAngle) || !Toolbox::IsFinite(View.ModelLightOuterAngle) ||
+		    View.ModelLightInnerAngle < 0 || View.ModelLightOuterAngle <= 0 ||
+		    View.ModelLightInnerAngle > View.ModelLightOuterAngle || View.ModelLightOuterAngle >= 3.14159265f ||
+		    (View.ModelLightType != EModelLightType::Directional && View.ModelLightType != EModelLightType::Point &&
+		     View.ModelLightType != EModelLightType::Spot))
+		{
+			return false;
+		}
+	}
+
 	if (!Valid_Internal(View.Eye) || !Valid_Internal(View.Target) || !Valid_Internal(View.Up) || !Valid_Internal(View.LightDirection) ||
 	!Toolbox::IsFinite(View.VerticalFov) || View.VerticalFov <= 0 || View.VerticalFov >= 3.14159265f ||
 	!Toolbox::IsFinite(View.NearPlane) || !Toolbox::IsFinite(View.FarPlane) || View.NearPlane <= 0 || View.FarPlane <= View.NearPlane)

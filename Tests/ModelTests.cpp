@@ -840,3 +840,51 @@ TEST("model_import avoids node and generated mesh frame name collisions")
 	REQUIRE(Imported.Value().VertexColorFrames[0] != "Triangle_mesh");
 	REQUIRE(Imported.Value().VertexColorFrames[0] == Imported.Value().MeshExtensions[0].FrameName);
 }
+
+TEST("model imports static cameras and three light types in converted units")
+{
+	FModelAssets Fixture;
+	auto Loaded = Fixture.Assets.LoadModel("Tests/Assets/SceneObjects.fbx");
+	if (!Loaded)
+	{
+		throw Toolbox::FException(Loaded.Error().Message);
+	}
+	REQUIRE(Loaded);
+	const auto& Model = Loaded.Value();
+	REQUIRE(Model.GetCameraCount() == 2);
+	REQUIRE(Model.GetLightCount() == 3);
+	REQUIRE(Model.GetCamera(2) == nullptr);
+	REQUIRE(Model.GetLight(3) == nullptr);
+	FRenderView3D View;
+	REQUIRE(Model.GetCamera(0)->ApplyTo(View));
+	REQUIRE(Toolbox::Abs(View.Eye.Z + 600) < 0.01f);
+	REQUIRE(Toolbox::Abs(View.Target.Z - View.Eye.Z - 1) < 0.01f);
+	REQUIRE(Toolbox::Abs(View.VerticalFov - 1.04719755f) < 0.001f);
+	REQUIRE(View.NearPlane == 1);
+	REQUIRE(View.FarPlane == 2000);
+	REQUIRE(!View.bOrthographic);
+	REQUIRE(Model.GetCamera(1)->ApplyTo(View));
+	REQUIRE(View.bOrthographic);
+	REQUIRE(View.OrthographicHeight > 0);
+	REQUIRE(Model.GetLight(0)->Type == EModelLightType::Directional);
+	REQUIRE(Model.GetLight(1)->Type == EModelLightType::Point);
+	REQUIRE(Model.GetLight(2)->Type == EModelLightType::Spot);
+	REQUIRE(Model.GetLight(2)->ApplyTo(View, 2000, {1, 0.01f, 0}));
+	REQUIRE(View.ModelLightRadiance == Toolbox::FVector3(2, 1, 0.5f));
+	REQUIRE(Toolbox::Abs(View.ModelLightPosition.Z + 400) < 0.01f);
+	REQUIRE(Toolbox::Abs(View.ModelLightDirection.Z - 1) < 0.01f);
+	REQUIRE(View.LightDirection == Toolbox::FVector3(0, -1, 1));
+	REQUIRE(!Model.GetLight(2)->ApplyTo(View, -1));
+	REQUIRE(View.ModelLightRange == 2000);
+	FModelCameraInfo Invalid = *Model.GetCamera(0);
+	Invalid.Forward = {};
+	REQUIRE(!Invalid.ApplyTo(View));
+	REQUIRE(View.bOrthographic);
+	FModelLoadOptions Options;
+	Options.TargetUnitMeters = 1;
+	auto Meters = Fixture.Assets.LoadModel("Tests/Assets/SceneObjects.fbx", Options);
+	REQUIRE(Meters);
+	REQUIRE(Toolbox::Abs(Meters.Value().GetCamera(0)->Eye.Z + 6) < 0.001f);
+	REQUIRE(Toolbox::Abs(Meters.Value().GetCamera(0)->NearPlane - 0.01f) < 0.001f);
+	REQUIRE(Toolbox::Abs(Meters.Value().GetLight(1)->Position.Z + 4) < 0.001f);
+}

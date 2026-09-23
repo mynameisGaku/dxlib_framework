@@ -135,6 +135,8 @@ target_include_directories(dxf_ufbx PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SO
 
 add_library(dxf_support STATIC
     Source/DxLibSupport/Private/Dxf/Model.cpp
+    Source/DxLibSupport/Private/Dxf/ModelCameraInfo.cpp
+    Source/DxLibSupport/Private/Dxf/ModelLightInfo.cpp
     Source/DxLibSupport/Private/Dxf/ModelImport.cpp
     Source/DxLibSupport/Private/Dxf/ModelLoader.cpp
     Source/DxLibSupport/Private/Dxf/RenderGeometry3D.cpp

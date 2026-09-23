@@ -124,7 +124,7 @@ private:
 	 */
 	FRenderView3D m_ModelView;
 	/**
-	 * このビューで作成した指向性ライト。-1は未作成。
+	 * このビューで作成したモデル用ライト。-1は未作成。
 	 */
 	Toolbox::int32 m_ModelLight = -1;
 	/**

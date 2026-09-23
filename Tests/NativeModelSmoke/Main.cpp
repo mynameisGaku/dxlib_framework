@@ -326,6 +326,34 @@ void Run_Internal(const Toolbox::FPath& Root, const Toolbox::FPath& OutDir)
 	DxLib::SetLightEnable(TRUE);
 	const FSignature Overlay = Smoke.Frame(Renderer, &A, &B, "model-light-2d", true);
 	Check_Internal(Overlay.OverlayRgb == 0xff4020u, "2D color restored after lit model");
+	// ファイルのカメラ・ライトを明示選択して描画する。
+	const FRenderView3D PreviousView = Smoke.View;
+	FModel SceneObjects = TakeOrThrow_Internal(Assets.LoadModel("Tests/Assets/SceneObjects.fbx"));
+	RequireSuccess_Internal(SceneObjects.GetCamera(0)->ApplyTo(Smoke.View));
+	RequireSuccess_Internal(SceneObjects.GetLight(1)->ApplyTo(Smoke.View));
+	const FSignature Point = Smoke.Frame(Renderer, &A, &B, "file-camera-point-light", true);
+	Check_Internal(Point.Pixels[0] > 200 && Point.Pixels[1] > 200 && Point.OverlayRgb == 0xff4020u,
+	               "file perspective camera and point light render with 2D restoration");
+	// 点光源をモデルの背後へ動かすと、照明を使う個体だけ暗くなる。
+	Smoke.View.ModelLightPosition.Z = 400;
+	const FSignature PointBack = Smoke.Frame(Renderer, &A, &B);
+	Check_Internal(Point.Brightness[0] > PointBack.Brightness[0] + 10000 &&
+	                   Point.ColorHash[1] == PointBack.ColorHash[1],
+	               "point light position affects only lit model");
+	RequireSuccess_Internal(SceneObjects.GetLight(2)->ApplyTo(Smoke.View));
+	const FSignature Spot = Smoke.Frame(Renderer, &A, &B, "file-spot-light");
+	Smoke.View.ModelLightDirection = {0, 0, -1};
+	const FSignature SpotAway = Smoke.Frame(Renderer, &A, &B);
+	Check_Internal(Spot.Brightness[0] > SpotAway.Brightness[0] + 10000 && Spot.ColorHash[1] == SpotAway.ColorHash[1],
+	               "spot cone excludes model when turned away");
+	RequireSuccess_Internal(SceneObjects.GetCamera(1)->ApplyTo(Smoke.View));
+	const FSignature Ortho = Smoke.Frame(Renderer, &A, &B, "file-orthographic-camera");
+	Smoke.View.Eye.Z -= 100;
+	Smoke.View.Target.Z -= 100;
+	const FSignature OrthoMoved = Smoke.Frame(Renderer, &A, &B);
+	Check_Internal(Ortho.Pixels[1] > 200 && Ortho.ColorHash[1] == OrthoMoved.ColorHash[1],
+	               "file orthographic camera keeps size after depth movement");
+	Smoke.View = PreviousView;
 	// 色倍率も複製元の材質を変更せず、インスタンスごとに適用する。
 	FModelMaterial3D RedMaterial;
 	RedMaterial.Tint = {255, 0, 0, 255};

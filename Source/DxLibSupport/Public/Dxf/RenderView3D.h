@@ -2,6 +2,7 @@
 #ifndef DXF_RENDER_VIEW_3D_H
 #define DXF_RENDER_VIEW_3D_H
 #include "Dxf/MathTypes.h"
+#include "Dxf/EModelLightType.h"
 #include "Toolbox/Vector3.h"
 namespace Dxf
 {
@@ -99,6 +100,50 @@ struct FRenderView3D
 	 * ビュー固有の調査用上書き。
 	 */
 	FDebugViewSettings3D Debug;
+	/**
+	 * 正射影を使うか。
+	 */
+	bool bOrthographic = false;
+	/**
+	 * 正射影で映る縦の長さ。
+	 */
+	Toolbox::f32 OrthographicHeight = 10;
+	/**
+	 * モデルだけに専用の光源設定を使うか。falseなら従来の指向性光。
+	 */
+	bool bModelLightOverride = false;
+	/**
+	 * モデル専用の光源の形。
+	 */
+	EModelLightType ModelLightType = EModelLightType::Directional;
+	/**
+	 * モデル専用光源の位置。
+	 */
+	Toolbox::FVector3 ModelLightPosition = {0, 0, 0};
+	/**
+	 * モデル専用光源の向き。
+	 */
+	Toolbox::FVector3 ModelLightDirection = {0, -1, 0};
+	/**
+	 * モデル専用光源のRGB強度。
+	 */
+	Toolbox::FVector3 ModelLightRadiance = {1, 1, 1};
+	/**
+	 * 定数・距離・距離二乗の減衰係数。
+	 */
+	Toolbox::FVector3 ModelLightAttenuation = {1, 0, 0};
+	/**
+	 * 点・スポット光の到達範囲。
+	 */
+	Toolbox::f32 ModelLightRange = 10000;
+	/**
+	 * スポット光の内角（ラジアン、全角）。
+	 */
+	Toolbox::f32 ModelLightInnerAngle = 0;
+	/**
+	 * スポット光の外角（ラジアン、全角）。
+	 */
+	Toolbox::f32 ModelLightOuterAngle = 1;
 };
 /**
  * 有限値・カメラ基底・列挙値・照明を検証する。

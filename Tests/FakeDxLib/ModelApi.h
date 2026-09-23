@@ -137,6 +137,15 @@ inline Toolbox::int32 CreateDirLightHandle(VECTOR)
 	++ModelTrace.CreatedLights;
 	return ModelTrace.bFailLightCreate ? -1 : 902;
 }
+inline Toolbox::int32 CreatePointLightHandle(VECTOR P, Toolbox::f32, Toolbox::f32, Toolbox::f32, Toolbox::f32)
+{
+	return CreateDirLightHandle(P);
+}
+inline Toolbox::int32 CreateSpotLightHandle(VECTOR P, VECTOR, Toolbox::f32, Toolbox::f32, Toolbox::f32, Toolbox::f32,
+                                            Toolbox::f32, Toolbox::f32)
+{
+	return CreateDirLightHandle(P);
+}
 inline Toolbox::int32 DeleteLightHandle(Toolbox::int32)
 {
 	++ModelTrace.DeletedLights;

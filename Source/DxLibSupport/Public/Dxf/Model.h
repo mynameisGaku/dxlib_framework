@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: NOASSERTION
 #pragma once
+#include "Dxf/ModelCameraInfo.h"
+#include "Dxf/ModelLightInfo.h"
 #include "Dxf/ModelMaterial3D.h"
 #include "Dxf/ModelMorphInfo.h"
 #include "Dxf/ResourceRegistry.h"
@@ -62,6 +64,14 @@ struct FModelMetadata
 	 * モーフ番号順の初期値と表示名。
 	 */
 	Toolbox::TVector<FModelMorphInfo> Morphs;
+	/**
+	 * 静止カメラ。自動では適用しない。
+	 */
+	Toolbox::TVector<FModelCameraInfo> Cameras;
+	/**
+	 * 静止ライト。自動では適用しない。
+	 */
+	Toolbox::TVector<FModelLightInfo> Lights;
 	/**
 	 * 読み込みで省略した機能などの警告。キャッシュから取得しても保持する。
 	 */
@@ -182,6 +192,37 @@ public:
 	 * @param Name GetMorphで取得できるノード名とチャンネル名。
 	 */
 	Toolbox::int32 FindMorph(const Toolbox::FString& Name) const noexcept;
+	/**
+	 * 読み込んだCameraの数。無効なら0。
+	 */
+	FORCEINLINE Toolbox::size_t GetCameraCount() const noexcept
+	{
+		return m_pResource ? m_pResource->GetMetadata().Cameras.Size() : 0;
+	}
+	/**
+	 * 静止時のCamera情報。範囲外はnullptr。
+	 * @param Index ファイル内の順序での番号。
+	 */
+	FORCEINLINE const FModelCameraInfo* GetCamera(Toolbox::size_t Index) const noexcept
+	{
+		return Index < GetCameraCount() ? &m_pResource->GetMetadata().Cameras[Index] : nullptr;
+	}
+	/**
+	 * 読み込んだLightの数。無効なら0。
+	 */
+	FORCEINLINE Toolbox::size_t GetLightCount() const noexcept
+	{
+		return m_pResource ? m_pResource->GetMetadata().Lights.Size() : 0;
+	}
+	/**
+	 * 静止時のLight情報。範囲外はnullptr。
+	 * @param Index ファイル内の順序での番号。
+	 */
+	FORCEINLINE const FModelLightInfo* GetLight(Toolbox::size_t Index) const noexcept
+	{
+		return Index < GetLightCount() ? &m_pResource->GetMetadata().Lights[Index] : nullptr;
+	}
+
 	/**
 	 * モーフ数を取得する。無効なモデルなら0。
 	 */

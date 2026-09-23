@@ -328,16 +328,40 @@ TResult<void> FDxLibRenderBackend::PrepareModelLight_Internal()
 		}
 	}
 	// ビューは検証済み。指向性光が無効でも環境光は残す。
-	const auto& Direction = m_ModelView.LightDirection;
-	m_ModelLight = DxLib::CreateDirLightHandle(DxLib::VGet(Direction.X, Direction.Y, Direction.Z));
+	const auto Direction = Toolbox::Normalize(m_ModelView.bModelLightOverride ? m_ModelView.ModelLightDirection
+	                                                                          : m_ModelView.LightDirection);
+	const auto& Position = m_ModelView.ModelLightPosition;
+	const auto& Attenuation = m_ModelView.ModelLightAttenuation;
+	const EModelLightType Type =
+	    m_ModelView.bModelLightOverride ? m_ModelView.ModelLightType : EModelLightType::Directional;
+	if (Type == EModelLightType::Point)
+	{
+		m_ModelLight =
+		    DxLib::CreatePointLightHandle(DxLib::VGet(Position.X, Position.Y, Position.Z), m_ModelView.ModelLightRange,
+		                                  Attenuation.X, Attenuation.Y, Attenuation.Z);
+	}
+	else if (Type == EModelLightType::Spot)
+	{
+		m_ModelLight = DxLib::CreateSpotLightHandle(
+		    DxLib::VGet(Position.X, Position.Y, Position.Z), DxLib::VGet(Direction.X, Direction.Y, Direction.Z),
+		    m_ModelView.ModelLightOuterAngle, m_ModelView.ModelLightInnerAngle, m_ModelView.ModelLightRange,
+		    Attenuation.X, Attenuation.Y, Attenuation.Z);
+	}
+	else
+	{
+		m_ModelLight = DxLib::CreateDirLightHandle(DxLib::VGet(Direction.X, Direction.Y, Direction.Z));
+	}
 	if (m_ModelLight < 0)
 	{
 		return TResult<void>::Failure(EErrorCode::BackendFailure, "Model light creation failed");
 	}
 	const FColor Diffuse = m_ModelView.bLightEnabled ? m_ModelView.LightColor : FColor{0, 0, 0, 255};
 	const FColor Ambient = m_ModelView.AmbientColor;
-	if (DxLib::SetLightDifColorHandle(
-	        m_ModelLight, DxLib::COLOR_F{Diffuse.R / 255.0f, Diffuse.G / 255.0f, Diffuse.B / 255.0f, 1.0f}) < 0 ||
+	// 浮動小数点で保持し、ファイル由来の1を超える強度を8ビットへ切り詰めない。
+	const auto Radiance = m_ModelView.bModelLightOverride
+	                          ? m_ModelView.ModelLightRadiance
+	                          : Toolbox::FVector3{Diffuse.R / 255.0f, Diffuse.G / 255.0f, Diffuse.B / 255.0f};
+	if (DxLib::SetLightDifColorHandle(m_ModelLight, DxLib::COLOR_F{Radiance.X, Radiance.Y, Radiance.Z, 1.0f}) < 0 ||
 	    DxLib::SetLightAmbColorHandle(
 	        m_ModelLight, DxLib::COLOR_F{Ambient.R / 255.0f, Ambient.G / 255.0f, Ambient.B / 255.0f, 1.0f}) < 0 ||
 	    DxLib::SetLightSpcColorHandle(m_ModelLight, DxLib::COLOR_F{0, 0, 0, 1}) < 0 ||
