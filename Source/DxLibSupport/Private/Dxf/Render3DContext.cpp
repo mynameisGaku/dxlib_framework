@@ -15,13 +15,19 @@ TResult<void> FRender3DContext::InvalidGeometry_Internal()
 {
 	return TResult<void>::Failure(EErrorCode::InvalidArgument, "Invalid 3D geometry");
 }
+bool FRender3DContext::FitsTarget_Internal(const FRenderView3D& View) const noexcept
+{
+	return !View.bViewport || m_pAccess->m_TargetWidth == 0 ||
+	       (View.Viewport.Right <= m_pAccess->m_TargetWidth && View.Viewport.Bottom <= m_pAccess->m_TargetHeight);
+}
 TResult<void> FRender3DContext::SetView(const FRenderView3D& View)
 {
 	if (!m_pAccess->IsAllowed())
 	{
 		return StateError_Internal();
 	}
-	if (!IsValidRenderView3D(View) || m_ViewSerial == Toolbox::TNumericLimits<Toolbox::uint64>::Max())
+	if (!IsValidRenderView3D(View) || !FitsTarget_Internal(View) ||
+	    m_ViewSerial == Toolbox::TNumericLimits<Toolbox::uint64>::Max())
 	{
 		return InvalidGeometry_Internal();
 	}
@@ -34,6 +40,10 @@ TResult<void> FRender3DContext::Submit(FGeometryCommand3D Command)
 	if (!m_pAccess->IsAccepting())
 	{
 		return StateError_Internal();
+	}
+	if (!FitsTarget_Internal(m_View))
+	{
+		return InvalidGeometry_Internal();
 	}
 	if (!IsValidGeometry3D(Command))
 	{
@@ -113,6 +123,10 @@ TResult<void> FRender3DContext::DrawModel(const FModelInstance& Instance)
 	if (!m_pAccess->IsAccepting())
 	{
 		return StateError_Internal();
+	}
+	if (!FitsTarget_Internal(m_View))
+	{
+		return InvalidGeometry_Internal();
 	}
 	if (!Instance.IsValid())
 	{
@@ -225,6 +239,13 @@ TResult<void> FRender3DContext::Execute_Internal(IRenderBackend& Backend)
 		}
 		Begin = End;
 		ModelBegin = ModelEnd;
+	}
+	for (const auto& Pass : Passes)
+	{
+		if (Pass.View.bViewport && !Backend.SupportsViewports3D())
+		{
+			return TResult<void>::Failure(EErrorCode::BackendFailure, "Backend has no viewport capability");
+		}
 	}
 	bool Active = false;
 	TResult<void> Result;

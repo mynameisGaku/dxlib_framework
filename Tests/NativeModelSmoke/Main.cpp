@@ -18,6 +18,9 @@
 #ifdef CreateDirectory
 #undef CreateDirectory
 #endif
+#ifdef DrawText
+#undef DrawText
+#endif
 #ifdef CopyFile
 #undef CopyFile
 #endif
@@ -79,6 +82,10 @@ struct FSignature
 	Toolbox::uint64 ColorHash[2] = {1469598103934665603ull, 1469598103934665603ull};
 	Toolbox::uint32 OverlayRgb = 0;
 	Toolbox::uint32 CenterRgb = 0;
+	// 重複矩形の内部を確認する点。
+	Toolbox::uint32 OverlapRgb = 0;
+	// 境界をまたぐUI文字の白い画素。
+	Toolbox::uint32 TextPixels[2] = {0, 0};
 };
 
 // CPU側へ読み戻した画像を解放する。Contextは使用しない。
@@ -113,6 +120,10 @@ FSignature Read_Internal()
 			}
 			if (X == Width / 2 && Y == Height / 2)
 				Result.CenterRgb = static_cast<Toolbox::uint32>((Red << 16) | (Green << 8) | Blue);
+			if (X == 240 && Y == 240)
+			{
+				Result.OverlapRgb = static_cast<Toolbox::uint32>((Red << 16) | (Green << 8) | Blue);
+			}
 			if (X == 20 && Y == 20)
 			{
 				Result.OverlayRgb = static_cast<Toolbox::uint32>((Red << 16) | (Green << 8) | Blue);
@@ -120,6 +131,10 @@ FSignature Read_Internal()
 			const int Distance = Toolbox::Abs(Red - Background.R) + Toolbox::Abs(Green - Background.G) +
 			                     Toolbox::Abs(Blue - Background.B);
 			const int Side = X < Width / 2 ? 0 : 1;
+			if (Y >= 30 && Y < 60 && X >= 220 && X < 500 && Red > 200 && Green > 200 && Blue > 200)
+			{
+				++Result.TextPixels[Side];
+			}
 			Result.Brightness[Side] += static_cast<Toolbox::uint64>(Red + Green + Blue);
 			Result.ColorHash[Side] =
 			    (Result.ColorHash[Side] ^ static_cast<Toolbox::uint64>((Red << 16) | (Green << 8) | Blue)) *
@@ -221,6 +236,209 @@ FModelInstance Place_Internal(FAssetService& Assets, const FModel& Model, Toolbo
 	RequireSuccess_Internal(Instance.SetTransform(Toolbox::FMatrix4::Translation({X, 0, 0})));
 	RequireSuccess_Internal(Instance.Play("Bend"));
 	return Instance;
+}
+
+// 奇数寸法の別描画先で、理論上の正方形の位置・画素寸法を比較する。
+void ViewportProjection_Internal(FSmoke& Smoke, FRenderSystem& Renderer, FAssetService& Assets)
+{
+	const auto Target = TakeOrThrow_Internal(Assets.CreateRenderTarget(641, 481));
+	for (Toolbox::int32 Ortho = 0; Ortho < 2; ++Ortho)
+	{
+		RequireSuccess_Internal(Renderer.BeginFrame(Width, Height, Background));
+		auto& Render = Renderer.GetContext();
+		RequireSuccess_Internal(Render.SetRenderTarget(Target));
+		RequireSuccess_Internal(Render.ClearTarget(Background));
+		for (Toolbox::int32 Side = 0; Side < 2; ++Side)
+		{
+			FRenderView3D View;
+			View.bViewport = true;
+			View.Viewport = Side == 0 ? FIntRect{0, 0, 320, 240} : FIntRect{320, 0, 641, 481};
+			View.Eye = {0, 0, -4};
+			View.bOrthographic = Ortho != 0;
+			View.OrthographicHeight = 8;
+			View.VerticalFov = 1.5707963268f;
+			View.Debug.Lighting = ELightingMode3D::Unlit;
+			RequireSuccess_Internal(Render.Get3D().SetView(View));
+			RequireSuccess_Internal(Render.Get3D().DrawTriangle({-1, -1, 0}, {1, -1, 0}, {1, 1, 0}));
+			RequireSuccess_Internal(Render.Get3D().DrawTriangle({-1, -1, 0}, {1, 1, 0}, {-1, 1, 0}));
+		}
+		RequireSuccess_Internal(Render.Native(
+		    [&]() -> TResult<void>
+		    {
+			    FNativeHandle Image(DxLib::MakeARGB8ColorSoftImage(641, 481), nullptr, &ReleaseImage_Internal);
+			    if (Image.Get() < 0 || DxLib::GetDrawScreenSoftImage(0, 0, 641, 481, Image.Get()) < 0)
+			    {
+				    return TResult<void>::Failure(EErrorCode::BackendFailure, "viewport projection readback failed");
+			    }
+			    Toolbox::int32 MinX[2] = {641, 641};
+			    Toolbox::int32 MinY[2] = {481, 481};
+			    Toolbox::int32 MaxX[2] = {-1, -1};
+			    Toolbox::int32 MaxY[2] = {-1, -1};
+			    for (Toolbox::int32 Y = 0; Y < 481; ++Y)
+			    {
+				    for (Toolbox::int32 X = 0; X < 641; ++X)
+				    {
+					    Toolbox::int32 R = 0;
+					    Toolbox::int32 G = 0;
+					    Toolbox::int32 B = 0;
+					    Toolbox::int32 A = 0;
+					    if (DxLib::GetPixelSoftImage(Image.Get(), X, Y, &R, &G, &B, &A) < 0)
+					    {
+						    return TResult<void>::Failure(EErrorCode::BackendFailure,
+						                                  "viewport projection pixel failed");
+					    }
+					    if (R > 200)
+					    {
+						    const Toolbox::int32 Side = X < 320 ? 0 : 1;
+						    MinX[Side] = Toolbox::Min(MinX[Side], X);
+						    MinY[Side] = Toolbox::Min(MinY[Side], Y);
+						    MaxX[Side] = Toolbox::Max(MaxX[Side], X);
+						    MaxY[Side] = Toolbox::Max(MaxY[Side], Y);
+					    }
+				    }
+			    }
+			    for (Toolbox::int32 Side = 0; Side < 2; ++Side)
+			    {
+				    const Toolbox::int32 ExpectedSize = Side == 0 ? 60 : 120;
+				    const Toolbox::int32 CenterX = Side == 0 ? 320 : 961;
+				    const Toolbox::int32 CenterY = Side == 0 ? 240 : 481;
+				    Check_Internal(Toolbox::Abs(MaxX[Side] - MinX[Side] + 1 - ExpectedSize) <= 1 &&
+				                       Toolbox::Abs(MaxY[Side] - MinY[Side] + 1 - ExpectedSize) <= 1 &&
+				                       Toolbox::Abs(MaxX[Side] + MinX[Side] + 1 - CenterX) <= 1 &&
+				                       Toolbox::Abs(MaxY[Side] + MinY[Side] + 1 - CenterY) <= 1,
+				                   "viewport analytic square size and center on odd offscreen target");
+			    }
+			    return {};
+		    }));
+		// 別寸法の描画先へ戻ったあと、保持された大きすぎるビューを受付しない。
+		RequireSuccess_Internal(Render.SetBackBuffer());
+		Check_Internal(!Render.Get3D().DrawLine({0, 0, 0}, {1, 0, 0}),
+		               "viewport revalidates retained view after target switch");
+		RequireSuccess_Internal(Render.Get3D().SetView(FRenderView3D{}));
+		RequireSuccess_Internal(Render.Get2D().FillRectangle({0, 0, 640, 480}));
+		RequireSuccess_Internal(Renderer.EndFrame());
+	}
+}
+
+// 実D3D11の左右ビュー、投影、領域外深度、全画面2Dを同じ読戻しで比較する。
+void ViewportSmoke_Internal(FSmoke& Smoke, FRenderSystem& Renderer, FAssetService& Assets, const FModel& Model)
+{
+	const FFont Font = TakeOrThrow_Internal(Assets.LoadFont());
+	FModelInstance A = TakeOrThrow_Internal(Assets.CreateModelInstance(Model));
+	FModelInstance B = TakeOrThrow_Internal(Assets.CreateModelInstance(Model));
+	RequireSuccess_Internal(A.SetTransform(Toolbox::FMatrix4::Translation({-55, 0, 0})));
+	RequireSuccess_Internal(B.SetTransform(Toolbox::FMatrix4::Translation({55, 0, 0})));
+	RequireSuccess_Internal(A.Play("Widen", false));
+	RequireSuccess_Internal(A.SetTime(0.5));
+	RequireSuccess_Internal(A.SetMorphWeight(1, 0.5f));
+	RequireSuccess_Internal(B.SetMaterial(FModelMaterial3D{}));
+	auto Frame = [&](bool Right, bool DepthProbe, bool Overlay, bool Ortho, const char* Name)
+	{
+		RequireSuccess_Internal(Renderer.BeginFrame(Width, Height, Background));
+		auto& Render = Renderer.GetContext();
+		for (Toolbox::int32 Side = 0; Side < (Right ? 2 : 1); ++Side)
+		{
+			FRenderView3D View = Smoke.View;
+			View.bViewport = true;
+			View.Viewport = {Side * 320, 0, (Side + 1) * 320, 480};
+			View.bOrthographic = Ortho;
+			View.OrthographicHeight = 360;
+			if (Side == 1)
+			{
+				View.Eye = {250, 150, -400};
+				View.LightDirection = {1, -1, 0};
+			}
+			RequireSuccess_Internal(Render.Get3D().SetView(View));
+			RequireSuccess_Internal(Render.Get3D().DrawModel(A));
+			RequireSuccess_Internal(Render.Get3D().DrawModel(B));
+			FDrawStyle3D Style;
+			Style.Color = {200, 60, 30, 255};
+			RequireSuccess_Internal(Render.Get3D().DrawTriangle({-500, -40, 0}, {0, -20, 0}, {500, -40, 0}, Style));
+		}
+		if (Overlay)
+		{
+			FDrawStyle Style;
+			Style.Color = {255, 64, 32, 255};
+			RequireSuccess_Internal(Render.Get2D().FillRectangle({0, 230, 640, 250}, Style));
+			RequireSuccess_Internal(Render.Get2D().DrawText(Font, "LEFT VIEW  /  RIGHT VIEW", {220, 30}));
+		}
+		FSignature Result;
+		RequireSuccess_Internal(Render.Native(
+		    [&]() -> TResult<void>
+		    {
+			    if (DepthProbe)
+			    {
+				    // 左の深度が右開始時に消えていたら、この遠方面の赤がモデルを覆う。
+				    DxLib::SetUseZBufferFlag(TRUE);
+				    DxLib::SetWriteZBufferFlag(FALSE);
+				    DxLib::SetZBufferCmpType(DX_CMP_LESSEQUAL);
+				    DxLib::SetDrawZ(0.9999f);
+				    DxLib::SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 255);
+				    DxLib::DrawBox(0, 0, 320, 480, DxLib::GetColor(255, 0, 0), TRUE);
+				    DxLib::SetDrawZ(0.2f);
+			    }
+			    Result = Read_Internal();
+			    if (Name != nullptr)
+			    {
+				    const auto Path = (Smoke.OutDir / Name).ToUtf8();
+				    if (DxLib::SaveDrawScreenToPNG(0, 0, Width, Height, Path.CStr()) < 0)
+				    {
+					    return TResult<void>::Failure(EErrorCode::BackendFailure, "viewport capture failed");
+				    }
+			    }
+			    return {};
+		    }));
+		RequireSuccess_Internal(Renderer.EndFrame());
+		return Result;
+	};
+	for (Toolbox::int32 Ortho = 0; Ortho < 2; ++Ortho)
+	{
+		const auto Left = Frame(false, false, false, Ortho != 0, nullptr);
+		const auto Both =
+		    Frame(true, false, false, Ortho != 0, Ortho ? "viewport-ortho.png" : "viewport-perspective.png");
+		Check_Internal(Left.ColorHash[0] == Both.ColorHash[0] && Left.Pixels[1] == 0 && Both.Pixels[1] > 100,
+		               "viewport preserves other color and draws distinct cameras");
+		const auto DepthLeft = Frame(false, true, false, Ortho != 0, nullptr);
+		const auto DepthBoth = Frame(true, true, false, Ortho != 0, nullptr);
+		Check_Internal(DepthLeft.ColorHash[0] == DepthBoth.ColorHash[0] && DepthBoth.Dominant[0] < 38000,
+		               "viewport preserves outside depth with occlusion probe");
+		const auto Overlay = Frame(true, false, true, Ortho != 0, "viewport-overlay.png");
+		Check_Internal(Overlay.CenterRgb == 0xff4020 && Overlay.TextPixels[0] > 10 && Overlay.TextPixels[1] > 10,
+		               "viewport restores full screen 2D text and rectangle across split");
+	}
+}
+
+// 重複または再訪でも新しい区間内は深度を初期化する契約を確認する。
+void ViewportOverlap_Internal(FRenderSystem& Renderer)
+{
+	RequireSuccess_Internal(Renderer.BeginFrame(Width, Height, Background));
+	auto& Render = Renderer.GetContext();
+	for (Toolbox::int32 Pass = 0; Pass < 3; ++Pass)
+	{
+		FRenderView3D View;
+		View.bViewport = true;
+		View.Viewport = Pass == 1 ? FIntRect{160, 0, 480, 480} : FIntRect{0, 0, 320, 480};
+		View.bOrthographic = true;
+		View.Debug.Lighting = ELightingMode3D::Unlit;
+		RequireSuccess_Internal(Render.Get3D().SetView(View));
+		FDrawStyle3D Style;
+		Style.Color = Pass == 0 ? FColor{255, 255, 255, 255} : FColor{255, 64, 32, 255};
+		const Toolbox::f32 Z = static_cast<Toolbox::f32>(Pass * 10);
+		RequireSuccess_Internal(Render.Get3D().DrawTriangle({-100, -100, Z}, {0, 100, Z}, {100, -100, Z}, Style));
+		if (Pass > 0)
+		{
+			RequireSuccess_Internal(Render.Native(
+			    [&]() -> TResult<void>
+			    {
+				    const auto Pixels = Read_Internal();
+				    Check_Internal(Pixels.OverlapRgb == 0xff4020 &&
+				                       Pixels.OverlayRgb == (Pass == 1 ? 0xffffffu : 0xff4020u),
+				                   "viewport overlap and revisit reset only the new rectangle depth");
+				    return {};
+			    }));
+		}
+	}
+	RequireSuccess_Internal(Renderer.EndFrame());
 }
 
 void Run_Internal(const Toolbox::FPath& Root, const Toolbox::FPath& OutDir)
@@ -339,6 +557,9 @@ void Run_Internal(const Toolbox::FPath& Root, const Toolbox::FPath& OutDir)
 
 	// 同じ手作成データで骨・2モーフ・UV1・頂点色・PBRを同時に使用する。
 	FModel Combined = TakeOrThrow_Internal(Assets.LoadModel("Tests/Assets/CombinedModel.fbx"));
+	ViewportOverlap_Internal(Renderer);
+	ViewportProjection_Internal(Smoke, Renderer, Assets);
+	ViewportSmoke_Internal(Smoke, Renderer, Assets, Combined);
 	FModelInstance CombinedA = TakeOrThrow_Internal(Assets.CreateModelInstance(Combined));
 	FModelInstance CombinedB = TakeOrThrow_Internal(Assets.CreateModelInstance(Combined));
 	RequireSuccess_Internal(CombinedA.SetTransform(Toolbox::FMatrix4::Translation({-120, 0, 0})));
@@ -657,6 +878,11 @@ struct FApplicationModelTrace
 	Toolbox::int32 Captured = 0;
 	// 受付後の資源失効を起こしてApplicationの失敗終了を通す。
 	bool bInvalidate = false;
+	// 分割時の更新数と描画時刻を観察する。
+	bool bSplit = false;
+	Toolbox::int32 Ticks = 0;
+	Toolbox::f64 TimeBeforeDraw = 0;
+	Toolbox::f64 TimeAfterDraw = 0;
 };
 
 // 実GameSceneが所有し、実Applicationから初期化・描画・終了されるモデルオブジェクト。
@@ -680,8 +906,14 @@ protected:
 		++m_Trace.Initialized;
 		return {};
 	}
+	void OnTick(const FTickContext& Context) override
+	{
+		++m_Trace.Ticks;
+		RequireSuccess_Internal(m_Instance.Advance(Context.Time.DeltaSeconds));
+	}
 	void OnDraw(FRenderContext& Render) const override
 	{
+		m_Trace.TimeBeforeDraw = m_Instance.GetTime();
 		// 正射影と正面光でPBR・UV1・頂点色・両モーフ・骨を描く。
 		FRenderView3D View;
 		View.Eye = {0, 100, -600};
@@ -690,8 +922,14 @@ protected:
 		View.OrthographicHeight = 400;
 		View.LightDirection = {0, 0, 1};
 		View.LightColor = {255, 255, 255, 255};
-		RequireSuccess_Internal(Render.Get3D().SetView(View));
-		RequireSuccess_Internal(Render.Get3D().DrawModel(m_Instance));
+		for (Toolbox::int32 Side = 0; Side < (m_Trace.bSplit ? 2 : 1); ++Side)
+		{
+			View.bViewport = m_Trace.bSplit;
+			View.Viewport = {Side * 320, 0, (Side + 1) * 320, 480};
+			RequireSuccess_Internal(Render.Get3D().SetView(View));
+			RequireSuccess_Internal(Render.Get3D().DrawModel(m_Instance));
+		}
+		m_Trace.TimeAfterDraw = m_Instance.GetTime();
 		FDrawStyle Style;
 		Style.Color = {255, 64, 32, 255};
 		RequireSuccess_Internal(Render.Get2D().FillRectangle({10, 10, 40, 40}, Style));
@@ -743,11 +981,12 @@ private:
 };
 
 // 低レベルRenderer試験とは別に、ApplicationとScene所有境界を実DxLibで通す。
-void RunApplication_Internal(const Toolbox::FPath& Root, bool bFail)
+void RunApplication_Internal(const Toolbox::FPath& Root, bool bFail, bool bSplit = false)
 {
 	FDxLibBackends Backends;
 	FApplicationModelTrace Trace;
 	Trace.bInvalidate = bFail;
+	Trace.bSplit = bSplit;
 	FApplicationSettings Settings;
 	Settings.Window.Width = Width;
 	Settings.Window.Height = Height;
@@ -767,19 +1006,29 @@ void RunApplication_Internal(const Toolbox::FPath& Root, bool bFail)
 	Check_Internal(First && First.Value() && Trace.Captured == 1 && Trace.Image.Pixels[0] > 200 &&
 	                   Trace.Image.Pixels[1] > 200 && Trace.Image.OverlayRgb == 0xff4020u,
 	               "real Application GameScene object renders combined model and 2D");
+	Check_Internal(Trace.Ticks == 1 && Trace.TimeBeforeDraw == Trace.TimeAfterDraw,
+	               "real Application updates object once regardless of viewport count");
 	const FSignature Initial = Trace.Image;
+	if (bSplit)
+	{
+		Check_Internal(static_cast<bool>(App.Step(1.0 / 60.0)) && Trace.Ticks == 2 &&
+		                   Toolbox::Abs(Trace.TimeBeforeDraw - (0.5 + 1.0 / 60.0)) < 0.000001 &&
+		                   Trace.TimeBeforeDraw == Trace.TimeAfterDraw,
+		               "split Application advances animation once before both views");
+	}
 	const Toolbox::int32 ShaderCount = DxLib::GetHandleNum(DX_HANDLETYPE_SHADER);
 	Check_Internal(ShaderCount > 0, "PBR created a shader handle");
 	RequireSuccess_Internal(App.GetScenes().RequestChange<DGameScene>());
-	Check_Internal(static_cast<bool>(App.Step(0)), "real Application switches to empty scene");
+	Check_Internal(static_cast<bool>(App.Step(bSplit ? 1.0 / 60.0 : 0)), "real Application switches to empty scene");
 	App.GetAssets().CollectUnused();
 	Check_Internal(DxLib::GetHandleNum(DX_HANDLETYPE_MODEL) == 0 && DxLib::GetHandleNum(DX_HANDLETYPE_MODEL_BASE) == 0,
 	               "scene retirement and collection release native model handles");
-	Check_Internal(Trace.Deinitialized == 1 && Trace.Captured == 1,
+	Check_Internal(Trace.Deinitialized == 1 && Trace.Captured == (bSplit ? 2 : 1),
 	               "retired GameScene releases object and does not replay model draw");
 	RequireSuccess_Internal(App.GetScenes().RequestChange<ACombinedModelScene>(Trace));
-	Check_Internal(static_cast<bool>(App.Step(0)), "real Application reloads model scene");
-	Check_Internal(Trace.Initialized == 2 && Trace.Captured == 2 && Trace.Image.ColorHash[0] == Initial.ColorHash[0] &&
+	Check_Internal(static_cast<bool>(App.Step(bSplit ? 1.0 / 60.0 : 0)), "real Application reloads model scene");
+	Check_Internal(Trace.Initialized == 2 && Trace.Captured == (bSplit ? 3 : 2) &&
+	                   Trace.Image.ColorHash[0] == Initial.ColorHash[0] &&
 	                   Trace.Image.ColorHash[1] == Initial.ColorHash[1],
 	               "scene reload reproduces combined model pixels");
 	Check_Internal(DxLib::GetHandleNum(DX_HANDLETYPE_SHADER) == ShaderCount,
@@ -804,6 +1053,8 @@ Toolbox::int32 main(Toolbox::int32 ArgCount, char** Args)
 		Run_Internal(Toolbox::FPath(Args[1]), OutDir);
 		RunApplication_Internal(Toolbox::FPath(Args[1]), false);
 		RunApplication_Internal(Toolbox::FPath(Args[1]), true);
+		RunApplication_Internal(Toolbox::FPath(Args[1]), false, true);
+		RunApplication_Internal(Toolbox::FPath(Args[1]), true, true);
 		RunApplication_Internal(Toolbox::FPath(Args[1]), false);
 		// 同じプロセスでGPU資源を作り直し、古いハンドルを再利用しない。
 		Run_Internal(Toolbox::FPath(Args[1]), OutDir);

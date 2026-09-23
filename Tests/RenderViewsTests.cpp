@@ -80,6 +80,10 @@ public:
 	{
 		return m_bSupported;
 	}
+	bool SupportsViewports3D() const noexcept override
+	{
+		return true;
+	}
 	bool SupportsGeometry3D() const noexcept override
 	{
 		return m_bSupported;
@@ -490,4 +494,67 @@ TEST("legacy backend cannot silently fill an unsupported outline rectangle")
 	REQUIRE(!Renderer.EndFrame());
 	REQUIRE(Backend.m_Order.IsEmpty());
 	REQUIRE(Backend.m_Presentations == 0);
+}
+
+TEST("viewport rejects invalid extents without replacing accepted view")
+{
+	FViewBackend Backend;
+	FRenderSystem Renderer(Backend);
+	REQUIRE(Renderer.BeginFrame(641, 480));
+	auto& Draw = Renderer.GetContext().Get3D();
+	FRenderView3D Left;
+	Left.bViewport = true;
+	Left.Viewport = {0, 0, 320, 480};
+	REQUIRE(Draw.SetView(Left));
+	REQUIRE(Draw.DrawBox(Toolbox::FOBB{}));
+	const FIntRect Invalid[] = {{0, 0, 0, 480},   {-1, 0, 320, 480},       {0, 0, 642, 480},
+	                            {0, 0, 320, 481}, {0, 0, 2147483647, 480}, {0, 3, 320, 2}};
+	for (const auto& Rect : Invalid)
+	{
+		FRenderView3D Candidate = Left;
+		Candidate.Viewport = Rect;
+		REQUIRE(!Draw.SetView(Candidate));
+	}
+	REQUIRE(Draw.DrawBox(Toolbox::FOBB{}));
+	FRenderView3D Right = Left;
+	Right.Viewport = {320, 0, 641, 480};
+	Right.Eye.X = 1;
+	Right.LightColor = {80, 90, 100, 255};
+	REQUIRE(Draw.SetView(Right));
+	REQUIRE(Draw.DrawBox(Toolbox::FOBB{}));
+	Right.Viewport = {};
+	Right.Eye.X = 20;
+	REQUIRE(Renderer.EndFrame());
+	REQUIRE(Backend.m_Views.Size() == 2);
+	REQUIRE(Backend.m_Views[0].Viewport.Right == 320);
+	REQUIRE(Backend.m_Views[1].Viewport.Left == 320);
+	REQUIRE(Backend.m_Views[1].Viewport.Right == 641);
+	REQUIRE(Backend.m_Views[1].Eye.X == 1);
+	REQUIRE(Backend.m_Views[1].LightColor.R == 80);
+	REQUIRE(Backend.m_Presentations == 1);
+}
+
+TEST("viewport retained across target size change rejects generated work before jobs")
+{
+	FViewBackend Backend;
+	FRenderSystem Renderer(Backend);
+	Toolbox::FJobSystem Jobs(1);
+	REQUIRE(Renderer.SetExecutionJobs(Jobs));
+	REQUIRE(Renderer.BeginFrame(640, 480));
+	FRenderView3D View;
+	View.bViewport = true;
+	View.Viewport = {320, 0, 640, 480};
+	REQUIRE(Renderer.GetContext().Get3D().SetView(View));
+	REQUIRE(Renderer.EndFrame());
+	REQUIRE(Renderer.BeginFrame(320, 240));
+	bool Generated = false;
+	REQUIRE(!Renderer.GetContext().Get3D().SubmitGenerated(1,
+	                                                       [&](Toolbox::size_t, FGeometryCommand3D&) -> TResult<void>
+	                                                       {
+		                                                       Generated = true;
+		                                                       return {};
+	                                                       }));
+	REQUIRE(!Generated);
+	REQUIRE(Backend.m_Views.IsEmpty());
+	REQUIRE(Renderer.EndFrame());
 }

@@ -5,8 +5,49 @@
 #include "Toolbox/Utility.h"
 #include "Toolbox/Vector.h"
 #define DX_CMP_LESSEQUAL 4
+#define DX_CMP_ALWAYS 8
+#define DX_BLENDMODE_DESTCOLOR 8
+#define DX_DIRECT3D_11 3
 namespace DxLib
 {
+struct MATRIX
+{
+	Toolbox::f32 m[4][4];
+};
+inline Toolbox::int32 ViewCall_Internal();
+inline Toolbox::f32 TestDrawZ = 0.2f;
+inline Toolbox::int32 TestD3DVersion = DX_DIRECT3D_11;
+inline Toolbox::int32 GetDrawScreen()
+{
+	return -1;
+}
+inline Toolbox::int32 GetUseDirect3DVersion()
+{
+	return TestD3DVersion;
+}
+inline Toolbox::int32 GetDrawScreenSize(Toolbox::int32* W, Toolbox::int32* H)
+{
+	*W = 640;
+	*H = 480;
+	return 0;
+}
+inline MATRIX GetCameraProjectionMatrix()
+{
+	return {};
+}
+inline Toolbox::int32 SetupCamera_ProjectionMatrix(MATRIX)
+{
+	return ViewCall_Internal();
+}
+inline Toolbox::int32 SetCameraScreenCenter(Toolbox::f32, Toolbox::f32)
+{
+	return ViewCall_Internal();
+}
+inline Toolbox::int32 SetDrawZ(Toolbox::f32 Z)
+{
+	TestDrawZ = Z;
+	return ViewCall_Internal();
+}
 struct VECTOR
 {
 	Toolbox::f32 x;

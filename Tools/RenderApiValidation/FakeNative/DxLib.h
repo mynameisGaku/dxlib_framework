@@ -12,7 +12,21 @@ namespace DxLib
 inline Toolbox::int32 TestPresentCount = 0;
 inline Toolbox::int32 TestBoxFill = -1;
 inline Toolbox::int32 SetDrawScreen(Toolbox::int32) { return 0; }
-inline Toolbox::int32 SetDrawArea(Toolbox::int32, Toolbox::int32, Toolbox::int32, Toolbox::int32) { return 0; }
+// 描画範囲の設定・復帰を故障注入で観察する。
+inline Toolbox::int32 TestAreaCalls = 0;
+inline Toolbox::int32 TestAreaFailAt = -1;
+inline Toolbox::int32 TestAreaLeft = 0;
+inline Toolbox::int32 TestAreaRight = 0;
+inline Toolbox::int32 SetDrawArea(Toolbox::int32 Left, Toolbox::int32, Toolbox::int32 Right, Toolbox::int32)
+{
+	if (++TestAreaCalls == TestAreaFailAt)
+	{
+		return -1;
+	}
+	TestAreaLeft = Left;
+	TestAreaRight = Right;
+	return 0;
+}
 inline Toolbox::int32 SetDrawBlendMode(Toolbox::int32, Toolbox::int32) { return 0; }
 inline Toolbox::int32 SetDrawBright(Toolbox::int32, Toolbox::int32, Toolbox::int32) { return 0; }
 inline Toolbox::int32 SetDrawMode(Toolbox::int32) { return 0; }
@@ -27,6 +41,12 @@ inline Toolbox::uint32 GetColor(Toolbox::int32 R, Toolbox::int32 G, Toolbox::int
 inline Toolbox::int32 DrawModiGraphF(Toolbox::f32, Toolbox::f32, Toolbox::f32, Toolbox::f32, Toolbox::f32, Toolbox::f32, Toolbox::f32, Toolbox::f32, Toolbox::int32, Toolbox::int32) { return 0; }
 inline Toolbox::int32 DrawStringFToHandle(Toolbox::f32, Toolbox::f32, const char*, Toolbox::uint32, Toolbox::int32) { return 0; }
 inline Toolbox::int32 DrawBox(Toolbox::int32, Toolbox::int32, Toolbox::int32, Toolbox::int32, Toolbox::uint32, Toolbox::int32 Fill) { TestBoxFill = Fill; return 0; }
+inline Toolbox::int32 GetGraphSize(Toolbox::int32, Toolbox::int32* W, Toolbox::int32* H)
+{
+	*W = 640;
+	*H = 480;
+	return 0;
+}
 inline Toolbox::int32 ScreenFlip() { ++TestPresentCount; return 0; }
 }
 #include "RenderViewsApi.h"

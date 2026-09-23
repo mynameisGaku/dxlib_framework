@@ -69,6 +69,13 @@ public:
 		return true;
 	}
 	/**
+	 * 矩形ごとの投影と領域内深度初期化に対応するか。
+	 */
+	bool SupportsViewports3D() const noexcept override
+	{
+		return true;
+	}
+	/**
 	 * カメラ付き基本3D形状を描ける。
 	 */
 	bool SupportsGeometry3D() const noexcept override
@@ -88,7 +95,7 @@ public:
 	 */
 	TResult<void> DrawTriangle2D(const FTriangleCommand2D& Command) override;
 	/**
-	 * @param View 全描画先に適用する透視ビュー。深度だけを消去する。
+	 * @param View 全描画先または矩形へ適用するビュー。領域内の深度だけを初期化する。
 	 */
 	TResult<void> BeginView3D(const FRenderView3D& View) override;
 	/**
@@ -119,6 +126,14 @@ private:
 	 * Nativeビューが開始済みか。所有スレッドだけで操作する。
 	 */
 	bool m_bView3D = false;
+	/**
+	 * 矩形ビュー開始時に取得した実描画先の幅。
+	 */
+	Toolbox::int32 m_TargetWidth = 0;
+	/**
+	 * 矩形ビュー開始時に取得した実描画先の高さ。
+	 */
+	Toolbox::int32 m_TargetHeight = 0;
 	/**
 	 * GPUモデル照明に使う、開始時点のビュー。
 	 */

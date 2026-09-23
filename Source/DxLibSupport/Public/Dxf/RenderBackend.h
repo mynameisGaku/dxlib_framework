@@ -55,6 +55,13 @@ public:
 		return false;
 	}
 	/**
+	 * 矩形ごとの投影と領域内深度初期化に対応するか。
+	 */
+	virtual bool SupportsViewports3D() const noexcept
+	{
+		return false;
+	}
+	/**
 	 * このBackendがワールド座標の基本3D形状を扱えるか。
 	 */
 	virtual bool SupportsGeometry3D() const noexcept
@@ -90,7 +97,7 @@ public:
 		return Unsupported_Internal();
 	}
 	/**
-	 * 全描画先でビューを開始する。ビュー切替時に深度を初期化する。
+	 * 全描画先または指定矩形で開始し、その領域内の深度を初期化する。
 	 * @param View カメラ設定。失敗時もEndView3Dを呼び出す。
 	 */
 	virtual TResult<void> BeginView3D(const FRenderView3D&)

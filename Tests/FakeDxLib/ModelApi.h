@@ -19,10 +19,6 @@ struct COLOR_F
 	Toolbox::f32 b;
 	Toolbox::f32 a;
 };
-struct MATRIX
-{
-	Toolbox::f32 m[4][4];
-};
 /**
  * モデル関数の呼び出し記録。
  */

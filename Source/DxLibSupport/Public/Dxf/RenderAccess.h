@@ -35,6 +35,14 @@ public:
 	 */
 	bool m_bBusy = false;
 	/**
+	 * 現在の描画先の幅。0は単独Contextで寸法未確定。
+	 */
+	Toolbox::int32 m_TargetWidth = 0;
+	/**
+	 * 現在の描画先の高さ。
+	 */
+	Toolbox::int32 m_TargetHeight = 0;
+	/**
 	 * 共有実行器。呼び出し中および未退役Jobより長く存続する借用。
 	 */
 	Toolbox::FJobSystem* m_pJobs = nullptr;

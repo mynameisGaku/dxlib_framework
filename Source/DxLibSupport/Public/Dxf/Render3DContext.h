@@ -77,6 +77,10 @@ public:
 		{
 			return StateError_Internal();
 		}
+		if (!FitsTarget_Internal(m_View))
+		{
+			return InvalidGeometry_Internal();
+		}
 		if (Count > 65536 || Count > 65536 - m_Commands.Size())
 		{
 			return LimitError_Internal();
@@ -134,6 +138,10 @@ public:
 		return !m_Commands.IsEmpty() || !m_Models.IsEmpty();
 	}
 private:
+	/**
+	 * @param View 既知の現在描画先へ収まるかを確認するビュー。
+	 */
+	bool FitsTarget_Internal(const FRenderView3D& View) const noexcept;
 	/**
 	 * 一回のFlushまでに保持する線・三角形の合計上限。
 	 */

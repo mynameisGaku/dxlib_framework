@@ -2,6 +2,7 @@
 #include "Support/Test.h"
 #include "Support/FakeBackend.h"
 #include "Dxf/Application.h"
+#include "Dxf/PhysicsScene3D.h"
 #include "Toolbox/Atomic.h"
 #include "Toolbox/Thread.h"
 
@@ -62,6 +63,10 @@ public:
 		return Record_Internal("rectangle2d");
 	}
 
+	bool SupportsViewports3D() const noexcept override
+	{
+		return true;
+	}
 	bool SupportsGeometry3D() const noexcept override
 	{
 		return true;
@@ -394,5 +399,56 @@ TEST("application waits for a failed generated batch and does not present queued
 	REQUIRE(CountEvent_Internal(Trace, "rectangle2d") == 0);
 	REQUIRE(CountEvent_Internal(Trace, "present") == 0);
 	REQUIRE(Trace.Deinitialized == 1);
+}
+
+// 実物理SceneのStepIndexを描画前後で比較する。Backendだけ記録用に置き換える。
+class AViewportPhysicsScene final : public DPhysicsScene3D
+{
+public:
+	explicit AViewportPhysicsScene(bool Split) : m_bSplit(Split)
+	{
+	}
+	mutable Toolbox::uint64 Before = 0;
+	mutable Toolbox::uint64 After = 0;
+
+protected:
+	void OnDraw(FRenderContext& Render) const override
+	{
+		Before = GetPhysicsWorld().CaptureSnapshot().StepIndex;
+		for (int32 Side = 0; Side < (m_bSplit ? 2 : 1); ++Side)
+		{
+			FRenderView3D View;
+			View.bViewport = m_bSplit;
+			View.Viewport = {Side * 160, 0, (Side + 1) * 160, 240};
+			RequireRender_Internal(Render.Get3D().SetView(View));
+			RequireRender_Internal(Render.Get3D().DrawLine({0, 0, 0}, {1, 0, 0}));
+		}
+		After = GetPhysicsWorld().CaptureSnapshot().StepIndex;
+	}
+
+private:
+	bool m_bSplit;
+};
+TEST("real Application physics advances once while two viewports only draw")
+{
+	for (int32 Split = 0; Split < 2; ++Split)
+	{
+		Testing::FFakeBackend Services;
+		FApplicationRenderTrace Trace;
+		FApplicationRecordingBackend Renderer(Trace);
+		FApplication App({Services, Services, Services, Services, Services, Renderer}, MakeSettings_Internal());
+		auto Scene = MakeUnique<AViewportPhysicsScene>(Split != 0);
+		auto* Observer = Scene.Get();
+		REQUIRE(App.Start(Move(Scene)));
+		REQUIRE(App.Step(0));
+		for (uint64 Frame = 1; Frame <= 3; ++Frame)
+		{
+			REQUIRE(App.Step(static_cast<f64>(Frame) / 60.0));
+			REQUIRE(Observer->Before == Frame);
+			REQUIRE(Observer->After == Frame);
+		}
+		REQUIRE(CountEvent_Internal(Trace, "begin3d") == (Split ? 8 : 4));
+		REQUIRE(CountEvent_Internal(Trace, "present") == 4);
+	}
 }
 }

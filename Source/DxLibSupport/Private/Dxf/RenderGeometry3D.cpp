@@ -72,6 +72,12 @@ FColor Shade_Internal(const FTriangle3D& Triangle, FColor Base, const FRenderVie
 }
 bool IsValidRenderView3D(const FRenderView3D& View) noexcept
 {
+	// 終端を直接指定するため、座標と幅の加算による整数あふれを避ける。
+	const auto& Rect = View.Viewport;
+	if (View.bViewport && (Rect.Left < 0 || Rect.Top < 0 || Rect.Right <= Rect.Left || Rect.Bottom <= Rect.Top))
+	{
+		return false;
+	}
 	// 正射影の大きさとモデル専用光源も、受付時に検証する。
 	if (!Toolbox::IsFinite(View.OrthographicHeight) || View.OrthographicHeight <= 0)
 	{

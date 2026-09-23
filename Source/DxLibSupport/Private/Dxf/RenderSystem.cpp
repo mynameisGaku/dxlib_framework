@@ -63,6 +63,7 @@ TResult<void> FRenderSystem::BeginFrame(Toolbox::int32 Width, Toolbox::int32 Hei
 	{
 		return Result;
 	}
+	m_Context.SetTargetSize_Internal(Width, Height);
 	m_Width = Width;
 	m_Height = Height;
 	m_Target = {};
@@ -109,6 +110,7 @@ TResult<void> FRenderSystem::RestoreTarget_Internal()
 	{
 		return Reset;
 	}
+	m_Context.SetTargetSize_Internal(Width, Height);
 	m_Queue.SetTarget_Internal(Handle);
 	return {};
 }

@@ -70,8 +70,36 @@ TResult<void> FDxLibRenderBackend::BeginView3D(const FRenderView3D& View)
 	{
 		return TResult<void>::Failure(EErrorCode::InvalidState, "Invalid or nested 3D view");
 	}
+	if (View.bViewport)
+	{
+		if (DxLib::GetUseDirect3DVersion() != DX_DIRECT3D_11)
+		{
+			return TResult<void>::Failure(EErrorCode::BackendFailure, "Viewport requires Direct3D11");
+		}
+		// GetDrawScreenSizeはウィンドウ寸法を返すため、テクスチャ描画先は別に問い合わせる。
+		const Toolbox::int32 Target = DxLib::GetDrawScreen();
+		const Toolbox::int32 SizeResult = Target < 0 ? DxLib::GetDrawScreenSize(&m_TargetWidth, &m_TargetHeight)
+		                                             : DxLib::GetGraphSize(Target, &m_TargetWidth, &m_TargetHeight);
+		if (SizeResult < 0 || View.Viewport.Right > m_TargetWidth || View.Viewport.Bottom > m_TargetHeight)
+		{
+			return TResult<void>::Failure(EErrorCode::InvalidArgument, "Viewport exceeds current target");
+		}
+	}
 	m_bView3D = true;
 	m_ModelView = View;
+	if (View.bViewport)
+	{
+		const auto& Rect = View.Viewport;
+		// D3D11のClearDepthStencilViewは矩形を無視する。色・アルファを保持して深度1だけを書く。
+		if (DxLib::SetDrawArea(Rect.Left, Rect.Top, Rect.Right, Rect.Bottom) < 0 ||
+		    DxLib::SetUseZBufferFlag(TRUE) < 0 || DxLib::SetWriteZBufferFlag(TRUE) < 0 ||
+		    DxLib::SetZBufferCmpType(DX_CMP_ALWAYS) < 0 || DxLib::SetDrawZ(1.0f) < 0 ||
+		    DxLib::SetDrawBlendMode(DX_BLENDMODE_DESTCOLOR, 255) < 0 ||
+		    DxLib::DrawBox(Rect.Left, Rect.Top, Rect.Right, Rect.Bottom, DxLib::GetColor(255, 255, 255), TRUE) < 0)
+		{
+			return TResult<void>::Failure(EErrorCode::BackendFailure, "Viewport depth initialization failed");
+		}
+	}
 	// 照明は受け取った頂点色へ評価済み。DxLibのライトで二重評価しない。
 	if (DxLib::SetUseLighting(FALSE) < 0 || DxLib::SetUseBackCulling(FALSE) < 0 ||
 	    DxLib::SetDrawBright(255, 255, 255) < 0 || DxLib::SetUseVertexShader(-1) < 0 ||
@@ -81,9 +109,24 @@ TResult<void> FDxLibRenderBackend::BeginView3D(const FRenderView3D& View)
 	    DxLib::SetCameraNearFar(View.NearPlane, View.FarPlane) < 0 ||
 	    DxLib::SetCameraPositionAndTargetAndUpVec(NativeVector_Internal(View.Eye), NativeVector_Internal(View.Target),
 	                                              NativeVector_Internal(View.Up)) < 0 ||
-	    DxLib::ClearDrawScreenZBuffer() < 0)
+	    (!View.bViewport && DxLib::ClearDrawScreenZBuffer() < 0))
 	{
 		return TResult<void>::Failure(EErrorCode::BackendFailure, "3D view setup failed");
+	}
+	if (View.bViewport)
+	{
+		const auto& Rect = View.Viewport;
+		// 全描画先基準の投影を矩形の縦サイズへ縮小する。Xも同率なので画素の縦横比は変えない。
+		auto Projection = DxLib::GetCameraProjectionMatrix();
+		const Toolbox::f32 Scale = static_cast<Toolbox::f32>(Rect.Bottom - Rect.Top) / m_TargetHeight;
+		Projection.m[0][0] *= Scale;
+		Projection.m[1][1] *= Scale;
+		if (DxLib::SetupCamera_ProjectionMatrix(Projection) < 0 ||
+		    DxLib::SetCameraScreenCenter(Rect.Left + (Rect.Right - Rect.Left) * 0.5f,
+		                                 Rect.Top + (Rect.Bottom - Rect.Top) * 0.5f) < 0)
+		{
+			return TResult<void>::Failure(EErrorCode::BackendFailure, "Viewport projection failed");
+		}
 	}
 	return {};
 }
@@ -133,6 +176,26 @@ TResult<void> FDxLibRenderBackend::EndView3D()
 	m_bView3D = false;
 	// 一項目の復帰に失敗しても、残りの復帰処理を試す。
 	bool Success = RestoreModelLights_Internal();
+	if (m_ModelView.bViewport)
+	{
+		// 失敗後も各項目を独立して復帰する。2Dだけのフレームには追加処理しない。
+		if (DxLib::SetDrawArea(0, 0, m_TargetWidth, m_TargetHeight) < 0)
+		{
+			Success = false;
+		}
+		if (DxLib::SetDrawZ(0.2f) < 0)
+		{
+			Success = false;
+		}
+		if (DxLib::SetupCamera_Perspective(1.0471975512f) < 0)
+		{
+			Success = false;
+		}
+		if (DxLib::SetCameraScreenCenter(m_TargetWidth * 0.5f, m_TargetHeight * 0.5f) < 0)
+		{
+			Success = false;
+		}
+	}
 	if (DxLib::SetUseZBufferFlag(FALSE) < 0)
 	{
 		Success = false;

@@ -46,7 +46,7 @@ struct FDebugViewSettings3D
 	FColor EdgeColor{32, 255, 96, 255};
 };
 /**
- * 全描画先を使う透視投影ビュー。位置はワールド単位、角度はラジアン。
+ * 全描画先または指定矩形を使う透視投影ビュー。位置はワールド単位、角度はラジアン。
  * Idは調査対象の識別値。設定は命令受付時に複写され、後の変更は遡及しない。
  * 基本形状の照明はCPUの面単位評価。照明を有効にしたモデルはDxLibのGPU照明で評価する。
  */
@@ -144,6 +144,15 @@ struct FRenderView3D
 	 * スポット光の外角（ラジアン、全角）。
 	 */
 	Toolbox::f32 ModelLightOuterAngle = 1;
+	/**
+	 * trueならViewportを使用する。falseなら従来どおり全描画先。
+	 */
+	bool bViewport = false;
+	/**
+	 * 描画先ピクセルの半開区間 [Left, Right) × [Top, Bottom)。
+	 * 有効時は非負の始点と正の幅・高さが必要。描画先外は補正せず失敗する。
+	 */
+	FIntRect Viewport{};
 };
 /**
  * 有限値・カメラ基底・列挙値・照明を検証する。
