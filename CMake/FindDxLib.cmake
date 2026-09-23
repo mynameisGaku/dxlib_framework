@@ -1,24 +1,123 @@
-# Official VC package only. No SDK is downloaded implicitly by CMake.
+# Finds the DxLib SDK used by the native adapter. No SDK is downloaded implicitly by CMake.
+#
+# Default: the official VC package (DXLIB_ROOT). DxLib.h selects the libraries through its own
+# MSVC autolink directives, exactly as before.
+#
+# Custom build: DXF_DXLIB_CUSTOM_ROOT points to the output of Tools/DxLibFbx/BuildDxLibFbx.ps1.
+# Its DxLibFbx.json manifest lists the exact per-configuration libraries and their SHA-256.
+# The autolink is disabled (DX_LIB_NOT_DEFAULTPATH) so that the official core library is never
+# linked in addition to the custom one. A manifest built with FBX also lists the FBX SDK libraries.
 include(FindPackageHandleStandardArgs)
+set(DXF_DXLIB_CUSTOM_ROOT "" CACHE PATH "Custom DxLib build produced by Tools/DxLibFbx (contains DxLibFbx.json)")
+option(DXF_REQUIRE_FBX_MODEL "Fail configuration unless the DxLib build can load .fbx models directly" OFF)
 if(NOT DXLIB_ROOT AND DEFINED ENV{DXLIB_ROOT})
     set(DXLIB_ROOT "$ENV{DXLIB_ROOT}")
 endif()
-set(_dxf_hints "${DXLIB_ROOT}")
-if(DXLIB_ROOT)
-    file(GLOB _dxf_children LIST_DIRECTORIES true "${DXLIB_ROOT}/*" "${DXLIB_ROOT}/*/*")
-    list(APPEND _dxf_hints ${_dxf_children})
+if(NOT DXF_DXLIB_CUSTOM_ROOT AND DEFINED ENV{DXF_DXLIB_CUSTOM_ROOT})
+    set(DXF_DXLIB_CUSTOM_ROOT "$ENV{DXF_DXLIB_CUSTOM_ROOT}")
 endif()
-find_path(DxLib_INCLUDE_DIR DxLib.h HINTS ${_dxf_hints} NO_DEFAULT_PATH)
-if(DxLib_INCLUDE_DIR)
-    file(GLOB DxLib_LIBRARIES "${DxLib_INCLUDE_DIR}/*.lib")
+
+set(DxLib_HAS_FBX FALSE)
+if(DXF_DXLIB_CUSTOM_ROOT)
+    set(_dxf_manifest "${DXF_DXLIB_CUSTOM_ROOT}/DxLibFbx.json")
+    if(NOT EXISTS "${_dxf_manifest}")
+        message(FATAL_ERROR "DXF_DXLIB_CUSTOM_ROOT has no DxLibFbx.json: ${DXF_DXLIB_CUSTOM_ROOT}")
+    endif()
+    file(READ "${_dxf_manifest}" _dxf_json)
+    string(JSON _dxf_with_fbx GET "${_dxf_json}" with_fbx)
+    string(JSON DxLib_VERSION GET "${_dxf_json}" dxlib_version)
+    set(DxLib_INCLUDE_DIR "${DXF_DXLIB_CUSTOM_ROOT}/include")
+    if(NOT EXISTS "${DxLib_INCLUDE_DIR}/DxLib.h")
+        message(FATAL_ERROR "Custom DxLib build has no include/DxLib.h: ${DXF_DXLIB_CUSTOM_ROOT}")
+    endif()
+    foreach(_dxf_config IN ITEMS Debug Release)
+        set(_dxf_libs_${_dxf_config})
+        string(JSON _dxf_count LENGTH "${_dxf_json}" libraries ${_dxf_config})
+        math(EXPR _dxf_last "${_dxf_count} - 1")
+        foreach(_dxf_index RANGE ${_dxf_last})
+            string(JSON _dxf_path GET "${_dxf_json}" libraries ${_dxf_config} ${_dxf_index} path)
+            string(JSON _dxf_hash GET "${_dxf_json}" libraries ${_dxf_config} ${_dxf_index} sha256)
+            # Relative paths belong to the custom build; absolute paths are the installed FBX SDK.
+            if(NOT IS_ABSOLUTE "${_dxf_path}")
+                set(_dxf_path "${DXF_DXLIB_CUSTOM_ROOT}/${_dxf_path}")
+            endif()
+            if(NOT EXISTS "${_dxf_path}")
+                message(FATAL_ERROR "Library listed in DxLibFbx.json is missing (${_dxf_config}): ${_dxf_path}")
+            endif()
+            file(SHA256 "${_dxf_path}" _dxf_actual)
+            if(NOT _dxf_actual STREQUAL _dxf_hash)
+                message(FATAL_ERROR "Library hash differs from DxLibFbx.json (${_dxf_config}): ${_dxf_path}")
+            endif()
+            list(APPEND _dxf_libs_${_dxf_config} "${_dxf_path}")
+            message(STATUS "DxLib ${_dxf_config} library: ${_dxf_path}")
+        endforeach()
+    endforeach()
+    # Windows system libraries required by the listed libraries (no hash: they come from the Windows SDK).
+    set(_dxf_system_libs)
+    string(JSON _dxf_system_type ERROR_VARIABLE _dxf_system_error TYPE "${_dxf_json}" system_libraries)
+    if(_dxf_system_error)
+        # Older manifests without the field need no system libraries.
+    elseif(NOT _dxf_system_type STREQUAL "ARRAY")
+        message(FATAL_ERROR "DxLibFbx.json system_libraries must be an array (got ${_dxf_system_type})")
+    else()
+        string(JSON _dxf_system_count LENGTH "${_dxf_json}" system_libraries)
+        if(_dxf_system_count GREATER 0)
+            math(EXPR _dxf_system_last "${_dxf_system_count} - 1")
+            foreach(_dxf_index RANGE ${_dxf_system_last})
+                string(JSON _dxf_system GET "${_dxf_json}" system_libraries ${_dxf_index})
+                list(APPEND _dxf_system_libs "${_dxf_system}")
+                message(STATUS "DxLib system library: ${_dxf_system}")
+            endforeach()
+        endif()
+    endif()
+    set(DxLib_LIBRARIES ${_dxf_libs_Debug} ${_dxf_libs_Release})
+    if(_dxf_with_fbx)
+        set(DxLib_HAS_FBX TRUE)
+    endif()
+else()
+    set(_dxf_hints "${DXLIB_ROOT}")
+    if(DXLIB_ROOT)
+        file(GLOB _dxf_children LIST_DIRECTORIES true "${DXLIB_ROOT}/*" "${DXLIB_ROOT}/*/*")
+        list(APPEND _dxf_hints ${_dxf_children})
+    endif()
+    find_path(DxLib_INCLUDE_DIR DxLib.h HINTS ${_dxf_hints} NO_DEFAULT_PATH)
+    if(DxLib_INCLUDE_DIR)
+        file(GLOB DxLib_LIBRARIES "${DxLib_INCLUDE_DIR}/*.lib")
+    endif()
+endif()
+if(DXF_REQUIRE_FBX_MODEL AND NOT DxLib_HAS_FBX)
+    message(FATAL_ERROR "DXF_REQUIRE_FBX_MODEL=ON needs DXF_DXLIB_CUSTOM_ROOT built with FBX (Tools/DxLibFbx). "
+        "The official VC package cannot load .fbx models in every configuration.")
 endif()
 find_package_handle_standard_args(DxLib REQUIRED_VARS DxLib_INCLUDE_DIR DxLib_LIBRARIES
     REASON_FAILURE_MESSAGE "Set DXLIB_ROOT to the extracted official VC SDK (headers and .lib files are both required).")
 if(DxLib_FOUND AND NOT TARGET DxLib::SDK)
     add_library(DxLib::SDK INTERFACE IMPORTED)
-    # DxLib.h emits the version/architecture-specific MSVC autolink directives.
-    set_target_properties(DxLib::SDK PROPERTIES
-        INTERFACE_INCLUDE_DIRECTORIES "${DxLib_INCLUDE_DIR}"
-        INTERFACE_LINK_DIRECTORIES "${DxLib_INCLUDE_DIR}")
+    if(DXF_DXLIB_CUSTOM_ROOT)
+        # Explicit libraries only; the header autolink would add the official core library again.
+        # One generator expression per library: a list inside $<...> would be split at each semicolon.
+        set(_dxf_link)
+        foreach(_dxf_lib IN LISTS _dxf_libs_Debug)
+            list(APPEND _dxf_link "$<$<CONFIG:Debug>:${_dxf_lib}>")
+        endforeach()
+        foreach(_dxf_lib IN LISTS _dxf_libs_Release)
+            list(APPEND _dxf_link "$<$<NOT:$<CONFIG:Debug>>:${_dxf_lib}>")
+        endforeach()
+        if(DxLib_HAS_FBX)
+            set(_dxf_fbx_define 1)
+        else()
+            set(_dxf_fbx_define 0)
+        endif()
+        set_target_properties(DxLib::SDK PROPERTIES
+            INTERFACE_INCLUDE_DIRECTORIES "${DxLib_INCLUDE_DIR}"
+            INTERFACE_COMPILE_DEFINITIONS "DX_LIB_NOT_DEFAULTPATH;DXF_DXLIB_HAS_FBX=${_dxf_fbx_define}"
+            INTERFACE_LINK_LIBRARIES "${_dxf_link};${_dxf_system_libs}")
+    else()
+        # DxLib.h emits the version/architecture-specific MSVC autolink directives.
+        set_target_properties(DxLib::SDK PROPERTIES
+            INTERFACE_INCLUDE_DIRECTORIES "${DxLib_INCLUDE_DIR}"
+            INTERFACE_COMPILE_DEFINITIONS "DXF_DXLIB_HAS_FBX=0"
+            INTERFACE_LINK_DIRECTORIES "${DxLib_INCLUDE_DIR}")
+    endif()
 endif()
 mark_as_advanced(DxLib_INCLUDE_DIR)

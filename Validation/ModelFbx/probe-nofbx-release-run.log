@@ -1,0 +1,8 @@
+DxLib build: custom:C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-source (Release)
+DXF_DXLIB_HAS_FBX=0
+FAIL static load C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Assets\Models/StaticBox.fbx
+FAIL skinned load C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Assets\Models/SkinnedColumn.fbx
+FAIL load from a Japanese path Build\FbxModelProbe-nofbx\probe-Release/日本語パス/箱モデル.fbx
+PASS missing file returns -1
+PASS corrupt file returns -1 without crashing
+RESULT FAIL failures=3

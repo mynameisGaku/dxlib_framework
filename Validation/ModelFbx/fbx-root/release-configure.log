@@ -1,0 +1,62 @@
+$ cmake.exe -S C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework -B Build\Fbx-release -G Ninja -DCMAKE_CXX_COMPILER=cl -DCMAKE_BUILD_TYPE=Release -DDXLIB_ROOT=C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\ThirdParty\DxLib-3.25a\DxLib_VC\????????????????_VC? -UDXF_MSVC_INCLUDE_PREFIX -DDXF_BUILD_NATIVE=ON -DDXF_BUILD_EXAMPLE=ON -DDXF_BUILD_TESTS=ON -DDXF_BUILD_NATIVE_SMOKE=ON -DDXF_RUN_DEVICE_TESTS=OFF -DDXF_INSTALL=ON -DDXF_DXLIB_CUSTOM_ROOT=C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\ThirdParty\DxLib-3.25a-fbx -DDXF_REQUIRE_FBX_MODEL=ON
+-- The CXX compiler identification is MSVC 19.51.36257.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/cl.exe - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Failed
+-- Looking for pthread_create in pthreads
+-- Looking for pthread_create in pthreads - not found
+-- Looking for pthread_create in pthread
+-- Looking for pthread_create in pthread - not found
+-- Found Threads: TRUE
+-- DxLib Debug library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/DxLib_fbx_x64_MTd.lib
+-- DxLib Debug library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/DxUseCLib_vs2015_x64_MTd.lib
+-- DxLib Debug library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/DxDrawFunc_vs2015_x64_MTd.lib
+-- DxLib Debug library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/libbulletcollision_vs2015_x64_MTd.lib
+-- DxLib Debug library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/libbulletdynamics_vs2015_x64_MTd.lib
+-- DxLib Debug library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/libbulletmath_vs2015_x64_MTd.lib
+-- DxLib Debug library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/libtiff_vs2015_x64_MTd.lib
+-- DxLib Debug library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/libpng_vs2015_x64_MTd.lib
+-- DxLib Debug library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/zlib_vs2015_x64_MTd.lib
+-- DxLib Debug library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/libjpeg_vs2015_x64_MTd.lib
+-- DxLib Debug library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/ogg_static_vs2015_x64_MTd.lib
+-- DxLib Debug library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/vorbis_static_vs2015_x64_MTd.lib
+-- DxLib Debug library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/vorbisfile_static_vs2015_x64_MTd.lib
+-- DxLib Debug library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/libtheora_static_vs2015_x64_MTd.lib
+-- DxLib Debug library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/opus_vs2015_x64_MTd.lib
+-- DxLib Debug library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/opusfile_vs2015_x64_MTd.lib
+-- DxLib Debug library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/silk_common_vs2015_x64_MTd.lib
+-- DxLib Debug library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/celt_vs2015_x64_MTd.lib
+-- DxLib Debug library: C:\Program Files\Autodesk\FBX\FBX SDK\2020.3.11\lib\x64\debug\libfbxsdk-mt.lib
+-- DxLib Debug library: C:\Program Files\Autodesk\FBX\FBX SDK\2020.3.11\lib\x64\debug\libxml2-mt.lib
+-- DxLib Debug library: C:\Program Files\Autodesk\FBX\FBX SDK\2020.3.11\lib\x64\debug\zlib-mt.lib
+-- DxLib Release library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/DxLib_fbx_x64_MT.lib
+-- DxLib Release library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/DxUseCLib_vs2015_x64_MT.lib
+-- DxLib Release library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/DxDrawFunc_vs2015_x64_MT.lib
+-- DxLib Release library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/libbulletcollision_vs2015_x64_MT.lib
+-- DxLib Release library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/libbulletdynamics_vs2015_x64_MT.lib
+-- DxLib Release library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/libbulletmath_vs2015_x64_MT.lib
+-- DxLib Release library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/libtiff_vs2015_x64_MT.lib
+-- DxLib Release library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/libpng_vs2015_x64_MT.lib
+-- DxLib Release library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/zlib_vs2015_x64_MT.lib
+-- DxLib Release library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/libjpeg_vs2015_x64_MT.lib
+-- DxLib Release library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/ogg_static_vs2015_x64_MT.lib
+-- DxLib Release library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/vorbis_static_vs2015_x64_MT.lib
+-- DxLib Release library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/vorbisfile_static_vs2015_x64_MT.lib
+-- DxLib Release library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/libtheora_static_vs2015_x64_MT.lib
+-- DxLib Release library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/opus_vs2015_x64_MT.lib
+-- DxLib Release library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/opusfile_vs2015_x64_MT.lib
+-- DxLib Release library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/silk_common_vs2015_x64_MT.lib
+-- DxLib Release library: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/lib/celt_vs2015_x64_MT.lib
+-- DxLib Release library: C:\Program Files\Autodesk\FBX\FBX SDK\2020.3.11\lib\x64\release\libfbxsdk-mt.lib
+-- DxLib Release library: C:\Program Files\Autodesk\FBX\FBX SDK\2020.3.11\lib\x64\release\libxml2-mt.lib
+-- DxLib Release library: C:\Program Files\Autodesk\FBX\FBX SDK\2020.3.11\lib\x64\release\zlib-mt.lib
+-- DxLib system library: bcrypt.lib
+-- Found DxLib: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx/include
+-- Configuring done (3.0s)
+-- Generating done (0.1s)
+-- Build files have been written to: C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/Build/Fbx-release
+EXIT_CODE=0

@@ -1,0 +1,30 @@
+DxLib build: custom:C:/Users/g0190/OneDrive/Desktop/frame/dxlib_framework/ThirdParty/DxLib-3.25a-fbx (Release)
+DXF_DXLIB_HAS_FBX=1
+PASS static load C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Assets\Models/StaticBox.fbx
+PASS static mesh texture material meshes=1 textures=1 materials=1
+PASS static texture image loaded handle=67633153 name=CheckerTexture size=64x64
+PASS static has no animation
+PASS static texture visible in the rendered frame colored samples=569
+PASS static delete
+PASS static reload after delete C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Assets\Models/StaticBox.fbx
+PASS static mesh texture material meshes=1 textures=1 materials=1
+PASS static texture image loaded handle=68419588 name=CheckerTexture size=64x64
+PASS static has no animation
+PASS static delete
+PASS skinned load C:\Users\g0190\OneDrive\Desktop\frame\dxlib_framework\Assets\Models/SkinnedColumn.fbx
+PASS skeleton hierarchy Root->Bone1 frames=3 meshes=1 root=1 bone1=2 bone1.parent=Root
+PASS skinned mesh exists
+PASS animation clips by name clips=2 bend=0 twist=1
+PASS clip length positive total=30.000000 (native time units)
+PASS attach Bend
+PASS animation time changes Bone1 pose
+PASS duplicate model
+PASS duplicate keeps an independent animation time
+PASS delete duplicate
+PASS original survives duplicate deletion
+PASS detach animation
+PASS skinned delete
+PASS load from a Japanese path Build\FbxModelProbe\probe-Release/日本語パス/箱モデル.fbx
+PASS missing file returns -1
+PASS corrupt file returns -1 without crashing
+RESULT PASS failures=0
