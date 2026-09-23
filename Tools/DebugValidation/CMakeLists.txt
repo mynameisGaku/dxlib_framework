@@ -1,77 +1,61 @@
 cmake_minimum_required(VERSION 3.24)
-project(dxf_debug_validation LANGUAGES CXX)
+project(dxf_debug_validation LANGUAGES C CXX)
 get_filename_component(ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
-set(CMAKE_CXX_EXTENSIONS OFF)
-option(DXF_DEBUG_ASAN "Address/undefined instrumentation" OFF)
-option(DXF_DEBUG_TSAN "Thread instrumentation (separate build)" OFF)
+option(DXF_DEBUG_ASAN "Instrument all validation implementations with address/undefined sanitizers" OFF)
+option(DXF_DEBUG_TSAN "Instrument all validation implementations with thread sanitizer" OFF)
 if(DXF_DEBUG_ASAN AND DXF_DEBUG_TSAN)
     message(FATAL_ERROR "Use separate sanitizer builds")
 endif()
-find_package(Threads REQUIRED)
-add_library(core STATIC
- ${ROOT}/Source/Toolbox/Private/Toolbox/Threading.cpp
- ${ROOT}/Source/Toolbox/Private/Toolbox/JobSystem.cpp
- ${ROOT}/Source/Toolbox/Private/Toolbox/Log.cpp
- ${ROOT}/Source/Toolbox/Private/Toolbox/Vector3.cpp
- ${ROOT}/Source/Toolbox/Private/Toolbox/FixedStepScheduler.cpp
- ${ROOT}/Source/Toolbox/Private/Toolbox/Collision2D.cpp
- ${ROOT}/Source/Toolbox/Private/Toolbox/CollisionShapes.cpp
- ${ROOT}/Source/Toolbox/Private/Toolbox/Contact2D.cpp
- ${ROOT}/Source/Toolbox/Private/Toolbox/Contact3D.cpp
- ${ROOT}/Source/Toolbox/Private/Toolbox/ContinuousCollision.cpp
- ${ROOT}/Source/Toolbox/Private/Toolbox/SegmentIntersection.cpp
- ${ROOT}/Source/Toolbox/Private/Toolbox/Matrix4.cpp
- ${ROOT}/Source/Toolbox/Private/Toolbox/Mesh.cpp
- ${ROOT}/Source/Toolbox/Private/Toolbox/Quaternion.cpp
- ${ROOT}/Source/DxLibSupport/Private/Dxf/RenderPass3D.cpp
- ${ROOT}/Source/DxLibSupport/Private/Dxf/RenderGeometry3D.cpp
- ${ROOT}/Source/DxLibSupport/Private/Dxf/DebugDrawAdapters.cpp
- ${ROOT}/Source/DxLibSupport/Private/Dxf/Render2DContext.cpp
- ${ROOT}/Source/DxLibSupport/Private/Dxf/Render3DContext.cpp
- ${ROOT}/Source/DxLibSupport/Private/Dxf/RenderQueue2D.cpp
- ${ROOT}/Source/DxLibSupport/Private/Dxf/RenderSystem.cpp
- ${ROOT}/Source/Debug/Private/Dxf/DebugCamera3D.cpp
- ${ROOT}/Source/Debug/Private/Dxf/DebugStepController.cpp
- ${ROOT}/Source/Debug/Private/Dxf/DebugSnapshotHistory.cpp
- ${ROOT}/Source/Debug/Private/Dxf/PhysicsDebugSnapshot3D.cpp
- ${ROOT}/Source/Debug/Private/Dxf/PhysicsDebugSnapshot2D.cpp
- ${ROOT}/Source/Debug/Private/Dxf/PhysicsDebugRecorder3D.cpp
- ${ROOT}/Source/Debug/Private/Dxf/PhysicsDebugDisplay3D.cpp
- ${ROOT}/Source/Debug/Private/Dxf/PhysicsDebugDisplay2D.cpp
- # Debug reads snapshots captured by the actual Physics worlds, not a validation stand-in.
- ${ROOT}/Source/Physics/Private/Dxf/PhysicsWorld2D.cpp
- ${ROOT}/Source/Physics/Private/Dxf/PhysicsWorld3D.cpp
- ${ROOT}/Source/Physics/Private/Dxf/ParallelPhysicsCore.cpp)
-target_include_directories(core PUBLIC ${ROOT}/Source/Toolbox/Public ${ROOT}/Source/Foundation/Public
- ${ROOT}/Source/DxLibSupport/Public ${ROOT}/Source/Debug/Public ${ROOT}/Source/Physics/Public)
-target_link_libraries(core PUBLIC Threads::Threads)
-target_compile_features(core PUBLIC cxx_std_20)
-if(MSVC)
- target_compile_options(core PUBLIC /W4 /permissive- /utf-8 /EHsc /GR)
-else()
- target_compile_options(core PUBLIC -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
- if(DXF_DEBUG_ASAN)
-  target_compile_options(core PUBLIC -fsanitize=address,undefined -fno-omit-frame-pointer)
-  target_link_options(core PUBLIC -fsanitize=address,undefined)
- elseif(DXF_DEBUG_TSAN)
-  target_compile_options(core PUBLIC -fsanitize=thread -fno-omit-frame-pointer)
-  target_link_options(core PUBLIC -fsanitize=thread)
- endif()
+if(DXF_DEBUG_ASAN OR DXF_DEBUG_TSAN)
+    # この入口の計測はGNU形式のコンパイラーと非Windows環境を対象にする。
+    if(WIN32 OR NOT CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang|AppleClang)$")
+        message(FATAL_ERROR "Debug validation sanitizers require non-Windows GCC/Clang")
+    endif()
+    if(DXF_DEBUG_ASAN)
+        set(_instrument -fsanitize=address,undefined)
+    else()
+        set(_instrument -fsanitize=thread)
+    endif()
+    include(CheckCXXSourceCompiles)
+    set(CMAKE_REQUIRED_FLAGS "${_instrument}")
+    set(CMAKE_REQUIRED_LINK_OPTIONS "${_instrument}")
+    unset(DXF_DEBUG_INSTRUMENTATION_AVAILABLE CACHE)
+    check_cxx_source_compiles("int main() { return 0; }" DXF_DEBUG_INSTRUMENTATION_AVAILABLE)
+    if(NOT DXF_DEBUG_INSTRUMENTATION_AVAILABLE)
+        message(FATAL_ERROR "Requested sanitizer compiler/runtime is unavailable")
+    endif()
+    unset(CMAKE_REQUIRED_FLAGS)
+    unset(CMAKE_REQUIRED_LINK_OPTIONS)
+    # add_subdirectoryより前に設定し、実装ライブラリ・テスト・ufbxにも適用する。
+    add_compile_options(${_instrument} -fno-omit-frame-pointer)
+    add_link_options(${_instrument})
 endif()
+
+# 正規の層・ソース・試験登録を使う。SDKやGUI実行ファイルを生成しない専用入口。
+set(DXF_BUILD_TESTS ON CACHE BOOL "" FORCE)
+foreach(_option DXF_BUILD_NATIVE DXF_BUILD_NATIVE_SMOKE DXF_RUN_DEVICE_TESTS
+        DXF_BUILD_EXAMPLE DXF_BUILD_STARTER DXF_BUILD_MODEL_VIEWER DXF_BUILD_RENDER_DEBUG
+        DXF_INSTALL DXF_SANITIZERS DXF_COVERAGE)
+    set(${_option} OFF CACHE BOOL "" FORCE)
+endforeach()
 enable_testing()
-add_executable(debug_tests ${ROOT}/Tools/RenderValidation/Main.cpp ${ROOT}/Tests/DebugToolsTests.cpp ${ROOT}/Tests/DebugRendererIntegrationTests.cpp)
-target_include_directories(debug_tests PRIVATE ${ROOT}/Tests)
-target_link_libraries(debug_tests PRIVATE core)
-add_test(NAME DebugTools COMMAND debug_tests)
-set_tests_properties(DebugTools PROPERTIES TIMEOUT 60)
-add_executable(debug_physics_tests ${ROOT}/Tools/RenderValidation/Main.cpp ${ROOT}/Tests/DebugPhysicsIntegrationTests.cpp)
-target_include_directories(debug_physics_tests PRIVATE ${ROOT}/Tests)
-target_link_libraries(debug_physics_tests PRIVATE core)
-add_test(NAME DebugPhysicsCapture COMMAND debug_physics_tests)
-set_tests_properties(DebugPhysicsCapture PROPERTIES TIMEOUT 60)
-include(${ROOT}/CMake/RenderContinuationTests.cmake)
-dxf_add_render_continuation_tests(core)
-include(${ROOT}/CMake/RenderViewsTests.cmake)
-dxf_add_render_views_tests(core)
-include(${ROOT}/CMake/RenderTransparencyTests.cmake)
-dxf_add_render_transparency_tests(core)
+add_subdirectory("${ROOT}" "${CMAKE_CURRENT_BINARY_DIR}/framework")
+
+# 旧入口の/WXを持つ4対象は厳格さを維持する。C4324だけはFVector3/FQuaternionの
+# alignas(16)に由来する意図したpaddingの通知。ABIは変えずPRIVATEで限定する。
+foreach(_target dxf_render_continuation_tests dxf_job_fault_tests dxf_render_views_tests dxf_native_views_tests)
+    if(MSVC)
+        target_compile_options(${_target} PRIVATE /WX /wd4324)
+    else()
+        target_compile_options(${_target} PRIVATE -Werror)
+    endif()
+endforeach()
+
+if(NOT MSVC)
+    # 旧coreからPUBLIC伝播していた-Werrorも、対応する正規層と旧試験に保持する。
+    foreach(_target dxf_toolbox dxf_support dxf_physics dxf_debug_tools
+            dxf_debug_tools_tests dxf_debug_physics_tests dxf_transparency_tests
+            dxf_transparency_fault_tests dxf_native_transparency_tests)
+        target_compile_options(${_target} PRIVATE -Werror)
+    endforeach()
+endif()

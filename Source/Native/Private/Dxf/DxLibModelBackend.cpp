@@ -292,7 +292,8 @@ FDxLibRenderBackend::~FDxLibRenderBackend()
 {
 	try
 	{
-		EndView3D();
+		// デストラクターは失敗値を返せない。EndView3D内の状態復元は実行する。
+		(void)EndView3D();
 	}
 	catch (...)
 	{

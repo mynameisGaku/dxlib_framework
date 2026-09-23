@@ -94,3 +94,29 @@ git log --oneline
 今回追加したC++25件はいずれも修正前に実行失敗を再現した回帰テストです。14件の代替SDK契約テストは件数を増やしていませんが、全構成で再実行します。Windows／実SDK検査とは区別してください。
 
 Pythonの検証失敗テストでは、わざと子プロセス失敗を注入するため、成功したテストの中に`debug-configure: FAIL`という出力が含まれます。ユニットテスト全体のOKと、実際の全検証Summaryのstatusを別々に確認してください。
+
+
+## 単独Debug検証入口（現行の正規ターゲット）
+
+`Tools/DebugValidation` はrootを `add_subdirectory` で取り込み、正規のToolbox / Support / Physics / Runtime / Gameplay / Debugと試験登録を利用します。本体cppを別のcoreへ手列挙しません。Native・実デバイス・Viewer・Starter/Sandbox実行ファイル・installはこの入口ではOFFです。サンプルのSceneソースを使うCPU試験と、手書きNative境界を使う翻訳試験は実行します。
+
+```powershell
+cmake -S Tools/DebugValidation -B Build/DebugValidation-local -A x64
+cmake --build Build/DebugValidation-local --config Debug --parallel 4
+ctest --test-dir Build/DebugValidation-local -C Debug -N
+ctest --test-dir Build/DebugValidation-local -C Debug -j 1 --no-tests=error --output-on-failure
+cmake --build Build/DebugValidation-local --config Release --parallel 4
+ctest --test-dir Build/DebugValidation-local -C Release -j 1 --no-tests=error --output-on-failure
+```
+
+各工程の終了コードを確認し、生成・ビルド失敗後は試験へ進みません。単一構成Generatorでは構成ごとに別ディレクトリを使ってください。
+
+再発確認は `python Tools/ValidateDebug.py --logs Build/DebugValidationLogs` です。毎回新しい作業ディレクトリを作り、Debug/Releaseの全ビルド、必要群の登録、Native等のOFF、JUnitの実行結果を照合します。欠落・重複・スキップ・失敗を成功にしません。Windowsでは既定Visual Studio/x64、その他は既定Generatorを使います。Python単体試験は検証器の制御だけを確認し、C++コンパイラーやSDKを要求しません。
+
+旧13群（DebugTools / DebugPhysicsCapture / RenderContinuation / JobFault 5群 / RenderViews / NativeViewsTranslation / Transparency 3群）を保持し、現行では正規のportable登録を含む21群です。DebugPhysicsCaptureはSnapshot選択と実RenderDebugの11ケース、PhysicsContinuationはWorld問い合わせ7ケースを含みます。`debug_tests` / `debug_physics_tests` の実行ファイル名は正規の `dxf_debug_tools_tests` / `dxf_debug_physics_tests` に統一しました。通常は名前を直接実行せずCTestを使います。
+
+警告はrootの設定を利用します。旧入口で `/WX` だったContinuation / JobFault / RenderViews / NativeViewsTranslationの4ターゲットでは厳格条件を保持します。MSVCのC4324のみ、既存FVector3/FQuaternionの `alignas(16)` による意図したパディングとしてPRIVATEで除外し、他の警告をエラーにします。型・ABIは変えません。非MSVCでは同じ4ターゲットに加え、旧coreを構成した正規層と旧Debug/Transparency試験にも `-Werror` を保持します。
+
+`DXF_DEBUG_ASAN=ON` はaddress/undefined、`DXF_DEBUG_TSAN=ON` はthreadの計測を、実装ライブラリも含む全対象へ付けます。同時指定は拒否します。この入口の計測は非WindowsのGCC/Clangを対象とし、コンパイラー/ランタイムのリンク可否を構成時に確認します。Windows等の対象外環境では明示的に生成失敗とし、指定を無視しません。ONを受理できても計測実行の成功とは別です。
+
+これは同じPCで実DxLib SDKを使用しない検証です。SDK未導入PC・実DxLib描画・rootの実デバイス試験とは別の結果として扱ってください。[修復の実行記録](Development/DebugValidationRepair-2026-09-24.md)に修正前の失敗、今回の結果と未解決事項を記録しています。
