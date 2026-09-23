@@ -1,5 +1,6 @@
 #include "Toolbox/UniquePtr.h"
 #include "Support/Test.h"
+#include "Support/ModelSmokeStep.h"
 #include "Support/FakeBackend.h"
 #include "Dxf/Application.h"
 #include "Dxf/AppRunner.h"
@@ -386,4 +387,50 @@ TEST("Application stops scene before game instance and platform last")
 	// 起動とイベント処理を提供するプラットフォーム。
 	const auto Platform = Toolbox::Find(Events.Begin(), Events.End(), "shutdown");
 	REQUIRE(Scene < Game && Game < Platform);
+}
+
+TEST("Model smoke distinguishes continuation stop and injected error")
+{
+	// 三種類のStep結果を同じ検証関数へ渡す。
+	const auto Continue = TResult<bool>::Success(true);
+	const auto Stop = TResult<bool>::Success(false);
+	const auto Fault = TResult<bool>::Failure(EErrorCode::UserException, "Model instance was released before drawing");
+	const auto Other = TResult<bool>::Failure(EErrorCode::BackendFailure, "other first error");
+	REQUIRE(ModelSmokeStepMatches(Continue, false, false));
+	REQUIRE(!ModelSmokeStepMatches(Stop, false, false));
+	REQUIRE(!ModelSmokeStepMatches(Fault, false, true));
+	REQUIRE(ModelSmokeStepMatches(Fault, true, true));
+	REQUIRE(!ModelSmokeStepMatches(Fault, true, false));
+	REQUIRE(!ModelSmokeStepMatches(Stop, true, false));
+	REQUIRE(!ModelSmokeStepMatches(Continue, true, true));
+	REQUIRE(!ModelSmokeStepMatches(Other, true, true));
+}
+TEST("Model smoke rejects platform stop before injection and ends scenario before scene request")
+{
+	// 実Applicationを動かし、Platform境界だけを記録用に置き換える。
+	FFakeBackend Backend;
+	FAppObservation Observation;
+	FApplication App(MakeServices_Internal(Backend));
+	// この地点へ届く前にイベント処理が終了を返す。
+	bool bInjected = false;
+	Observation.Draw = [&](FRenderContext&)
+	{
+		bInjected = true;
+	};
+	REQUIRE(App.Start(Toolbox::MakeUnique<DObservedAppScene>(Observation)));
+	Backend.GetTrace().bQuit = true;
+	const auto Result = App.Step(0);
+	REQUIRE(Result && !Result.Value());
+	REQUIRE(!bInjected && Observation.Draws == 0 && Observation.Stops == 1);
+	REQUIRE(Backend.GetTrace().Presentations == 0 && !App.IsRunning());
+	// 実描画試験と同じ前提ゲート。失敗時はScene要求を実行しない。
+	bool bRequested = false;
+	if (ModelSmokeStepMatches(Result, true, bInjected))
+	{
+		bRequested = true;
+		App.GetScenes().RequestChange<DScene>();
+	}
+	REQUIRE(!bRequested);
+	REQUIRE(Result && !Result.Value());
+	REQUIRE(Backend.GetTrace().Events.Back() == "shutdown");
 }

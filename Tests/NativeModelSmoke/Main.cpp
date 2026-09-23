@@ -3,6 +3,8 @@
 // 2体の独立したインスタンス・一時停止・速度・再読込・受付後の破棄・日本語パス・描画失敗・終了順序を扱う。
 // 使い方: NativeModelSmoke <ProjectRoot> <画像の出力ディレクトリ>
 #include "Dxf/AssetService.h"
+#include "../Support/ModelSmokeStep.h"
+#include "Toolbox/Log.h"
 #include "Dxf/ViewCoordinates.h"
 #include "Dxf/Application.h"
 #include "Dxf/GameScene.h"
@@ -26,7 +28,7 @@
 #undef CopyFile
 #endif
 #include <stdio.h>
-void RunPickingExample(const Toolbox::FPath& Root, const Toolbox::FPath& Output);
+void RunPickingExample(const Toolbox::FPath& Root, const Toolbox::FPath& Output, Toolbox::int32 Sequence);
 namespace
 {
 using namespace Dxf;
@@ -35,6 +37,8 @@ constexpr Toolbox::int32 Width = 640;
 constexpr Toolbox::int32 Height = 480;
 constexpr FColor Background{12, 12, 12, 255};
 Toolbox::int32 GFailures = 0;
+// 同一プロセス内のApplication通し番号。
+Toolbox::int32 GApplicationSequence = 0;
 
 // 1項目の結果を出力する。
 void Check_Internal(bool bOk, const char* Name, const Toolbox::FString& Detail = {})
@@ -886,6 +890,10 @@ struct FApplicationModelTrace
 	Toolbox::int32 Captured = 0;
 	// 受付後の資源失効を起こしてApplicationの失敗終了を通す。
 	bool bInvalidate = false;
+	// 受付後の資源失効を実際に通ったか。
+	bool bInjected = false;
+	// 描画フックへ到達した回数。
+	Toolbox::int32 Draws = 0;
 	// 分割時の更新数と描画時刻を観察する。
 	bool bSplit = false;
 	bool bPicking = false;
@@ -913,6 +921,7 @@ protected:
 		RequireSuccess_Internal(m_Instance.SetTime(0.5));
 		RequireSuccess_Internal(m_Instance.SetMorphWeight(1, 1));
 		++m_Trace.Initialized;
+		DXF_LOG_INFO("ModelLifecycle", "Object initialized count=%d", m_Trace.Initialized);
 		return {};
 	}
 	void OnTick(const FTickContext& Context) override
@@ -922,6 +931,7 @@ protected:
 	}
 	void OnDraw(FRenderContext& Render) const override
 	{
+		++m_Trace.Draws;
 		m_Trace.TimeBeforeDraw = m_Instance.GetTime();
 		// 正射影と正面光でPBR・UV1・頂点色・両モーフ・骨を描く。
 		FRenderView3D View;
@@ -949,6 +959,8 @@ protected:
 		if (m_Trace.bInvalidate)
 		{
 			m_pAssets->Shutdown();
+			m_Trace.bInjected = true;
+			DXF_LOG_INFO("ModelLifecycle", "Injection executed after draw submission draws=%d", m_Trace.Draws);
 		}
 		RequireSuccess_Internal(Render.Native(
 		    [this]
@@ -962,6 +974,7 @@ protected:
 	{
 		m_Instance = FModelInstance();
 		++m_Trace.Deinitialized;
+		DXF_LOG_INFO("ModelLifecycle", "Object deinitialized count=%d injected=%d captured=%d", m_Trace.Deinitialized, m_Trace.bInjected, m_Trace.Captured);
 	}
 
 private:
@@ -996,6 +1009,10 @@ private:
 // 低レベルRenderer試験とは別に、ApplicationとScene所有境界を実DxLibで通す。
 void RunApplication_Internal(const Toolbox::FPath& Root, bool bFail, bool bSplit = false, bool bPicking = false)
 {
+	// 今回の新規Applicationとフレームを識別する通し番号。
+	const Toolbox::int32 Sequence = ++GApplicationSequence;
+	Toolbox::int32 Frame = 0;
+	DXF_LOG_INFO("ModelLifecycle", "Application begin sequence=%d expected=%s split=%d picking=%d", Sequence, bFail ? "injected-error" : "continue", bSplit, bPicking);
 	FDxLibBackends Backends;
 	FApplicationModelTrace Trace;
 	Trace.bInvalidate = bFail;
@@ -1010,10 +1027,23 @@ void RunApplication_Internal(const Toolbox::FPath& Root, bool bFail, bool bSplit
 	Settings.ExecutionThreadCount = 1;
 	FApplication App(Backends.GetServices(), Settings);
 	RequireSuccess_Internal(App.Start(Toolbox::MakeUnique<ACombinedModelScene>(Trace)));
-	const auto First = App.Step(0);
+	// 一度だけStepを呼び、結果とフック到達を後続操作より先に残す。
+	auto Step = [&](Toolbox::f64 Time, bool bExpectedFailure = false)
+	{
+		DXF_LOG_INFO("ModelLifecycle", "Step begin sequence=%d frame=%d expected=%s", Sequence, Frame, bExpectedFailure ? "injected-error" : "continue");
+		const auto Result = App.Step(Time);
+		DXF_LOG_INFO("ModelLifecycle", "Step end sequence=%d frame=%d result=%s code=%d message=%s running=%d initialized=%d draws=%d injected=%d stopped=%d captured=%d", Sequence, Frame, Result ? (Result.Value() ? "true" : "false") : "error", Result ? 0 : static_cast<Toolbox::int32>(Result.Error().Code), Result ? "" : Result.Error().Message.CStr(), App.IsRunning(), Trace.Initialized, Trace.Draws, Trace.bInjected, Trace.Deinitialized, Trace.Captured);
+		++Frame;
+		if (!Testing::ModelSmokeStepMatches(Result, bExpectedFailure, Trace.bInjected))
+		{
+			throw Toolbox::FException("Unexpected model Step outcome; scenario aborted before further scene requests");
+		}
+		return Result;
+	};
+	const auto First = Step(0, bFail);
 	if (bFail)
 	{
-		Check_Internal(!First && !App.IsRunning() && Trace.Deinitialized == 1 && Trace.Captured == 0,
+		Check_Internal(!First && Trace.bInjected && Trace.Draws == 1 && !App.IsRunning() && Trace.Deinitialized == 1 && Trace.Captured == 0,
 		               "real Application model draw failure shuts down scene before capture");
 		return;
 	}
@@ -1024,7 +1054,7 @@ void RunApplication_Internal(const Toolbox::FPath& Root, bool bFail, bool bSplit
 	               "real Application updates object once regardless of viewport count");
 	const FSignature Initial = Trace.Image;
 	{
-		Check_Internal(static_cast<bool>(App.Step(1.0 / 60.0)) && Trace.Ticks == 2 &&
+		Check_Internal(static_cast<bool>(Step(1.0 / 60.0)) && Trace.Ticks == 2 &&
 		                   Toolbox::Abs(Trace.TimeBeforeDraw - (0.5 + 1.0 / 60.0)) < 0.000001 &&
 		                   Trace.TimeBeforeDraw == Trace.TimeAfterDraw,
 		               "split Application advances animation once before both views");
@@ -1032,14 +1062,14 @@ void RunApplication_Internal(const Toolbox::FPath& Root, bool bFail, bool bSplit
 	const Toolbox::int32 ShaderCount = DxLib::GetHandleNum(DX_HANDLETYPE_SHADER);
 	Check_Internal(ShaderCount > 0, "PBR created a shader handle");
 	RequireSuccess_Internal(App.GetScenes().RequestChange<DGameScene>());
-	Check_Internal(static_cast<bool>(App.Step(1.0 / 60.0)), "real Application switches to empty scene");
+	Check_Internal(static_cast<bool>(Step(1.0 / 60.0)), "real Application switches to empty scene");
 	App.GetAssets().CollectUnused();
 	Check_Internal(DxLib::GetHandleNum(DX_HANDLETYPE_MODEL) == 0 && DxLib::GetHandleNum(DX_HANDLETYPE_MODEL_BASE) == 0,
 	               "scene retirement and collection release native model handles");
 	Check_Internal(Trace.Deinitialized == 1 && Trace.Captured == 2,
 	               "retired GameScene releases object and does not replay model draw");
 	RequireSuccess_Internal(App.GetScenes().RequestChange<ACombinedModelScene>(Trace));
-	Check_Internal(static_cast<bool>(App.Step(1.0 / 60.0)), "real Application reloads model scene");
+	Check_Internal(static_cast<bool>(Step(1.0 / 60.0)), "real Application reloads model scene");
 	Check_Internal(Trace.Initialized == 2 && Trace.Captured == 3 &&
 	                   Trace.Image.ColorHash[0] == Initial.ColorHash[0] &&
 	                   Trace.Image.ColorHash[1] == Initial.ColorHash[1],
@@ -1059,11 +1089,18 @@ Toolbox::int32 main(Toolbox::int32 ArgCount, char** Args)
 		Toolbox::Err << "Usage: NativeModelSmoke <ProjectRoot> <output directory>\n";
 		return 2;
 	}
+#ifdef NDEBUG
+	DXF_LOG_INFO("ModelLifecycle", "Run begin config=Release");
+#else
+	DXF_LOG_INFO("ModelLifecycle", "Run begin config=Debug");
+#endif
 	try
 	{
 		const Toolbox::FPath OutDir(Args[2]);
 		Toolbox::CreateDirectory(OutDir);
-		RunPickingExample(Toolbox::FPath(Args[1]), OutDir);
+		DXF_LOG_INFO("ModelLifecycle", "Picking sequence boundary appsCompleted=%d", GApplicationSequence);
+		RunPickingExample(Toolbox::FPath(Args[1]), OutDir, ++GApplicationSequence);
+		DXF_LOG_INFO("ModelLifecycle", "Renderer sequence boundary appsCompleted=%d", GApplicationSequence);
 		Run_Internal(Toolbox::FPath(Args[1]), OutDir);
 		RunApplication_Internal(Toolbox::FPath(Args[1]), false);
 		RunApplication_Internal(Toolbox::FPath(Args[1]), true);
@@ -1073,7 +1110,9 @@ Toolbox::int32 main(Toolbox::int32 ArgCount, char** Args)
 		RunApplication_Internal(Toolbox::FPath(Args[1]), true, true);
 		RunApplication_Internal(Toolbox::FPath(Args[1]), false);
 		// 同じプロセスでGPU資源を作り直し、古いハンドルを再利用しない。
-		RunPickingExample(Toolbox::FPath(Args[1]), OutDir);
+		DXF_LOG_INFO("ModelLifecycle", "Picking sequence boundary appsCompleted=%d", GApplicationSequence);
+		RunPickingExample(Toolbox::FPath(Args[1]), OutDir, ++GApplicationSequence);
+		DXF_LOG_INFO("ModelLifecycle", "Renderer sequence boundary appsCompleted=%d", GApplicationSequence);
 		Run_Internal(Toolbox::FPath(Args[1]), OutDir);
 	}
 	catch (const Toolbox::FException& Error)

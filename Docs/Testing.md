@@ -120,3 +120,25 @@ ctest --test-dir Build/DebugValidation-local -C Release -j 1 --no-tests=error --
 `DXF_DEBUG_ASAN=ON` はaddress/undefined、`DXF_DEBUG_TSAN=ON` はthreadの計測を、実装ライブラリも含む全対象へ付けます。同時指定は拒否します。この入口の計測は非WindowsのGCC/Clangを対象とし、コンパイラー/ランタイムのリンク可否を構成時に確認します。Windows等の対象外環境では明示的に生成失敗とし、指定を無視しません。ONを受理できても計測実行の成功とは別です。
 
 これは同じPCで実DxLib SDKを使用しない検証です。SDK未導入PC・実DxLib描画・rootの実デバイス試験とは別の結果として扱ってください。[修復の実行記録](Development/DebugValidationRepair-2026-09-24.md)に修正前の失敗、今回の結果と未解決事項を記録しています。
+
+
+## モデル実描画の終了・再起動の診断
+
+`NativeModelDeviceSmoke` はPicking、低レベル描画、複数の新規Application、再度Pickingと描画を同じプロセスで実行します。順序・画素判定・既存の120秒上限は維持します。
+
+`ModelLifecycle` は構成、Application通し番号、期待値、フレーム番号、Stepのtrue/false/errorと最初のエラー、初期化・OnDraw・故障注入実行・読戻し・終了への到達を出力します。継続を期待するStepが成功falseなら直ちに試験を失敗させ、その後のScene要求へ進みません。注入試験は、実際の資源失効と、その描画フックが返す特定のUserExceptionを要求します。
+
+Runtimeの `ApplicationLifecycle` は継続不可を決めた分岐とScene/資源/Platform終了順を記録し、Nativeの `NativeLifecycle` は同じ一回のDxLib_Init / DxLib_Endの戻り値、ProcessMessageが継続不可を返した際の実戻り値・初期化状態を記録します。RuntimeにSDK依存は追加していません。ProcessMessageの成功フレームを無制限に記録したり、採取のためにStepやSDKを余分に呼んだりしません。既存DXF_LOGのInfo水準を使用し、検証時はログをOffにしないでください。
+
+単独調査は構成ごとに直列に実行し、最初の有用な失敗で反復を止めます。上限はDebug/Release各5プロセスとし、全群検証内のモデル試験も回数に含めて管理すると上限を超えません。
+
+```powershell
+ctest --test-dir Build/FbxContinuation -C Debug -j 1 -R '^NativeModelDeviceSmoke$' --no-tests=error --output-on-failure
+# 毎回、別の名前で保存する。次のCTestはLastTest.logを上書きする。
+Copy-Item Build/FbxContinuation/Testing/Temporary/LastTest.log Build/model-attempt-1-full.log
+Get-FileHash Build/FbxContinuation/Debug/NativeModelSmoke.exe -Algorithm SHA256
+```
+
+Releaseは構成名と実行ファイルのパスを変更します。成功時の詳細はLastTest.logにも残ります。`Build/FbxContinuation/Log.txt` があれば各単独試験の直後に別名保存してください。SDKのLog.txtは再初期化時に更新されるため、それだけで全セッションやOS通知の起源を説明できるとは限りません。全群終了後のLog.txtは後続の別デバイス試験のものになり得ます。
+
+CPU回帰は終了契約と試験判定の検証であり、実DxLibの偶発終了を再現した証拠ではありません。[今回の診断と検証記録](Development/NativeModelLifecycle-2026-09-24.md)を参照してください。

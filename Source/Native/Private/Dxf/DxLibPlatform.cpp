@@ -1,6 +1,7 @@
 #include "Dxf/DxLibPlatform.h"
 #include "NativeApi.h"
 #include "Dxf/Utf8.h"
+#include "Toolbox/Log.h"
 #if defined(DXF_DXLIB_MODEL_EXTENSION) && DXF_DXLIB_MODEL_EXTENSION >= 3
 extern "C" void DxfReleasePbr();
 #endif
@@ -22,6 +23,7 @@ FDxLibPlatform::~FDxLibPlatform()
 // @param Settings 初期化に使用する設定。
 TResult<void> FDxLibPlatform::Initialize(const FWindowSettings& Settings)
 {
+	DXF_LOG_INFO("NativeLifecycle", "Initialize platform=%p initialized=%d owner=%p", static_cast<void*>(this), m_bInitialized, static_cast<void*>(GSessionOwner));
 	if (m_bInitialized || GSessionOwner != nullptr)
 	{
 		return TResult<void>::Failure(EErrorCode::InvalidState, "Another DxLib session is active");
@@ -39,12 +41,18 @@ TResult<void> FDxLibPlatform::Initialize(const FWindowSettings& Settings)
 		return TResult<void>::Failure(EErrorCode::BackendFailure, "DxLib window configuration failed");
 	}
 	GSessionOwner = this;
-	if (DxLib::DxLib_Init() < 0)
+	// 同じ初期化呼出しの戻り値を後始末より先に残す。
+	const Toolbox::int32 Initialized = DxLib::DxLib_Init();
+	DXF_LOG_INFO("NativeLifecycle", "DxLib_Init platform=%p result=%d", static_cast<void*>(this), Initialized);
+	if (Initialized < 0)
 	{
 #if defined(DXF_DXLIB_MODEL_EXTENSION) && DXF_DXLIB_MODEL_EXTENSION >= 3
 		DxfReleasePbr();
 #endif
-		DxLib::DxLib_End();
+		DXF_LOG_INFO("NativeLifecycle", "DxLib_End begin platform=%p initialized=%d", static_cast<void*>(this), m_bInitialized);
+		// 同じ終了呼出しの結果。追加のSDK呼出しは行わない。
+		const Toolbox::int32 Ended = DxLib::DxLib_End();
+		DXF_LOG_INFO("NativeLifecycle", "DxLib_End end platform=%p result=%d", static_cast<void*>(this), Ended);
 		GSessionOwner = nullptr;
 		return TResult<void>::Failure(EErrorCode::InitializationFailed, "DxLib_Init failed; inspect Log.txt");
 	}
@@ -59,7 +67,10 @@ void FDxLibPlatform::Shutdown() noexcept
 #if defined(DXF_DXLIB_MODEL_EXTENSION) && DXF_DXLIB_MODEL_EXTENSION >= 3
 		DxfReleasePbr();
 #endif
-		DxLib::DxLib_End();
+		DXF_LOG_INFO("NativeLifecycle", "DxLib_End begin platform=%p initialized=%d", static_cast<void*>(this), m_bInitialized);
+		// 同じ終了呼出しの結果。追加のSDK呼出しは行わない。
+		const Toolbox::int32 Ended = DxLib::DxLib_End();
+		DXF_LOG_INFO("NativeLifecycle", "DxLib_End end platform=%p result=%d", static_cast<void*>(this), Ended);
 		m_bInitialized = false;
 		GSessionOwner = nullptr;
 	}
@@ -71,6 +82,12 @@ TResult<bool> FDxLibPlatform::PumpEvents()
 	{
 		return TResult<bool>::Failure(EErrorCode::InvalidState, "DxLib session is not initialized");
 	}
-	return TResult<bool>::Success(DxLib::ProcessMessage() == 0);
+	// 終了を返した一回の値だけを記録し、成功フレームのログは増やさない。
+	const Toolbox::int32 Message = DxLib::ProcessMessage();
+	if (Message != 0)
+	{
+		DXF_LOG_INFO("NativeLifecycle", "ProcessMessage platform=%p initialized=%d result=%d", static_cast<void*>(this), m_bInitialized, Message);
+	}
+	return TResult<bool>::Success(Message == 0);
 }
 } // namespace Dxf

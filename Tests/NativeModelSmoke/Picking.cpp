@@ -2,6 +2,7 @@
 // ModelViewer本体へ固定入力を送り、選択色・投影位置・文字を実D3D11画素で検査する。
 #include "../../Examples/ModelViewer/ModelViewerScene.h"
 #include "Dxf/Application.h"
+#include "Toolbox/Log.h"
 #include "Dxf/NativeBackends.h"
 #include "Dxf/ViewCoordinates.h"
 #include "Toolbox/Platform.h"
@@ -93,7 +94,7 @@ void Capture_Internal(const Toolbox::FPath& Output, bool Split, bool Ortho, Tool
 }
 } // namespace
 // 既存NativeModelSmokeから呼ぶ。Sceneや入力を代用品へ置き換えない。
-void RunPickingExample(const Toolbox::FPath& Root, const Toolbox::FPath& Output)
+void RunPickingExample(const Toolbox::FPath& Root, const Toolbox::FPath& Output, Toolbox::int32 Sequence)
 {
 	FDxLibBackends Backends;
 	FPickingInput Input;
@@ -107,9 +108,17 @@ void RunPickingExample(const Toolbox::FPath& Root, const Toolbox::FPath& Output)
 	FApplication App({Services.Platform, Input, Services.Textures, Services.Sounds, Services.Fonts, Services.Renderer, Services.pModels}, Settings);
 	Check_Internal(static_cast<bool>(App.Start(Toolbox::MakeUnique<ModelViewer::AModelViewerScene>())), "ModelViewer start");
 	Toolbox::f64 Time = 0;
+	// 選択例も同じプロセス内のApplication番号とフレーム番号を持つ。
+	Toolbox::int32 Frame = 0;
+	DXF_LOG_INFO("ModelLifecycle", "Picking Application sequence=%d expected=continue", Sequence);
 	auto Step = [&]
 	{
 		const auto Result = App.Step(Time += 1.0 / 60.0);
+		if (!Result || !Result.Value())
+		{
+			DXF_LOG_ERROR("ModelLifecycle", "Picking Step sequence=%d frame=%d result=%s message=%s", Sequence, Frame, Result ? "false" : "error", Result ? "" : Result.Error().Message.CStr());
+		}
+		++Frame;
 		Check_Internal(Result && Result.Value(), "ModelViewer frame");
 	};
 	auto Press = [&](EKey Key)

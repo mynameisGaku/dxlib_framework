@@ -133,6 +133,7 @@ TResult<bool> FApplication::Step_Internal(Toolbox::f64 NowSeconds)
 {
 	if (WantsQuit_Internal())
 	{
+		DXF_LOG_INFO("ApplicationLifecycle", "Step stopped app=%p branch=before-events requested=%d sceneQuit=%d", static_cast<void*>(this), m_bShutdownRequested, m_Scenes.WantsQuit());
 		return TResult<bool>::Success(false);
 	}
 	// OSイベント処理の結果。
@@ -143,6 +144,7 @@ TResult<bool> FApplication::Step_Internal(Toolbox::f64 NowSeconds)
 	}
 	if (!Events.Value())
 	{
+		DXF_LOG_INFO("ApplicationLifecycle", "Step stopped app=%p branch=platform-false", static_cast<void*>(this));
 		return TResult<bool>::Success(false);
 	}
 	// フレームの時間情報。
@@ -166,6 +168,7 @@ TResult<bool> FApplication::Step_Internal(Toolbox::f64 NowSeconds)
 	}
 	if (WantsQuit_Internal())
 	{
+		DXF_LOG_INFO("ApplicationLifecycle", "Step stopped app=%p branch=after-scene-commit requested=%d sceneQuit=%d", static_cast<void*>(this), m_bShutdownRequested, m_Scenes.WantsQuit());
 		return TResult<bool>::Success(false);
 	}
 	// 所有するオブジェクト群。
@@ -176,6 +179,7 @@ TResult<bool> FApplication::Step_Internal(Toolbox::f64 NowSeconds)
 	}
 	if (WantsQuit_Internal())
 	{
+		DXF_LOG_INFO("ApplicationLifecycle", "Step stopped app=%p branch=after-object-commit requested=%d sceneQuit=%d", static_cast<void*>(this), m_bShutdownRequested, m_Scenes.WantsQuit());
 		return TResult<bool>::Success(false);
 	}
 	if (m_pGame)
@@ -191,6 +195,7 @@ TResult<bool> FApplication::Step_Internal(Toolbox::f64 NowSeconds)
 	}
 	if (WantsQuit_Internal())
 	{
+		DXF_LOG_INFO("ApplicationLifecycle", "Step stopped app=%p branch=after-game-tick requested=%d sceneQuit=%d", static_cast<void*>(this), m_bShutdownRequested, m_Scenes.WantsQuit());
 		return TResult<bool>::Success(false);
 	}
 	// 更新に渡すフレーム情報。
@@ -201,12 +206,14 @@ TResult<bool> FApplication::Step_Internal(Toolbox::f64 NowSeconds)
 	}
 	if (WantsQuit_Internal())
 	{
+		DXF_LOG_INFO("ApplicationLifecycle", "Step stopped app=%p branch=after-scene-tick requested=%d sceneQuit=%d", static_cast<void*>(this), m_bShutdownRequested, m_Scenes.WantsQuit());
 		return TResult<bool>::Success(false);
 	}
 	// Scene Scopeは切替の中で更新済み。Commit中の終了要求は描画開始前に処理する。
 	m_TaskDispatcher.PumpCommits();
 	if (WantsQuit_Internal())
 	{
+		DXF_LOG_INFO("ApplicationLifecycle", "Step stopped app=%p branch=after-task-commits requested=%d sceneQuit=%d", static_cast<void*>(this), m_bShutdownRequested, m_Scenes.WantsQuit());
 		return TResult<bool>::Success(false);
 	}
 	// 音声再生のサービス。
@@ -229,6 +236,7 @@ TResult<bool> FApplication::Step_Internal(Toolbox::f64 NowSeconds)
 	}
 	if (WantsQuit_Internal())
 	{
+		DXF_LOG_INFO("ApplicationLifecycle", "Step stopped app=%p branch=after-draw requested=%d sceneQuit=%d", static_cast<void*>(this), m_bShutdownRequested, m_Scenes.WantsQuit());
 		m_Renderer.CancelFrame();
 		return TResult<bool>::Success(false);
 	}
@@ -239,7 +247,13 @@ TResult<bool> FApplication::Step_Internal(Toolbox::f64 NowSeconds)
 		return TResult<bool>::Failure(Present.Error());
 	}
 	m_Assets.CollectUnused();
-	return TResult<bool>::Success(!WantsQuit_Internal());
+	// 提示後の終了要求も、同じ評価結果を記録する。
+	const bool bContinue = !WantsQuit_Internal();
+	if (!bContinue)
+	{
+		DXF_LOG_INFO("ApplicationLifecycle", "Step stopped app=%p branch=after-present", static_cast<void*>(this));
+	}
+	return TResult<bool>::Success(bContinue);
 }
 // 1フレーム分の入力・更新・描画を進める。
 // @param NowSeconds 単調増加する現在時刻の秒数。
@@ -252,6 +266,7 @@ TResult<bool> FApplication::Step(Toolbox::f64 NowSeconds)
 	// Step外で手動PumpしたCommitからの終了要求も、安全な次回境界で完了する。
 	if (!m_bBusy && !m_bShutdown && m_bShutdownRequested)
 	{
+		DXF_LOG_INFO("ApplicationLifecycle", "Step stopped app=%p branch=deferred-shutdown", static_cast<void*>(this));
 		Shutdown();
 		return TResult<bool>::Success(false);
 	}
@@ -302,6 +317,7 @@ void FApplication::Shutdown() noexcept
 	if (m_bBusy || m_Scenes.IsDispatching() || !m_TaskDispatcher.CanSynchronize())
 	{
 		DXF_LOG_VERBOSE("Application", "Shutdown deferred to the next owner-thread boundary");
+		DXF_LOG_INFO("ApplicationLifecycle", "Shutdown requested app=%p busy=%d dispatching=%d", static_cast<void*>(this), m_bBusy, m_Scenes.IsDispatching());
 		m_bShutdownRequested = true;
 		m_Scenes.RequestQuit();
 		if (m_pGame)
@@ -321,6 +337,7 @@ void FApplication::Shutdown() noexcept
 	m_TaskDispatcher.Shutdown();
 	m_ExecutionJobs.Shutdown();
 	m_Scenes.Shutdown();
+	DXF_LOG_INFO("ApplicationLifecycle", "Scenes shut down app=%p", static_cast<void*>(this));
 	if (m_pGame)
 	{
 		m_pGame->Shutdown_Internal();
@@ -329,6 +346,8 @@ void FApplication::Shutdown() noexcept
 	m_Audio.Shutdown();
 	m_Renderer.CancelFrame();
 	m_Assets.Shutdown();
+	DXF_LOG_INFO("ApplicationLifecycle", "Assets shut down app=%p; platform shutdown next", static_cast<void*>(this));
 	m_Session.Shutdown();
+	DXF_LOG_INFO("ApplicationLifecycle", "Shutdown complete app=%p", static_cast<void*>(this));
 }
 } // namespace Dxf
