@@ -3,6 +3,8 @@
 // 2体の独立したインスタンス・一時停止・速度・再読込・受付後の破棄・日本語パス・描画失敗・終了順序を扱う。
 // 使い方: NativeModelSmoke <ProjectRoot> <画像の出力ディレクトリ>
 #include "Dxf/AssetService.h"
+#include "Dxf/Application.h"
+#include "Dxf/GameScene.h"
 #include "Dxf/ModelImport.h"
 #include "Dxf/DxLibSession.h"
 #include "Dxf/NativeBackends.h"
@@ -230,6 +232,8 @@ void Run_Internal(const Toolbox::FPath& Root, const Toolbox::FPath& OutDir)
 	Settings.Height = Height;
 	Settings.bVSync = false;
 	RequireSuccess_Internal(Smoke.Session.Initialize(Settings));
+	Check_Internal(DxLib::GetHandleNum(DX_HANDLETYPE_SHADER) == 0 && DxLib::GetHandleNum(DX_HANDLETYPE_MODEL) == 0,
+	               "new session has no retained model or PBR shader handles");
 	Check_Internal(Smoke.Services.pModels != nullptr, "model backend available in this DxLib build");
 	FAssetService Assets(Smoke.Services.Textures, Smoke.Services.Sounds, Smoke.Services.Fonts, Smoke.Services.pModels);
 	Check_Internal(Assets.SetProjectRoot(Root), "project root");
@@ -332,6 +336,74 @@ void Run_Internal(const Toolbox::FPath& Root, const Toolbox::FPath& OutDir)
 	const FSignature FirstUv = Smoke.Frame(Renderer, &PbrUvInstance, nullptr, "pbr-uv0");
 	Check_Internal(AutoUv.ColorHash[0] == ExplicitUv.ColorHash[0] && AutoUv.ColorHash[0] != FirstUv.ColorHash[0],
 	               "PBR material selects UV1 and explicit UV0 changes pixels");
+
+	// 同じ手作成データで骨・2モーフ・UV1・頂点色・PBRを同時に使用する。
+	FModel Combined = TakeOrThrow_Internal(Assets.LoadModel("Tests/Assets/CombinedModel.fbx"));
+	FModelInstance CombinedA = TakeOrThrow_Internal(Assets.CreateModelInstance(Combined));
+	FModelInstance CombinedB = TakeOrThrow_Internal(Assets.CreateModelInstance(Combined));
+	RequireSuccess_Internal(CombinedA.SetTransform(Toolbox::FMatrix4::Translation({-120, 0, 0})));
+	RequireSuccess_Internal(CombinedB.SetTransform(Toolbox::FMatrix4::Translation({120, 0, 0})));
+	RequireSuccess_Internal(CombinedB.SetMaterial(FModelMaterial3D{}));
+	RequireSuccess_Internal(CombinedA.Play("Widen", false));
+	RequireSuccess_Internal(CombinedA.SetMorphWeight(0, 0));
+	const FSignature CombinedStart = Smoke.Frame(Renderer, &CombinedA, &CombinedB);
+	// 同形状・同じPBRとUVを持つ無頂点色データと比較し、併用時の色の寄与を確かめる。
+	RequireSuccess_Internal(PbrUvInstance.SetTransform(Toolbox::FMatrix4::Translation({-120, 0, 0})));
+	UvMaterial.BaseColorUv = 1;
+	RequireSuccess_Internal(PbrUvInstance.SetMaterial(UvMaterial));
+	const FSignature WithoutColors = Smoke.Frame(Renderer, &PbrUvInstance, &CombinedB);
+	Check_Internal(CombinedStart.Hash[0] == WithoutColors.Hash[0] &&
+	                   CombinedStart.Brightness[0] < WithoutColors.Brightness[0] &&
+	                   CombinedStart.ColorHash[1] == WithoutColors.ColorHash[1],
+	               "vertex colors modulate combined PBR UV1 pixels without changing geometry");
+	RequireSuccess_Internal(CombinedA.SetTime(0.5));
+	const FSignature BoneOnly = Smoke.Frame(Renderer, &CombinedA, &CombinedB);
+	Check_Internal(BoneOnly.Hash[0] != CombinedStart.Hash[0] && BoneOnly.ColorHash[1] == CombinedStart.ColorHash[1],
+	               "combined bone animation moves only the first instance");
+	RequireSuccess_Internal(CombinedA.ResetMorphWeight(0));
+	const FSignature OneMorph = Smoke.Frame(Renderer, &CombinedA, &CombinedB);
+	RequireSuccess_Internal(CombinedA.SetMorphWeight(1, 1));
+	const FSignature BothMorphs = Smoke.Frame(Renderer, &CombinedA, &CombinedB, "combined-bone-two-morphs");
+	Check_Internal(OneMorph.Pixels[0] > BoneOnly.Pixels[0] + 100 && BothMorphs.Pixels[0] + 100 < OneMorph.Pixels[0],
+	               "both morph channels affect the animated bone mesh");
+	Check_Internal(BothMorphs.ColorHash[1] == CombinedStart.ColorHash[1],
+	               "combined PBR deformation leaves ordinary clone unchanged");
+	// UVの指定と頂点色を含む描画が通常材質の次へ漏れない。
+	FModelMaterial3D CombinedMaterial = CombinedA.GetMaterial();
+	CombinedMaterial.BaseColorUv = 0;
+	RequireSuccess_Internal(CombinedA.SetMaterial(CombinedMaterial));
+	const FSignature CombinedUv0 = Smoke.Frame(Renderer, &CombinedA, &CombinedB);
+	Check_Internal(CombinedUv0.ColorHash[0] != BothMorphs.ColorHash[0] &&
+	                   CombinedUv0.ColorHash[1] == BothMorphs.ColorHash[1],
+	               "combined UV selection affects PBR colors only");
+	CombinedMaterial.BaseColorUv = 1;
+	RequireSuccess_Internal(CombinedA.SetMaterial(CombinedMaterial));
+	const FSignature AcceptedReference = Smoke.Frame(Renderer, &CombinedA, &CombinedB, "combined-reference");
+	// 描画受付後に材質と両モーフ、再生時刻を変更しても受付済みの画素は変わらない。
+	RequireSuccess_Internal(Renderer.BeginFrame(Width, Height, Background));
+	RequireSuccess_Internal(Renderer.GetContext().Get3D().SetView(Smoke.View));
+	RequireSuccess_Internal(Renderer.GetContext().Get3D().DrawModel(CombinedA));
+	RequireSuccess_Internal(Renderer.GetContext().Get3D().DrawModel(CombinedB));
+	CombinedMaterial.Tint = {32, 200, 64, 255};
+	CombinedMaterial.Metallic = 0;
+	RequireSuccess_Internal(CombinedA.SetMaterial(CombinedMaterial));
+	RequireSuccess_Internal(CombinedA.SetMorphWeight(0, 0));
+	RequireSuccess_Internal(CombinedA.SetMorphWeight(1, 0));
+	RequireSuccess_Internal(CombinedA.SetTime(0));
+	FSignature Accepted;
+	RequireSuccess_Internal(Renderer.GetContext().Native(
+	    [&]
+	    {
+		    Accepted = Read_Internal();
+		    return TResult<void>::Success();
+	    }));
+	RequireSuccess_Internal(Renderer.EndFrame());
+	Check_Internal(Accepted.ColorHash[0] == AcceptedReference.ColorHash[0] &&
+	                   Accepted.ColorHash[1] == AcceptedReference.ColorHash[1],
+	               "accepted material morph and animation snapshots match reference pixels");
+	const FSignature Changed = Smoke.Frame(Renderer, &CombinedA, &CombinedB);
+	Check_Internal(Changed.ColorHash[0] != Accepted.ColorHash[0] && Changed.ColorHash[1] == Accepted.ColorHash[1],
+	               "post-acceptance changes appear only in the next draw");
 	Smoke.View = OriginalView;
 	// 2体の独立したインスタンス。
 	FModel Column = TakeOrThrow_Internal(Assets.LoadModel("Assets/Models/SkinnedColumn.fbx"));
@@ -398,6 +470,49 @@ void Run_Internal(const Toolbox::FPath& Root, const Toolbox::FPath& OutDir)
 	const FSignature OrthoMoved = Smoke.Frame(Renderer, &A, &B);
 	Check_Internal(Ortho.Pixels[1] > 200 && Ortho.ColorHash[1] == OrthoMoved.ColorHash[1],
 	               "file orthographic camera keeps size after depth movement");
+
+	// 同一フレーム内の異なるビューで、ファイル内の全ライトと両カメラを切り替える。
+	for (Toolbox::int32 Light = 0; Light < 3; ++Light)
+	{
+		RequireSuccess_Internal(SceneObjects.GetCamera(0)->ApplyTo(Smoke.View));
+		RequireSuccess_Internal(SceneObjects.GetLight(Light)->ApplyTo(Smoke.View));
+		Smoke.View.Id = 10;
+		const FRenderView3D LeftView = Smoke.View;
+		const FSignature LeftReference = Smoke.Frame(Renderer, &A, nullptr, nullptr, true);
+		RequireSuccess_Internal(SceneObjects.GetCamera(1)->ApplyTo(Smoke.View));
+		RequireSuccess_Internal(SceneObjects.GetLight((Light + 1) % 3)->ApplyTo(Smoke.View));
+		// 右個体へ位置を合わせ、スポットの照射範囲内で切替を比較する。
+		Smoke.View.ModelLightPosition.X = 120;
+		Smoke.View.Id = 11;
+		// Aを右へ移して同じ照明あり材質を使う。参照も同じ位置で取り直す。
+		RequireSuccess_Internal(A.SetTransform(Toolbox::FMatrix4::Translation({120, 0, 0})));
+		const FSignature RightPlaced = Smoke.Frame(Renderer, nullptr, &A);
+		RequireSuccess_Internal(Renderer.BeginFrame(Width, Height, Background));
+		RequireSuccess_Internal(Renderer.GetContext().Get3D().SetView(Smoke.View));
+		RequireSuccess_Internal(Renderer.GetContext().Get3D().DrawModel(A));
+		RequireSuccess_Internal(A.SetTransform(Toolbox::FMatrix4::Translation({-120, 0, 0})));
+		RequireSuccess_Internal(Renderer.GetContext().Get3D().SetView(LeftView));
+		RequireSuccess_Internal(Renderer.GetContext().Get3D().DrawModel(A));
+		FDrawStyle OverlayStyle;
+		OverlayStyle.Color = {255, 64, 32, 255};
+		RequireSuccess_Internal(Renderer.GetContext().Get2D().FillRectangle({10, 10, 40, 40}, OverlayStyle));
+		FSignature Switched;
+		RequireSuccess_Internal(Renderer.GetContext().Native(
+		    [&]
+		    {
+			    Switched = Read_Internal();
+			    return TResult<void>::Success();
+		    }));
+		RequireSuccess_Internal(Renderer.EndFrame());
+		Check_Internal(
+		    Switched.ColorHash[0] == LeftReference.ColorHash[0] && Switched.ColorHash[1] == RightPlaced.ColorHash[1] &&
+		        Switched.OverlayRgb == 0xff4020u && LeftReference.Pixels[0] > 200 && RightPlaced.Pixels[1] > 200,
+		    "camera and light switches match separate view pixels and restore 2D",
+		    "light=" + Toolbox::ToString(Light) +
+		        " leftmatch=" + Toolbox::ToString(Switched.ColorHash[0] == LeftReference.ColorHash[0] ? 1 : 0) +
+		        " rightmatch=" + Toolbox::ToString(Switched.ColorHash[1] == RightPlaced.ColorHash[1] ? 1 : 0) + " " +
+		        Describe_Internal(Switched));
+	}
 	Smoke.View = PreviousView;
 	// PBRの係数を個体ごとに変更し、既存のスキン描画と2D状態を保つ。
 	const FRenderView3D BeforePbr = Smoke.View;
@@ -473,7 +588,7 @@ void Run_Internal(const Toolbox::FPath& Root, const Toolbox::FPath& OutDir)
 	Check_Internal(Same_Internal(Reloaded, Start, 0) && Same_Internal(Reloaded, Bent, 1),
 	               "reload reproduces the same poses", Describe_Internal(Reloaded));
 
-	// 受付後にインスタンスを破棄しても（Sceneの退役に相当）、記録済みの描画は完了する。
+	// 受付後のインスタンス破棄でも描画は完了する。実Scene切替は別のApplication試験で確認する。
 	RequireSuccess_Internal(Renderer.BeginFrame(Width, Height, Background));
 	RequireSuccess_Internal(Renderer.GetContext().Get3D().SetView(Smoke.View));
 	RequireSuccess_Internal(Renderer.GetContext().Get3D().DrawModel(A));
@@ -523,8 +638,155 @@ void Run_Internal(const Toolbox::FPath& Root, const Toolbox::FPath& OutDir)
 	Check_Internal(!Column.IsValid() && !B.IsValid() && !BoxInstance.IsValid() && !BoxModel.IsValid(),
 	               "shutdown invalidates models and instances");
 	Check_Internal(!Assets.LoadModel("Assets/Models/SkinnedColumn.fbx"), "loading after shutdown fails");
+	// モデル資源失効による失敗後にも、次フレームの2Dの画素が復元される。
+	const FSignature AfterFailure = Smoke.Frame(Renderer, nullptr, nullptr, "combined-failure-2d", true);
+	Check_Internal(AfterFailure.OverlayRgb == 0xff4020u && AfterFailure.Pixels[1] == 0,
+	               "2D pixels recover after invalidated model draw failure");
 	// 描画系を終えてからセッションを閉じる。
 	Smoke.Session.Shutdown();
+}
+
+// Applicationより長く生存する観察値。描画資源は所有しない。
+struct FApplicationModelTrace
+{
+	// 最後に実画面を読み戻した値。
+	FSignature Image;
+	// オブジェクトの開始・終了・描画完了数。
+	Toolbox::int32 Initialized = 0;
+	Toolbox::int32 Deinitialized = 0;
+	Toolbox::int32 Captured = 0;
+	// 受付後の資源失効を起こしてApplicationの失敗終了を通す。
+	bool bInvalidate = false;
+};
+
+// 実GameSceneが所有し、実Applicationから初期化・描画・終了されるモデルオブジェクト。
+class ACombinedModelObject final : public DGameObject
+{
+public:
+	explicit ACombinedModelObject(FApplicationModelTrace& Trace) : m_Trace(Trace)
+	{
+	}
+
+protected:
+	TResult<void> OnInitialize(const FInitContext& Context) override
+	{
+		m_pAssets = &Context.Assets;
+		// Scene再入場ごとに同じファイルを読み、モデルと個体を作る。
+		const FModel Model = TakeOrThrow_Internal(Context.Assets.LoadModel("Tests/Assets/CombinedModel.fbx"));
+		m_Instance = TakeOrThrow_Internal(Context.Assets.CreateModelInstance(Model));
+		RequireSuccess_Internal(m_Instance.Play("Widen", false));
+		RequireSuccess_Internal(m_Instance.SetTime(0.5));
+		RequireSuccess_Internal(m_Instance.SetMorphWeight(1, 1));
+		++m_Trace.Initialized;
+		return {};
+	}
+	void OnDraw(FRenderContext& Render) const override
+	{
+		// 正射影と正面光でPBR・UV1・頂点色・両モーフ・骨を描く。
+		FRenderView3D View;
+		View.Eye = {0, 100, -600};
+		View.Target = {0, 100, 0};
+		View.bOrthographic = true;
+		View.OrthographicHeight = 400;
+		View.LightDirection = {0, 0, 1};
+		View.LightColor = {255, 255, 255, 255};
+		RequireSuccess_Internal(Render.Get3D().SetView(View));
+		RequireSuccess_Internal(Render.Get3D().DrawModel(m_Instance));
+		FDrawStyle Style;
+		Style.Color = {255, 64, 32, 255};
+		RequireSuccess_Internal(Render.Get2D().FillRectangle({10, 10, 40, 40}, Style));
+		if (m_Trace.bInvalidate)
+		{
+			m_pAssets->Shutdown();
+		}
+		RequireSuccess_Internal(Render.Native(
+		    [this]
+		    {
+			    m_Trace.Image = Read_Internal();
+			    ++m_Trace.Captured;
+			    return TResult<void>::Success();
+		    }));
+	}
+	void OnDeinitialize() noexcept override
+	{
+		m_Instance = FModelInstance();
+		++m_Trace.Deinitialized;
+	}
+
+private:
+	// Application外の観察先と、Applicationが所有するAssetService。
+	FApplicationModelTrace& m_Trace;
+	FAssetService* m_pAssets = nullptr;
+	// オブジェクトが寿命を所有する描画個体。
+	FModelInstance m_Instance;
+};
+
+// 実GameSceneのオブジェクト集合を通してモデルの寿命を管理する。
+class ACombinedModelScene final : public DGameScene
+{
+public:
+	explicit ACombinedModelScene(FApplicationModelTrace& Trace) : m_Trace(Trace)
+	{
+	}
+
+protected:
+	TResult<void> OnInitialize(const FInitContext&) override
+	{
+		// 生成失敗はSceneの初期化失敗として伝播する。
+		auto Spawned = Spawn<ACombinedModelObject>(m_Trace);
+		return Spawned ? TResult<void>::Success() : TResult<void>::Failure(Spawned.Error());
+	}
+
+private:
+	// Sceneより長く生存する観察先。
+	FApplicationModelTrace& m_Trace;
+};
+
+// 低レベルRenderer試験とは別に、ApplicationとScene所有境界を実DxLibで通す。
+void RunApplication_Internal(const Toolbox::FPath& Root, bool bFail)
+{
+	FDxLibBackends Backends;
+	FApplicationModelTrace Trace;
+	Trace.bInvalidate = bFail;
+	FApplicationSettings Settings;
+	Settings.Window.Width = Width;
+	Settings.Window.Height = Height;
+	Settings.Window.bVSync = false;
+	Settings.ClearColor = Background;
+	Settings.ProjectRoot = Root.ToUtf8();
+	Settings.ExecutionThreadCount = 1;
+	FApplication App(Backends.GetServices(), Settings);
+	RequireSuccess_Internal(App.Start(Toolbox::MakeUnique<ACombinedModelScene>(Trace)));
+	const auto First = App.Step(0);
+	if (bFail)
+	{
+		Check_Internal(!First && !App.IsRunning() && Trace.Deinitialized == 1 && Trace.Captured == 0,
+		               "real Application model draw failure shuts down scene before capture");
+		return;
+	}
+	Check_Internal(First && First.Value() && Trace.Captured == 1 && Trace.Image.Pixels[0] > 200 &&
+	                   Trace.Image.Pixels[1] > 200 && Trace.Image.OverlayRgb == 0xff4020u,
+	               "real Application GameScene object renders combined model and 2D");
+	const FSignature Initial = Trace.Image;
+	const Toolbox::int32 ShaderCount = DxLib::GetHandleNum(DX_HANDLETYPE_SHADER);
+	Check_Internal(ShaderCount > 0, "PBR created a shader handle");
+	RequireSuccess_Internal(App.GetScenes().RequestChange<DGameScene>());
+	Check_Internal(static_cast<bool>(App.Step(0)), "real Application switches to empty scene");
+	App.GetAssets().CollectUnused();
+	Check_Internal(DxLib::GetHandleNum(DX_HANDLETYPE_MODEL) == 0 && DxLib::GetHandleNum(DX_HANDLETYPE_MODEL_BASE) == 0,
+	               "scene retirement and collection release native model handles");
+	Check_Internal(Trace.Deinitialized == 1 && Trace.Captured == 1,
+	               "retired GameScene releases object and does not replay model draw");
+	RequireSuccess_Internal(App.GetScenes().RequestChange<ACombinedModelScene>(Trace));
+	Check_Internal(static_cast<bool>(App.Step(0)), "real Application reloads model scene");
+	Check_Internal(Trace.Initialized == 2 && Trace.Captured == 2 && Trace.Image.ColorHash[0] == Initial.ColorHash[0] &&
+	                   Trace.Image.ColorHash[1] == Initial.ColorHash[1],
+	               "scene reload reproduces combined model pixels");
+	Check_Internal(DxLib::GetHandleNum(DX_HANDLETYPE_SHADER) == ShaderCount,
+	               "scene reload reuses session PBR shader without accumulating handles");
+	App.Shutdown();
+	Check_Internal(Trace.Deinitialized == 2 && !App.IsRunning(),
+	               "Application shutdown releases remaining model object");
 }
 } // namespace
 
@@ -540,6 +802,9 @@ Toolbox::int32 main(Toolbox::int32 ArgCount, char** Args)
 		const Toolbox::FPath OutDir(Args[2]);
 		Toolbox::CreateDirectory(OutDir);
 		Run_Internal(Toolbox::FPath(Args[1]), OutDir);
+		RunApplication_Internal(Toolbox::FPath(Args[1]), false);
+		RunApplication_Internal(Toolbox::FPath(Args[1]), true);
+		RunApplication_Internal(Toolbox::FPath(Args[1]), false);
 		// 同じプロセスでGPU資源を作り直し、古いハンドルを再利用しない。
 		Run_Internal(Toolbox::FPath(Args[1]), OutDir);
 	}
