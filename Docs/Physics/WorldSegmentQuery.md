@@ -1,8 +1,38 @@
 # 現在のPhysics Worldへの最短線分問い合わせ
 
-`Dxf/RigidBody3D.h` の `FPhysicsWorld3D::RaycastClosest(Start, End, ExcludedBody = {}) const` は、現在登録されている球・OBBのうち有限線分が最初に当たるColliderを返します。リンク先は `dxf::physics` だけです。カメラ、Debug、Native、GPU読戻しは不要です。
+`FPhysicsWorld2D::RaycastClosest`（`Dxf/RigidBody2D.h`）と`FPhysicsWorld3D::RaycastClosest`（`Dxf/RigidBody3D.h`）は、現在登録されている形状のうち有限線分が最初に当たるColliderを返します。リンク先は `dxf::physics` だけです。カメラ、Debug、Native、GPU読戻しは不要です。名前は「Raycast」ですが、対象はStart～Endの有限線分です。無限Rayや厚みのある移動判定ではありません。
 
-## ゲームから使う
+## 2Dと3Dの対応
+
+| 項目 | 2D | 3D |
+|---|---|---|
+| 呼出し | `RaycastClosest(FVector2 Start, FVector2 End, TOptional<FBodyId2D> ExcludedBody = {}) const` | `RaycastClosest(FVector3 Start, FVector3 End, TOptional<FBodyId3D> ExcludedBody = {}) const` |
+| 結果 | `TOptional<FWorldSegmentHit2D>`（`Dxf/WorldSegmentHit2D.h`） | `TOptional<FWorldSegmentHit3D>`（`Dxf/WorldSegmentHit3D.h`） |
+| 対象形状 | 円・回転矩形（Body角度＋Colliderのローカル角度） | 球・OBB |
+| 座標 | 2D物理ワールド。メートル・Y上向き・角度はラジアン。ピクセルではない | 3D物理ワールド。メートル |
+| 形状交差 | `Toolbox::IntersectSegment(FVector2, FVector2, FCircle2D / FOrientedBox2D)`（`Toolbox/SegmentIntersection2D.h`） | `Toolbox::IntersectSegment(FVector3, FVector3, FSphere / FOBB)`（`Toolbox/SegmentIntersection.h`） |
+
+結果の型・失敗・Step状態・除外・順序の契約は2Dと3Dで共通です（下記）。法線、全件一覧、カテゴリ／マスク、空間索引はどちらにもありません。
+
+## ゲームから使う（2D）
+
+```cpp
+#include "Dxf/RigidBody2D.h"
+
+// 敵の位置からプレイヤーへの射線。座標は2D物理ワールド（メートル・Y上向き）。
+const Toolbox::FVector2 Eye = World.GetPosition(EnemyBody);
+const Toolbox::FVector2 Target = World.GetPosition(PlayerBody);
+// 自分のBodyの全Colliderを除外する。
+const auto Hit = World.RaycastClosest(Eye, Target, EnemyBody);
+if (Hit && Hit->Collider.Body == PlayerBody)
+{
+    // 最初に当たったのがプレイヤーなら見えている。Hit->Positionは問い合わせ時点の交点。
+}
+```
+
+画面のピクセル座標（Y下向き）から使う場合は、ゲーム側でPhysicsの座標へ変換してから渡します。このAPIは画面座標を受け取りません。
+
+## ゲームから使う（3D）
 
 ```cpp
 // Start / Endはワールド座標。SelfBodyはこのWorldの生存Body ID。
@@ -15,8 +45,6 @@ if (OtherHit)
     // ColliderとPositionをゲーム固有の処理へ渡す。
 }
 ```
-
-返り値は `Toolbox::TOptional<FWorldSegmentHit3D>`。正常な非交差は空です。不正入力・計算不能・利用できないWorld状態は既存Physics APIと同じ `Toolbox::FException` で通知するため、呼び出し境界で処理してください。
 
 画面座標を使う場合だけ `dxf::support` の座標変換を組み合わせます。
 
@@ -33,27 +61,30 @@ if (Segment && Segment.Value())
 // SegmentのFailureは変換エラー、成功した空値はビュー範囲外。
 ```
 
-## 結果と失敗の契約
+返り値の正常な非交差は空Optionalです。不正入力・計算不能・利用できないWorld状態は既存Physics APIと同じ `Toolbox::FException` で通知するため、呼び出し境界で処理してください。
 
-- `Collider` はBodyのWorld識別子・スロット・世代と、Colliderのスロット・世代を含む値です。削除・再登録後も同じ物体とは限りません。保存後に利用する場合は `World.IsColliderAlive(Hit->Collider)` で確認します。生存していても、保存した交点は問い合わせ時の位置です。
-- `Fraction` は始点0～終点1の `f64` の割合です。距離・時間・描画深度ではありません。`Position` は線分上のワールド交点です。接線・両端を含み、始点が内部なら0。完全に同じ割合の候補はColliderスロットの小さい順です。
-- 除外は生存Body一つまでで、そのBodyに属する全Colliderを除きます。省略した空Optionalと、明示指定した `FBodyId3D{}` は異なります。指定した無効・削除済み・旧世代・別WorldのIDは例外です。
+## 結果と失敗の契約（2D／3D共通）
+
+- `Collider` はBodyのWorld識別子・スロット・世代と、Colliderのスロット・世代を含む値です。削除・再登録後も同じ物体とは限りません。保存後に利用する場合は `World.IsColliderAlive(Hit->Collider)` で確認します。生存していても、保存した交点は問い合わせ時の位置です。結果に生ポインタや内部配列の参照は含みません。
+- `Fraction` は始点0～終点1の `f64` の割合です。距離・時間・描画深度ではありません。`Position` は線分上のワールド交点で、倍精度の凸結合から作ります。接線・両端を含み、始点が内部または境界上なら0。完全に同じ割合の候補はColliderスロットの小さい順です。許容幅で異なる割合を同順位にまとめません。
+- 除外は生存Body一つまでで、そのBodyに属する全Colliderを除きます。省略した空Optionalと、明示指定した `FBodyId2D{}` / `FBodyId3D{}` は異なります。指定した無効・削除済み・旧世代・別WorldのIDは例外です。
 - 空WorldでもNaN/Inf、ゼロ長、f32で表現できない始終点の変位を拒否します。各対象の変換後形状・ローカル線分・結果が既存交差計算で表現できない場合も例外です。割合0の候補を見つけても後続対象の計算失敗を隠しません。除外対象の形状は計算しません。
+- 形状の有効条件は登録時と同じです。2Dでは半径0の円（点）と半幅0の軸を持つ矩形（辺・点）も登録でき、問い合わせでは接触として扱います。回転矩形を外接矩形で代用しません。
 
 ## 現在の状態と読み取り専用性
 
-Static / Kinematic / Dynamic / 休止中のBodyを区別せず、全生存Colliderを調べます。Bodyの現在位置・姿勢とColliderのローカル中心・箱の軸から、接触処理と共通の変換を利用します。Attach / Detach / Destroy / Create / SetBodyTransformは追加Stepなしで反映されます。
+Static / Kinematic / Dynamic / 休止中のBodyを区別せず、全生存Colliderを調べます。Bodyの現在位置・姿勢とColliderのローカル中心・角度（3Dは箱の軸）から、接触処理と共通の変換を利用します。Attach / Detach / Destroy / Create / SetBodyTransformは追加Stepなしで反映されます。StepIndexを使ったキャッシュはありません。
 
-問い合わせはStep、起床、採取、力の消去、履歴保存を行いません。Step中、または引数検査後に途中失敗したStepの後は拒否し、次の正常Step完了で回復します。最初のStep前は使用できます。Stepの引数検査だけで失敗した場合は問い合わせを禁止しません。中断したStepを巻き戻すAPIではありません。
+問い合わせはStep、起床、採取、力の消去、履歴保存、接触キャッシュの更新を行いません。Step中、または引数検査後に途中失敗したStepの後は拒否し、次の正常Step完了で回復します。最初のStep前は使用できます。Stepの引数検査だけで失敗した場合は問い合わせを禁止しません。中断したStepを巻き戻すAPIではありません。
 
 `const` は同時実行の安全性を保証しません。呼び出し側でStepや登録変更等と直列化してください。
 
-Colliderスロットを直接走査するため、削除済みも含めた保持スロット数nに対しO(n)、追加領域O(1)です。通常経路で候補配列やSnapshotを確保しません。Debug表示の件数上限はありません。空間索引や高速化の性能保証は今回の範囲外です。
+Colliderスロットを直接走査するため、削除済みも含めた保持スロット数nに対しO(n)、追加領域O(1)です。通常経路で候補配列やSnapshotを確保しません。Debug表示の件数上限はありません。これは実装上の確保の有無であり、性能測定の結果ではありません。空間索引や高速化の性能保証は範囲外です。
 
 ## 保存Snapshotとの違い
 
 [Snapshot選択](../Rendering/PhysicsSnapshotPicking.md)は採取時の表示・履歴を調べます。本APIは現在のWorldを調べます。RenderDebugの履歴選択は引き続き保存Snapshotを使用し、現在の値へ置き換えません。
 
-今回の対象は3D球/OBB・最短一件・自己Body一つの除外までです。2D、全件一覧、カテゴリ、モデル三角形、法線、形状の二重登録は追加していません。
+対象は最短一件・自己Body一つの除外までです。全件一覧、カテゴリ、モデル三角形、法線、Sweepの公開World API、2D画面選択、形状の二重登録は追加していません。
 
-検証と実行範囲は[World問い合わせの検証記録](../Development/WorldSegmentQuery-2026-09-24.md)を参照してください。
+検証と実行範囲は[3Dの検証記録](../Development/WorldSegmentQuery-2026-09-24.md)と[2Dの検証記録](../Development/WorldSegmentQuery2D-2026-09-24.md)を参照してください。

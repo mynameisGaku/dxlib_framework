@@ -2,6 +2,8 @@
 #ifndef DXF_PHYSICS_RIGID_BODY_2D_H
 #define DXF_PHYSICS_RIGID_BODY_2D_H
 #include "Dxf/BodyType.h"
+#include "Dxf/WorldSegmentHit2D.h"
+#include "Toolbox/Optional.h"
 #include "Dxf/PhysicsSnapshot.h"
 #include "Dxf/PhysicsExecution.h"
 #include "Toolbox/Contact2D.h"
@@ -10,28 +12,6 @@
 #include "Toolbox/Utility.h"
 namespace Dxf
 {
-/**
- * 平面剛体を識別する、世代付きの非所有ハンドル。
- */
-struct FBodyId2D
-{
-	/**
-	 * 登録先ワールドの識別子。
-	 */
-	Toolbox::uint64 World = 0;
-	/**
-	 * 登録スロットの番号。
-	 */
-	Toolbox::size_t Index = 0;
-	/**
-	 * 同じスロットを再使用した際の世代。
-	 */
-	Toolbox::uint64 Generation = 0;
-	/**
-	 * 同じ登録を指すか調べる。
-	 */
-	bool operator==(const FBodyId2D&) const = default;
-};
 /**
  * 平面剛体の初期条件。位置は重心を基準とするメートル単位。
  */
@@ -85,28 +65,6 @@ struct FBodyDescription2D
 	 * 速度が落ちた休止を許可するか。
 	 */
 	bool bAllowSleep = true;
-};
-/**
- * 平面コライダーを識別する、世代付きの非所有ハンドル。
- */
-struct FColliderId2D
-{
-	/**
-	 * 取り付け先の剛体。
-	 */
-	FBodyId2D Body;
-	/**
-	 * 登録スロットの番号。
-	 */
-	Toolbox::size_t Index = 0;
-	/**
-	 * 同じスロットを再使用した際の世代。
-	 */
-	Toolbox::uint64 Generation = 0;
-	/**
-	 * 同じ登録を指すか調べる。
-	 */
-	bool operator==(const FColliderId2D&) const = default;
 };
 /**
  * 剛体へ取り付ける平面形状と材質。形状の中心は重心からの相対位置。
@@ -453,7 +411,17 @@ public:
 	 * @param Limits 生存Body・Colliderの最大保持件数。
 	 */
 	FPhysicsSnapshot2D CaptureSnapshot(const FPhysicsSnapshotLimits& Limits = {}) const;
-
+	/**
+	 * 現在の円/回転矩形と有限線分の最短交点を返す。非交差は空、異常はFException。
+	 * 座標はメートル単位・Y上向きの2D物理ワールド座標（ピクセルではない）。
+	 * 同距離はColliderスロット昇順。通常経路は配列確保なし、削除済みを含むスロット数に対しO(n)。
+	 * Step中/途中失敗後は拒否。変更・Stepと外側で直列化する。問い合わせで起床や採取を行わない。
+	 * @param Start ワールド始点。有限値を要求する。
+	 * @param End ワールド終点。ゼロ長・表現不能な変位は拒否する。
+	 * @param ExcludedBody 任意の自己Body。指定済みの無効/別World/旧世代IDは拒否する。
+	 */
+	Toolbox::TOptional<FWorldSegmentHit2D> RaycastClosest(Toolbox::FVector2 Start, Toolbox::FVector2 End,
+	                                                      Toolbox::TOptional<FBodyId2D> ExcludedBody = {}) const;
 
 private:
 	/**

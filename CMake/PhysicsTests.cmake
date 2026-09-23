@@ -13,6 +13,7 @@ function(dxf_add_physics_tests Target CoreTarget)
         "${_root}/Tests/Physics/StabilityTests.cpp"
         "${_root}/Tests/Physics/ParallelTests.cpp"
         "${_root}/Tests/Physics/WorldQueryTests.cpp"
+        "${_root}/Tests/Physics/WorldQuery2DTests.cpp"
         "${_root}/Tests/Physics/TestCases.h")
     target_include_directories(${Target} PRIVATE "${_root}/Tests/Physics" "${_root}/Source/Physics/Private")
     target_include_directories(${Target} PRIVATE "${_root}/Tests/Physics" "${_root}/Source/Physics/Private")

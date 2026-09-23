@@ -3,6 +3,7 @@
 #include "PhysicsSnapshotBuilder.h"
 #include "ParallelPhysicsCore.h"
 #include "Toolbox/ContinuousCollision.h"
+#include "Toolbox/SegmentIntersection2D.h"
 #include "Toolbox/Vector.h"
 namespace Dxf
 {
@@ -2205,6 +2206,77 @@ bool FPhysicsWorld2D::IsColliderAlive(FColliderId2D Id) const noexcept
 	return m_pImpl->FindCollider_Internal(Id) != nullptr;
 }
 // 登録配列から直接採取する。外部の観察登録一覧は使用しない。
+// 現在の登録配列を直接走査し、状態を変更せず最短の交差を返す。
+Toolbox::TOptional<FWorldSegmentHit2D> FPhysicsWorld2D::RaycastClosest(Toolbox::FVector2 Start, Toolbox::FVector2 End,
+                                                                       Toolbox::TOptional<FBodyId2D> ExcludedBody) const
+{
+	// 空Worldでも入力を先に検査する。既存円交差の変位表現に合わせる。
+	if (!Start.IsValid() || !End.IsValid() || Start == End || !(End - Start).IsValid())
+	{
+		throw Toolbox::FException("Invalid or unrepresentable 2D world query segment");
+	}
+	// 読み取り専用の内部状態。
+	const FImpl& Impl = *m_pImpl;
+	if (Impl.SnapshotState.bInStep || !Impl.SnapshotState.bCaptureAllowed)
+	{
+		throw Toolbox::FException("2D world query requires an idle World with no incomplete Step");
+	}
+	if (ExcludedBody)
+	{
+		(void)Impl.Resolve_Internal(*ExcludedBody);
+	}
+	// 昇順走査で同距離の順序を固定する。候補0でも後続形状の計算は省略しない。
+	Toolbox::TOptional<FWorldSegmentHit2D> Best;
+	for (Toolbox::size_t Index = 0; Index < Impl.Colliders.Size(); ++Index)
+	{
+		// 現在のColliderスロット。
+		const auto& Record = Impl.Colliders[Index];
+		if (!Record.bAlive)
+		{
+			continue;
+		}
+		// 現在の所有Bodyの位置と角度。
+		const auto& Body = Impl.Resolve_Internal(Record.Body);
+		if (ExcludedBody && Record.Body == *ExcludedBody)
+		{
+			continue;
+		}
+		// 既存の形状変換（Body角度＋Collider角度）と有限線分交差による割合。
+		const auto Hit = Record.Shape.Visit(
+		    [&](const auto& Local)
+		    {
+			    return Toolbox::IntersectSegment(Start, End, FImpl::ToWorld_Internal(Body, Local));
+		    });
+		if (!Hit)
+		{
+			continue;
+		}
+		if (!Toolbox::IsFinite(*Hit) || *Hit < 0 || *Hit > 1)
+		{
+			throw Toolbox::FException("Invalid 2D world query fraction");
+		}
+		if (Best && Best->Fraction <= *Hit)
+		{
+			continue;
+		}
+		// 最短候補として保持する非所有の値。
+		FWorldSegmentHit2D Result;
+		Result.Collider = {Record.Body, Index, Record.Generation};
+		Result.Fraction = *Hit;
+		// f32の差が大きい場合も、交点を倍精度の凸結合から作る。
+		const Toolbox::f64 X = (1 - *Hit) * Start.X + *Hit * End.X;
+		const Toolbox::f64 Y = (1 - *Hit) * Start.Y + *Hit * End.Y;
+		if (!Toolbox::IsFinite(X) || !Toolbox::IsFinite(Y) ||
+		    Toolbox::Abs(X) > Toolbox::TNumericLimits<Toolbox::f32>::Max() ||
+		    Toolbox::Abs(Y) > Toolbox::TNumericLimits<Toolbox::f32>::Max())
+		{
+			throw Toolbox::FException("Unrepresentable 2D world query point");
+		}
+		Result.Position = {static_cast<Toolbox::f32>(X), static_cast<Toolbox::f32>(Y)};
+		Best = Result;
+	}
+	return Best;
+}
 FPhysicsSnapshot2D FPhysicsWorld2D::CaptureSnapshot(const FPhysicsSnapshotLimits& Limits) const
 {
 	return PhysicsPrivate::CaptureSnapshot_Internal<FPhysicsSnapshot2D>(

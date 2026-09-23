@@ -76,7 +76,8 @@ int main()
     return Queue.Submit(Dxf::FRectangleCommand{}) ? 1 : 0;
 }
 ''', encoding='utf-8')
-        (consumer / 'Physics.cpp').write_text('''#include "Dxf/RigidBody3D.h"
+        (consumer / 'Physics.cpp').write_text('''#include "Dxf/RigidBody2D.h"
+#include "Dxf/RigidBody3D.h"
 int main()
 {
     Dxf::FPhysicsWorld3D World;
@@ -89,6 +90,24 @@ int main()
     if (World.RaycastClosest({0,0,0},{10,0,0},Body)) { return 2; }
     World.DestroyBody(Body);
     if (World.IsColliderAlive(Hit->Collider) || World.RaycastClosest({0,0,0},{10,0,0})) { return 3; }
+    Dxf::FPhysicsWorld2D World2D;
+    const auto Body2D = World2D.CreateBody({});
+    Dxf::FColliderDescription2D Circle;
+    Circle.Shape = Toolbox::FCircle2D{{0,0},1};
+    const auto Collider2D = World2D.AttachCollider(Body2D, Circle);
+    Dxf::FBodyDescription2D WallBody;
+    WallBody.Type = Dxf::EBodyType::Static;
+    WallBody.Position = {5,0};
+    const auto Wall = World2D.CreateBody(WallBody);
+    Dxf::FColliderDescription2D Box;
+    Box.Shape = Toolbox::FOrientedBox2D{{0,0},{0.5f,2},0};
+    const auto WallCollider = World2D.AttachCollider(Wall, Box);
+    const auto Hit2D = World2D.RaycastClosest({-2,0},{2,0});
+    if (!Hit2D || Hit2D->Collider != Collider2D || Toolbox::Abs(Hit2D->Fraction-.25)>1e-12 || !(Hit2D->Position == Toolbox::FVector2(-1,0))) { return 4; }
+    const auto Other2D = World2D.RaycastClosest({0,0},{10,0},Body2D);
+    if (!Other2D || Other2D->Collider != WallCollider || Toolbox::Abs(Other2D->Fraction-.45)>1e-12) { return 5; }
+    World2D.DestroyBody(Wall);
+    if (World2D.IsColliderAlive(WallCollider) || World2D.RaycastClosest({0,0},{10,0},Body2D)) { return 6; }
     return 0;
 }
 ''', encoding='utf-8')
