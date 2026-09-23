@@ -23,6 +23,8 @@ Toolbox::int32 WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, Toolbox::int32)
 	{
 		Dxf::FDxLibBackends Backends;
 		Dxf::FApplicationSettings Settings;
+		Settings.Window.Width = 1280;
+		Settings.Window.Height = 720;
 		Settings.Window.Title = "dxlib_framework - ModelViewer";
 		Settings.ProjectRoot = Dxf::ResolveEntryProjectRoot("ModelViewer.dxfpaths").ToUtf8();
 		Dxf::FApplication Application(Backends.GetServices(), Settings);

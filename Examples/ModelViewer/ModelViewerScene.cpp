@@ -115,6 +115,10 @@ void AModelViewerScene::OnTick(const FTickContext& Context)
 	{
 		Require_Internal(m_Right.Play(m_Right.GetClip() == 0 ? "Twist" : "Bend"));
 	}
+	if (Input.WasPressed(EKey::V))
+	{
+		m_bSplit = !m_bSplit;
+	}
 	const Toolbox::f64 Delta = Context.Time.DeltaSeconds;
 	Require_Internal(m_Left.Advance(Delta));
 	Require_Internal(m_Right.Advance(Delta));
@@ -126,21 +130,35 @@ void AModelViewerScene::OnTick(const FTickContext& Context)
 void AModelViewerScene::OnDraw(FRenderContext& Render) const
 {
 	auto& Draw3D = Render.Get3D();
-	Require_Internal(Draw3D.SetView(m_View));
-	Require_Internal(Draw3D.DrawModel(m_Left));
-	Require_Internal(Draw3D.DrawModel(m_Right));
-	Require_Internal(Draw3D.DrawModel(m_BoxInstance));
-	// 床の目安線。モデルは不透明として同じビューの形状より先に描かれる。
-	FDrawStyle3D Grid;
-	Grid.Color = {70, 70, 70, 255};
-	for (Toolbox::int32 Line = -4; Line <= 4; ++Line)
+	// 表示回数に関係なくアニメーション更新はOnTickだけで行う。
+	for (Toolbox::int32 Side = 0; Side < (m_bSplit ? 2 : 1); ++Side)
 	{
-		const Toolbox::f32 Offset = static_cast<Toolbox::f32>(Line * 75);
-		Require_Internal(Draw3D.DrawLine({Offset, 0, -300}, {Offset, 0, 300}, Grid));
-		Require_Internal(Draw3D.DrawLine({-300, 0, Offset}, {300, 0, Offset}, Grid));
+		FRenderView3D View = m_View;
+		View.bViewport = m_bSplit;
+		View.Viewport = {Side * 640, 0, (Side + 1) * 640, 720};
+		if (Side == 1)
+		{
+			View.Eye = {400, 260, -450};
+			View.LightDirection = {1, -1, 0};
+		}
+		Require_Internal(Draw3D.SetView(View));
+		Require_Internal(Draw3D.DrawModel(m_Left));
+		Require_Internal(Draw3D.DrawModel(m_Right));
+		Require_Internal(Draw3D.DrawModel(m_BoxInstance));
+		// 床の目安線。モデルは不透明として同じビューの形状より先に描かれる。
+		FDrawStyle3D Grid;
+		Grid.Color = {70, 70, 70, 255};
+		for (Toolbox::int32 Line = -4; Line <= 4; ++Line)
+		{
+			const Toolbox::f32 Offset = static_cast<Toolbox::f32>(Line * 75);
+			Require_Internal(Draw3D.DrawLine({Offset, 0, -300}, {Offset, 0, 300}, Grid));
+			Require_Internal(Draw3D.DrawLine({-300, 0, Offset}, {300, 0, Offset}, Grid));
+		}
 	}
 	char Text[256];
-	snprintf(Text, sizeof(Text), "Scene #%u  reloads=%u   [1] left pause  [2] right speed  [3] right clip  [R] reload  [Enter] next scene  [Esc] quit",
+	snprintf(Text, sizeof(Text),
+	         "Scene #%u  reloads=%u   [1] left pause  [2] right speed  [3] right clip  [V] split  [R] reload  [Enter] "
+	         "next scene  [Esc] quit",
 	         m_Generation, m_Reloads);
 	Require_Internal(Render.Get2D().DrawText(m_Font, Text, {12, 12}));
 	const FModel Model = m_Right.GetModel();

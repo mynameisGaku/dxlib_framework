@@ -46,6 +46,10 @@ private:
 	Toolbox::uint32 m_Generation;
 	Toolbox::uint32 m_Reloads = 0;
 	Toolbox::f64 m_BoxAngle = 0.0;
+	/**
+	 * Vキーで左右のカメラ表示を切り替える。
+	 */
+	bool m_bSplit = false;
 };
 }
 #endif

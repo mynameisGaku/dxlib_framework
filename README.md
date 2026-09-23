@@ -28,7 +28,7 @@ GenerateProjectFiles.bat
 GenerateProjectFiles.bat -Development
 ```
 
-`dxlib_framework-development.slnx`を開き、ModelViewerを起動対象にするとFBXモデルとアニメーションを確認できます。
+`dxlib_framework-development.slnx`を開き、ModelViewerを起動対象にするとFBXモデルとアニメーションを確認できます。Vキーで[左右2ビュー](Docs/Rendering/Viewports.md)を切り替えられます。
 生成物は`Build/`、ダウンロードしたSDKは`ThirdParty/`へ置きます。
 
 ## アセットとモデル
