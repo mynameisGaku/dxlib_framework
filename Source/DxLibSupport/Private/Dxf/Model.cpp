@@ -101,9 +101,17 @@ Toolbox::f32 FModelInstance::GetMorphWeight(Toolbox::size_t Index) const noexcep
 // 不透明な基本材質だけを受け付け、共有モデルには変更を加えない。
 TResult<void> FModelInstance::SetMaterial(const FModelMaterial3D& Material)
 {
-	if (Material.Tint.A != 255)
+	if (Material.Tint.A != 255 || !Toolbox::IsFinite(Material.Metallic) || !Toolbox::IsFinite(Material.Roughness) ||
+	    (Material.Metallic != -1 && (Material.Metallic < 0 || Material.Metallic > 1)) ||
+	    (Material.Roughness != -1 && (Material.Roughness < 0 || Material.Roughness > 1)) || Material.BaseColorUv < -1 ||
+	    Material.BaseColorUv > 1)
 	{
-		return TResult<void>::Failure(EErrorCode::InvalidArgument, "Model tint must be opaque");
+		return TResult<void>::Failure(EErrorCode::InvalidArgument,
+		                              "Model tint must be opaque and PBR factors must be -1 or in 0..1");
+	}
+	if (Material.BaseColorUv == 1 && (!IsValid() || !m_pResource->GetMetadata().Model->GetMetadata().bAllMeshesHaveUv1))
+	{
+		return TResult<void>::Failure(EErrorCode::InvalidArgument, "UV1 override requires UV1 on every mesh");
 	}
 	m_Material = Material;
 	return {};

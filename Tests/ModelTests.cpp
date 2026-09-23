@@ -888,3 +888,61 @@ TEST("model imports static cameras and three light types in converted units")
 	REQUIRE(Toolbox::Abs(Meters.Value().GetCamera(0)->NearPlane - 0.01f) < 0.001f);
 	REQUIRE(Toolbox::Abs(Meters.Value().GetLight(1)->Position.Z + 4) < 0.001f);
 }
+
+TEST("model basic PBR imports factors and preserves validated instance overrides")
+{
+	FModelAssets Fixture;
+	auto Loaded = Fixture.Assets.LoadModel("Tests/Assets/PbrTriangle.fbx");
+	REQUIRE(Loaded);
+	auto Made = Fixture.Assets.CreateModelInstance(Loaded.Value());
+	REQUIRE(Made);
+	auto& Instance = Made.Value();
+	REQUIRE(Instance.GetMaterial().bPbr);
+	FModelMaterial3D Material = Instance.GetMaterial();
+	Material.Metallic = 0.2f;
+	Material.Roughness = 0.4f;
+	REQUIRE(Instance.SetMaterial(Material));
+	Material.Roughness = -0.5f;
+	REQUIRE(!Instance.SetMaterial(Material));
+	REQUIRE(Instance.GetMaterial().Roughness == 0.4f);
+	Material.Roughness = 0.4f;
+	Material.BaseColorUv = 1;
+	REQUIRE(!Instance.SetMaterial(Material));
+	Material.BaseColorUv = 2;
+	REQUIRE(!Instance.SetMaterial(Material));
+	REQUIRE(Instance.GetMaterial().BaseColorUv == -1);
+	// 不正なファイルの値も黙って丸めない。
+	const auto Source = FeatureFbx_Internal(R"FBX(
+ Material: 3, "Material::PBR", "" {
+  ShadingModel: "PBR"
+  Properties70: {
+   P: "3dsMax|ClassIDa", "int", "Integer", "",3490651648
+   P: "3dsMax|ClassIDb", "int", "Integer", "",3195528448
+   P: "3dsMax|main|roughness", "double", "Number", "",2
+  }
+ }
+)FBX",
+	                                        " C: \"OO\",3,1");
+	auto Bad = ImportFbxModel(Source.Data(), Source.Size());
+	REQUIRE(!Bad);
+	REQUIRE(Bad.Error().Message == "PBR metallic and roughness must be finite and in 0..1");
+}
+
+TEST("model PBR unspecified texture UV uses UV0 even when UV1 has no name")
+{
+	// 2組目とテクスチャの指定名を空にしたFBX。空同士の一致でUV1を選んではならない。
+	Toolbox::TVector<Toolbox::uint8> Bytes;
+	REQUIRE(
+	    Toolbox::ReadFileBytes(Toolbox::FPath(DXF_TEST_ASSET_DIR).Parent() / "Tests/Assets/PbrUv.fbx", Bytes, 100000));
+	for (Toolbox::size_t Index = 0; Index + 8 <= Bytes.Size(); ++Index)
+	{
+		if (memcmp(Bytes.Data() + Index, "\"Detail\"", 8) == 0)
+		{
+			memcpy(Bytes.Data() + Index, "\"\"      ", 8);
+		}
+	}
+	auto Imported = ImportFbxModel(Bytes.Data(), Bytes.Size());
+	REQUIRE(Imported);
+	REQUIRE(Imported.Value().bHasPbrMaterials);
+	REQUIRE(Count_Internal(Imported.Value().ModelData, "0.7;\n0.75;1;0;;") == 1);
+}

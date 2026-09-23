@@ -62,6 +62,54 @@ set(_dxf_generated_read "${CMAKE_CURRENT_BINARY_DIR}/generated/DxModelRead.cpp")
 file(WRITE "${_dxf_generated_read}" "${_dxf_read_text}")
 list(REMOVE_ITEM _dxf_sources "${_dxf_read}")
 list(APPEND _dxf_sources "${_dxf_generated_read}")
+# Preserve native skinning VS selection and override only the PBR pixel shader.
+set(_dxf_d3d11 "${DXF_DXLIB_SOURCE_DIR}/Windows/DxModelD3D11.cpp")
+file(READ "${_dxf_d3d11}" _dxf_d3d11_text)
+# Fail on missing or repeated anchors instead of patching a different implementation.
+function(dxf_replace_once variable anchor replacement)
+    set(_text "${${variable}}")
+    string(FIND "${_text}" "${anchor}" _first)
+    if(_first LESS 0)
+        message(FATAL_ERROR "DxLib PBR hook missing: ${anchor}")
+    endif()
+    string(LENGTH "${anchor}" _length)
+    math(EXPR _after "${_first} + ${_length}")
+    string(SUBSTRING "${_text}" ${_after} -1 _tail)
+    string(FIND "${_tail}" "${anchor}" _second)
+    if(NOT _second LESS 0)
+        message(FATAL_ERROR "DxLib PBR hook is ambiguous: ${anchor}")
+    endif()
+    string(REPLACE "${anchor}" "${replacement}" _text "${_text}")
+    set(${variable} "${_text}" PARENT_SCOPE)
+endfunction()
+dxf_replace_once(_dxf_d3d11_text "UseOrigShader = FALSE ;\n\tif( MV1Man.UseOrigShaderFlag )"
+    "UseOrigShader = FALSE ;\nif( DxfPbrActive() && !ValidPL ) { DxfFailPbr(); return FALSE; }\n\tif( MV1Man.UseOrigShaderFlag && !DxfPbrActive() )")
+dxf_replace_once(_dxf_d3d11_text "if( ForcePL ||" "if( ( DxfPbrActive() && ValidPL ) || ForcePL ||")
+dxf_replace_once(_dxf_d3d11_text "Graphics_D3D11_DeviceState_SetPixelShader( *PS_PL, FALSE ) ;"
+    "Graphics_D3D11_DeviceState_SetPixelShader( *PS_PL, FALSE ) ;\nif( DxfBindPbr() < 0 ) return FALSE;")
+set(_dxf_generated_d3d11 "${CMAKE_CURRENT_BINARY_DIR}/generated/Windows/DxModelD3D11.cpp")
+file(WRITE "${_dxf_generated_d3d11}" "extern \"C\" void DxfFailPbr();\nextern \"C\" int DxfPbrActive();\nextern \"C\" int DxfBindPbr();\n${_dxf_d3d11_text}")
+list(REMOVE_ITEM _dxf_sources "${_dxf_d3d11}")
+list(APPEND _dxf_sources "${_dxf_generated_d3d11}")
+# Compile once at SDK build time; applications do not compile shaders at runtime.
+get_filename_component(_dxf_kits_root "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows Kits\\Installed Roots;KitsRoot10]" ABSOLUTE)
+file(GLOB _dxf_fxc_candidates "${_dxf_kits_root}/bin/*/x64/fxc.exe" "$ENV{WindowsSdkDir}/bin/*/x64/fxc.exe")
+list(SORT _dxf_fxc_candidates COMPARE NATURAL ORDER DESCENDING)
+find_program(DXF_FXC NAMES fxc.exe HINTS "$ENV{WindowsSdkVerBinPath}/x64")
+if(NOT DXF_FXC AND _dxf_fxc_candidates)
+    list(GET _dxf_fxc_candidates 0 DXF_FXC)
+endif()
+if(NOT DXF_FXC)
+    message(FATAL_ERROR "Windows SDK fxc.exe is required; set DXF_FXC to its path")
+endif()
+set(_dxf_pbr_header "${CMAKE_CURRENT_BINARY_DIR}/generated/ModelPbrBytecode.h")
+add_custom_command(OUTPUT "${_dxf_pbr_header}"
+    COMMAND "${DXF_FXC}" /nologo /O3 /T ps_5_0 /E main /Vn ModelPbrBytecode /Fh "${_dxf_pbr_header}"
+        /I "${DXF_DXLIB_SOURCE_DIR}/Windows" "${CMAKE_CURRENT_LIST_DIR}/ModelPbr.hlsl"
+    DEPENDS "${CMAKE_CURRENT_LIST_DIR}/ModelPbr.hlsl" "${DXF_DXLIB_SOURCE_DIR}/Windows/DxShader_Common_D3D11.h"
+    VERBATIM)
+set(_dxf_pbr "${CMAKE_CURRENT_LIST_DIR}/DxLibPbrExtension.cpp")
+set_source_files_properties("${_dxf_pbr}" PROPERTIES COMPILE_OPTIONS "/utf-8")
 get_filename_component(_dxf_root "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
 set(_dxf_extension "${CMAKE_CURRENT_LIST_DIR}/DxLibModelExtension.cpp")
 
@@ -71,8 +119,8 @@ set_source_files_properties(${_dxf_sources} PROPERTIES COMPILE_OPTIONS "/source-
 set(_dxf_bridge "${CMAKE_CURRENT_LIST_DIR}/DxLibV140AbiBridge.cpp")
 set_source_files_properties("${_dxf_bridge}" PROPERTIES COMPILE_OPTIONS "/utf-8")
 set_source_files_properties("${_dxf_extension}" PROPERTIES COMPILE_OPTIONS "/utf-8;/std:c++20")
-add_library(DxLibCore STATIC ${_dxf_sources} "${_dxf_bridge}" "${_dxf_extension}")
-target_include_directories(DxLibCore PRIVATE "${_dxf_root}/Source/Toolbox/Public" "${_dxf_root}/Source/Foundation/Public" "${_dxf_root}/Source/DxLibSupport/Public")
+add_library(DxLibCore STATIC ${_dxf_sources} "${_dxf_bridge}" "${_dxf_extension}" "${_dxf_pbr}" "${_dxf_pbr_header}")
+target_include_directories(DxLibCore PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated" "${_dxf_root}/Source/Toolbox/Public" "${_dxf_root}/Source/Foundation/Public" "${_dxf_root}/Source/DxLibSupport/Public")
 set_target_properties(DxLibCore PROPERTIES
     OUTPUT_NAME_RELEASE "DxLib_fbx_x64_MT"
     OUTPUT_NAME_DEBUG "DxLib_fbx_x64_MTd"

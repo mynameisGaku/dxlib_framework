@@ -144,6 +144,8 @@ TResult<FModel> FModelLoader::Load(const Toolbox::FString& Path, const FModelLoa
 	}
 	FModelMetadata Metadata;
 	Metadata.Path = Path;
+	Metadata.bHasPbrMaterials = Imported.Value().bHasPbrMaterials;
+	Metadata.bAllMeshesHaveUv1 = Imported.Value().bAllMeshesHaveUv1;
 	Metadata.Cameras = Toolbox::Move(Imported.Value().Cameras);
 	Metadata.Lights = Toolbox::Move(Imported.Value().Lights);
 	for (const auto& Morph : Imported.Value().Morphs)

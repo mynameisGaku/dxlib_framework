@@ -54,6 +54,14 @@ struct FImportedModel
 	 * 静止ライト。自動では適用しない。
 	 */
 	Toolbox::TVector<FModelLightInfo> Lights;
+	/**
+	 * 基本PBR材質を含む。モデル拡張3以降のシェーダー経路が必要。
+	 */
+	bool bHasPbrMaterials = false;
+	/**
+	 * 描画する全メッシュがUV1を持つか。個体全体へのUV上書き検証に使う。
+	 */
+	bool bAllMeshesHaveUv1 = true;
 };
 } // namespace Dxf
 #endif

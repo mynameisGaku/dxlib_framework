@@ -190,21 +190,39 @@ const Toolbox::FString* AddTexture_Internal(FContext_Internal& Context, const uf
 	return &Context.pModel->Textures[static_cast<Toolbox::size_t>(Slot)].Name;
 }
 
+// ufbxが意味を解釈できた金属度・粗さ系だけをPBRとして扱う。
+bool IsPbr_Internal(const ufbx_material* Material)
+{
+	return Material != nullptr && Material->features.pbr.enabled &&
+	       Material->shader_type != UFBX_SHADER_3DS_MAX_PBR_SPEC_GLOSS && Material->shader_type != UFBX_SHADER_UNKNOWN;
+}
+// テクスチャの参照も、採用した材質方式のベース色と一致させる。
+const ufbx_texture* BaseTexture_Internal(const ufbx_material* Material)
+{
+	if (Material == nullptr)
+		return nullptr;
+	if (IsPbr_Internal(Material) && Material->pbr.base_color.texture != nullptr)
+		return Material->pbr.base_color.texture;
+	return Material->fbx.diffuse_color.texture != nullptr ? Material->fbx.diffuse_color.texture
+	                                                      : Material->pbr.base_color.texture;
+}
 // 材質の拡散色と不透明度を求める。未指定の成分は呼出し側の既定値を保つ。
 void DiffuseColor_Internal(const ufbx_material* Material, Toolbox::f64 (&Color)[4])
 {
 	if (Material != nullptr)
 	{
-		const ufbx_material_map& Diffuse = Material->fbx.diffuse_color;
+		const bool Pbr = IsPbr_Internal(Material);
+		const ufbx_material_map& Diffuse = Pbr ? Material->pbr.base_color : Material->fbx.diffuse_color;
 		if (Diffuse.has_value)
 		{
 			const Toolbox::f64 Factor =
-			    Material->fbx.diffuse_factor.has_value ? Material->fbx.diffuse_factor.value_real : 1.0;
+			    (Pbr ? (Material->pbr.base_factor.has_value ? Material->pbr.base_factor.value_real : 1.0)
+			         : (Material->fbx.diffuse_factor.has_value ? Material->fbx.diffuse_factor.value_real : 1.0));
 			Color[0] = Diffuse.value_vec3.x * Factor;
 			Color[1] = Diffuse.value_vec3.y * Factor;
 			Color[2] = Diffuse.value_vec3.z * Factor;
 		}
-		if (Material->fbx.transparency_factor.has_value)
+		if (!Pbr && Material->fbx.transparency_factor.has_value)
 		{
 			Color[3] = 1.0 - Material->fbx.transparency_factor.value_real;
 		}
@@ -212,27 +230,35 @@ void DiffuseColor_Internal(const ufbx_material* Material, Toolbox::f64 (&Color)[
 }
 
 // 材質の色とテクスチャ参照を出力する。
-void WriteMaterial_Internal(FContext_Internal& Context, FWriter_Internal& Writer, const ufbx_material* Material)
+void WriteMaterial_Internal(FContext_Internal& Context, FWriter_Internal& Writer, const ufbx_material* Material,
+                            const ufbx_mesh& Mesh)
 {
 	// 材質がない場合に使う拡散色。
 	Toolbox::f64 Color[4] = {0.8, 0.8, 0.8, 1.0};
 	DiffuseColor_Internal(Material, Color);
-	const ufbx_texture* Texture = nullptr;
-	if (Material != nullptr)
-	{
-		Texture = Material->fbx.diffuse_color.texture;
-		if (Texture == nullptr)
-		{
-			Texture = Material->pbr.base_color.texture;
-		}
-	}
+	const ufbx_texture* Texture = BaseTexture_Internal(Material);
 	Writer.Text("Material {\n");
 	for (Toolbox::int32 Index = 0; Index < 4; ++Index)
 	{
 		Writer.Float(Color[Index]);
 		Writer.Text(Index == 3 ? ";;\n" : ";");
 	}
-	Writer.Text("0;\n0;0;0;;\n0;0;0;;\n");
+	if (IsPbr_Internal(Material))
+	{
+		// .xの鏡面欄を内部PBR経路の伝達に使う。既存照明の鏡面光は常に無効。
+		Context.pModel->bHasPbrMaterials = true;
+		Writer.Float(Material->pbr.roughness.has_value ? Material->pbr.roughness.value_real : 0.5);
+		Writer.Text(";\n");
+		Writer.Float(Material->pbr.metalness.has_value ? Material->pbr.metalness.value_real : 0);
+		Writer.Text(";1;");
+		const bool Uv1 = Texture != nullptr && Texture->uv_set.length > 0 && Mesh.uv_sets.count > 1 &&
+		                 ToString_Internal(Texture->uv_set) == ToString_Internal(Mesh.uv_sets.data[1].name);
+		Writer.Text(Uv1 ? "1;;\n0;0;0;;\n" : "0;;\n0;0;0;;\n");
+	}
+	else
+	{
+		Writer.Text("0;\n0;0;0;;\n0;0;0;;\n");
+	}
 	if (const Toolbox::FString* Name = AddTexture_Internal(Context, Texture))
 	{
 		Writer.Text("TextureFilename {\n\"");
@@ -252,6 +278,7 @@ TResult<void> WriteMesh_Internal(FContext_Internal& Context, FWriter_Internal& W
 	{
 		return {};
 	}
+	Context.pModel->bAllMeshesHaveUv1 = Context.pModel->bAllMeshesHaveUv1 && Mesh->uv_sets.count >= 2;
 	const ufbx_matrix& GeometryToNode = Node->geometry_to_node;
 	const ufbx_matrix NormalMatrix = ufbx_matrix_for_normals(&GeometryToNode);
 	// 三角形へ分割し、角ごとの頂点属性を集める。
@@ -561,7 +588,8 @@ TResult<void> WriteMesh_Internal(FContext_Internal& Context, FWriter_Internal& W
 	}
 	for (Toolbox::size_t Material = 0; Material < MaterialCount; ++Material)
 	{
-		WriteMaterial_Internal(Context, Writer, Mesh->materials.count > 0 ? Mesh->materials.data[Material] : nullptr);
+		WriteMaterial_Internal(Context, Writer, Mesh->materials.count > 0 ? Mesh->materials.data[Material] : nullptr,
+		                       *Mesh);
 	}
 	Writer.Text("}\n");
 	// スキン。各骨の影響を、まとめた後の頂点番号で書く。
@@ -986,13 +1014,19 @@ TResult<void> CheckFeatures_Internal(const ufbx_scene& Scene, Toolbox::TVector<T
 	{
 		for (const ufbx_material* Material : Mesh->materials)
 		{
-			const ufbx_texture* Texture = Material->fbx.diffuse_color.texture;
-			if (Texture == nullptr)
-			{
-				Texture = Material->pbr.base_color.texture;
-			}
+			const ufbx_texture* Texture = BaseTexture_Internal(Material);
 			if (Texture != nullptr && Texture->uv_set.length > 0)
 			{
+				if (IsPbr_Internal(Material))
+				{
+					bool Found = false;
+					for (const auto& Set : Mesh->uv_sets)
+						Found = Found || ToString_Internal(Texture->uv_set) == ToString_Internal(Set.name);
+					if (!Found)
+						return TResult<void>::Failure(EErrorCode::InvalidArgument,
+						                              "PBR base texture selects a missing UV set");
+					continue;
+				}
 				bTextureUvSelection =
 				    bTextureUvSelection || Mesh->uv_sets.count == 0 ||
 				    ToString_Internal(Texture->uv_set) != ToString_Internal(Mesh->uv_sets.data[0].name);
@@ -1009,6 +1043,28 @@ TResult<void> CheckFeatures_Internal(const ufbx_scene& Scene, Toolbox::TVector<T
 	bool bPhong = false;
 	for (const ufbx_material* Material : Scene.materials)
 	{
+		if (IsPbr_Internal(Material))
+		{
+			// 不正な係数をクランプして成功扱いにしない。
+			const auto& Metal = Material->pbr.metalness;
+			const auto& Rough = Material->pbr.roughness;
+			Toolbox::f64 Color[4] = {0.8, 0.8, 0.8, 1};
+			DiffuseColor_Internal(Material, Color);
+			if ((Metal.has_value &&
+			     (!Toolbox::IsFinite(Metal.value_real) || Metal.value_real < 0 || Metal.value_real > 1)) ||
+			    (Rough.has_value &&
+			     (!Toolbox::IsFinite(Rough.value_real) || Rough.value_real < 0 || Rough.value_real > 1)))
+				return TResult<void>::Failure(EErrorCode::InvalidArgument,
+				                              "PBR metallic and roughness must be finite and in 0..1");
+			for (Toolbox::f64 Channel : Color)
+				if (!Toolbox::IsFinite(Channel) || Channel < 0 || Channel > 1)
+					return TResult<void>::Failure(EErrorCode::InvalidArgument,
+					                              "PBR base color must be finite and in 0..1");
+			Warnings.PushBack("Basic PBR imports base color, base texture, metallic and roughness scalars only; "
+			                  "normal/metallic/roughness maps, emission, transparency, coating, transmission, IOR "
+			                  "overrides and texture transforms are omitted");
+			continue;
+		}
 		bAdvancedMaterial = bAdvancedMaterial || (Material->shader_type != UFBX_SHADER_FBX_LAMBERT &&
 		                                          Material->shader_type != UFBX_SHADER_FBX_PHONG);
 		bPhong = bPhong || Material->shader_type == UFBX_SHADER_FBX_PHONG;
@@ -1062,6 +1118,8 @@ TResult<FImportedModel> ImportFbxModel(const void* Data, Toolbox::size_t Size, c
 	LoadOptions.handedness_conversion_axis = UFBX_MIRROR_AXIS_Z;
 	LoadOptions.space_conversion = UFBX_SPACE_CONVERSION_MODIFY_GEOMETRY;
 	LoadOptions.generate_missing_normals = true;
+	// 対応するBlender出力では、Phongへの格納規則をufbxでPBRへ復元する。
+	LoadOptions.use_blender_pbr_material = true;
 	// OBJ等の別形式を拡張子だけFBXへ変えて受け付けない。
 	LoadOptions.file_format = UFBX_FILE_FORMAT_FBX;
 	ufbx_error Error;

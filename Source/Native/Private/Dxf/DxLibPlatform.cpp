@@ -1,6 +1,9 @@
 #include "Dxf/DxLibPlatform.h"
 #include "NativeApi.h"
 #include "Dxf/Utf8.h"
+#if defined(DXF_DXLIB_MODEL_EXTENSION) && DXF_DXLIB_MODEL_EXTENSION >= 3
+extern "C" void DxfReleasePbr();
+#endif
 namespace Dxf
 {
 namespace
@@ -38,6 +41,9 @@ TResult<void> FDxLibPlatform::Initialize(const FWindowSettings& Settings)
 	GSessionOwner = this;
 	if (DxLib::DxLib_Init() < 0)
 	{
+#if defined(DXF_DXLIB_MODEL_EXTENSION) && DXF_DXLIB_MODEL_EXTENSION >= 3
+		DxfReleasePbr();
+#endif
 		DxLib::DxLib_End();
 		GSessionOwner = nullptr;
 		return TResult<void>::Failure(EErrorCode::InitializationFailed, "DxLib_Init failed; inspect Log.txt");
@@ -50,6 +56,9 @@ void FDxLibPlatform::Shutdown() noexcept
 {
 	if (m_bInitialized)
 	{
+#if defined(DXF_DXLIB_MODEL_EXTENSION) && DXF_DXLIB_MODEL_EXTENSION >= 3
+		DxfReleasePbr();
+#endif
 		DxLib::DxLib_End();
 		m_bInitialized = false;
 		GSessionOwner = nullptr;

@@ -73,6 +73,14 @@ struct FModelMetadata
 	 */
 	Toolbox::TVector<FModelLightInfo> Lights;
 	/**
+	 * 基本PBR材質を含む。モデル拡張3以降のシェーダー経路が必要。
+	 */
+	bool bHasPbrMaterials = false;
+	/**
+	 * 描画する全メッシュがUV1を持つか。個体全体へのUV上書き検証に使う。
+	 */
+	bool bAllMeshesHaveUv1 = false;
+	/**
 	 * 読み込みで省略した機能などの警告。キャッシュから取得しても保持する。
 	 */
 	Toolbox::TVector<Toolbox::FString> ImportWarnings;
@@ -293,6 +301,10 @@ public:
 	 */
 	explicit FModelInstance(Toolbox::TSharedPtr<FModelInstanceResource> Resource) : m_pResource(Toolbox::Move(Resource))
 	{
+		if (m_pResource && m_pResource->GetMetadata().Model)
+		{
+			m_Material.bPbr = m_pResource->GetMetadata().Model->GetMetadata().bHasPbrMaterials;
+		}
 	}
 	FModelInstance(const FModelInstance&) = delete;
 	FModelInstance& operator=(const FModelInstance&) = delete;
@@ -318,7 +330,7 @@ public:
 	 */
 	TResult<void> SetTransform(const Toolbox::FMatrix4& World);
 	/**
-	 * 不透明な基本材質を設定する。Tint.Aが255以外なら失敗して以前の値を保つ。
+	 * 不透明な基本材質を設定する。Tint.A、PBR係数、UV指定が無効なら以前の値を保って失敗する。
 	 * @param Material インスタンスごとの色と照明設定。
 	 */
 	TResult<void> SetMaterial(const FModelMaterial3D& Material);

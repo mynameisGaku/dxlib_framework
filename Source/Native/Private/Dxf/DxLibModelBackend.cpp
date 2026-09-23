@@ -12,6 +12,10 @@
 #if defined(DXF_DXLIB_MODEL_EXTENSION) && DXF_DXLIB_MODEL_EXTENSION >= 1
 extern "C" const Dxf::FImportedModel* DxfSetModelExtension(const Dxf::FImportedModel* Model);
 #endif
+#if defined(DXF_DXLIB_MODEL_EXTENSION) && DXF_DXLIB_MODEL_EXTENSION >= 3
+extern "C" int DxfBeginPbr(const Toolbox::f32* Parameters);
+extern "C" int DxfEndPbr();
+#endif
 namespace Dxf
 {
 namespace
@@ -152,6 +156,12 @@ bool FDxLibModelBackend::IsAvailable() noexcept
 TResult<FModelAllocation> FDxLibModelBackend::LoadModel(const FImportedModel& Model, const Toolbox::FString& Directory)
 {
 #if DXF_DXLIB_MODELS
+#if !defined(DXF_DXLIB_MODEL_EXTENSION) || DXF_DXLIB_MODEL_EXTENSION < 3
+	if (Model.bHasPbrMaterials)
+		return TResult<FModelAllocation>::Failure(EErrorCode::BackendFailure,
+		                                          "PBR models require Setup.cmd model extension 3");
+#endif
+
 	// 末尾の終端文字はDxLibへ渡さない。
 	if (Model.ModelData.Size() < 2 ||
 	    Model.ModelData.Size() - 1 > static_cast<Toolbox::size_t>(Toolbox::TNumericLimits<Toolbox::int32>::Max()))
@@ -456,7 +466,8 @@ TResult<void> FDxLibRenderBackend::DrawModel3D(const FModelDraw3D& Model)
 		return TResult<void>::Failure(EErrorCode::BackendFailure, "MV1SetAttachAnimTime failed");
 	}
 	// 基本材質とビューの調査設定から、モデル固有のGPU照明を選ぶ。
-	const bool Lit = Model.Material.bLit && m_ModelView.Debug.Lighting == ELightingMode3D::Normal;
+	const bool Lit =
+	    (Model.Material.bLit || Model.Material.bPbr) && m_ModelView.Debug.Lighting == ELightingMode3D::Normal;
 	if (Lit)
 	{
 		auto Light = PrepareModelLight_Internal();
@@ -477,9 +488,36 @@ TResult<void> FDxLibRenderBackend::DrawModel3D(const FModelDraw3D& Model)
 	}
 	// この呼出しの後は、成功・失敗にかかわらずCPU照明済み基本形状用の状態へ戻す。
 	const Toolbox::int32 LightingResult = DxLib::SetUseLighting(Lit ? TRUE : FALSE);
-	const Toolbox::int32 DrawResult = LightingResult < 0 ? -1 : DxLib::MV1DrawModel(Handle);
+	Toolbox::int32 PbrResult = 0;
+	const bool Pbr = Lit && Model.Material.bPbr;
+	if (Pbr)
+	{
+#if defined(DXF_DXLIB_MODEL_EXTENSION) && DXF_DXLIB_MODEL_EXTENSION >= 3
+		// 定数は個体ごとに更新。シェーダー自体はDxLibセッションで一度だけ作成する。
+		const Toolbox::f32 Parameters[8] = {Model.Material.Metallic,
+		                                    Model.Material.Roughness,
+		                                    static_cast<Toolbox::f32>(Model.Material.BaseColorUv),
+		                                    0,
+		                                    m_ModelView.AmbientColor.R / 255.0f,
+		                                    m_ModelView.AmbientColor.G / 255.0f,
+		                                    m_ModelView.AmbientColor.B / 255.0f,
+		                                    m_ModelView.bOrthographic ? 1.0f : 0.0f};
+		PbrResult = DxfBeginPbr(Parameters);
+#else
+		PbrResult = -1;
+#endif
+	}
+	const Toolbox::int32 DrawResult = LightingResult < 0 || PbrResult < 0 ? -1 : DxLib::MV1DrawModel(Handle);
+#if defined(DXF_DXLIB_MODEL_EXTENSION) && DXF_DXLIB_MODEL_EXTENSION >= 3
+	if (Pbr && PbrResult >= 0)
+	{
+		PbrResult = DxfEndPbr();
+	}
+#endif
 	const Toolbox::int32 RestoreResult = DxLib::SetUseLighting(FALSE);
-	return Detail::CheckNative_Internal(DrawResult < 0 || RestoreResult < 0 ? -1 : 0, "Model lighting or draw failed");
+	return Detail::CheckNative_Internal(
+	    DrawResult < 0 || RestoreResult < 0 || PbrResult < 0 ? -1 : 0,
+	    "Model lighting or draw failed (PBR requires Direct3D11 and Setup extension 3)");
 #else
 	(void)Model;
 	return Unavailable_Internal();

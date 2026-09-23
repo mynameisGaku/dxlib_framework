@@ -18,6 +18,22 @@ struct FModelMaterial3D
 	 * falseなら従来どおり照明なし。CPU基本形状の照明とは別に評価する。
 	 */
 	bool bLit = false;
+	/**
+	 * Direct3D11の金属度・粗さによるPBR照明を使う。照明ありとして扱う。
+	 */
+	bool bPbr = false;
+	/**
+	 * 金属度の上書き。-1はファイル値、指定値は0〜1。
+	 */
+	Toolbox::f32 Metallic = -1;
+	/**
+	 * 粗さの上書き。-1はファイル値、指定値は0〜1。描画時の下限は0.045。
+	 */
+	Toolbox::f32 Roughness = -1;
+	/**
+	 * PBRベーステクスチャのUV。-1はファイル値、0または1は上書き。
+	 */
+	Toolbox::int32 BaseColorUv = -1;
 };
 } // namespace Dxf
 #endif

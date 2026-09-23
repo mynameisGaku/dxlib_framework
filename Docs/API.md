@@ -1,6 +1,7 @@
 # APIの契約と使い方
 
 FBXモデルの読み込み・インスタンス・アニメーション再生は[モデルの利用手順](DxLibFbx.md#アプリケーションから使う)を参照してください。
+モデルの基本PBR・モーフ・追加UV・カメラ／ライトのAPIと制限は[FBX対応範囲](FbxSupport.md)を参照してください。
 
 ## GameObject／Componentの作成
 

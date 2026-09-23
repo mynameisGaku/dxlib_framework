@@ -76,6 +76,7 @@ struct FSignature
 	Toolbox::uint64 Brightness[2] = {0, 0};
 	Toolbox::uint64 ColorHash[2] = {1469598103934665603ull, 1469598103934665603ull};
 	Toolbox::uint32 OverlayRgb = 0;
+	Toolbox::uint32 CenterRgb = 0;
 };
 
 // CPU側へ読み戻した画像を解放する。Contextは使用しない。
@@ -108,6 +109,8 @@ FSignature Read_Internal()
 			{
 				throw Toolbox::FException("Model test pixel read failed");
 			}
+			if (X == Width / 2 && Y == Height / 2)
+				Result.CenterRgb = static_cast<Toolbox::uint32>((Red << 16) | (Green << 8) | Blue);
 			if (X == 20 && Y == 20)
 			{
 				Result.OverlayRgb = static_cast<Toolbox::uint32>((Red << 16) | (Green << 8) | Blue);
@@ -288,6 +291,48 @@ void Run_Internal(const Toolbox::FPath& Root, const Toolbox::FPath& OutDir)
 	               "vertex RGB colors interpolate in real rendering", Describe_Internal(ColorFrame));
 	Check_Internal(ColorFrame.MaxChannel >= 100 && ColorFrame.MaxChannel <= 129,
 	               "vertex colors multiply material diffuse once", Toolbox::ToString(ColorFrame.MaxChannel));
+	// 正面からの単一光と正射影で、GGXの解析値と実画素を比較する。
+	const FRenderView3D OriginalView = Smoke.View;
+	Smoke.View.Eye = {0, 100, -600};
+	Smoke.View.Target = {0, 100, 0};
+	Smoke.View.bOrthographic = true;
+	Smoke.View.OrthographicHeight = 400;
+	Smoke.View.LightDirection = {0, 0, 1};
+	Smoke.View.LightColor = {255, 255, 255, 255};
+	Smoke.View.AmbientColor = {0, 0, 0, 255};
+	FModel PbrModel = TakeOrThrow_Internal(Assets.LoadModel("Tests/Assets/PbrTriangle.fbx"));
+	FModelInstance PbrInstance = TakeOrThrow_Internal(Assets.CreateModelInstance(PbrModel));
+	Check_Internal(PbrInstance.GetMaterial().bPbr, "imported PBR selects shader automatically");
+	const FSignature ImportedPbr = Smoke.Frame(Renderer, &PbrInstance, nullptr, "pbr-imported-reference");
+	// N=V=L、金属度0.75、粗さ0.7、線形色(0.8,0.3,0.1)。独立に算出したsRGB値。
+	const Toolbox::int32 Expected[3] = {131, 87, 53};
+	for (Toolbox::int32 Channel = 0; Channel < 3; ++Channel)
+	{
+		const Toolbox::int32 Actual = static_cast<Toolbox::int32>((ImportedPbr.CenterRgb >> ((2 - Channel) * 8)) & 255);
+		Check_Internal(Toolbox::Abs(Actual - Expected[Channel]) <= 3,
+		               "PBR real pixel agrees with front-facing GGX reference", Toolbox::ToString(Actual));
+	}
+	FModelMaterial3D ImportedOverride = PbrInstance.GetMaterial();
+	ImportedOverride.Metallic = 0.75f;
+	ImportedOverride.Roughness = 0.7f;
+	RequireSuccess_Internal(PbrInstance.SetMaterial(ImportedOverride));
+	const FSignature ExplicitPbr = Smoke.Frame(Renderer, &PbrInstance, nullptr);
+	Check_Internal(ImportedPbr.ColorHash[0] == ExplicitPbr.ColorHash[0] &&
+	                   ImportedPbr.ColorHash[1] == ExplicitPbr.ColorHash[1],
+	               "imported PBR factors equal explicit factors");
+	FModel PbrUv = TakeOrThrow_Internal(Assets.LoadModel("Tests/Assets/PbrUv.fbx"));
+	FModelInstance PbrUvInstance = TakeOrThrow_Internal(Assets.CreateModelInstance(PbrUv));
+	const FSignature AutoUv = Smoke.Frame(Renderer, &PbrUvInstance, nullptr, "pbr-uv1");
+	FModelMaterial3D UvMaterial = PbrUvInstance.GetMaterial();
+	UvMaterial.BaseColorUv = 1;
+	RequireSuccess_Internal(PbrUvInstance.SetMaterial(UvMaterial));
+	const FSignature ExplicitUv = Smoke.Frame(Renderer, &PbrUvInstance, nullptr);
+	UvMaterial.BaseColorUv = 0;
+	RequireSuccess_Internal(PbrUvInstance.SetMaterial(UvMaterial));
+	const FSignature FirstUv = Smoke.Frame(Renderer, &PbrUvInstance, nullptr, "pbr-uv0");
+	Check_Internal(AutoUv.ColorHash[0] == ExplicitUv.ColorHash[0] && AutoUv.ColorHash[0] != FirstUv.ColorHash[0],
+	               "PBR material selects UV1 and explicit UV0 changes pixels");
+	Smoke.View = OriginalView;
 	// 2体の独立したインスタンス。
 	FModel Column = TakeOrThrow_Internal(Assets.LoadModel("Assets/Models/SkinnedColumn.fbx"));
 	Check_Internal(Column.GetClipCount() == 2 && Column.FindClip("Bend") == 0 && Column.GetClip(0)->NativeDuration > 0,
@@ -354,6 +399,33 @@ void Run_Internal(const Toolbox::FPath& Root, const Toolbox::FPath& OutDir)
 	Check_Internal(Ortho.Pixels[1] > 200 && Ortho.ColorHash[1] == OrthoMoved.ColorHash[1],
 	               "file orthographic camera keeps size after depth movement");
 	Smoke.View = PreviousView;
+	// PBRの係数を個体ごとに変更し、既存のスキン描画と2D状態を保つ。
+	const FRenderView3D BeforePbr = Smoke.View;
+	Smoke.View.LightDirection = {0, 0, 1};
+	FModelMaterial3D PbrMaterial;
+	PbrMaterial.bPbr = true;
+	PbrMaterial.Metallic = 0;
+	PbrMaterial.Roughness = 0.2f;
+	RequireSuccess_Internal(A.SetMaterial(PbrMaterial));
+	const FSignature PbrSmooth = Smoke.Frame(Renderer, &A, &B, "pbr-smooth", true);
+	PbrMaterial.Roughness = 0.9f;
+	RequireSuccess_Internal(A.SetMaterial(PbrMaterial));
+	const FSignature PbrRough = Smoke.Frame(Renderer, &A, &B, "pbr-rough");
+	PbrMaterial.Metallic = 1;
+	RequireSuccess_Internal(A.SetMaterial(PbrMaterial));
+	const FSignature PbrMetal = Smoke.Frame(Renderer, &A, &B, "pbr-metal");
+	Check_Internal(PbrSmooth.ColorHash[0] != PbrRough.ColorHash[0] && PbrRough.ColorHash[0] != PbrMetal.ColorHash[0],
+	               "PBR roughness and metallic change real pixels");
+	Check_Internal(PbrSmooth.ColorHash[1] == Start.ColorHash[1] && PbrMetal.ColorHash[1] == Start.ColorHash[1] &&
+	                   PbrSmooth.OverlayRgb == 0xff4020u,
+	               "PBR shader does not leak into neighbor or 2D");
+	RequireSuccess_Internal(A.SetTime(0.5));
+	const FSignature PbrAnimated = Smoke.Frame(Renderer, &A, &B, "pbr-skinned-animation");
+	Check_Internal(!Same_Internal(PbrAnimated, PbrMetal, 0) && PbrAnimated.ColorHash[1] == PbrMetal.ColorHash[1],
+	               "PBR keeps independent skinned animation");
+	RequireSuccess_Internal(A.SetTime(0));
+	RequireSuccess_Internal(A.SetMaterial(LitMaterial));
+	Smoke.View = BeforePbr;
 	// 色倍率も複製元の材質を変更せず、インスタンスごとに適用する。
 	FModelMaterial3D RedMaterial;
 	RedMaterial.Tint = {255, 0, 0, 255};
@@ -467,6 +539,8 @@ Toolbox::int32 main(Toolbox::int32 ArgCount, char** Args)
 	{
 		const Toolbox::FPath OutDir(Args[2]);
 		Toolbox::CreateDirectory(OutDir);
+		Run_Internal(Toolbox::FPath(Args[1]), OutDir);
+		// 同じプロセスでGPU資源を作り直し、古いハンドルを再利用しない。
 		Run_Internal(Toolbox::FPath(Args[1]), OutDir);
 	}
 	catch (const Toolbox::FException& Error)

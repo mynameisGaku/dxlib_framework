@@ -217,3 +217,23 @@ TEST("Native old model backend rejects extended attributes without silently drop
 	REQUIRE(Result.Error().Code == EErrorCode::BackendFailure);
 	REQUIRE(DxLib::ModelTrace.Loads == 0);
 }
+
+TEST("Native old backend refuses PBR load and restores lights after PBR draw failure")
+{
+	FNativeModelFixture Fixture;
+	auto Pbr = Fixture.Assets.LoadModel("Tests/Assets/PbrTriangle.fbx");
+	REQUIRE(!Pbr);
+	REQUIRE(DxLib::ModelTrace.Loads == 0);
+	auto Model = Fixture.Assets.LoadModel("Assets/Models/SkinnedColumn.fbx");
+	REQUIRE(Model);
+	auto Instance = Fixture.Assets.CreateModelInstance(Model.Value());
+	REQUIRE(Instance);
+	FModelMaterial3D Material;
+	Material.bPbr = true;
+	REQUIRE(Instance.Value().SetMaterial(Material));
+	FRenderSystem Renderer(Fixture.Services.Renderer);
+	REQUIRE(!DrawOnce_Internal(Renderer, Instance.Value()));
+	REQUIRE(DxLib::ModelTrace.DefaultLight == 1 && DxLib::ModelTrace.ExternalLight == 1);
+	REQUIRE(DxLib::ModelTrace.OwnedLight == 0);
+	REQUIRE(DxLib::ViewTrace.Lighting == 1 && DxLib::ViewTrace.Z3D == 0);
+}
