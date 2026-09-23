@@ -102,6 +102,7 @@ public:
 		Toolbox::int32 Clip = -1;
 		Toolbox::f32 NativeTime = 0.0f;
 		Toolbox::f32 X = 0.0f;
+		Toolbox::f32 Morph = 0.0f;
 	};
 	Toolbox::TVector<Toolbox::int32> m_Order;
 	Toolbox::TVector<FDrawn> m_Models;
@@ -156,7 +157,8 @@ public:
 	{
 		m_Order.PushBack(40);
 		m_Models.PushBack({Model.pInstance != nullptr ? Model.pInstance->GetHandle_Internal() : -1, Model.Clip,
-		                   Model.NativeTime, Model.World.Values[3]});
+		                   Model.NativeTime, Model.World.Values[3],
+		                   Model.MorphWeights.IsEmpty() ? 0.0f : Model.MorphWeights[0]});
 		return m_bFailModel ? TResult<void>::Failure(EErrorCode::BackendFailure, "model failure") : TResult<void>{};
 	}
 	TResult<void> EndView3D() override
@@ -796,4 +798,45 @@ Connections: { C: "OO",1,0
 		SeamVertices += Uv.X == 0.5f && Uv.Y == 1.0f ? 1 : 0;
 	}
 	REQUIRE(SeamVertices == 1);
+}
+
+TEST("model morph import and sampled playback preserve instance overrides and snapshots")
+{
+	FModelAssets Fixture;
+	auto Loaded = Fixture.Assets.LoadModel("Tests/Assets/MorphTriangle.fbx");
+	REQUIRE(Loaded);
+	const FModel Model = Loaded.Value();
+	REQUIRE(Model.GetMorphCount() == 2);
+	REQUIRE(Model.GetMorph(0)->Name == "Triangle:Widen");
+	REQUIRE(Model.GetMorph(2) == nullptr);
+	FModelInstance A = Instance_Internal(Fixture.Assets, Model);
+	FModelInstance B = Instance_Internal(Fixture.Assets, Model);
+	REQUIRE(A.Play("Widen", false));
+	REQUIRE(A.SetTime(0.5));
+	REQUIRE(Toolbox::Abs(A.GetMorphWeight(0) - 0.5f) < 0.001f);
+	REQUIRE(B.GetMorphWeight(0) == 0);
+	REQUIRE(A.SetMorphWeight(0, 0.75f));
+	REQUIRE(!A.SetMorphWeight(2, 0));
+	REQUIRE(!A.SetMorphWeight(0, 2));
+	REQUIRE(A.GetMorphWeight(0) == 0.75f);
+	FModelRenderBackend Backend;
+	FRenderSystem Renderer(Backend);
+	REQUIRE(Renderer.BeginFrame(640, 480));
+	REQUIRE(Renderer.GetContext().Get3D().DrawModel(A));
+	REQUIRE(A.ResetMorphWeight(0));
+	REQUIRE(Renderer.GetContext().Get3D().DrawModel(A));
+	REQUIRE(Renderer.EndFrame());
+	REQUIRE(Backend.m_Models[0].Morph == 0.75f);
+	REQUIRE(Toolbox::Abs(Backend.m_Models[1].Morph - 0.5f) < 0.001f);
+	REQUIRE(A.SetTime(1));
+	REQUIRE(Toolbox::Abs(A.GetMorphWeight(0) - 1.0f) < 0.001f);
+}
+
+TEST("model_import avoids node and generated mesh frame name collisions")
+{
+	const auto Source = FeatureFbx_Internal("Model: 10, \"Model::Triangle_mesh\", \"Null\" { }", " C: \"OO\",10,0");
+	auto Imported = ImportFbxModel(Source.Data(), Source.Size());
+	REQUIRE(Imported);
+	REQUIRE(Imported.Value().VertexColorFrames[0] != "Triangle_mesh");
+	REQUIRE(Imported.Value().VertexColorFrames[0] == Imported.Value().MeshExtensions[0].FrameName);
 }

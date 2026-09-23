@@ -159,6 +159,13 @@ TResult<FModelAllocation> FDxLibModelBackend::LoadModel(const FImportedModel& Mo
 		return TResult<FModelAllocation>::Failure(EErrorCode::InvalidArgument,
 		                                          "Converted model data is empty or too large");
 	}
+#if !defined(DXF_DXLIB_MODEL_EXTENSION) || DXF_DXLIB_MODEL_EXTENSION < 2
+	if (!Model.Morphs.IsEmpty())
+	{
+		return TResult<FModelAllocation>::Failure(EErrorCode::BackendFailure,
+		                                          "Morph targets require an updated source DxLib build; run Setup.cmd");
+	}
+#endif
 	FTextureSource_Internal Source;
 	Source.pModel = &Model;
 	Source.pDirectory = &Directory;
@@ -209,6 +216,12 @@ TResult<FModelAllocation> FDxLibModelBackend::LoadModel(const FImportedModel& Mo
 				                                          "Native vertex color setup failed");
 			}
 		}
+	}
+	if (DxLib::MV1GetShapeNum(Handle) != static_cast<Toolbox::int32>(Model.Morphs.Size()))
+	{
+		DxLib::MV1DeleteModel(Handle);
+		return TResult<FModelAllocation>::Failure(EErrorCode::BackendFailure,
+		                                          "Native morph count differs from imported data");
 	}
 	if (Source.Missing > 0)
 	{
@@ -388,6 +401,14 @@ TResult<void> FDxLibRenderBackend::DrawModel3D(const FModelDraw3D& Model)
 		return TResult<void>::Failure(EErrorCode::InvalidState, "Model instance was released before drawing");
 	}
 	const Toolbox::int32 Handle = Model.pInstance->GetHandle_Internal();
+	for (Toolbox::size_t Index = 0; Index < Model.MorphWeights.Size(); ++Index)
+	{
+		if (DxLib::MV1SetShapeRate(Handle, static_cast<Toolbox::int32>(Index), Model.MorphWeights[Index],
+		                           DX_MV1_SHAPERATE_OVERWRITE) < 0)
+		{
+			return TResult<void>::Failure(EErrorCode::BackendFailure, "Native morph weight setup failed");
+		}
+	}
 	FModelNativeAnimationState& Animation = Model.pInstance->GetMetadata().Animation;
 	if (Animation.Clip != Model.Clip)
 	{

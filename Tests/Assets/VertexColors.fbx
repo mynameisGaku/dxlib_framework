@@ -1,6 +1,7 @@
 ; FBX 7.4.0 project file
 FBXHeaderExtension: { FBXVersion: 7400 }
 Objects: {
+ Model: 10, "Model::Colors_mesh", "Null" { }
  Model: 1, "Model::Colors", "Mesh" { }
  Geometry: 2, "Geometry::Colors", "Mesh" {
   Vertices: *9 { a: -100,0,0,100,0,0,0,200,0 }
@@ -20,6 +21,7 @@ Objects: {
  }
 }
 Connections: {
+ C: "OO",10,0
  C: "OO",1,0
  C: "OO",2,1
  C: "OO",3,1

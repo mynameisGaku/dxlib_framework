@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: NOASSERTION
 #pragma once
 #include "Dxf/ModelMaterial3D.h"
+#include "Dxf/ModelMorphInfo.h"
 #include "Dxf/ResourceRegistry.h"
 #include "Dxf/Result.h"
 #include "Toolbox/Matrix4.h"
@@ -39,6 +40,10 @@ struct FModelClipInfo
 	 * ネイティブ側で計測したクリップの長さ（ネイティブの時間単位）。秒からの変換にだけ使う。
 	 */
 	double NativeDuration = 0.0;
+	/**
+	 * モーフ番号ごとの等間隔標本。
+	 */
+	Toolbox::TVector<Toolbox::TVector<Toolbox::f32>> MorphWeights;
 };
 /**
  * 共有するモデルデータの情報を管理する型。
@@ -53,6 +58,10 @@ struct FModelMetadata
 	 * FBX上の順序どおりのクリップ。
 	 */
 	Toolbox::TVector<FModelClipInfo> Clips;
+	/**
+	 * モーフ番号順の初期値と表示名。
+	 */
+	Toolbox::TVector<FModelMorphInfo> Morphs;
 	/**
 	 * 読み込みで省略した機能などの警告。キャッシュから取得しても保持する。
 	 */
@@ -120,6 +129,10 @@ struct FModelDraw3D
 	 * 記録時点の基本材質。
 	 */
 	FModelMaterial3D Material;
+	/**
+	 * 記録時点の各モーフの変形量。
+	 */
+	Toolbox::TVector<Toolbox::f32> MorphWeights;
 };
 /**
  * 読み込んだモデルデータを参照する型。複製しても同じデータを共有する。
@@ -164,6 +177,26 @@ public:
 	 * @param Name FBX上のクリップ名（UTF-8）。
 	 */
 	Toolbox::int32 FindClip(const Toolbox::FString& Name) const noexcept;
+	/**
+	 * モーフを名前で探す。見つからなければ-1。
+	 * @param Name GetMorphで取得できるノード名とチャンネル名。
+	 */
+	Toolbox::int32 FindMorph(const Toolbox::FString& Name) const noexcept;
+	/**
+	 * モーフ数を取得する。無効なモデルなら0。
+	 */
+	FORCEINLINE Toolbox::size_t GetMorphCount() const noexcept
+	{
+		return m_pResource ? m_pResource->GetMetadata().Morphs.Size() : 0;
+	}
+	/**
+	 * モーフの名前と初期値を取得する。範囲外はnullptr。
+	 * @param Index モーフ番号。
+	 */
+	FORCEINLINE const FModelMorphInfo* GetMorph(Toolbox::size_t Index) const noexcept
+	{
+		return Index < GetMorphCount() ? &m_pResource->GetMetadata().Morphs[Index] : nullptr;
+	}
 	/**
 	 * 部分読み込みの警告数。無効なモデルでは0。
 	 */
@@ -248,6 +281,22 @@ public:
 	 * @param Material インスタンスごとの色と照明設定。
 	 */
 	TResult<void> SetMaterial(const FModelMaterial3D& Material);
+	/**
+	 * モーフの変形量を手動指定する。0〜1の有限値のみ。範囲外なら以前の値を保つ。
+	 * @param Index モーフ番号。
+	 * @param Weight 0は基本形状、1は目標形状。指定中はクリップの値より優先する。
+	 */
+	TResult<void> SetMorphWeight(Toolbox::size_t Index, Toolbox::f32 Weight);
+	/**
+	 * 手動指定を解除し、再生中のクリップまたは初期値へ戻す。
+	 * @param Index モーフ番号。範囲外なら失敗する。
+	 */
+	TResult<void> ResetMorphWeight(Toolbox::size_t Index);
+	/**
+	 * 現在の時刻と手動指定を反映した変形量。範囲外は0。
+	 * @param Index モーフ番号。
+	 */
+	Toolbox::f32 GetMorphWeight(Toolbox::size_t Index) const noexcept;
 	/**
 	 * 現在の基本材質を取得する。
 	 */
@@ -384,6 +433,10 @@ private:
 	 * インスタンス固有の基本材質。
 	 */
 	FModelMaterial3D m_Material;
+	/**
+	 * 手動指定した変形量。-1はクリップまたは初期値を使う。
+	 */
+	Toolbox::TVector<Toolbox::f32> m_MorphOverrides;
 	/**
 	 * 再生中のクリップ番号。-1ならなし。
 	 */

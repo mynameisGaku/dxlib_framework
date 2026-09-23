@@ -127,6 +127,10 @@ TResult<void> FRender3DContext::DrawModel(const FModelInstance& Instance)
 	Record.Draw.pInstance = Record.Instance.Get();
 	Record.Draw.World = Instance.GetTransform();
 	Record.Draw.Material = Instance.GetMaterial();
+	for (Toolbox::size_t Index = 0; Index < Instance.GetModel().GetMorphCount(); ++Index)
+	{
+		Record.Draw.MorphWeights.PushBack(Instance.GetMorphWeight(Index));
+	}
 	Record.Draw.Clip = Instance.GetClip();
 	Record.Draw.NativeTime = Instance.GetNativeTime_Internal();
 	Record.View = m_View;

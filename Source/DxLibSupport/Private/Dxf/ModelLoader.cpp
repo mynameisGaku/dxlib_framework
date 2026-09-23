@@ -89,7 +89,8 @@ TResult<FModel> FModelLoader::Load(const Toolbox::FString& Path, const FModelLoa
 	if (m_pBackend == nullptr)
 	{
 		return TResult<FModel>::Failure(EErrorCode::InvalidState,
-		                                "Model loading is unavailable: the DxLib build cannot load models (run Setup.cmd to build DxLib from source)");
+		                                "Model loading is unavailable: the DxLib build cannot load models (run "
+		                                "Setup.cmd to build DxLib from source)");
 	}
 	if (!IsOwnerThread())
 	{
@@ -115,7 +116,8 @@ TResult<FModel> FModelLoader::Load(const Toolbox::FString& Path, const FModelLoa
 	}
 	catch (const Toolbox::FException& Error)
 	{
-		return TResult<FModel>::Failure(EErrorCode::BackendFailure, Toolbox::FString("Model file read failed: ") + Error.What());
+		return TResult<FModel>::Failure(EErrorCode::BackendFailure,
+		                                Toolbox::FString("Model file read failed: ") + Error.What());
 	}
 	// 座標系・単位の変換を含むFBXの変換結果。
 	FModelImportOptions ImportOptions;
@@ -135,12 +137,17 @@ TResult<FModel> FModelLoader::Load(const Toolbox::FString& Path, const FModelLoa
 	}
 	// ネイティブハンドルの解放を保証する所有者。
 	FNativeHandle Handle(Allocation.Value().NativeHandle, this, &FModelLoader::Release_Internal);
-	if (Allocation.Value().NativeHandle < 0 || Allocation.Value().NativeClipDurations.Size() != Imported.Value().Clips.Size())
+	if (Allocation.Value().NativeHandle < 0 ||
+	    Allocation.Value().NativeClipDurations.Size() != Imported.Value().Clips.Size())
 	{
 		return TResult<FModel>::Failure(EErrorCode::BackendFailure, "Invalid model allocation");
 	}
 	FModelMetadata Metadata;
 	Metadata.Path = Path;
+	for (const auto& Morph : Imported.Value().Morphs)
+	{
+		Metadata.Morphs.PushBack({Morph.Name, Morph.DefaultWeight});
+	}
 	Metadata.ImportWarnings = Toolbox::Move(Imported.Value().Warnings);
 	for (const Toolbox::FString& Warning : Metadata.ImportWarnings)
 	{
@@ -148,8 +155,9 @@ TResult<FModel> FModelLoader::Load(const Toolbox::FString& Path, const FModelLoa
 	}
 	for (Toolbox::size_t Index = 0; Index < Imported.Value().Clips.Size(); ++Index)
 	{
-		const FImportedModelClip& Clip = Imported.Value().Clips[Index];
-		Metadata.Clips.PushBack({Clip.Name, Clip.DurationSeconds, Allocation.Value().NativeClipDurations[Index]});
+		FImportedModelClip& Clip = Imported.Value().Clips[Index];
+		Metadata.Clips.PushBack({Clip.Name, Clip.DurationSeconds, Allocation.Value().NativeClipDurations[Index],
+		                         Toolbox::Move(Clip.MorphWeights)});
 	}
 	// 共有するリソース。
 	auto Resource = Toolbox::MakeShared<FModelResource>(Toolbox::Move(Handle), Toolbox::Move(Metadata));
@@ -157,7 +165,8 @@ TResult<FModel> FModelLoader::Load(const Toolbox::FString& Path, const FModelLoa
 	{
 		return TResult<FModel>::Failure(EErrorCode::InvalidState, "Resource registry stopped");
 	}
-	DXF_LOG_INFO("Model", "Loaded %s (clips=%u textures=%u)", Path.CStr(), static_cast<unsigned>(Imported.Value().Clips.Size()),
+	DXF_LOG_INFO("Model", "Loaded %s (clips=%u textures=%u)", Path.CStr(),
+	             static_cast<unsigned>(Imported.Value().Clips.Size()),
 	             static_cast<unsigned>(Imported.Value().Textures.Size()));
 	return TResult<FModel>::Success(FModel(Toolbox::Move(Resource)));
 }
@@ -172,7 +181,8 @@ TResult<FModelInstance> FModelLoader::CreateInstance(const FModel& Model)
 	}
 	if (!IsOwnerThread())
 	{
-		return TResult<FModelInstance>::Failure(EErrorCode::InvalidState, "Model instances must be created on the owner thread");
+		return TResult<FModelInstance>::Failure(EErrorCode::InvalidState,
+		                                        "Model instances must be created on the owner thread");
 	}
 	if (m_pRegistry->IsShutdown())
 	{

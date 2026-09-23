@@ -1,0 +1,70 @@
+; FBX 7.4.0 project file
+FBXHeaderExtension: { FBXVersion: 7400 }
+Objects: {
+ Model: 1, "Model::Triangle", "Mesh" { }
+ Geometry: 2, "Geometry::Triangle", "Mesh" {
+  Vertices: *9 { a: -60,0,0,0,180,0,60,0,0 }
+  PolygonVertexIndex: *3 { a: 0,1,-3 }
+ }
+ Geometry: 3, "Geometry::Widen", "Shape" {
+  Indexes: *2 { a: 0,2 }
+  Vertices: *6 { a: -40,0,0,40,0,0 }
+  Normals: *6 { a: 0,0,0,0,0,0 }
+ }
+ Deformer: 4, "Deformer::Morph", "BlendShape" { }
+ Deformer: 5, "SubDeformer::Widen", "BlendShapeChannel" {
+  DeformPercent: 0
+  FullWeights: *1 { a: 100 }
+ }
+ Model: 10, "Model::Bone", "LimbNode" { }
+ Deformer: 11, "Deformer::Skin", "Skin" { SkinningType: "Linear" }
+ Deformer: 12, "SubDeformer::Cluster", "Cluster" {
+  Indexes: *3 { a: 0,1,2 }
+  Weights: *3 { a: 1,1,1 }
+  Transform: *16 { a: 1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1 }
+  TransformLink: *16 { a: 1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1 }
+ }
+ Geometry: 15, "Geometry::Lower", "Shape" {
+  Indexes: *1 { a: 1 }
+  Vertices: *3 { a: 0,-30,0 }
+  Normals: *3 { a: 0,0,0 }
+ }
+ Deformer: 16, "SubDeformer::Lower", "BlendShapeChannel" {
+  DeformPercent: 0
+  FullWeights: *1 { a: 100 }
+ }
+ AnimationStack: 6, "AnimStack::Widen", "" {
+  Properties70: {
+   P: "LocalStart", "KTime", "Time", "",0
+   P: "LocalStop", "KTime", "Time", "",46186158000
+  }
+ }
+ AnimationLayer: 7, "AnimLayer::Base", "" { }
+ AnimationCurveNode: 8, "AnimCurveNode::DeformPercent", "" {
+  Properties70: { P: "d|DeformPercent", "Number", "", "A",0 }
+ }
+ AnimationCurve: 9, "AnimCurve::Weight", "" {
+  KeyTime: *2 { a: 0,46186158000 }
+  KeyValueFloat: *2 { a: 0,100 }
+  KeyAttrFlags: *1 { a: 4 }
+  KeyAttrDataFloat: *4 { a: 0,0,0,0 }
+  KeyAttrRefCount: *1 { a: 2 }
+ }
+}
+Connections: {
+ C: "OO",10,0
+ C: "OO",10,12
+ C: "OO",12,11
+ C: "OO",11,2
+ C: "OO",15,16
+ C: "OO",1,0
+ C: "OO",2,1
+ C: "OO",3,5
+ C: "OO",5,4
+ C: "OO",16,4
+ C: "OO",4,2
+ C: "OO",7,6
+ C: "OO",8,7
+ C: "OP",8,5,"DeformPercent"
+ C: "OP",9,8,"d|DeformPercent"
+}

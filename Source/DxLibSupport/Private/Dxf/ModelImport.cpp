@@ -17,12 +17,14 @@ struct FVertex_Internal
 {
 	Toolbox::f32 Position[3];
 	Toolbox::f32 Normal[3];
+	// 変換後の法線を単位長にする倍率。モーフ法線にも同じ倍率を使う。
+	Toolbox::f32 NormalScale;
 	Toolbox::f32 Uv[2];
 	// 材質の拡散色を掛けた頂点色。色の境界も頂点の共有判定に含める。
 	Toolbox::f32 Color[4];
 	Toolbox::uint32 ControlPoint;
 };
-static_assert(sizeof(FVertex_Internal) == 52, "FVertex_Internal must not contain padding");
+static_assert(sizeof(FVertex_Internal) == 56, "FVertex_Internal must not contain padding");
 
 /**
  * .xのテキストを組み立てる。
@@ -89,11 +91,18 @@ private:
 struct FContext_Internal
 {
 	const ufbx_scene* pScene = nullptr;
+	// 出力モーフに対応する元チャンネル。解析結果の生存中だけ使う。
+	Toolbox::TVector<const ufbx_blend_channel*> MorphChannels;
+	// モーフの展開量と標本数の累計。
+	Toolbox::size_t MorphVertices = 0;
+	Toolbox::uint64 MorphSamples = 0;
 	FImportedModel* pModel = nullptr;
 	/**
 	 * ノードのelement_idごとの.x上の名前。
 	 */
 	Toolbox::TVector<Toolbox::FString> NodeNames;
+	// ノード名と衝突しないネイティブのメッシュフレーム名。
+	Toolbox::TVector<Toolbox::FString> MeshNames;
 	/**
 	 * ufbx_textureのelement_idごとのテクスチャ番号（未登録は-1）。
 	 */
@@ -120,13 +129,19 @@ Toolbox::FString MakeIdentifier_Internal(const char* Prefix, ufbx_string Name, T
 		                    (Character >= '0' && Character <= '9') || Character == '_';
 		Result.PushBack(bAlnum ? Character : '_');
 	}
-	for (const Toolbox::FString& Other : Used)
+	bool Duplicate = true;
+	while (Duplicate)
 	{
-		if (Other.Size() == Result.Size() && memcmp(Other.CStr(), Result.CStr(), Result.Size()) == 0)
+		Duplicate = false;
+		for (const Toolbox::FString& Other : Used)
 		{
-			Result.PushBack('_');
-			Result += Toolbox::ToString(static_cast<Toolbox::uint64>(Id));
-			break;
+			if (Other == Result)
+			{
+				Result.PushBack('_');
+				Result += Toolbox::ToString(static_cast<Toolbox::uint64>(Id));
+				Duplicate = true;
+				break;
+			}
 		}
 	}
 	return Result;
@@ -276,6 +291,7 @@ TResult<void> WriteMesh_Internal(FContext_Internal& Context, FWriter_Internal& W
 				if (Length > 0.0)
 				{
 					const Toolbox::f64 Scale = 1.0 / Toolbox::Sqrt(Length);
+					Vertex.NormalScale = static_cast<Toolbox::f32>(Scale);
 					Normal.x *= Scale;
 					Normal.y *= Scale;
 					Normal.z *= Scale;
@@ -356,7 +372,7 @@ TResult<void> WriteMesh_Internal(FContext_Internal& Context, FWriter_Internal& W
 	{
 		// 標準.xに入らないUVは、最終頂点順でネイティブへ引き渡す。
 		FImportedModelMesh Extension;
-		Extension.FrameName = Context.NodeNames[Node->element_id] + "_mesh";
+		Extension.FrameName = Context.MeshNames[Node->element_id];
 		for (Toolbox::size_t Set = 1; Set < Mesh->uv_sets.count; ++Set)
 		{
 			Toolbox::TVector<FVector2> Uvs;
@@ -369,10 +385,95 @@ TResult<void> WriteMesh_Internal(FContext_Internal& Context, FWriter_Internal& W
 		}
 		Context.pModel->MeshExtensions.PushBack(Toolbox::Move(Extension));
 	}
+	// 単一ターゲットのモーフを、重複除去後の頂点へ展開する。
+	for (const ufbx_blend_deformer* Deformer : Mesh->blend_deformers)
+	{
+		for (const ufbx_blend_channel* Channel : Deformer->channels)
+		{
+			if (Channel->keyframes.count == 0)
+			{
+				continue;
+			}
+			const ufbx_blend_shape* Shape = Channel->keyframes.data[0].shape;
+			if (VertexCount > 4000000u - Context.MorphVertices)
+			{
+				return TResult<void>::Failure(EErrorCode::InvalidArgument, "FBX morph vertex limit exceeded");
+			}
+			Context.MorphVertices += VertexCount;
+			if (Shape->offset_weights.count > 0)
+			{
+				return TResult<void>::Failure(EErrorCode::InvalidArgument,
+				                              "FBX weighted morph offsets are unsupported");
+			}
+			FImportedModelMorph Morph;
+			Morph.Name = ToString_Internal(Node->name) + ":" + ToString_Internal(Channel->name);
+			Morph.FrameName = Context.MeshNames[Node->element_id];
+			Morph.DefaultWeight = static_cast<Toolbox::f32>(Channel->weight / Channel->keyframes.data[0].target_weight);
+			if (!(Morph.DefaultWeight >= 0 && Morph.DefaultWeight <= 1))
+			{
+				return TResult<void>::Failure(EErrorCode::InvalidArgument,
+				                              "FBX morph weight must be finite and in 0..1");
+			}
+			for (Toolbox::uint32 Point : Shape->offset_vertices)
+			{
+				if (Point >= Mesh->num_vertices)
+				{
+					return TResult<void>::Failure(EErrorCode::InvalidArgument,
+					                              "FBX morph references a missing control point");
+				}
+			}
+			Morph.PositionOffsets.Reserve(VertexCount);
+			if (Shape->normal_offsets.count > 0)
+			{
+				Morph.NormalOffsets.Reserve(VertexCount);
+			}
+			else
+			{
+				Context.pModel->Warnings.PushBack("Morph target has no normal offsets; base normals are retained");
+			}
+			for (Toolbox::size_t Vertex = 0; Vertex < VertexCount; ++Vertex)
+			{
+				const Toolbox::uint32 Point = Corners[Vertex].ControlPoint;
+				const ufbx_vec3 Offset =
+				    ufbx_transform_direction(&GeometryToNode, ufbx_get_blend_shape_vertex_offset(Shape, Point));
+				if (!Toolbox::IsFinite(Offset.x) || !Toolbox::IsFinite(Offset.y) || !Toolbox::IsFinite(Offset.z) ||
+				    Toolbox::Abs(Offset.x) > 3.0e38 || Toolbox::Abs(Offset.y) > 3.0e38 ||
+				    Toolbox::Abs(Offset.z) > 3.0e38)
+				{
+					return TResult<void>::Failure(EErrorCode::InvalidArgument,
+					                              "FBX morph offsets must be finite float values");
+				}
+				Morph.PositionOffsets.PushBack({static_cast<Toolbox::f32>(Offset.x),
+				                                static_cast<Toolbox::f32>(Offset.y),
+				                                static_cast<Toolbox::f32>(Offset.z)});
+				if (Shape->normal_offsets.count > 0)
+				{
+					const Toolbox::uint32 OffsetIndex = ufbx_get_blend_shape_offset_index(Shape, Point);
+					const ufbx_vec3 Delta =
+					    OffsetIndex < Shape->normal_offsets.count
+					        ? ufbx_transform_direction(&NormalMatrix, Shape->normal_offsets.data[OffsetIndex])
+					        : ufbx_vec3{};
+					const Toolbox::f64 X = Corners[Vertex].Normal[0] + Delta.x * Corners[Vertex].NormalScale;
+					const Toolbox::f64 Y = Corners[Vertex].Normal[1] + Delta.y * Corners[Vertex].NormalScale;
+					const Toolbox::f64 Z = Corners[Vertex].Normal[2] + Delta.z * Corners[Vertex].NormalScale;
+					const Toolbox::f64 Length = Toolbox::Sqrt(X * X + Y * Y + Z * Z);
+					if (!(Length > 0) || !Toolbox::IsFinite(Length))
+					{
+						return TResult<void>::Failure(EErrorCode::InvalidArgument, "FBX morph normal is invalid");
+					}
+					Morph.NormalOffsets.PushBack({static_cast<Toolbox::f32>(X / Length - Corners[Vertex].Normal[0]),
+					                              static_cast<Toolbox::f32>(Y / Length - Corners[Vertex].Normal[1]),
+					                              static_cast<Toolbox::f32>(Z / Length - Corners[Vertex].Normal[2])});
+				}
+			}
+			Context.pModel->Morphs.PushBack(Toolbox::Move(Morph));
+			Context.MorphChannels.PushBack(Channel);
+		}
+	}
 	const Toolbox::size_t TriangleCount = Indices.Size() / 3;
 	Writer.Text("Mesh ");
-	Writer.Text(Context.NodeNames[Node->element_id].CStr());
-	Writer.Text("_mesh {\n");
+	Writer.Text(Context.MeshNames[Node->element_id].CStr());
+	Writer.Text(" {\n");
 	Writer.Unsigned(VertexCount);
 	Writer.Text(";\n");
 	for (Toolbox::size_t Index = 0; Index < VertexCount; ++Index)
@@ -427,7 +528,7 @@ TResult<void> WriteMesh_Internal(FContext_Internal& Context, FWriter_Internal& W
 	Writer.Text("}\n");
 	if (Mesh->vertex_color.exists)
 	{
-		Context.pModel->VertexColorFrames.PushBack(Context.NodeNames[Node->element_id] + "_mesh");
+		Context.pModel->VertexColorFrames.PushBack(Context.MeshNames[Node->element_id]);
 		Writer.Text("MeshVertexColors {\n");
 		Writer.Unsigned(VertexCount);
 		Writer.Text(";\n");
@@ -603,7 +704,8 @@ TResult<void> WriteFrame_Internal(FContext_Internal& Context, FWriter_Internal& 
 /**
  * アニメーションスタックを、全ノードの局所行列を一定間隔で標本化したAnimationSetとして書く。
  */
-void WriteAnimations_Internal(FContext_Internal& Context, FWriter_Internal& Writer, Toolbox::uint32 SamplesPerSecond)
+TResult<void> WriteAnimations_Internal(FContext_Internal& Context, FWriter_Internal& Writer,
+                                       Toolbox::uint32 SamplesPerSecond)
 {
 	const ufbx_scene* Scene = Context.pScene;
 	for (Toolbox::size_t StackIndex = 0; StackIndex < Scene->anim_stacks.count; ++StackIndex)
@@ -617,7 +719,6 @@ void WriteAnimations_Internal(FContext_Internal& Context, FWriter_Internal& Writ
 		FImportedModelClip Clip;
 		Clip.Name = ToString_Internal(Stack->name);
 		Clip.DurationSeconds = Duration;
-		Context.pModel->Clips.PushBack(Toolbox::Move(Clip));
 		// 必要な区間数を切り上げ、末尾が標本間隔の途中でも終端を含める。
 		const Toolbox::f64 Intervals = Duration * SamplesPerSecond;
 		Toolbox::uint64 Segments = static_cast<Toolbox::uint64>(Intervals);
@@ -626,6 +727,33 @@ void WriteAnimations_Internal(FContext_Internal& Context, FWriter_Internal& Writ
 			++Segments;
 		}
 		const Toolbox::uint64 Keys = Segments + 1;
+		Context.MorphSamples += Keys * Context.MorphChannels.Size();
+		if (Context.MorphSamples > 1000000)
+		{
+			return TResult<void>::Failure(EErrorCode::InvalidArgument, "FBX morph animation key limit exceeded");
+		}
+		for (const ufbx_blend_channel* Channel : Context.MorphChannels)
+		{
+			Toolbox::TVector<Toolbox::f32> Weights;
+			Weights.Reserve(static_cast<Toolbox::size_t>(Keys));
+			for (Toolbox::uint64 Key = 0; Key < Keys; ++Key)
+			{
+				const Toolbox::f64 Time =
+				    Stack->time_begin +
+				    (Segments > 0 ? Duration * static_cast<Toolbox::f64>(Key) / static_cast<Toolbox::f64>(Segments)
+				                  : 0.0);
+				const Toolbox::f64 Weight =
+				    ufbx_evaluate_blend_weight(Stack->anim, Channel, Time) / Channel->keyframes.data[0].target_weight;
+				if (!(Weight >= 0.0 && Weight <= 1.0))
+				{
+					return TResult<void>::Failure(EErrorCode::InvalidArgument,
+					                              "FBX animated morph weight must be finite and in 0..1");
+				}
+				Weights.PushBack(static_cast<Toolbox::f32>(Weight));
+			}
+			Clip.MorphWeights.PushBack(Toolbox::Move(Weights));
+		}
+		Context.pModel->Clips.PushBack(Toolbox::Move(Clip));
 		Writer.Text("AnimationSet clip_");
 		Writer.Unsigned(StackIndex);
 		Writer.Text(" {\n");
@@ -659,6 +787,7 @@ void WriteAnimations_Internal(FContext_Internal& Context, FWriter_Internal& Writ
 		}
 		Writer.Text("}\n");
 	}
+	return {};
 }
 } // namespace
 
@@ -692,9 +821,22 @@ TResult<void> CheckFeatures_Internal(const ufbx_scene& Scene, Toolbox::TVector<T
 			return TResult<void>::Failure(EErrorCode::InvalidArgument, "FBX dual-quaternion skinning is unsupported");
 		}
 	}
-	if (Scene.blend_deformers.count > 0)
+	for (const ufbx_blend_channel* Channel : Scene.blend_channels)
 	{
-		Warnings.PushBack("Morph targets are ignored; only the base mesh and skeletal animation are imported");
+		if (Channel->keyframes.count > 1 ||
+		    (Channel->keyframes.count == 1 && (!(Channel->keyframes.data[0].target_weight > 0) ||
+		                                       !Toolbox::IsFinite(Channel->keyframes.data[0].target_weight))))
+		{
+			return TResult<void>::Failure(EErrorCode::InvalidArgument,
+			                              "FBX in-between or non-positive target morphs are unsupported");
+		}
+	}
+	for (const ufbx_blend_deformer* Deformer : Scene.blend_deformers)
+	{
+		if (Deformer->channels.count == 0)
+		{
+			Warnings.PushBack("Morph deformer has no channels and is ignored");
+		}
 	}
 	if (bExtraColor)
 	{
@@ -713,13 +855,16 @@ TResult<void> CheckFeatures_Internal(const ufbx_scene& Scene, Toolbox::TVector<T
 			}
 			if (Texture != nullptr && Texture->uv_set.length > 0)
 			{
-				bTextureUvSelection = bTextureUvSelection || Mesh->uv_sets.count == 0 || ToString_Internal(Texture->uv_set) != ToString_Internal(Mesh->uv_sets.data[0].name);
+				bTextureUvSelection =
+				    bTextureUvSelection || Mesh->uv_sets.count == 0 ||
+				    ToString_Internal(Texture->uv_set) != ToString_Internal(Mesh->uv_sets.data[0].name);
 			}
 		}
 	}
 	if (bTextureUvSelection)
 	{
-		Warnings.PushBack("Texture UV selection is not applied by the standard material; it uses UV0 while preserving UV1 for custom shaders");
+		Warnings.PushBack("Texture UV selection is not applied by the standard material; it uses UV0 while preserving "
+		                  "UV1 for custom shaders");
 	}
 	// 基本拡散色以外の材質属性を読み込めたものとして扱わない。
 	bool bAdvancedMaterial = false;
@@ -805,8 +950,8 @@ TResult<FImportedModel> ImportFbxModel(const void* Data, Toolbox::size_t Size, c
 		// 全ノードを各時刻で標本化するため、ノード数も上限に含める。
 		const ufbx_anim_stack* Stack = Scene->anim_stacks.data[Index];
 		const Toolbox::f64 Duration = Stack->time_end - Stack->time_begin;
-		TotalAnimationKeys +=
-		    (Duration * Options.SamplesPerSecond + 2.0) * static_cast<Toolbox::f64>(Scene->nodes.count);
+		TotalAnimationKeys += (Duration * Options.SamplesPerSecond + 2.0) *
+		                      static_cast<Toolbox::f64>(Scene->nodes.count + Scene->blend_channels.count);
 		if (!Toolbox::IsFinite(Stack->time_begin) || !Toolbox::IsFinite(Stack->time_end) || Duration < 0.0 ||
 		    !Toolbox::IsFinite(TotalAnimationKeys) || TotalAnimationKeys > MaxAnimationKeys)
 		{
@@ -844,6 +989,16 @@ TResult<FImportedModel> ImportFbxModel(const void* Data, Toolbox::size_t Size, c
 		Used.PushBack(Name);
 		Context.NodeNames[Node->element_id] = Toolbox::Move(Name);
 	}
+	Context.MeshNames.Resize(Scene->elements.count);
+	for (const ufbx_node* Node : Scene->nodes)
+	{
+		if (Node->mesh == nullptr)
+			continue;
+		const Toolbox::FString Candidate = Context.NodeNames[Node->element_id] + "_mesh";
+		const ufbx_string Name{Candidate.CStr(), Candidate.Size()};
+		Context.MeshNames[Node->element_id] = MakeIdentifier_Internal("", Name, Node->element_id, Used);
+		Used.PushBack(Context.MeshNames[Node->element_id]);
+	}
 	FWriter_Internal Writer(Model.ModelData);
 	Writer.Text("xof 0303txt 0032\n");
 	Writer.Text("AnimTicksPerSecond {\n");
@@ -858,7 +1013,11 @@ TResult<FImportedModel> ImportFbxModel(const void* Data, Toolbox::size_t Size, c
 			return TResult<FImportedModel>::Failure(Result.Error());
 		}
 	}
-	WriteAnimations_Internal(Context, Writer, Options.SamplesPerSecond);
+	auto Animations = WriteAnimations_Internal(Context, Writer, Options.SamplesPerSecond);
+	if (!Animations)
+	{
+		return TResult<FImportedModel>::Failure(Animations.Error());
+	}
 	Model.ModelData.PushBack('\0');
 	return TResult<FImportedModel>::Success(Toolbox::Move(Model));
 }

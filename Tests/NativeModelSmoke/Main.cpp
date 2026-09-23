@@ -232,6 +232,32 @@ void Run_Internal(const Toolbox::FPath& Root, const Toolbox::FPath& OutDir)
 	Check_Internal(Assets.SetProjectRoot(Root), "project root");
 	FRenderSystem Renderer(Smoke.Services.Renderer);
 
+	// モーフの変形量と再生を複製インスタンス間で分離する。
+	FModel MorphModel = TakeOrThrow_Internal(Assets.LoadModel("Tests/Assets/MorphTriangle.fbx"));
+	Check_Internal(MorphModel.GetMorphCount() == 2, "multiple morph targets and skin imported");
+	FModelInstance MorphA = TakeOrThrow_Internal(Assets.CreateModelInstance(MorphModel));
+	FModelInstance MorphB = TakeOrThrow_Internal(Assets.CreateModelInstance(MorphModel));
+	RequireSuccess_Internal(MorphA.SetTransform(Toolbox::FMatrix4::Translation({-120, 0, 0})));
+	RequireSuccess_Internal(MorphB.SetTransform(Toolbox::FMatrix4::Translation({120, 0, 0})));
+	const FSignature MorphStart = Smoke.Frame(Renderer, &MorphA, &MorphB, "morph-start");
+	RequireSuccess_Internal(MorphB.SetMorphWeight(0, 1));
+	const FSignature MorphWide = Smoke.Frame(Renderer, &MorphA, &MorphB, "morph-right-wide");
+	Check_Internal(MorphWide.Pixels[1] > MorphStart.Pixels[1] + 500,
+	               "manual morph visibly widens the selected instance");
+	Check_Internal(MorphWide.ColorHash[0] == MorphStart.ColorHash[0], "morph leaves the other instance unchanged");
+	RequireSuccess_Internal(MorphB.ResetMorphWeight(0));
+	RequireSuccess_Internal(MorphA.Play("Widen", false));
+	RequireSuccess_Internal(MorphA.SetTime(0.5));
+	const FSignature MorphAnimated = Smoke.Frame(Renderer, &MorphA, &MorphB, "morph-left-animated");
+	Check_Internal(MorphAnimated.Pixels[0] > MorphStart.Pixels[0] + 200 &&
+	                   MorphAnimated.ColorHash[1] == MorphStart.ColorHash[1],
+	               "morph clip plays independently and resetting override restores base");
+	MorphA.Pause();
+	RequireSuccess_Internal(MorphA.Advance(0.2));
+	const FSignature MorphPaused = Smoke.Frame(Renderer, &MorphA, &MorphB);
+	Check_Internal(MorphPaused.ColorHash[0] == MorphAnimated.ColorHash[0],
+	               "paused morph retains the same rendered pose");
+
 	// 実DxLibの最終頂点から、追加UVが落ちずに保持されていることを確認する。
 	Toolbox::TVector<Toolbox::uint8> UvBytes;
 	Check_Internal(Toolbox::ReadFileBytes(Root / "Tests/Assets/AdditionalUv.fbx", UvBytes, 100000),

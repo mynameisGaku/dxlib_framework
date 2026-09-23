@@ -26,8 +26,78 @@ Toolbox::int32 FModel::FindClip(const Toolbox::FString& Name) const noexcept
 	return -1;
 }
 
-// ワールド変換を設定する。有限値でなければ以前の値を保つ。
-// @param World モデル空間からワールド空間への変換。
+// 名前に一致する最初のモーフ番号を返す。
+Toolbox::int32 FModel::FindMorph(const Toolbox::FString& Name) const noexcept
+{
+	for (Toolbox::size_t Index = 0; Index < GetMorphCount(); ++Index)
+	{
+		if (GetMorph(Index)->Name == Name)
+		{
+			return static_cast<Toolbox::int32>(Index);
+		}
+	}
+	return -1;
+}
+
+// 指定したインスタンスだけにモーフの上書きを保持する。
+TResult<void> FModelInstance::SetMorphWeight(Toolbox::size_t Index, Toolbox::f32 Weight)
+{
+	if (!IsValid())
+		return InvalidInstance_Internal();
+	const Toolbox::size_t Count = GetModel().GetMorphCount();
+	if (Index >= Count || !(Weight >= 0 && Weight <= 1))
+	{
+		return TResult<void>::Failure(EErrorCode::InvalidArgument, "Invalid morph index or weight");
+	}
+	if (m_MorphOverrides.Size() != Count)
+	{
+		m_MorphOverrides.Resize(Count);
+		for (auto& Value : m_MorphOverrides)
+			Value = -1;
+	}
+	m_MorphOverrides[Index] = Weight;
+	return {};
+}
+
+// 上書きを解除する。別のモーフや再生時刻は変えない。
+TResult<void> FModelInstance::ResetMorphWeight(Toolbox::size_t Index)
+{
+	if (!IsValid())
+		return InvalidInstance_Internal();
+	if (Index >= GetModel().GetMorphCount())
+	{
+		return TResult<void>::Failure(EErrorCode::InvalidArgument, "Invalid morph index");
+	}
+	if (Index < m_MorphOverrides.Size())
+		m_MorphOverrides[Index] = -1;
+	return {};
+}
+
+// 等間隔の2標本を線形補間する。形状差分そのものは読み込み済みのネイティブ側に保持する。
+Toolbox::f32 FModelInstance::GetMorphWeight(Toolbox::size_t Index) const noexcept
+{
+	const FModel Model = GetModel();
+	const FModelMorphInfo* Morph = Model.GetMorph(Index);
+	if (Morph == nullptr)
+		return 0;
+	if (Index < m_MorphOverrides.Size() && m_MorphOverrides[Index] >= 0)
+		return m_MorphOverrides[Index];
+	const FModelClipInfo* Clip = m_Clip >= 0 ? Model.GetClip(static_cast<Toolbox::size_t>(m_Clip)) : nullptr;
+	if (Clip != nullptr && Index < Clip->MorphWeights.Size() && !Clip->MorphWeights[Index].IsEmpty())
+	{
+		const auto& Values = Clip->MorphWeights[Index];
+		const Toolbox::f64 Position = Clip->DurationSeconds > 0
+		                                  ? Toolbox::Clamp(m_Time / Clip->DurationSeconds, 0.0, 1.0) *
+		                                        static_cast<Toolbox::f64>(Values.Size() - 1)
+		                                  : 0;
+		const Toolbox::size_t First = static_cast<Toolbox::size_t>(Position);
+		const Toolbox::size_t Next = Toolbox::Min(First + 1, Values.Size() - 1);
+		const Toolbox::f32 Fraction = static_cast<Toolbox::f32>(Position - static_cast<Toolbox::f64>(First));
+		return Values[First] + (Values[Next] - Values[First]) * Fraction;
+	}
+	return Morph->DefaultWeight;
+}
+
 // 不透明な基本材質だけを受け付け、共有モデルには変更を加えない。
 TResult<void> FModelInstance::SetMaterial(const FModelMaterial3D& Material)
 {
@@ -39,6 +109,8 @@ TResult<void> FModelInstance::SetMaterial(const FModelMaterial3D& Material)
 	return {};
 }
 
+// ワールド変換を設定する。有限値でなければ以前の値を保つ。
+// @param World モデル空間からワールド空間への変換。
 TResult<void> FModelInstance::SetTransform(const Toolbox::FMatrix4& World)
 {
 	for (const Toolbox::f32 Value : World.Values)

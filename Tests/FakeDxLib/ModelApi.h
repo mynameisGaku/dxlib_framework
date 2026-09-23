@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: NOASSERTION
 #ifndef DXF_FAKE_MODEL_API_H
 #define DXF_FAKE_MODEL_API_H
+#define DX_MV1_SHAPERATE_OVERWRITE 1
 // 手書きの追加テストダブル。MV1関数への変換だけを確かめ、実SDKのABI・モデル読込・実画面は検証しない。
 #include "RenderViewsApi.h"
 #include "Toolbox/Utility.h"
@@ -160,6 +161,14 @@ inline Toolbox::int32 MV1SetDifColorScale(Toolbox::int32, COLOR_F Color)
 	return 0;
 }
 inline Toolbox::int32 MV1SetAmbColorScale(Toolbox::int32, COLOR_F)
+{
+	return 0;
+}
+inline Toolbox::int32 MV1GetShapeNum(Toolbox::int32)
+{
+	return 0;
+}
+inline Toolbox::int32 MV1SetShapeRate(Toolbox::int32, Toolbox::int32, Toolbox::f32, Toolbox::int32)
 {
 	return 0;
 }

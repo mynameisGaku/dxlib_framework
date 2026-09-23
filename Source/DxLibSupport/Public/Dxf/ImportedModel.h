@@ -3,6 +3,7 @@
 #define DXF_IMPORTED_MODEL_H
 #include "Dxf/ImportedModelTexture.h"
 #include "Dxf/ImportedModelMesh.h"
+#include "Dxf/ImportedModelMorph.h"
 #include "Dxf/ImportedModelClip.h"
 namespace Dxf
 {
@@ -39,6 +40,10 @@ struct FImportedModel
 	 * 未対応データを省略した理由と、解析時の回復可能な問題。成功でも空とは限らない。
 	 */
 	Toolbox::TVector<Toolbox::FString> Warnings;
+	/**
+	 * ネイティブのシェイプ番号順のモーフ。
+	 */
+	Toolbox::TVector<FImportedModelMorph> Morphs;
 };
 } // namespace Dxf
 #endif

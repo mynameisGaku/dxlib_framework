@@ -3,7 +3,7 @@
 #define DX_MAKE
 #include "Dxf/ImportedModel.h"
 #pragma warning(push)
-#pragma warning(disable: 4828)
+#pragma warning(disable : 4828)
 #include "DxModelRead.h"
 #include "DxMemory.h"
 #pragma warning(pop)
@@ -12,7 +12,7 @@ namespace
 {
 // 同期読み込みの呼出し中だけ参照する。別スレッドや次の読込へ持ち越さない。
 thread_local const Dxf::FImportedModel* CurrentModel = nullptr;
-}
+} // namespace
 extern "C" const Dxf::FImportedModel* DxfSetModelExtension(const Dxf::FImportedModel* Model)
 {
 	const Dxf::FImportedModel* Previous = CurrentModel;
@@ -53,7 +53,8 @@ extern "C" int DxfApplyModelExtensions(void* Data)
 			}
 			const Toolbox::size_t Set = Index + 1;
 			Target->UVNum[Set] = Target->PositionNum;
-			Target->UVs[Set] = static_cast<DxLib::FLOAT4*>(DxLib::ADDMEMAREA(sizeof(DxLib::FLOAT4) * Uvs.Size(), &Model->Mem));
+			Target->UVs[Set] =
+			    static_cast<DxLib::FLOAT4*>(DxLib::ADDMEMAREA(sizeof(DxLib::FLOAT4) * Uvs.Size(), &Model->Mem));
 			if (Target->UVs[Set] == nullptr)
 			{
 				return -1;
@@ -68,6 +69,48 @@ extern "C" int DxfApplyModelExtensions(void* Data)
 				{
 					Target->Faces[Face].UVIndex[Set][Corner] = Target->Faces[Face].VertexIndex[Corner];
 				}
+			}
+		}
+	}
+	for (const auto& Morph : CurrentModel->Morphs)
+	{
+		DxLib::MV1_MESH_R* Target = nullptr;
+		for (auto* Mesh = Model->MeshFirst; Mesh != nullptr; Mesh = Mesh->DataNext)
+		{
+			if (Mesh->Container->NameA != nullptr && strcmp(Mesh->Container->NameA, Morph.FrameName.CStr()) == 0)
+			{
+				if (Target != nullptr)
+					return -1;
+				Target = Mesh;
+			}
+		}
+		if (Target == nullptr || Morph.PositionOffsets.Size() != Target->PositionNum ||
+		    (!Morph.NormalOffsets.IsEmpty() && Morph.NormalOffsets.Size() != Target->PositionNum))
+		{
+			return -1;
+		}
+		// 名前照合には依存せず、追加した順序をモーフ番号として使う。
+		auto* Shape = DxLib::MV1RAddShape(Model, "dxf_morph", Target->Container);
+		if (Shape == nullptr)
+			return -1;
+		Shape->TargetMesh = Target;
+		Shape->ValidVertexNormal = Morph.NormalOffsets.IsEmpty() ? FALSE : TRUE;
+		Shape->VertexNum = static_cast<int>(Target->PositionNum);
+		Shape->Vertex = static_cast<DxLib::MV1_SHAPE_VERTEX_R*>(
+		    DxLib::ADDMEMAREA(sizeof(DxLib::MV1_SHAPE_VERTEX_R) * Target->PositionNum, &Model->Mem));
+		if (Shape->Vertex == nullptr)
+			return -1;
+		for (Toolbox::size_t Index = 0; Index < Morph.PositionOffsets.Size(); ++Index)
+		{
+			const auto& Position = Morph.PositionOffsets[Index];
+			auto& Vertex = Shape->Vertex[Index];
+			Vertex.TargetPositionIndex = static_cast<int>(Index);
+			Vertex.Position = {Position.X, Position.Y, Position.Z};
+			Vertex.Normal = {};
+			if (!Morph.NormalOffsets.IsEmpty())
+			{
+				const auto& Normal = Morph.NormalOffsets[Index];
+				Vertex.Normal = {Normal.X, Normal.Y, Normal.Z};
 			}
 		}
 	}
