@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: NOASSERTION
 #pragma once
+#include "Dxf/ModelMaterial3D.h"
 #include "Dxf/ResourceRegistry.h"
 #include "Dxf/Result.h"
 #include "Toolbox/Matrix4.h"
@@ -115,6 +116,10 @@ struct FModelDraw3D
 	 * クリップのネイティブ時刻。
 	 */
 	Toolbox::f32 NativeTime = 0.0f;
+	/**
+	 * 記録時点の基本材質。
+	 */
+	FModelMaterial3D Material;
 };
 /**
  * 読み込んだモデルデータを参照する型。複製しても同じデータを共有する。
@@ -238,6 +243,18 @@ public:
 	 * @param World モデル空間からワールド空間への変換。
 	 */
 	TResult<void> SetTransform(const Toolbox::FMatrix4& World);
+	/**
+	 * 不透明な基本材質を設定する。Tint.Aが255以外なら失敗して以前の値を保つ。
+	 * @param Material インスタンスごとの色と照明設定。
+	 */
+	TResult<void> SetMaterial(const FModelMaterial3D& Material);
+	/**
+	 * 現在の基本材質を取得する。
+	 */
+	FORCEINLINE const FModelMaterial3D& GetMaterial() const noexcept
+	{
+		return m_Material;
+	}
 	/**
 	 * ワールド変換を取得する。
 	 */
@@ -364,6 +381,10 @@ private:
 	 */
 	Toolbox::FMatrix4 m_World;
 	/**
+	 * インスタンス固有の基本材質。
+	 */
+	FModelMaterial3D m_Material;
+	/**
 	 * 再生中のクリップ番号。-1ならなし。
 	 */
 	Toolbox::int32 m_Clip = -1;
@@ -384,4 +405,4 @@ private:
 	 */
 	bool m_bLoop = true;
 };
-}
+} // namespace Dxf

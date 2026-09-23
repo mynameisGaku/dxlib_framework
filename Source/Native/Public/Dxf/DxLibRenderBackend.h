@@ -9,6 +9,22 @@ class FDxLibRenderBackend final : public IRenderBackend
 {
 public:
 	/**
+	 * まだビューを開始していない描画境界を作る。
+	 */
+	FDxLibRenderBackend() = default;
+	/**
+	 * ネイティブライトの所有を複製しない。
+	 */
+	FDxLibRenderBackend(const FDxLibRenderBackend&) = delete;
+	/**
+	 * ネイティブライトの所有を複製しない。
+	 */
+	FDxLibRenderBackend& operator=(const FDxLibRenderBackend&) = delete;
+	/**
+	 * 開始済みのビューがあれば照明と2D状態を復元する。
+	 */
+	~FDxLibRenderBackend() override;
+	/**
 	 * 描画先と描画範囲を設定する。
 	 * @param Handle ハンドル。
 	 * @param Width 幅。
@@ -91,6 +107,7 @@ public:
 	 * 2D向けの標準状態へ戻す。一般のNative状態スナップショット復元ではない。
 	 */
 	TResult<void> EndView3D() override;
+
 private:
 	/**
 	 * 描画色と不透明度をバックエンドへ適用する。
@@ -102,6 +119,34 @@ private:
 	 * Nativeビューが開始済みか。所有スレッドだけで操作する。
 	 */
 	bool m_bView3D = false;
+	/**
+	 * GPUモデル照明に使う、開始時点のビュー。
+	 */
+	FRenderView3D m_ModelView;
+	/**
+	 * このビューで作成した指向性ライト。-1は未作成。
+	 */
+	Toolbox::int32 m_ModelLight = -1;
+	/**
+	 * 外部ライトの有効状態を保存済みか。
+	 */
+	bool m_bSavedLights = false;
+	/**
+	 * 復元する既定ライトの有効状態。
+	 */
+	Toolbox::int32 m_DefaultLightEnabled = 0;
+	/**
+	 * 開始時に有効だった外部ライト。ビュー中だけ無効にする。
+	 */
+	Toolbox::TVector<Toolbox::int32> m_ExternalLights;
+	/**
+	 * GPU照明の初回利用時にライトを確保し、ビューの設定を適用する。
+	 */
+	TResult<void> PrepareModelLight_Internal();
+	/**
+	 * 作成したライトを破棄し、外部ライトの有効状態を復元する。
+	 */
+	bool RestoreModelLights_Internal() noexcept;
 };
-}
+} // namespace Dxf
 // namespace Dxf

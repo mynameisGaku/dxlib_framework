@@ -28,6 +28,17 @@ Toolbox::int32 FModel::FindClip(const Toolbox::FString& Name) const noexcept
 
 // ワールド変換を設定する。有限値でなければ以前の値を保つ。
 // @param World モデル空間からワールド空間への変換。
+// 不透明な基本材質だけを受け付け、共有モデルには変更を加えない。
+TResult<void> FModelInstance::SetMaterial(const FModelMaterial3D& Material)
+{
+	if (Material.Tint.A != 255)
+	{
+		return TResult<void>::Failure(EErrorCode::InvalidArgument, "Model tint must be opaque");
+	}
+	m_Material = Material;
+	return {};
+}
+
 TResult<void> FModelInstance::SetTransform(const Toolbox::FMatrix4& World)
 {
 	for (const Toolbox::f32 Value : World.Values)
@@ -85,7 +96,8 @@ TResult<void> FModelInstance::SetSpeed(double Speed)
 {
 	if (!Toolbox::IsFinite(Speed) || Speed < 0.0)
 	{
-		return TResult<void>::Failure(EErrorCode::InvalidArgument, "Model playback speed must be finite and nonnegative");
+		return TResult<void>::Failure(EErrorCode::InvalidArgument,
+		                              "Model playback speed must be finite and nonnegative");
 	}
 	m_Speed = Speed;
 	return {};

@@ -71,6 +71,10 @@ struct FSignature
 	// 頂点色の各成分の優勢画素と最大値。
 	Toolbox::uint32 Dominant[3] = {0, 0, 0};
 	Toolbox::int32 MaxChannel = 0;
+	// 照明の変化を輪郭とは別に比較する。
+	Toolbox::uint64 Brightness[2] = {0, 0};
+	Toolbox::uint64 ColorHash[2] = {1469598103934665603ull, 1469598103934665603ull};
+	Toolbox::uint32 OverlayRgb = 0;
 };
 
 // CPU側へ読み戻した画像を解放する。Contextは使用しない。
@@ -103,9 +107,17 @@ FSignature Read_Internal()
 			{
 				throw Toolbox::FException("Model test pixel read failed");
 			}
+			if (X == 20 && Y == 20)
+			{
+				Result.OverlayRgb = static_cast<Toolbox::uint32>((Red << 16) | (Green << 8) | Blue);
+			}
 			const int Distance = Toolbox::Abs(Red - Background.R) + Toolbox::Abs(Green - Background.G) +
 			                     Toolbox::Abs(Blue - Background.B);
 			const int Side = X < Width / 2 ? 0 : 1;
+			Result.Brightness[Side] += static_cast<Toolbox::uint64>(Red + Green + Blue);
+			Result.ColorHash[Side] =
+			    (Result.ColorHash[Side] ^ static_cast<Toolbox::uint64>((Red << 16) | (Green << 8) | Blue)) *
+			    1099511628211ull;
 			if (Distance > 40)
 			{
 				++Result.Pixels[Side];
@@ -151,7 +163,7 @@ struct FSmoke
 
 	// 指定のインスタンスを1フレーム描き、Flush後の裏画面を要約する。Nameがあれば画像を保存する。
 	FSignature Frame(FRenderSystem& Renderer, const FModelInstance* A, const FModelInstance* B,
-	                 const char* Name = nullptr)
+	                 const char* Name = nullptr, bool bOverlay = false)
 	{
 		if (!TakeOrThrow_Internal(Services.Platform.PumpEvents()))
 		{
@@ -167,6 +179,12 @@ struct FSmoke
 		if (B != nullptr)
 		{
 			RequireSuccess_Internal(Render.Get3D().DrawModel(*B));
+		}
+		if (bOverlay)
+		{
+			FDrawStyle Style;
+			Style.Color = {255, 64, 32, 255};
+			RequireSuccess_Internal(Render.Get2D().FillRectangle({10, 10, 40, 40}, Style));
 		}
 		FSignature Signature;
 		const Toolbox::FString Path =
@@ -231,6 +249,44 @@ void Run_Internal(const Toolbox::FPath& Root, const Toolbox::FPath& OutDir)
 	const FSignature Start = Smoke.Frame(Renderer, &A, &B, "models-start");
 	Check_Internal(Start.Pixels[0] > 200 && Start.Pixels[1] > 200 && Start.Colored[0] > 50 && Start.Colored[1] > 50,
 	               "two textured instances drawn", Describe_Internal(Start));
+
+	// GPUモデル照明の方向を反転し、同じビュー内の非照明モデルが変わらないことを確認する。
+	FModelMaterial3D LitMaterial;
+	LitMaterial.bLit = true;
+	RequireSuccess_Internal(A.SetMaterial(LitMaterial));
+	Smoke.View.LightDirection = {0, 0, 1};
+	Smoke.View.AmbientColor = {0, 0, 0, 255};
+	const FSignature LitFront = Smoke.Frame(Renderer, &A, &B, "model-lit-front");
+	Smoke.View.LightDirection = {0, 0, -1};
+	const FSignature LitBack = Smoke.Frame(Renderer, &A, &B, "model-lit-back");
+	Check_Internal(LitFront.Brightness[0] > LitBack.Brightness[0] + 10000,
+	               "GPU model light direction changes brightness");
+	Check_Internal(LitFront.ColorHash[1] == Start.ColorHash[1] && LitBack.ColorHash[1] == Start.ColorHash[1],
+	               "unlit model is independent of lit neighbor");
+	// 外部所有の有効ライトと無効な既定ライトが、ビュー終了後に元の状態へ戻る。
+	const Toolbox::int32 Foreign = DxLib::CreateDirLightHandle(DxLib::VGet(0, 0, -1));
+	Check_Internal(Foreign >= 0, "create external light for restoration check");
+	DxLib::SetLightEnable(FALSE);
+	DxLib::SetLightEnableHandle(Foreign, TRUE);
+	const FSignature WithForeign = Smoke.Frame(Renderer, &A, &B);
+	Check_Internal(WithForeign.ColorHash[0] == LitBack.ColorHash[0], "external light does not affect model view");
+	Check_Internal(DxLib::GetLightEnable() == FALSE && DxLib::GetLightEnableHandle(Foreign) == TRUE &&
+	                   DxLib::GetEnableLightHandleNum() == 1,
+	               "external light enable states restored and owned light released");
+	DxLib::DeleteLightHandle(Foreign);
+	DxLib::SetLightEnable(TRUE);
+	const FSignature Overlay = Smoke.Frame(Renderer, &A, &B, "model-light-2d", true);
+	Check_Internal(Overlay.OverlayRgb == 0xff4020u, "2D color restored after lit model");
+	// 色倍率も複製元の材質を変更せず、インスタンスごとに適用する。
+	FModelMaterial3D RedMaterial;
+	RedMaterial.Tint = {255, 0, 0, 255};
+	RequireSuccess_Internal(A.SetMaterial(RedMaterial));
+	const FSignature RedFrame = Smoke.Frame(Renderer, &A, &B, "model-tint");
+	Check_Internal(RedFrame.ColorHash[0] != Start.ColorHash[0] && RedFrame.ColorHash[1] == Start.ColorHash[1],
+	               "model tint is independent between instances");
+	RequireSuccess_Internal(A.SetMaterial({}));
+	Smoke.View.LightDirection = {0, -1, 1};
+	Smoke.View.AmbientColor = {32, 32, 32, 255};
 
 	// Aを一時停止し、Bだけ進める。
 	A.Pause();

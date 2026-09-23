@@ -242,6 +242,110 @@ void FDxLibModelBackend::DeleteModel(Toolbox::int32 Handle) noexcept
 #endif
 }
 
+// バックエンドを直接使った場合も、開始済みのビューを残さない。
+FDxLibRenderBackend::~FDxLibRenderBackend()
+{
+	try
+	{
+		EndView3D();
+	}
+	catch (...)
+	{
+		RestoreModelLights_Internal();
+	}
+}
+
+// 1ビューで1回だけ確保し、モデル間では同じライトを使う。
+TResult<void> FDxLibRenderBackend::PrepareModelLight_Internal()
+{
+#if DXF_DXLIB_MODELS
+	if (m_ModelLight >= 0)
+	{
+		return {};
+	}
+	// 外部の光は一時的に無効にする。色・方向・減衰には触れない。
+	m_DefaultLightEnabled = DxLib::GetLightEnable();
+	const Toolbox::int32 Count = DxLib::GetEnableLightHandleNum();
+	if (m_DefaultLightEnabled < 0 || Count < 0)
+	{
+		return TResult<void>::Failure(EErrorCode::BackendFailure, "Model light state query failed");
+	}
+	m_ExternalLights.Clear();
+	for (Toolbox::int32 Index = 0; Index < Count; ++Index)
+	{
+		const Toolbox::int32 Handle = DxLib::GetEnableLightHandle(Index);
+		if (Handle < 0)
+		{
+			return TResult<void>::Failure(EErrorCode::BackendFailure, "External light query failed");
+		}
+		m_ExternalLights.PushBack(Handle);
+	}
+	m_bSavedLights = true;
+	if (DxLib::SetLightEnable(FALSE) < 0)
+	{
+		return TResult<void>::Failure(EErrorCode::BackendFailure, "Default light isolation failed");
+	}
+	for (Toolbox::int32 Handle : m_ExternalLights)
+	{
+		if (DxLib::SetLightEnableHandle(Handle, FALSE) < 0)
+		{
+			return TResult<void>::Failure(EErrorCode::BackendFailure, "External light isolation failed");
+		}
+	}
+	// ビューは検証済み。指向性光が無効でも環境光は残す。
+	const auto& Direction = m_ModelView.LightDirection;
+	m_ModelLight = DxLib::CreateDirLightHandle(DxLib::VGet(Direction.X, Direction.Y, Direction.Z));
+	if (m_ModelLight < 0)
+	{
+		return TResult<void>::Failure(EErrorCode::BackendFailure, "Model light creation failed");
+	}
+	const FColor Diffuse = m_ModelView.bLightEnabled ? m_ModelView.LightColor : FColor{0, 0, 0, 255};
+	const FColor Ambient = m_ModelView.AmbientColor;
+	if (DxLib::SetLightDifColorHandle(
+	        m_ModelLight, DxLib::COLOR_F{Diffuse.R / 255.0f, Diffuse.G / 255.0f, Diffuse.B / 255.0f, 1.0f}) < 0 ||
+	    DxLib::SetLightAmbColorHandle(
+	        m_ModelLight, DxLib::COLOR_F{Ambient.R / 255.0f, Ambient.G / 255.0f, Ambient.B / 255.0f, 1.0f}) < 0 ||
+	    DxLib::SetLightSpcColorHandle(m_ModelLight, DxLib::COLOR_F{0, 0, 0, 1}) < 0 ||
+	    DxLib::SetLightEnableHandle(m_ModelLight, TRUE) < 0)
+	{
+		return TResult<void>::Failure(EErrorCode::BackendFailure, "Model light setup failed");
+	}
+	return {};
+#else
+	return Unavailable_Internal();
+#endif
+}
+
+// 失敗時も残りの復元を試し、別の描画へ専用ライトを漏らさない。
+bool FDxLibRenderBackend::RestoreModelLights_Internal() noexcept
+{
+	bool Success = true;
+#if DXF_DXLIB_MODELS
+	if (m_ModelLight >= 0)
+	{
+		Success = DxLib::DeleteLightHandle(m_ModelLight) >= 0;
+		m_ModelLight = -1;
+	}
+	if (m_bSavedLights)
+	{
+		if (DxLib::SetLightEnable(m_DefaultLightEnabled) < 0)
+		{
+			Success = false;
+		}
+		for (Toolbox::int32 Handle : m_ExternalLights)
+		{
+			if (DxLib::SetLightEnableHandle(Handle, TRUE) < 0)
+			{
+				Success = false;
+			}
+		}
+		m_bSavedLights = false;
+		m_ExternalLights.Clear();
+	}
+#endif
+	return Success;
+}
+
 // リンクしたDxLibでモデルを扱える構成か。
 bool FDxLibRenderBackend::SupportsModels3D() const noexcept
 {
@@ -284,13 +388,31 @@ TResult<void> FDxLibRenderBackend::DrawModel3D(const FModelDraw3D& Model)
 	{
 		return TResult<void>::Failure(EErrorCode::BackendFailure, "MV1SetAttachAnimTime failed");
 	}
-	// 不透明として深度を検査・書込みする。照明はBeginView3Dの設定（無効）に従う。
-	if (DxLib::MV1SetMatrix(Handle, NativeMatrix_Internal(Model.World)) < 0 || DxLib::SetUseZBuffer3D(TRUE) < 0 ||
+	// 基本材質とビューの調査設定から、モデル固有のGPU照明を選ぶ。
+	const bool Lit = Model.Material.bLit && m_ModelView.Debug.Lighting == ELightingMode3D::Normal;
+	if (Lit)
+	{
+		auto Light = PrepareModelLight_Internal();
+		if (!Light)
+		{
+			return Light;
+		}
+	}
+	const FColor Tint =
+	    m_ModelView.Debug.Lighting == ELightingMode3D::LightsOff ? FColor{0, 0, 0, 255} : Model.Material.Tint;
+	const DxLib::COLOR_F Scale{Tint.R / 255.0f, Tint.G / 255.0f, Tint.B / 255.0f, 1.0f};
+	// 不透明として深度を検査・書込みする。色倍率は共有データではなくインスタンスへ適用する。
+	if (DxLib::MV1SetDifColorScale(Handle, Scale) < 0 || DxLib::MV1SetAmbColorScale(Handle, Scale) < 0 ||
+	    DxLib::MV1SetMatrix(Handle, NativeMatrix_Internal(Model.World)) < 0 || DxLib::SetUseZBuffer3D(TRUE) < 0 ||
 	    DxLib::SetWriteZBuffer3D(TRUE) < 0 || DxLib::SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 255) < 0)
 	{
 		return TResult<void>::Failure(EErrorCode::BackendFailure, "Model draw state failed");
 	}
-	return Detail::CheckNative_Internal(DxLib::MV1DrawModel(Handle), "MV1DrawModel failed");
+	// この呼出しの後は、成功・失敗にかかわらずCPU照明済み基本形状用の状態へ戻す。
+	const Toolbox::int32 LightingResult = DxLib::SetUseLighting(Lit ? TRUE : FALSE);
+	const Toolbox::int32 DrawResult = LightingResult < 0 ? -1 : DxLib::MV1DrawModel(Handle);
+	const Toolbox::int32 RestoreResult = DxLib::SetUseLighting(FALSE);
+	return Detail::CheckNative_Internal(DrawResult < 0 || RestoreResult < 0 ? -1 : 0, "Model lighting or draw failed");
 #else
 	(void)Model;
 	return Unavailable_Internal();

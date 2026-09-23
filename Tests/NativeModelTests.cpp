@@ -146,3 +146,60 @@ TEST("Native vertex colors configure all material meshes and reject lost frames"
 	REQUIRE(!Fixture.Services.pModels->LoadModel(Converted.Value(), {}));
 	REQUIRE(DxLib::ModelTrace.Deleted == 3);
 }
+
+TEST("Native model material snapshots remain independent and lights restore")
+{
+	FNativeModelFixture Fixture;
+	FRenderSystem Renderer(Fixture.Services.Renderer);
+	auto Model = Fixture.Assets.LoadModel("Assets/Models/SkinnedColumn.fbx");
+	REQUIRE(Model);
+	auto Instance = Fixture.Assets.CreateModelInstance(Model.Value());
+	REQUIRE(Instance);
+	FModelMaterial3D Material;
+	Material.bLit = true;
+	Material.Tint = {255, 0, 0, 255};
+	REQUIRE(Instance.Value().SetMaterial(Material));
+	REQUIRE(Renderer.BeginFrame(640, 480));
+	REQUIRE(Renderer.GetContext().Get3D().DrawModel(Instance.Value()));
+	Material.bLit = false;
+	Material.Tint = {0, 255, 0, 255};
+	REQUIRE(Instance.Value().SetMaterial(Material));
+	REQUIRE(Renderer.GetContext().Get3D().DrawModel(Instance.Value()));
+	REQUIRE(Renderer.EndFrame());
+	REQUIRE(DxLib::ModelTrace.DrawLighting[0] == 1);
+	REQUIRE(DxLib::ModelTrace.DrawLighting[1] == 0);
+	REQUIRE(DxLib::ModelTrace.DrawTints[0].r == 1 && DxLib::ModelTrace.DrawTints[0].g == 0);
+	REQUIRE(DxLib::ModelTrace.DrawTints[1].r == 0 && DxLib::ModelTrace.DrawTints[1].g == 1);
+	REQUIRE(DxLib::ModelTrace.DrawForeignLights[0] == 0);
+	REQUIRE(DxLib::ModelTrace.CreatedLights == 1 && DxLib::ModelTrace.DeletedLights == 1);
+	REQUIRE(DxLib::ModelTrace.DefaultLight == 1 && DxLib::ModelTrace.ExternalLight == 1);
+	REQUIRE(DxLib::ViewTrace.Lighting == 1 && DxLib::ViewTrace.Z3D == 0);
+	// 拒否された半透明の設定で以前の材質を書き換えない。
+	Material.Tint.A = 128;
+	REQUIRE(!Instance.Value().SetMaterial(Material));
+	REQUIRE(Instance.Value().GetMaterial().Tint.A == 255);
+}
+
+TEST("Native model light failure releases owned light and restores external lights")
+{
+	for (Toolbox::int32 Failure = 0; Failure < 3; ++Failure)
+	{
+		FNativeModelFixture Fixture;
+		FRenderSystem Renderer(Fixture.Services.Renderer);
+		auto Model = Fixture.Assets.LoadModel("Assets/Models/SkinnedColumn.fbx");
+		REQUIRE(Model);
+		auto Instance = Fixture.Assets.CreateModelInstance(Model.Value());
+		REQUIRE(Instance);
+		FModelMaterial3D Material;
+		Material.bLit = true;
+		REQUIRE(Instance.Value().SetMaterial(Material));
+		DxLib::ModelTrace.bFailLightCreate = Failure == 0;
+		DxLib::ModelTrace.bFailLightSetup = Failure == 1;
+		DxLib::ModelTrace.bFailDraw = Failure == 2;
+		REQUIRE(!DrawOnce_Internal(Renderer, Instance.Value()));
+		REQUIRE(DxLib::ModelTrace.DefaultLight == 1 && DxLib::ModelTrace.ExternalLight == 1);
+		REQUIRE(DxLib::ModelTrace.OwnedLight == 0);
+		REQUIRE(DxLib::ModelTrace.DeletedLights == (Failure == 0 ? 0 : 1));
+		REQUIRE(DxLib::ViewTrace.Lighting == 1 && DxLib::ViewTrace.Z3D == 0);
+	}
+}

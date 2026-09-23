@@ -55,7 +55,7 @@ if (!Drawn)
 
 ### 照明の範囲
 
-**NormalはCPUで計算する「一つの方向光＋環境色」のフラットライティング。DxLibの任意のライト一覧、MV1材質、影、PBRを反映するモードではない。** 準備した色を再評価しないため、Nativeの描画区間ではDxLibのLightingを無効にする。
+**基本形状のNormalはCPUで計算する「一つの方向光＋環境色」のフラットライティングです。** 準備した色を二重評価しないため、基本形状を描く区間ではDxLibのLightingを無効にします。モデルは`FModelMaterial3D::bLit`で別途GPU照明を有効にでき、同じビューの方向光と環境色を使います。モデルの描画直後にはLightingを無効へ戻します。詳細は[FBX対応範囲](../FbxSupport.md)を参照してください。
 
 - Normal: LightDirection / LightColor / AmbientColorを評価する。
 - bLightEnabled=false: 方向光の寄与だけを除く（環境色は残る）。

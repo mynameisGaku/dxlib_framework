@@ -59,7 +59,8 @@ TResult<void> FRender3DContext::DrawLine(Toolbox::FVector3 Start, Toolbox::FVect
 	Command.Options = Options;
 	return Submit(Toolbox::Move(Command));
 }
-TResult<void> FRender3DContext::DrawTriangle(Toolbox::FVector3 A, Toolbox::FVector3 B, Toolbox::FVector3 C, const FDrawStyle3D& Options)
+TResult<void> FRender3DContext::DrawTriangle(Toolbox::FVector3 A, Toolbox::FVector3 B, Toolbox::FVector3 C,
+                                             const FDrawStyle3D& Options)
 {
 	if (!m_pAccess->IsAccepting())
 	{
@@ -83,7 +84,8 @@ TResult<void> FRender3DContext::DrawBox(const Toolbox::FOBB& Box, const FDrawSty
 	}
 	return Submit({Toolbox::Move(Geometry).Value(), Options});
 }
-TResult<void> FRender3DContext::DrawSphere(const Toolbox::FSphere& Sphere, const FDrawStyle3D& Options, Toolbox::uint32 Segments)
+TResult<void> FRender3DContext::DrawSphere(const Toolbox::FSphere& Sphere, const FDrawStyle3D& Options,
+                                           Toolbox::uint32 Segments)
 {
 	if (!m_pAccess->IsAccepting())
 	{
@@ -124,6 +126,7 @@ TResult<void> FRender3DContext::DrawModel(const FModelInstance& Instance)
 	Record.Instance = Instance.GetResource_Internal();
 	Record.Draw.pInstance = Record.Instance.Get();
 	Record.Draw.World = Instance.GetTransform();
+	Record.Draw.Material = Instance.GetMaterial();
 	Record.Draw.Clip = Instance.GetClip();
 	Record.Draw.NativeTime = Instance.GetNativeTime_Internal();
 	Record.View = m_View;
@@ -188,8 +191,8 @@ TResult<void> FRender3DContext::Execute_Internal(IRenderBackend& Backend)
 	// 形状とモデルはどちらも区間番号の昇順に並ぶため、先頭どうしを比べて区間ごとにまとめる。
 	for (Toolbox::size_t Begin = 0, ModelBegin = 0; Begin < Commands.Size() || ModelBegin < Models.Size();)
 	{
-		const bool bGeometryFirst =
-		    ModelBegin >= Models.Size() || (Begin < Commands.Size() && Commands[Begin].Serial <= Models[ModelBegin].Serial);
+		const bool bGeometryFirst = ModelBegin >= Models.Size() ||
+		                            (Begin < Commands.Size() && Commands[Begin].Serial <= Models[ModelBegin].Serial);
 		const Toolbox::uint64 Serial = bGeometryFirst ? Commands[Begin].Serial : Models[ModelBegin].Serial;
 		const FRenderView3D& View = bGeometryFirst ? Commands[Begin].View : Models[ModelBegin].View;
 		Toolbox::size_t End = Begin;
@@ -307,4 +310,4 @@ TResult<void> FRender3DContext::Execute_Internal(IRenderBackend& Backend)
 	}
 	return Result;
 }
-}
+} // namespace Dxf

@@ -71,6 +71,7 @@ TResult<void> FDxLibRenderBackend::BeginView3D(const FRenderView3D& View)
 		return TResult<void>::Failure(EErrorCode::InvalidState, "Invalid or nested 3D view");
 	}
 	m_bView3D = true;
+	m_ModelView = View;
 	// 照明は受け取った頂点色へ評価済み。DxLibのライトで二重評価しない。
 	if (DxLib::SetUseLighting(FALSE) < 0 || DxLib::SetUseBackCulling(FALSE) < 0 ||
 	DxLib::SetDrawBright(255, 255, 255) < 0 || DxLib::SetUseVertexShader(-1) < 0 || DxLib::SetUsePixelShader(-1) < 0 ||
@@ -127,7 +128,7 @@ TResult<void> FDxLibRenderBackend::EndView3D()
 	}
 	m_bView3D = false;
 	// 一項目の復帰に失敗しても、残りの復帰処理を試す。
-	bool Success = true;
+	bool Success = RestoreModelLights_Internal();
 	if (DxLib::SetUseZBufferFlag(FALSE) < 0)
 	{
 		Success = false;
