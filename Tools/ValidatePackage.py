@@ -76,11 +76,29 @@ int main()
     return Queue.Submit(Dxf::FRectangleCommand{}) ? 1 : 0;
 }
 ''', encoding='utf-8')
+        (consumer / 'Physics.cpp').write_text('''#include "Dxf/RigidBody3D.h"
+int main()
+{
+    Dxf::FPhysicsWorld3D World;
+    const auto Body = World.CreateBody({});
+    Dxf::FColliderDescription3D Description;
+    Description.Shape = Toolbox::FSphere{{3,0,0},1};
+    const auto Collider = World.AttachCollider(Body, Description);
+    const auto Hit = World.RaycastClosest({0,0,0},{10,0,0});
+    if (!Hit || Hit->Collider != Collider || Toolbox::Abs(Hit->Fraction-.2)>1e-12) { return 1; }
+    if (World.RaycastClosest({0,0,0},{10,0,0},Body)) { return 2; }
+    World.DestroyBody(Body);
+    if (World.IsColliderAlive(Hit->Collider) || World.RaycastClosest({0,0,0},{10,0,0})) { return 3; }
+    return 0;
+}
+''', encoding='utf-8')
         (consumer / 'CMakeLists.txt').write_text('''cmake_minimum_required(VERSION 3.24)
 project(RelocatedConsumer LANGUAGES CXX)
 find_package(dxlib_framework CONFIG REQUIRED)
 add_executable(Consumer Main.cpp)
 target_link_libraries(Consumer PRIVATE dxf::framework dxf::debug_tools)
+add_executable(PhysicsOnly Physics.cpp)
+target_link_libraries(PhysicsOnly PRIVATE dxf::physics)
 add_executable(SupportOnly Support.cpp)
 target_link_libraries(SupportOnly PRIVATE dxf::support)
 if(NOT TARGET dxf::toolbox OR NOT TARGET dxf::foundation OR NOT TARGET dxf::support OR NOT TARGET dxf::runtime OR NOT TARGET dxf::gameplay)
@@ -93,8 +111,9 @@ endif()
         suffix = '.exe' if sys.platform == 'win32' else ''
         run('consumer-run', [str(work / 'ConsumerBuild' / ('Consumer' + suffix))])
         run('support-only-run', [str(work / 'ConsumerBuild' / ('SupportOnly' + suffix))])
+        run('physics-only-run', [str(work / 'ConsumerBuild' / ('PhysicsOnly' + suffix))])
         summary.update(install=True, relocation=True, external_consumer=True,
-                       support_without_runtime=True)
+                       support_without_runtime=True, physics_without_debug_or_support=True)
     return 0
 
 

@@ -19,6 +19,7 @@ add_library(core STATIC
  ${ROOT}/Source/Toolbox/Private/Toolbox/Contact2D.cpp
  ${ROOT}/Source/Toolbox/Private/Toolbox/Contact3D.cpp
  ${ROOT}/Source/Toolbox/Private/Toolbox/ContinuousCollision.cpp
+ ${ROOT}/Source/Toolbox/Private/Toolbox/SegmentIntersection.cpp
  ${ROOT}/Source/Toolbox/Private/Toolbox/Matrix4.cpp
  ${ROOT}/Source/Toolbox/Private/Toolbox/Mesh.cpp
  ${ROOT}/Source/Toolbox/Private/Toolbox/Quaternion.cpp

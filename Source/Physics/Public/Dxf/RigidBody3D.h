@@ -2,6 +2,8 @@
 #ifndef DXF_PHYSICS_RIGID_BODY_3D_H
 #define DXF_PHYSICS_RIGID_BODY_3D_H
 #include "Dxf/BodyType.h"
+#include "Dxf/WorldSegmentHit3D.h"
+#include "Toolbox/Optional.h"
 #include "Dxf/PhysicsSnapshot.h"
 #include "Dxf/PhysicsExecution.h"
 #include "Toolbox/Contact3D.h"
@@ -12,28 +14,7 @@
 #include "Toolbox/Utility.h"
 namespace Dxf
 {
-/**
- * 立体剛体を識別する、世代付きの非所有ハンドル。
- */
-struct FBodyId3D
-{
-	/**
-	 * 登録先ワールドの識別子。
-	 */
-	Toolbox::uint64 World = 0;
-	/**
-	 * 登録スロットの番号。
-	 */
-	Toolbox::size_t Index = 0;
-	/**
-	 * 同じスロットを再使用した際の世代。
-	 */
-	Toolbox::uint64 Generation = 0;
-	/**
-	 * 同じ登録を指すか調べる。
-	 */
-	bool operator==(const FBodyId3D&) const = default;
-};
+
 /**
  * 立体剛体の初期条件。位置と姿勢は重心を基準とするメートル単位。
  */
@@ -88,28 +69,7 @@ struct FBodyDescription3D
 	 */
 	bool bAllowSleep = true;
 };
-/**
- * 立体コライダーを識別する、世代付きの非所有ハンドル。
- */
-struct FColliderId3D
-{
-	/**
-	 * 取り付け先の剛体。
-	 */
-	FBodyId3D Body;
-	/**
-	 * 登録スロットの番号。
-	 */
-	Toolbox::size_t Index = 0;
-	/**
-	 * 同じスロットを再使用した際の世代。
-	 */
-	Toolbox::uint64 Generation = 0;
-	/**
-	 * 同じ登録を指すか調べる。
-	 */
-	bool operator==(const FColliderId3D&) const = default;
-};
+
 /**
  * 剛体へ取り付ける立体形状と材質。形状の中心は重心からの相対位置。
  */
@@ -459,7 +419,15 @@ public:
 	 * @param Limits 生存Body・Colliderの最大保持件数。
 	 */
 	FPhysicsSnapshot3D CaptureSnapshot(const FPhysicsSnapshotLimits& Limits = {}) const;
-
+	/**
+	 * 現在の球/OBBと有限線分の最短交点を返す。非交差は空、異常はFException。
+	 * 同距離はColliderスロット昇順。通常経路は配列確保なし、削除済みを含むスロット数に対しO(n)。
+	 * Step中/途中失敗後は拒否。変更・Stepと外側で直列化する。問い合わせで起床や採取を行わない。
+	 * @param Start ワールド始点。有限値を要求する。
+	 * @param End ワールド終点。ゼロ長・表現不能な変位は拒否する。
+	 * @param ExcludedBody 任意の自己Body。指定済みの無効/別World/旧世代IDは拒否する。
+	 */
+	Toolbox::TOptional<FWorldSegmentHit3D> RaycastClosest(Toolbox::FVector3 Start, Toolbox::FVector3 End, Toolbox::TOptional<FBodyId3D> ExcludedBody = {}) const;
 
 private:
 	/**

@@ -3,6 +3,7 @@
 #include "PhysicsSnapshotBuilder.h"
 #include "ParallelPhysicsCore.h"
 #include "Toolbox/ContinuousCollision.h"
+#include "Toolbox/SegmentIntersection.h"
 #include "Toolbox/Vector.h"
 namespace Dxf
 {
@@ -2676,6 +2677,78 @@ void FPhysicsWorld3D::ClearContactCache() noexcept
 bool FPhysicsWorld3D::IsColliderAlive(FColliderId3D Id) const noexcept
 {
 	return m_pImpl->FindCollider_Internal(Id) != nullptr;
+}
+// 現在の登録配列を直接走査し、状態を変更せず最短の交差を返す。
+Toolbox::TOptional<FWorldSegmentHit3D> FPhysicsWorld3D::RaycastClosest(Toolbox::FVector3 Start, Toolbox::FVector3 End, Toolbox::TOptional<FBodyId3D> ExcludedBody) const
+{
+	// 空Worldでも入力を先に検査する。既存球交差の変位表現に合わせる。
+	if (!Start.IsValid() || !End.IsValid() || Start == End || !(End - Start).IsValid())
+	{
+		throw Toolbox::FException("Invalid or unrepresentable world query segment");
+	}
+	// 読み取り専用の内部状態。
+	const FImpl& Impl = *m_pImpl;
+	if (Impl.SnapshotState.bInStep || !Impl.SnapshotState.bCaptureAllowed)
+	{
+		throw Toolbox::FException("World query requires an idle World with no incomplete Step");
+	}
+	if (ExcludedBody)
+	{
+		(void)Impl.Resolve_Internal(*ExcludedBody);
+	}
+	// 昇順走査で同距離の順序を固定する。候補0でも後続形状の計算は省略しない。
+	Toolbox::TOptional<FWorldSegmentHit3D> Best;
+	for (Toolbox::size_t Index = 0; Index < Impl.Colliders.Size(); ++Index)
+	{
+		// 現在のColliderスロット。
+		const auto& Record = Impl.Colliders[Index];
+		if (!Record.bAlive)
+		{
+			continue;
+		}
+		// 現在の所有Bodyの位置と姿勢。
+		const auto& Body = Impl.Resolve_Internal(Record.Body);
+		if (ExcludedBody && Record.Body == *ExcludedBody)
+		{
+			continue;
+		}
+		// 共通の形状変換と既存の有限線分交差による割合。
+		const auto Hit = Record.Shape.Visit([&](const auto& Local)
+		                                    {
+			                                    return Toolbox::IntersectSegment(Start, End, FImpl::ToWorld_Internal(Body, Local));
+		                                    });
+		if (!Hit)
+		{
+			continue;
+		}
+		if (!Toolbox::IsFinite(*Hit) || *Hit < 0 || *Hit > 1)
+		{
+			throw Toolbox::FException("Invalid world query fraction");
+		}
+		if (Best && Best->Fraction <= *Hit)
+		{
+			continue;
+		}
+		// 最短候補として保持する非所有の値。
+		FWorldSegmentHit3D Result;
+		Result.Collider = {Record.Body, Index, Record.Generation};
+		Result.Fraction = *Hit;
+		// f32の差が大きい場合も、交点を倍精度の凸結合から作る。
+		Toolbox::f32 Coordinates[3]{};
+		for (Toolbox::int32 Axis = 0; Axis < 3; ++Axis)
+		{
+			// 丸める前の交点の一成分。
+			const Toolbox::f64 Value = (1 - *Hit) * Start.Component(Axis) + *Hit * End.Component(Axis);
+			if (!Toolbox::IsFinite(Value) || Toolbox::Abs(Value) > Toolbox::TNumericLimits<Toolbox::f32>::Max())
+			{
+				throw Toolbox::FException("Unrepresentable world query point");
+			}
+			Coordinates[Axis] = static_cast<Toolbox::f32>(Value);
+		}
+		Result.Position = {Coordinates[0], Coordinates[1], Coordinates[2]};
+		Best = Result;
+	}
+	return Best;
 }
 // 登録配列から直接採取する。外部の観察登録一覧は使用しない。
 FPhysicsSnapshot3D FPhysicsWorld3D::CaptureSnapshot(const FPhysicsSnapshotLimits& Limits) const

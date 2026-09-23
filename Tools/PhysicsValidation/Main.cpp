@@ -47,6 +47,8 @@ int32 main()
 	Failed += RunGroup_Internal(Cases, Count);
 	Cases = PhysicsTest::GetStabilityCases(Count);
 	Failed += RunGroup_Internal(Cases, Count);
+	Cases = PhysicsTest::GetWorldQueryCases(Count);
+	Failed += RunGroup_Internal(Cases, Count);
 	Cases = PhysicsTest::GetParallelCases(Count);
 	Failed += RunGroup_Internal(Cases, Count);
 	return Failed == 0 ? 0 : 1;

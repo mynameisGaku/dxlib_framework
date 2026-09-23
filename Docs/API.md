@@ -5,6 +5,8 @@
 FBXモデルの読み込み・インスタンス・アニメーション再生は[モデルの利用手順](DxLibFbx.md#アプリケーションから使う)を参照してください。
 モデルの基本PBR・モーフ・追加UV・カメラ／ライトのAPIと制限は[FBX対応範囲](FbxSupport.md)を参照してください。
 
+現在の球・OBBへの読み取り専用問い合わせは[Physics Worldの最短線分問い合わせ](Physics/WorldSegmentQuery.md)を参照してください。
+
 ## GameObject／Componentの作成
 
 `DGameScene::Spawn<T>(引数...)` と `DGameObject::AddComponent<T>(引数...)` は、コンストラクタ引数を転送してインスタンスを登録し、`TResult<TObjectHandle<T>>` を返します。型は対応する基底を継承してください。
