@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(dxlib_framework VERSION 0.3.0 LANGUAGES CXX)
+project(dxlib_framework VERSION 0.3.0 LANGUAGES C CXX)
 
 if(POLICY CMP0144)
     cmake_policy(SET CMP0144 NEW)
@@ -94,6 +94,10 @@ add_library(dxf_toolbox STATIC
 add_library(dxf::toolbox ALIAS dxf_toolbox)
 set_target_properties(dxf_toolbox PROPERTIES EXPORT_NAME toolbox DEBUG_POSTFIX d)
 target_compile_features(dxf_toolbox PUBLIC cxx_std_20)
+# 公開ヘッダーもUTF-8なので、配布先のMSVCにも文字コードを伝える。
+if(MSVC)
+    target_compile_options(dxf_toolbox PUBLIC /utf-8)
+endif()
 target_link_libraries(dxf_toolbox PUBLIC Threads::Threads)
 target_include_directories(dxf_toolbox PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Source/Toolbox/Public>" "$<INSTALL_INTERFACE:include>")
 dxf_ide_headers(dxf_toolbox Source/Toolbox)
@@ -122,7 +126,17 @@ if(DXF_COVERAGE)
     target_link_options(dxf_foundation INTERFACE --coverage)
 endif()
 
+# ufbx（MIT／Public Domain、External/ufbx）。FBXの解析だけを行い、DxLibやFBX SDKに依存しない。
+# 外部ソースなので警告水準はフレームワークの設定を適用しない。
+add_library(dxf_ufbx STATIC External/ufbx/ufbx.c)
+add_library(dxf::ufbx ALIAS dxf_ufbx)
+set_target_properties(dxf_ufbx PROPERTIES EXPORT_NAME ufbx DEBUG_POSTFIX d)
+target_include_directories(dxf_ufbx PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/External/ufbx>")
+
 add_library(dxf_support STATIC
+    Source/DxLibSupport/Private/Dxf/Model.cpp
+    Source/DxLibSupport/Private/Dxf/ModelImport.cpp
+    Source/DxLibSupport/Private/Dxf/ModelLoader.cpp
     Source/DxLibSupport/Private/Dxf/RenderGeometry3D.cpp
     Source/DxLibSupport/Private/Dxf/Render2DContext.cpp
     Source/DxLibSupport/Private/Dxf/Render3DContext.cpp
@@ -139,7 +153,7 @@ add_library(dxf_support STATIC
     Source/DxLibSupport/Private/Dxf/AudioPlayer.cpp)
 add_library(dxf::support ALIAS dxf_support)
 set_target_properties(dxf_support PROPERTIES EXPORT_NAME support DEBUG_POSTFIX d)
-target_link_libraries(dxf_support PUBLIC dxf::foundation)
+target_link_libraries(dxf_support PUBLIC dxf::foundation PRIVATE dxf::ufbx)
 # 非同期要求の定義だけが借用Dispatcherを参照する。公開側へ漏らさない。
 target_include_directories(dxf_support PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Source/Runtime/Public")
 dxf_public_headers(dxf_support DxLibSupport PUBLIC)
@@ -183,6 +197,7 @@ target_link_libraries(dxlib_framework INTERFACE dxf::gameplay)
 
 set(DXF_NATIVE_SOURCES
     Source/Native/Private/Dxf/DxLibGeometryBackend.cpp
+    Source/Native/Private/Dxf/DxLibModelBackend.cpp
     Source/Native/Private/Dxf/DxLibPlatform.cpp
     Source/Native/Private/Dxf/DxLibInputSource.cpp
     Source/Native/Private/Dxf/DxLibTextureBackend.cpp
@@ -214,11 +229,21 @@ if(DXF_BUILD_TESTS)
     include(CMake/ApplicationRenderIntegrationTests.cmake)
     dxf_add_application_render_integration_tests(dxf::framework)
 
-    add_executable(dxf_native_contract_tests Tests/TestMain.cpp Tests/NativeTests.cpp Tests/NativeMacroTests.cpp Tests/NativeSmoke/Smoke.cpp ${DXF_NATIVE_SOURCES})
+    # モデル: 実際の.fbxの変換（ufbx）と、読み込み・解放順序・再生・Get3Dの描画命令。DxLibとFBX SDKは不要。
+    add_executable(dxf_model_tests Tests/TestMain.cpp Tests/ModelTests.cpp)
+    target_link_libraries(dxf_model_tests PRIVATE dxf::framework)
+    target_include_directories(dxf_model_tests PRIVATE Tests)
+    target_compile_definitions(dxf_model_tests PRIVATE DXF_TEST_ASSET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/Assets")
+    dxf_ide_headers(dxf_model_tests Tests/Support)
+    dxf_warnings(dxf_model_tests)
+    add_test(NAME Models COMMAND dxf_model_tests)
+    set_tests_properties(Models PROPERTIES TIMEOUT 60 LABELS "portable;model")
+
+    add_executable(dxf_native_contract_tests Tests/TestMain.cpp Tests/NativeTests.cpp Tests/NativeMacroTests.cpp Tests/NativeModelTests.cpp Tests/NativeSmoke/Smoke.cpp ${DXF_NATIVE_SOURCES})
     target_link_libraries(dxf_native_contract_tests PRIVATE dxf::framework)
     target_include_directories(dxf_native_contract_tests PRIVATE Tests Tests/FakeDxLib Source/Native/Public)
     dxf_ide_headers(dxf_native_contract_tests Tests/Support Tests/FakeDxLib Tests/NativeSmoke Source/Native)
-    target_compile_definitions(dxf_native_contract_tests PRIVATE DXF_TEST_ASSET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/Assets")
+    target_compile_definitions(dxf_native_contract_tests PRIVATE DXF_TEST_ASSET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/Assets" DXF_DXLIB_MODELS=1)
     dxf_warnings(dxf_native_contract_tests)
     add_test(NAME NativeContract COMMAND dxf_native_contract_tests)
     set_tests_properties(NativeContract PROPERTIES TIMEOUT 60 LABELS "contract;not-real-sdk")
@@ -238,7 +263,7 @@ if(DXF_BUILD_TESTS)
     endif()
 endif()
 
-set(DXF_EXPORT_TARGETS dxlib_framework dxf_toolbox dxf_foundation dxf_support dxf_runtime dxf_gameplay dxf_physics)
+set(DXF_EXPORT_TARGETS dxlib_framework dxf_toolbox dxf_foundation dxf_ufbx dxf_support dxf_runtime dxf_gameplay dxf_physics)
 if(DXF_BUILD_NATIVE)
     if(NOT WIN32 OR NOT MSVC)
         message(FATAL_ERROR "DXF_BUILD_NATIVE requires Windows/MSVC x64. Portable tests do not need the SDK.")
@@ -272,11 +297,20 @@ if(DXF_BUILD_NATIVE_SMOKE)
     dxf_ide_headers(NativeSmoke Tests/NativeSmoke)
     target_link_libraries(NativeSmoke PRIVATE dxf::native_backends)
     dxf_warnings(NativeSmoke)
+    # 実SDKのモデル試験。FBX SDKなしで.fbxを読み、描画結果を読み戻して確かめる。
+    add_executable(NativeModelSmoke Tests/NativeModelSmoke/Main.cpp)
+    target_link_libraries(NativeModelSmoke PRIVATE dxf::native)
+    target_compile_definitions(NativeModelSmoke PRIVATE DX_NON_USING_NAMESPACE_DXLIB NOMINMAX)
+    target_compile_options(NativeModelSmoke PRIVATE /UUNICODE /U_UNICODE)
+    dxf_warnings(NativeModelSmoke)
     if(DXF_RUN_DEVICE_TESTS)
         enable_testing()
         add_test(NAME NativeDeviceSmoke COMMAND NativeSmoke)
         set_tests_properties(NativeDeviceSmoke PROPERTIES TIMEOUT 60 LABELS "real-sdk;device"
             WORKING_DIRECTORY "$<TARGET_FILE_DIR:NativeSmoke>")
+        add_test(NAME NativeModelDeviceSmoke COMMAND NativeModelSmoke "${CMAKE_CURRENT_SOURCE_DIR}"
+            "${CMAKE_CURRENT_BINARY_DIR}/model-smoke")
+        set_tests_properties(NativeModelDeviceSmoke PROPERTIES TIMEOUT 120 LABELS "real-sdk;device;model")
     endif()
 elseif(DXF_RUN_DEVICE_TESTS)
     message(FATAL_ERROR "DXF_RUN_DEVICE_TESTS requires DXF_BUILD_NATIVE_SMOKE=ON")
@@ -292,6 +326,19 @@ if(DXF_BUILD_EXAMPLE)
     dxf_warnings(Sandbox)
     set_property(TARGET Sandbox PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
     set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT Sandbox)
+endif()
+
+option(DXF_BUILD_MODEL_VIEWER "Build the FBX model development example" OFF)
+if(DXF_BUILD_MODEL_VIEWER)
+    if(NOT DXF_BUILD_NATIVE)
+        message(FATAL_ERROR "DXF_BUILD_MODEL_VIEWER requires DXF_BUILD_NATIVE=ON")
+    endif()
+    # .fbxを事前変換なしで読み、2体を独立に再生する確認用の例。
+    add_executable(ModelViewer WIN32 Examples/ModelViewer/WindowsMain.cpp Examples/ModelViewer/ModelViewerScene.cpp)
+    dxf_ide_headers(ModelViewer Examples/ModelViewer)
+    target_link_libraries(ModelViewer PRIVATE dxf::native)
+    dxf_warnings(ModelViewer)
+    set_property(TARGET ModelViewer PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 endif()
 
 if(DXF_BUILD_STARTER)
@@ -315,7 +362,7 @@ function(dxf_runtime_paths Target ExeName)
             -P "${CMAKE_CURRENT_SOURCE_DIR}/CMake/WriteDxfPaths.cmake"
         COMMENT "Writing ${ExeName}.dxfpaths")
 endfunction()
-foreach(_dxf_pathed_target Sandbox Starter)
+foreach(_dxf_pathed_target Sandbox Starter ModelViewer)
     if(TARGET ${_dxf_pathed_target})
         dxf_runtime_paths(${_dxf_pathed_target} ${_dxf_pathed_target})
     endif()
@@ -361,4 +408,5 @@ if(DXF_INSTALL)
         "${CMAKE_CURRENT_BINARY_DIR}/dxlib_frameworkConfigVersion.cmake" CMake/FindDxLib.cmake
         DESTINATION "${DXF_CONFIG_DESTINATION}")
     install(FILES README.md DESTINATION "${CMAKE_INSTALL_DATADIR}/dxlib_framework")
+    install(FILES External/ufbx/LICENSE DESTINATION "${CMAKE_INSTALL_DATADIR}/dxlib_framework/licenses" RENAME ufbx-LICENSE.txt)
 endif()

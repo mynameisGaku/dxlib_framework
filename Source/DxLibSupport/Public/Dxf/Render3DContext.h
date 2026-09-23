@@ -2,6 +2,7 @@
 #ifndef DXF_RENDER_3D_CONTEXT_H
 #define DXF_RENDER_3D_CONTEXT_H
 #include "Dxf/RenderAccess.h"
+#include "Dxf/Model.h"
 namespace Dxf
 {
 /**
@@ -59,6 +60,13 @@ public:
 	 * @param Options 色・深度。
 	 */
 	TResult<void> DrawMesh(const FGeometry3D& Geometry, const FDrawStyle3D& Options = {});
+	/**
+	 * 読み込んだモデルを1体描画する。変換と再生状態は受付時点の値を複写する。
+	 * 記録した命令が実行または破棄されるまでインスタンスのネイティブモデルを生存させる。
+	 * 不透明として扱い、同じビューの形状より先に描画する（透明の並べ替えの対象外）。
+	 * @param Instance 描画するインスタンス。
+	 */
+	TResult<void> DrawModel(const FModelInstance& Instance);
 	/**
 	 * 設定済みの共有JobSystemで生成し、入力順に一括確定する。
 	 * @param Count 入力件数。 @param Generate 専用FGeometryCommand3Dへの生成処理。 @param MinimumBatch 最小分割数。
@@ -123,7 +131,7 @@ public:
 	 */
 	FORCEINLINE bool HasCommands_Internal() const noexcept
 	{
-		return !m_Commands.IsEmpty();
+		return !m_Commands.IsEmpty() || !m_Models.IsEmpty();
 	}
 private:
 	/**
@@ -140,6 +148,26 @@ private:
 	struct FRecordedCommand
 	{
 		FGeometryCommand3D Command;
+		FRenderView3D View;
+		Toolbox::uint64 Serial = 0;
+	};
+	/**
+	 * 一回のFlushまでに保持するモデル描画の上限。
+	 */
+	static constexpr Toolbox::size_t MaxFrameModels = 4096;
+	/**
+	 * モデル描画命令の受付時点の値。
+	 */
+	struct FRecordedModel
+	{
+		/**
+		 * 描画するインスタンス。実行または破棄まで生存させる。
+		 */
+		Toolbox::TSharedPtr<FModelInstanceResource> Instance;
+		/**
+		 * 受付時点の変換と再生状態。
+		 */
+		FModelDraw3D Draw;
 		FRenderView3D View;
 		Toolbox::uint64 Serial = 0;
 	};
@@ -171,6 +199,10 @@ private:
 	 * 未実行命令。
 	 */
 	Toolbox::TVector<FRecordedCommand> m_Commands;
+	/**
+	 * 未実行のモデル描画命令。
+	 */
+	Toolbox::TVector<FRecordedModel> m_Models;
 };
 }
 #endif

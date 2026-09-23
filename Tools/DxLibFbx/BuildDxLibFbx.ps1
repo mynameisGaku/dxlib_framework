@@ -1,8 +1,12 @@
 ﻿#requires -Version 5.1
 <#
-公式DxLibソース（DxLibMake）から、FBX読込を有効にしたx64の/MT・/MTd静的ライブラリを再現可能にビルドする。
+公式DxLibソース（DxLibMake）から、x64の/MT・/MTd静的ライブラリを再現可能にビルドする。
+既定はFBX SDKを使わないビルド（ThirdParty/DxLib-<版>-source）。フレームワークは.fbxをufbxで変換してから
+DxLibへ渡すため、この構成でモデルを扱える。公式VCパッケージのRelease版（DxLib_vs2015_x64_MT.lib）は
+MV1の読込部がFBX SDKを必要とし、FBX SDKなしではモデル機能をリンクできないため、この再ビルドを使う。
+-WithFbxSdkは、DxLib自身のFBX読込を比較するための任意の構成（利用者がFBX SDKを導入・規約に同意済みの場合のみ）。
 公式VC SDKは変更せず、別ディレクトリへヘッダー・ライブラリ・マニフェスト（DxLibFbx.json）を出力する。
-このスクリプトはSDKのダウンロードや利用規約への同意を行わない。FBX SDKは利用者が事前にインストールする。
+このスクリプトはSDKのダウンロードや利用規約への同意を行わない。
 #>
 [CmdletBinding()]
 param(
@@ -10,12 +14,13 @@ param(
     [string]$ExpectedSourceSha256 = '2f09078692d3b64448c6ffe80392d77d0f413ce652115a1d7f0063baf475322a',
     [string]$FbxSdkRoot = '',
     [string]$OutDir = '',
-    [switch]$NoFbx
+    [switch]$WithFbxSdk
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 if (-not $SourceZip) { $SourceZip = Join-Path $Root 'ThirdParty/DxLibMake3_25a.zip' }
+$NoFbx = -not $WithFbxSdk
 if (-not $OutDir) { $OutDir = Join-Path $Root $(if ($NoFbx) { 'ThirdParty/DxLib-3.25a-source' } else { 'ThirdParty/DxLib-3.25a-fbx' }) }
 $Work = Join-Path $Root 'Build/DxLibFbx'
 New-Item -ItemType Directory -Force -Path $Work | Out-Null

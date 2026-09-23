@@ -30,3 +30,4 @@ inline Toolbox::int32 DrawBox(Toolbox::int32, Toolbox::int32, Toolbox::int32, To
 inline Toolbox::int32 ScreenFlip() { ++TestPresentCount; return 0; }
 }
 #include "RenderViewsApi.h"
+#include "ModelApi.h"

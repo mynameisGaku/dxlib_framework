@@ -80,6 +80,14 @@ public:
 	 */
 	TResult<void> DrawGeometry3D(const FPreparedGeometry3D& Geometry) override;
 	/**
+	 * リンクしたDxLibでモデルを扱える構成か。
+	 */
+	bool SupportsModels3D() const noexcept override;
+	/**
+	 * @param Model 記録時点の変換と再生状態。クリップと時刻は描画直前に反映する。
+	 */
+	TResult<void> DrawModel3D(const FModelDraw3D& Model) override;
+	/**
 	 * 2D向けの標準状態へ戻す。一般のNative状態スナップショット復元ではない。
 	 */
 	TResult<void> EndView3D() override;

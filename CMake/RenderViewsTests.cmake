@@ -11,8 +11,10 @@ function(dxf_add_render_views_tests CoreTarget)
         "${_root}/Tools/RenderValidation/Main.cpp"
         "${_root}/Tests/NativeRenderViewsTests.cpp"
         "${_root}/Source/Native/Private/Dxf/DxLibRenderBackend.cpp"
-        "${_root}/Source/Native/Private/Dxf/DxLibGeometryBackend.cpp")
+        "${_root}/Source/Native/Private/Dxf/DxLibGeometryBackend.cpp"
+        "${_root}/Source/Native/Private/Dxf/DxLibModelBackend.cpp")
     target_link_libraries(dxf_native_views_tests PRIVATE ${CoreTarget})
+    target_compile_definitions(dxf_native_views_tests PRIVATE DXF_DXLIB_MODELS=1)
     target_include_directories(dxf_native_views_tests PRIVATE "${_root}/Tests" "${_root}/Source/Native/Public"
         "${_root}/Tools/RenderApiValidation/FakeNative" "${_root}/Tests/FakeDxLib")
     foreach(_target dxf_render_views_tests dxf_native_views_tests)

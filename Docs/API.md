@@ -1,5 +1,7 @@
 # APIの契約と使い方
 
+FBXモデルの読み込み・インスタンス・アニメーション再生は[モデルの利用手順](DxLibFbx.md#アプリケーションから使う)を参照してください。
+
 ## GameObject／Componentの作成
 
 `DGameScene::Spawn<T>(引数...)` と `DGameObject::AddComponent<T>(引数...)` は、コンストラクタ引数を転送してインスタンスを登録し、`TResult<TObjectHandle<T>>` を返します。型は対応する基底を継承してください。

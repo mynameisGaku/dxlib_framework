@@ -50,8 +50,10 @@ int main()
 }
 ''', encoding='utf-8')
         (consumer / 'Support.cpp').write_text('''#include "Dxf/RenderQueue2D.h"
+#include "Dxf/ModelImport.h"
 int main()
 {
+    if (Dxf::ImportFbxModel(nullptr, 0)) { return 2; }
     Dxf::FRenderQueue2D Queue;
     return Queue.Submit(Dxf::FRectangleCommand{}) ? 1 : 0;
 }

@@ -1,6 +1,7 @@
 #include "Dxf/AssetService.h"
 #include "Toolbox/Platform.h"
 #include "Dxf/Utf8.h"
+#include <stdio.h>
 namespace Dxf
 {
 namespace
@@ -40,7 +41,17 @@ bool FAssetService::ResolveRequestPath_Internal(const Toolbox::FString& Path, To
 // @param Sounds 管理する音声群。
 // @param Fonts 管理するフォント群。
 FAssetService::FAssetService(ITextureBackend& Textures, ISoundBackend& Sounds, IFontBackend& Fonts)
-    : m_TextureLoader(Textures, m_Registry), m_SoundLoader(Sounds, m_Registry), m_FontLoader(Fonts, m_Registry)
+    : FAssetService(Textures, Sounds, Fonts, nullptr)
+{
+}
+// モデルも扱う構成で、必要な依存関係を受け取り初期状態を構築する。
+// @param Textures 管理するテクスチャ群。
+// @param Sounds 管理する音声群。
+// @param Fonts 管理するフォント群。
+// @param Models 管理するモデル群。nullptrならモデルの読み込みは失敗する。
+FAssetService::FAssetService(ITextureBackend& Textures, ISoundBackend& Sounds, IFontBackend& Fonts, IModelBackend* Models)
+    : m_TextureLoader(Textures, m_Registry), m_SoundLoader(Sounds, m_Registry), m_FontLoader(Fonts, m_Registry),
+      m_ModelLoader(Models, m_Registry)
 {
 }
 // 所有する状態を終了し、必要なリソースを解放する。
@@ -127,6 +138,50 @@ TResult<FSound> FAssetService::LoadSound(const Toolbox::FString& Path, const FSo
 	}
 	return Result;
 }
+// .fbxを読み込む。
+// @param Path 読み込む.fbxのパス。
+// @param Options 処理に適用する設定。
+TResult<FModel> FAssetService::LoadModel(const Toolbox::FString& Path, const FModelLoadOptions& Options)
+{
+	if (m_Registry.IsShutdown())
+	{
+		return TResult<FModel>::Failure(EErrorCode::InvalidState, "Assets stopped");
+	}
+	if (!Detail::IsValidNativeString_Internal(Path))
+	{
+		return TResult<FModel>::Failure(EErrorCode::InvalidArgument, "Model path must be nonempty UTF-8 without NUL");
+	}
+	// 解決した読み込みパス。
+	Toolbox::FString Resolved;
+	if (!ResolveRequestPath_Internal(Path, Resolved))
+	{
+		return TResult<FModel>::Failure(
+		    EErrorCode::InvalidArgument,
+		    Toolbox::FString("Model path cannot resolve against root ") + m_Resolver.GetRoot().ToUtf8() + ": " + Path);
+	}
+	// 検索または入力のキー。設定が異なれば別のモデルとして扱う。
+	char Suffix[64];
+	snprintf(Suffix, sizeof(Suffix), "|%.9g|%u", Options.TargetUnitMeters, static_cast<unsigned>(Options.SamplesPerSecond));
+	const Toolbox::FString Key = Resolved + Suffix;
+	// 再利用可能なキャッシュを取得して有効性を確認する。
+	if (auto Cached = m_ModelCache.Find(Key))
+	{
+		return TResult<FModel>::Success(FModel(Toolbox::Move(Cached)));
+	}
+	// 処理結果。
+	auto Result = m_ModelLoader.Load(Resolved, Options);
+	if (Result)
+	{
+		m_ModelCache.Insert(Key, Result.Value().GetResource_Internal());
+	}
+	return Result;
+}
+// モデルデータを共有するインスタンスを作る。
+// @param Model 複製元のモデル。
+TResult<FModelInstance> FAssetService::CreateModelInstance(const FModel& Model)
+{
+	return m_ModelLoader.CreateInstance(Model);
+}
 // 指定設定のフォントを取得する。
 // @param Options 処理に適用する設定。
 TResult<FFont> FAssetService::LoadFont(const FFontOptions& Options)
@@ -167,6 +222,8 @@ void FAssetService::CollectUnused()
 	m_TextureCache.CollectUnused();
 	m_SoundCache.CollectUnused();
 	m_FontCache.CollectUnused();
+	m_ModelCache.CollectUnused();
+	m_ModelLoader.CollectDeferred();
 }
 // 管理する処理とリソースを順序どおり終了する。
 void FAssetService::Shutdown() noexcept
@@ -174,7 +231,9 @@ void FAssetService::Shutdown() noexcept
 	m_TextureCache.Clear();
 	m_SoundCache.Clear();
 	m_FontCache.Clear();
+	m_ModelCache.Clear();
 	m_Registry.Shutdown();
+	m_ModelLoader.CollectDeferred();
 }
 // ProjectRootを一度だけ設定する。以後の要求はこのRootを基準に解決する。
 // @param Root sln配置先の完全修飾ディレクトリ。

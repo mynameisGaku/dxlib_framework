@@ -1,16 +1,155 @@
 // SPDX-License-Identifier: NOASSERTION
-// FBX対応DxLibの最小実SDK試験。.fbxを事前変換せずMV1LoadModelへ渡し、
+// FBX読込の最小実SDK試験。.fbxを事前変換せずに読み、
 // メッシュ・骨階層・クリップ・アニメーションの効果・描画・解放と再読込・日本語パス・異常ファイルを確認する。
+// DXF_PROBE_UFBX=1では、ufbxで変換したデータをMV1LoadModelFromMemへ渡す（FBX SDK不要）。
+// それ以外では、FBX対応でビルドしたDxLibのMV1LoadModelへ.fbxを直接渡す。
 // 使い方: FbxModelProbe.exe <Assets/Modelsの絶対パス> <出力ディレクトリ>
 // 全項目成功で終了コード0。各項目の結果を標準出力とLog.txtへ残す。
 #include "DxLib.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <windows.h>
+#if DXF_PROBE_UFBX
+#include "Dxf/ModelImport.h"
+#endif
 
 namespace
 {
 int g_Failures = 0;
+
+#if DXF_PROBE_UFBX
+// 最後に変換したモデル。クリップ名から番号を引くのに使う。
+Dxf::FImportedModel g_LastImport;
+char g_LastDirectory[1024];
+
+// UTF-8のパスのファイル全体を読む。失敗時はnullptr。
+char* ReadFile_Internal(const char* Path, size_t* pSize)
+{
+	wchar_t Wide[1024];
+	if (MultiByteToWideChar(CP_UTF8, 0, Path, -1, Wide, 1024) == 0)
+	{
+		return nullptr;
+	}
+	FILE* File = nullptr;
+	if (_wfopen_s(&File, Wide, L"rb") != 0 || File == nullptr)
+	{
+		return nullptr;
+	}
+	fseek(File, 0, SEEK_END);
+	const long Size = ftell(File);
+	fseek(File, 0, SEEK_SET);
+	char* Data = Size > 0 ? static_cast<char*>(malloc(static_cast<size_t>(Size))) : nullptr;
+	if (Data != nullptr && fread(Data, 1, static_cast<size_t>(Size), File) != static_cast<size_t>(Size))
+	{
+		free(Data);
+		Data = nullptr;
+	}
+	fclose(File);
+	*pSize = static_cast<size_t>(Size);
+	return Data;
+}
+
+// MV1LoadModelFromMemがテクスチャを求めたときに呼ばれる。変換結果の参照名から実ファイルか埋め込みデータを返す。
+int ReadTexture_Internal(const TCHAR* FilePath, void** FileImageAddr, int* FileSize, void*)
+{
+	const char* Base = FilePath;
+	for (const char* Cursor = FilePath; *Cursor != 0; ++Cursor)
+	{
+		if (*Cursor == '/' || *Cursor == '\\')
+		{
+			Base = Cursor + 1;
+		}
+	}
+	for (const Dxf::FImportedModelTexture& Texture : g_LastImport.Textures)
+	{
+		if (strcmp(Texture.Name.CStr(), Base) != 0)
+		{
+			continue;
+		}
+		if (!Texture.Embedded.IsEmpty())
+		{
+			void* Copy = malloc(Texture.Embedded.Size());
+			memcpy(Copy, Texture.Embedded.Data(), Texture.Embedded.Size());
+			*FileImageAddr = Copy;
+			*FileSize = static_cast<int>(Texture.Embedded.Size());
+			return 0;
+		}
+		char Path[2048];
+		snprintf(Path, sizeof(Path), "%s/%s", g_LastDirectory, Texture.RelativePath.CStr());
+		size_t Size = 0;
+		char* Data = ReadFile_Internal(Path, &Size);
+		if (Data == nullptr && !Texture.AbsolutePath.IsEmpty())
+		{
+			Data = ReadFile_Internal(Texture.AbsolutePath.CStr(), &Size);
+		}
+		if (Data == nullptr)
+		{
+			return -1;
+		}
+		*FileImageAddr = Data;
+		*FileSize = static_cast<int>(Size);
+		return 0;
+	}
+	return -1;
+}
+
+int ReleaseTexture_Internal(void* MemoryAddr, void*)
+{
+	free(MemoryAddr);
+	return 0;
+}
+#endif
+
+// .fbxを読み込む。構成により、ufbx変換またはFBX対応DxLibの直接読込を使う。
+int LoadModel_Internal(const char* Path)
+{
+#if DXF_PROBE_UFBX
+	size_t Size = 0;
+	char* Data = ReadFile_Internal(Path, &Size);
+	if (Data == nullptr)
+	{
+		return -1;
+	}
+	auto Imported = Dxf::ImportFbxModel(Data, Size);
+	free(Data);
+	if (!Imported)
+	{
+		printf("  import error: %s\n", Imported.Error().Message.CStr());
+		return -1;
+	}
+	g_LastImport = Toolbox::Move(Imported).Value();
+	snprintf(g_LastDirectory, sizeof(g_LastDirectory), "%s", Path);
+	char* Slash = strrchr(g_LastDirectory, '/');
+	if (Slash != nullptr)
+	{
+		*Slash = 0;
+	}
+	// 末尾の終端文字はDxLibへ渡さない。
+	return MV1LoadModelFromMem(g_LastImport.ModelData.Data(), static_cast<int>(g_LastImport.ModelData.Size() - 1), ReadTexture_Internal,
+	                           ReleaseTexture_Internal, nullptr);
+#else
+	return MV1LoadModel(Path);
+#endif
+}
+
+// クリップ名から番号を返す。ufbx変換では変換結果の順序がネイティブの番号と一致する。
+int ClipIndex_Internal(int Model, const char* Name)
+{
+#if DXF_PROBE_UFBX
+	(void)Model;
+	for (size_t Index = 0; Index < g_LastImport.Clips.Size(); ++Index)
+	{
+		if (strcmp(g_LastImport.Clips[Index].Name.CStr(), Name) == 0)
+		{
+			return static_cast<int>(Index);
+		}
+	}
+	return -1;
+#else
+	return MV1GetAnimIndex(Model, Name);
+#endif
+}
 
 // 1項目の結果を記録する。
 void Check_Internal(bool bOk, const char* Name, const char* Detail = "")
@@ -75,7 +214,7 @@ void ProbeStatic_Internal(const char* Models, const char* OutDir)
 	snprintf(Path, sizeof(Path), "%s/StaticBox.fbx", Models);
 	for (int Round = 0; Round < 2; ++Round)
 	{
-		const int Model = MV1LoadModel(Path);
+		const int Model = LoadModel_Internal(Path);
 		Check_Internal(Model >= 0, Round == 0 ? "static load" : "static reload after delete", Path);
 		if (Model < 0)
 		{
@@ -136,7 +275,7 @@ void ProbeSkinned_Internal(const char* Models, const char* OutDir)
 {
 	char Path[1024];
 	snprintf(Path, sizeof(Path), "%s/SkinnedColumn.fbx", Models);
-	const int Model = MV1LoadModel(Path);
+	const int Model = LoadModel_Internal(Path);
 	Check_Internal(Model >= 0, "skinned load", Path);
 	if (Model < 0)
 	{
@@ -150,8 +289,8 @@ void ProbeSkinned_Internal(const char* Models, const char* OutDir)
 	Check_Internal(Root >= 0 && Bone >= 0 && MV1GetFrameParent(Model, Bone) == Root, "skeleton hierarchy Root->Bone1", Detail);
 	Check_Internal(MV1GetMeshNum(Model) >= 1, "skinned mesh exists");
 	const int Clips = MV1GetAnimNum(Model);
-	const int Bend = MV1GetAnimIndex(Model, "Bend");
-	const int Twist = MV1GetAnimIndex(Model, "Twist");
+	const int Bend = ClipIndex_Internal(Model, "Bend");
+	const int Twist = ClipIndex_Internal(Model, "Twist");
 	snprintf(Detail, sizeof(Detail), "clips=%d bend=%d twist=%d", Clips, Bend, Twist);
 	Check_Internal(Clips >= 2 && Bend >= 0 && Twist >= 0, "animation clips by name", Detail);
 	if (Bend < 0 || Bone < 0)
@@ -218,14 +357,14 @@ void ProbePaths_Internal(const char* Models, const char* OutDir)
 		CopyFileW(WideFrom, WideTo, FALSE);
 	}
 	snprintf(Target, sizeof(Target), "%s/箱モデル.fbx", Directory);
-	const int Japanese = MV1LoadModel(Target);
+	const int Japanese = LoadModel_Internal(Target);
 	Check_Internal(Japanese >= 0 && MV1GetMeshNum(Japanese) >= 1, "load from a Japanese path", Target);
 	if (Japanese >= 0)
 	{
 		MV1DeleteModel(Japanese);
 	}
 	snprintf(Target, sizeof(Target), "%s/DoesNotExist.fbx", Models);
-	Check_Internal(MV1LoadModel(Target) == -1, "missing file returns -1");
+	Check_Internal(LoadModel_Internal(Target) == -1, "missing file returns -1");
 	// 先頭だけFBXらしい破損ファイル。
 	snprintf(Target, sizeof(Target), "%s/Corrupt.fbx", OutDir);
 	FILE* File = nullptr;
@@ -235,7 +374,7 @@ void ProbePaths_Internal(const char* Models, const char* OutDir)
 		fwrite(Garbage, 1, sizeof(Garbage), File);
 		fclose(File);
 	}
-	Check_Internal(MV1LoadModel(Target) == -1, "corrupt file returns -1 without crashing");
+	Check_Internal(LoadModel_Internal(Target) == -1, "corrupt file returns -1 without crashing");
 }
 } // namespace
 
@@ -248,6 +387,7 @@ int main(int ArgumentCount, char** Arguments)
 	}
 	printf("DxLib build: %s\n", DXF_PROBE_LIBRARIES);
 	printf("DXF_DXLIB_HAS_FBX=%d\n", DXF_DXLIB_HAS_FBX);
+	printf("loader: %s\n", DXF_PROBE_UFBX ? "ufbx -> MV1LoadModelFromMem" : "MV1LoadModel (DxLib FBX loader)");
 	SetUseCharCodeFormat(DX_CHARCODEFORMAT_UTF8);
 	ChangeWindowMode(TRUE);
 	SetGraphMode(640, 480, 32);

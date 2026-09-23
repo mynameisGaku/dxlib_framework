@@ -1,6 +1,7 @@
 #pragma once
 #include "Dxf/AssetBackend.h"
 #include "Dxf/Input.h"
+#include "Dxf/ModelBackend.h"
 #include "Dxf/Platform.h"
 #include "Dxf/RenderBackend.h"
 namespace Dxf
@@ -34,5 +35,9 @@ struct FBackendServices
 	 * 描画を統括するサービス。
 	 */
 	IRenderBackend& Renderer;
+	/**
+	 * 管理するモデル群。nullptrならモデルを扱えない構成（読み込みは失敗する）。
+	 */
+	IModelBackend* pModels = nullptr;
 };
 } // namespace Dxf

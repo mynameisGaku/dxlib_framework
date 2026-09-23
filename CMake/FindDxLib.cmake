@@ -4,6 +4,9 @@
 # MSVC autolink directives, exactly as before.
 #
 # Custom build: DXF_DXLIB_CUSTOM_ROOT points to the output of Tools/DxLibFbx/BuildDxLibFbx.ps1.
+# When it is not given, ThirdParty/DxLib-<version>-source (built by Setup.cmd without the FBX SDK) is used
+# if exactly one exists. Model support (DXF_DXLIB_MODELS=1) needs a custom build: the official
+# DxLib_vs2015_x64_MT.lib cannot link the MV1 loader without the Autodesk FBX SDK.
 # Its DxLibFbx.json manifest lists the exact per-configuration libraries and their SHA-256.
 # The autolink is disabled (DX_LIB_NOT_DEFAULTPATH) so that the official core library is never
 # linked in addition to the custom one. A manifest built with FBX also lists the FBX SDK libraries.
@@ -15,6 +18,18 @@ if(NOT DXLIB_ROOT AND DEFINED ENV{DXLIB_ROOT})
 endif()
 if(NOT DXF_DXLIB_CUSTOM_ROOT AND DEFINED ENV{DXF_DXLIB_CUSTOM_ROOT})
     set(DXF_DXLIB_CUSTOM_ROOT "$ENV{DXF_DXLIB_CUSTOM_ROOT}")
+endif()
+option(DXF_DXLIB_AUTO_SOURCE_BUILD "Use ThirdParty/DxLib-<version>-source automatically when DXF_DXLIB_CUSTOM_ROOT is empty" ON)
+if(NOT DXF_DXLIB_CUSTOM_ROOT AND DXF_DXLIB_AUTO_SOURCE_BUILD)
+    file(GLOB _dxf_source_manifests "${CMAKE_CURRENT_LIST_DIR}/../ThirdParty/DxLib-*-source/DxLibFbx.json")
+    list(LENGTH _dxf_source_manifests _dxf_source_count)
+    if(_dxf_source_count EQUAL 1)
+        get_filename_component(DXF_DXLIB_CUSTOM_ROOT "${_dxf_source_manifests}" DIRECTORY)
+        get_filename_component(DXF_DXLIB_CUSTOM_ROOT "${DXF_DXLIB_CUSTOM_ROOT}" ABSOLUTE)
+        message(STATUS "DxLib: using the source build ${DXF_DXLIB_CUSTOM_ROOT} (set DXF_DXLIB_AUTO_SOURCE_BUILD=OFF for the official package)")
+    elseif(_dxf_source_count GREATER 1)
+        message(STATUS "DxLib: several ThirdParty/DxLib-*-source builds exist; set DXF_DXLIB_CUSTOM_ROOT explicitly")
+    endif()
 endif()
 
 set(DxLib_HAS_FBX FALSE)
@@ -110,13 +125,15 @@ if(DxLib_FOUND AND NOT TARGET DxLib::SDK)
         endif()
         set_target_properties(DxLib::SDK PROPERTIES
             INTERFACE_INCLUDE_DIRECTORIES "${DxLib_INCLUDE_DIR}"
-            INTERFACE_COMPILE_DEFINITIONS "DX_LIB_NOT_DEFAULTPATH;DXF_DXLIB_HAS_FBX=${_dxf_fbx_define}"
+            INTERFACE_COMPILE_DEFINITIONS "DX_LIB_NOT_DEFAULTPATH;DXF_DXLIB_HAS_FBX=${_dxf_fbx_define};DXF_DXLIB_MODELS=1"
             INTERFACE_LINK_LIBRARIES "${_dxf_link};${_dxf_system_libs}")
     else()
         # DxLib.h emits the version/architecture-specific MSVC autolink directives.
+        # Models are disabled: the official Release library needs the FBX SDK as soon as MV1 loading is linked.
+        message(STATUS "DxLib: official package only; model loading is disabled (run Setup.cmd to build DxLib from source)")
         set_target_properties(DxLib::SDK PROPERTIES
             INTERFACE_INCLUDE_DIRECTORIES "${DxLib_INCLUDE_DIR}"
-            INTERFACE_COMPILE_DEFINITIONS "DXF_DXLIB_HAS_FBX=0"
+            INTERFACE_COMPILE_DEFINITIONS "DXF_DXLIB_HAS_FBX=0;DXF_DXLIB_MODELS=0"
             INTERFACE_LINK_DIRECTORIES "${DxLib_INCLUDE_DIR}")
     endif()
 endif()

@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 import zipfile
 
-DIRECTORIES = ('Source', 'Tests', 'Examples', 'Assets', 'CMake', 'Tools', 'Docs', '.github')
+DIRECTORIES = ('Source', 'External', 'Tests', 'Examples', 'Assets', 'CMake', 'Tools', 'Docs', '.github')
 ROOT_FILES = ('CMakeLists.txt', 'CMakePresets.json', 'README.md', 'LICENSE',
               'Setup.cmd', 'GenerateProjectFiles.bat', '.editorconfig', '.clang-format',
               '.gitignore', '.gitattributes')
@@ -26,6 +26,9 @@ def collect_paths(root: Path) -> list[Path]:
             candidates.extend(base.rglob('*'))
     result = []
     for path in candidates:
+        relative = path.relative_to(root)
+        if relative.parts[:2] == ('Docs', 'Archive') or path.name.endswith(('.log', '.log.err')):
+            continue
         if path.is_symlink():
             raise ValueError(f'Refusing a symlink: {path}')
         if not path.is_file() or '__pycache__' in path.parts:

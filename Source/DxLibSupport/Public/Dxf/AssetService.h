@@ -2,6 +2,7 @@
 #include "Dxf/TextureLoader.h"
 #include "Dxf/SoundLoader.h"
 #include "Dxf/FontLoader.h"
+#include "Dxf/ModelLoader.h"
 #include "Dxf/ResourceCache.h"
 #include "Dxf/AsyncAsset.h"
 #include "Toolbox/ProjectPaths.h"
@@ -22,6 +23,10 @@ using FSoundCache = TResourceCache<FSoundResource>;
  */
 using FFontCache = TResourceCache<FFontResource>;
 /**
+ * モデルデータを再利用するキャッシュ。
+ */
+using FModelCache = TResourceCache<FModelResource>;
+/**
  * 単一スレッドで使用する。バックエンドはこのサービスの終了処理後まで存続させる。
  */
 class FAssetService
@@ -34,6 +39,15 @@ public:
 	 * @param Fonts 管理するフォント群。
 	 */
 	FAssetService(ITextureBackend& Textures, ISoundBackend& Sounds, IFontBackend& Fonts);
+	/**
+	 * モデルも扱う構成で、必要な依存関係を受け取り初期状態を構築する。
+	 * 構築したスレッドがモデルのネイティブ処理を行う所有スレッドになる。
+	 * @param Textures 管理するテクスチャ群。
+	 * @param Sounds 管理する音声群。
+	 * @param Fonts 管理するフォント群。
+	 * @param Models 管理するモデル群。nullptrならモデルの読み込みは失敗する。
+	 */
+	FAssetService(ITextureBackend& Textures, ISoundBackend& Sounds, IFontBackend& Fonts, IModelBackend* Models);
 	/**
 	 * 所有する状態を終了し、必要なリソースを解放する。
 	 */
@@ -58,6 +72,18 @@ public:
 	 * @param Options 処理に適用する設定。
 	 */
 	TResult<FSound> LoadSound(const Toolbox::FString& Path, const FSoundLoadOptions& Options = {});
+	/**
+	 * .fbxを読み込む。事前の変換は不要。Root設定時は解決済み絶対パスで読み込む。
+	 * 同じパスと設定で生存中のモデルがあれば共有する。所有スレッドから同期的に呼ぶ。
+	 * @param Path 読み込む.fbxのパス。
+	 * @param Options 処理に適用する設定。
+	 */
+	TResult<FModel> LoadModel(const Toolbox::FString& Path, const FModelLoadOptions& Options = {});
+	/**
+	 * モデルデータを共有し、変換と再生状態を独立に持つインスタンスを作る。所有スレッドから呼ぶ。
+	 * @param Model 複製元のモデル。
+	 */
+	TResult<FModelInstance> CreateModelInstance(const FModel& Model);
 	/**
 	 * 画像の読み込みをWorkerの準備と所有側の取込に分けて要求する。
 	 * 要求時点の解決済みパスを保持し、WorkerはRootを再評価しない。
@@ -140,6 +166,10 @@ private:
 	 */
 	FFontLoader m_FontLoader;
 	/**
+	 * モデルの読み込み器。
+	 */
+	FModelLoader m_ModelLoader;
+	/**
 	 * テクスチャの再利用キャッシュ。
 	 */
 	FTextureCache m_TextureCache;
@@ -151,6 +181,10 @@ private:
 	 * フォントの再利用キャッシュ。
 	 */
 	FFontCache m_FontCache;
+	/**
+	 * モデルデータの再利用キャッシュ。
+	 */
+	FModelCache m_ModelCache;
 	/**
 	 * 要求パスをProjectRoot基準で解決する。未設定なら素通し。
 	 */

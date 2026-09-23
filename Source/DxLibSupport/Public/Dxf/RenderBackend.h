@@ -1,6 +1,7 @@
 #pragma once
 #include "Dxf/RenderCommands.h"
 #include "Dxf/RenderGeometry3D.h"
+#include "Dxf/Model.h"
 namespace Dxf
 {
 /**
@@ -61,6 +62,13 @@ public:
 		return false;
 	}
 	/**
+	 * このBackendが読み込んだモデルを3Dビューへ描画できるか。
+	 */
+	virtual bool SupportsModels3D() const noexcept
+	{
+		return false;
+	}
+	/**
 	 * @param Command 描画する2D線分。
 	 */
 	virtual TResult<void> DrawLine2D(const FLineCommand2D&)
@@ -93,6 +101,15 @@ public:
 	 * @param Geometry 照明計算済みの描画パケット。
 	 */
 	virtual TResult<void> DrawGeometry3D(const FPreparedGeometry3D&)
+	{
+		return Unsupported_Internal();
+	}
+	/**
+	 * 不透明なモデルを1体描画する。BeginView3DとEndView3Dの間で呼ばれる。
+	 * 深度を検査・書込みし、描画後に以降の形状が依存する状態を残さない。
+	 * @param Model 記録時点の変換と再生状態。
+	 */
+	virtual TResult<void> DrawModel3D(const FModelDraw3D&)
 	{
 		return Unsupported_Internal();
 	}

@@ -29,6 +29,23 @@ class ReleaseTests(unittest.TestCase):
         files = release.collect_paths(self.root)
         self.assertEqual([p.relative_to(self.root).as_posix() for p in files], ['README.md', 'Source/Probe.h'])
 
+    def test_bundled_importer_and_license_are_distributed(self):
+        external = self.root / 'External' / 'ufbx'
+        external.mkdir(parents=True)
+        for name in ('ufbx.c', 'ufbx.h', 'LICENSE'):
+            (external / name).write_text(name, encoding='utf-8')
+        paths = {p.relative_to(self.root).as_posix() for p in release.collect_paths(self.root)}
+        self.assertTrue({'External/ufbx/ufbx.c', 'External/ufbx/ufbx.h', 'External/ufbx/LICENSE'} <= paths)
+
+    def test_archives_and_generated_logs_are_not_distributed(self):
+        archive = self.root / 'Docs' / 'Archive'
+        archive.mkdir(parents=True)
+        (archive / 'old.patch').write_text('historical', encoding='utf-8')
+        (self.root / 'Docs' / 'build.log').write_text('generated', encoding='utf-8')
+        paths = {p.relative_to(self.root).as_posix() for p in release.collect_paths(self.root)}
+        self.assertNotIn('Docs/Archive/old.patch', paths)
+        self.assertNotIn('Docs/build.log', paths)
+
     def test_fonts_are_never_packaged(self):
         (self.root / 'Source' / 'font.ttf').write_bytes(b'not-a-real-font')
         with self.assertRaisesRegex(ValueError, 'font'):

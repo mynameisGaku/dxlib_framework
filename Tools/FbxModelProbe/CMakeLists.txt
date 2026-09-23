@@ -1,7 +1,7 @@
 # Minimal real-SDK FBX probe. Links DxLib through CMake/FindDxLib.cmake so the probe uses exactly the
 # libraries the framework would use (DXF_DXLIB_CUSTOM_ROOT for the FBX-enabled build).
 cmake_minimum_required(VERSION 3.24)
-project(FbxModelProbe LANGUAGES CXX)
+project(FbxModelProbe LANGUAGES C CXX)
 get_filename_component(_dxf_root "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
 list(PREPEND CMAKE_MODULE_PATH "${_dxf_root}/CMake")
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -10,6 +10,19 @@ add_executable(FbxModelProbe Main.cpp)
 target_compile_features(FbxModelProbe PRIVATE cxx_std_20)
 target_compile_options(FbxModelProbe PRIVATE /W4 /utf-8 /EHsc)
 target_link_libraries(FbxModelProbe PRIVATE DxLib::SDK)
+# ON: ufbxで変換したデータをMV1LoadModelFromMemへ渡す（FBX SDK不要。公式DxLibで動く）。
+option(DXF_PROBE_UFBX "Load .fbx through the framework's ufbx importer" OFF)
+if(DXF_PROBE_UFBX)
+    add_library(FbxProbeUfbx STATIC "${_dxf_root}/External/ufbx/ufbx.c")
+    target_include_directories(FbxProbeUfbx PUBLIC "${_dxf_root}/External/ufbx")
+    target_sources(FbxModelProbe PRIVATE "${_dxf_root}/Source/DxLibSupport/Private/Dxf/ModelImport.cpp")
+    target_include_directories(FbxModelProbe PRIVATE "${_dxf_root}/Source/Toolbox/Public" "${_dxf_root}/Source/Foundation/Public"
+        "${_dxf_root}/Source/DxLibSupport/Public")
+    target_link_libraries(FbxModelProbe PRIVATE FbxProbeUfbx)
+    target_compile_definitions(FbxModelProbe PRIVATE DXF_PROBE_UFBX=1)
+else()
+    target_compile_definitions(FbxModelProbe PRIVATE DXF_PROBE_UFBX=0)
+endif()
 # Record which DxLib build was linked so the probe log names it.
 if(DXF_DXLIB_CUSTOM_ROOT)
     set(_dxf_label "custom:${DXF_DXLIB_CUSTOM_ROOT}")

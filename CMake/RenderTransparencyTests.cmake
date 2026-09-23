@@ -10,7 +10,9 @@ function(dxf_add_render_transparency_tests CoreTarget)
     add_executable(dxf_native_transparency_tests "${_root}/Tools/RenderValidation/Main.cpp"
         "${_root}/Tests/NativeTransparencyTests.cpp"
         "${_root}/Source/Native/Private/Dxf/DxLibRenderBackend.cpp"
-        "${_root}/Source/Native/Private/Dxf/DxLibGeometryBackend.cpp")
+        "${_root}/Source/Native/Private/Dxf/DxLibGeometryBackend.cpp"
+        "${_root}/Source/Native/Private/Dxf/DxLibModelBackend.cpp")
+    target_compile_definitions(dxf_native_transparency_tests PRIVATE DXF_DXLIB_MODELS=1)
     foreach(_target dxf_transparency_tests dxf_transparency_fault_tests dxf_native_transparency_tests)
         target_link_libraries(${_target} PRIVATE ${CoreTarget})
         target_compile_features(${_target} PRIVATE cxx_std_20)

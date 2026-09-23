@@ -12,7 +12,7 @@ namespace Dxf
 FApplication::FApplication(FBackendServices Services, FApplicationSettings Settings,
                            Toolbox::TUniquePtr<DGameInstance> Game)
     : m_pPlatform(&Services.Platform), m_Settings(Toolbox::Move(Settings)), m_Session(Services.Platform),
-      m_Input(Services.Input), m_Assets(Services.Textures, Services.Sounds, Services.Fonts),
+      m_Input(Services.Input), m_Assets(Services.Textures, Services.Sounds, Services.Fonts, Services.pModels),
       m_Renderer(Services.Renderer), m_Audio(Services.Sounds), m_ExecutionJobs(m_Settings.ExecutionThreadCount),
       m_TaskDispatcher(m_ExecutionJobs), m_pGame(Toolbox::Move(Game)),
       m_Scenes(m_Assets, m_Audio, m_pGame.Get(), &m_TaskDispatcher), m_Clock(m_Settings.MaxDeltaSeconds)

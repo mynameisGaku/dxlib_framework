@@ -1,51 +1,72 @@
-# FBX対応DxLibの再現可能なビルド
+# .fbxの読み込みとDxLibのソースビルド
 
-.mv1へ事前変換せず、`.fbx`をDxLibの`MV1LoadModel`で直接読み込むために、DxLib本体をFBX読込有効でソースからビルドします。
-公式VC SDKの`DxLib_vs2015_x64_MT.lib`だけがFBX読込を有効にしてビルドされており（FBX SDKは同梱されない）、
-Debug・MD版はFBXを読めないため、構成ごとの差をなくす目的です。実行時ライブラリは既存どおり`/MTd`・`/MT`です。
+.mv1へ事前変換せず、`.fbx`をそのまま読み込みます。利用者はAutodesk FBX SDKをインストールする必要がありません。
+
+## 仕組み
+
+1. フレームワークが`.fbx`を読み、同梱のufbx（`External/ufbx`、MIT／Public Domain）で解析します。
+2. 座標系（DxLibと同じ左手系・Y軸上向き）と長さの単位をここで一度だけ変換し、
+   DxLibが標準で読めるDirectX `.x`（テキスト）をメモリ上に作ります。骨・スキン・材質・テクスチャ参照・
+   アニメーション（クリップごとに全ノードの局所行列を一定間隔で標本化）を含みます。
+3. `MV1LoadModelFromMem`へ渡します。テクスチャはコールバックでモデルのディレクトリ（またはFBX埋め込み）から供給するため、
+   日本語を含むパスでもDxLibのファイルAPIを通りません。
+
+変換は`Dxf::ImportFbxModel`（`Dxf/ModelImport.h`）だけで行い、ネイティブAPIを呼びません。
+
+## DxLibをソースからビルドする理由
+
+公式VCパッケージの`DxLib_vs2015_x64_MT.lib`（Release・静的CRT）は、MV1の読込部がFBX SDKのシンボルを参照します。
+FBX SDKなしでは`MV1LoadModelFromMem`などを使った時点でReleaseのリンクが失敗します（Debugの`_MTd`はFBX非対応のため成功）。
+そこで`Setup.cmd`が、公式のDxLibソース（DxLibMake）をFBX読込なしでDebug／Releaseともビルドします。実行時ライブラリは従来どおり`/MTd`・`/MT`です。
 
 ## 利用者が行うこと
 
-1. 公式のDxLibソース`DxLibMake3_25a.zip`（https://dxlib.xsrv.jp/DxLib/DxLibMake3_25a.zip）を`ThirdParty/`へ置く。
-   SHA-256 `2f09078692d3b64448c6ffe80392d77d0f413ce652115a1d7f0063baf475322a`。
-2. Autodesk FBX SDK 2020.3.11（VS2022、Windows）を**ご自身で**インストールし、付属の利用許諾（EULA）に同意する。
-   入手元はAutodeskの公式ページ（https://aps.autodesk.com/developer/overview/fbx-sdk）です。
-   このリポジトリのスクリプトはSDKのダウンロード・インストール・規約同意を行いません。
-3. 次を実行する。
-
-```powershell
-powershell -ExecutionPolicy Bypass -File Tools\DxLibFbx\BuildDxLibFbx.ps1
-# 出力: ThirdParty\DxLib-3.25a-fbx（include/、lib/、DxLibFbx.json）
-cmake -S . -B Build\windows-fbx-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug "-DDXLIB_ROOT=<公式SDK>" `
-  "-DDXF_DXLIB_CUSTOM_ROOT=$PWD\ThirdParty\DxLib-3.25a-fbx" -DDXF_REQUIRE_FBX_MODEL=ON -DDXF_BUILD_NATIVE=ON ...
+```bat
+Setup.cmd
 ```
 
-SDK本体・ビルド生成物（`ThirdParty/`、`Build/`）はGitへ追加しません。
+1. 公式VCパッケージ（`DxLib_VC3_25a.zip`）を取得します（従来どおり）。
+2. 公式ソース`DxLibMake3_25a.zip`（https://dxlib.xsrv.jp/DxLib/DxLibMake3_25a.zip）を取得し、SHA-256
+   `2f09078692d3b64448c6ffe80392d77d0f413ce652115a1d7f0063baf475322a`を照合します。
+3. `Tools/DxLibFbx/BuildDxLibFbx.ps1`でビルドし、`ThirdParty/DxLib-3.25a-source`（`include/`、`lib/`、`DxLibFbx.json`）を作ります。
+   Visual Studio（C++によるデスクトップ開発）以外に必要なものはありません。数分かかります。
+
+`CMake/FindDxLib.cmake`は、`DXF_DXLIB_CUSTOM_ROOT`が未指定なら`ThirdParty/DxLib-<版>-source`を自動で使います
+（`-DDXF_DXLIB_AUTO_SOURCE_BUILD=OFF`で公式パッケージへ戻せます）。公式パッケージだけの構成ではモデル機能を無効にし
+（`DXF_DXLIB_MODELS=0`）、読み込みは「Setup.cmdでソースビルドを作る」旨のエラーを返します。リンクエラーにはしません。
+
+作ったゲームの実行ファイルは静的リンクで、Windowsの標準DLL以外に依存しません（利用者のPCにも追加の導入は不要です）。
+SDK・ビルド生成物（`ThirdParty/`、`Build/`）はGitへ追加しません。
+
+## アプリケーションから使う
+
+`FAssetService::LoadModel("Assets/Models/SkinnedColumn.fbx")`で共有するモデルを読み、
+`CreateModelInstance`で配置・再生状態を独立に持つインスタンスを作ります。
+`Play("Bend")`、`Advance(DeltaSeconds)`で秒単位の再生を進め、
+`Render.Get3D().DrawModel(Instance)`へ渡します。各戻り値の失敗を確認してください。
+読み込み・インスタンス作成・描画は所有スレッドで行います。
+モデルの相対パスは従来の[ProjectRoot](Assets/Paths.md)を基準にします。
+
+確認用のModelViewerは`GenerateProjectFiles.bat -Development`で生成する開発用ソリューションに含まれます。
+通常のソリューションには追加しません。CMakeからは`-DDXF_BUILD_MODEL_VIEWER=ON`で有効にできます。
+
+変換結果・設定の公開型は`ImportedModel.h`、`ImportedModelTexture.h`、`ImportedModelClip.h`、
+`ModelImportOptions.h`へ分離しています。従来どおり`ModelImport.h`からまとめて参照できます。
+変換途中で例外が発生してもufbxの解析結果を解放します。
+
+実行結果は[FBX SDK不要化の検証記録](../Validation/FbxSdkFree-2026-09-23.md)を参照してください。
 
 ## ビルドの内容
 
 - `Tools/DxLibFbx/CMakeLists.txt`は、公式`DxLibMake.vcxproj`の`ClCompile`一覧（77ファイル）をそのまま読み、x64でビルドします。
   公式プロジェクトはWin32構成だけのため、x64の構成は同じ定義（`WIN32;_LIB;_DEBUG|NDEBUG`）で作ります。
   ソースはShift_JISなので、`/source-charset:.932 /execution-charset:.932`で文字コードを固定します。
-- `DX_LOAD_FBX_MODEL`はDxLib本体のコンパイル時に定義します。アプリ側で定義しても既存libの機能は変わりません。
-  静的な`libfbxsdk-mt.lib`を使うため`FBXSDK_SHARED`は定義しません。
 - `BuildDxLibFbx.ps1`は、ソースZIPのハッシュ照合、ソースと公式SDKのヘッダー一致の確認（同じ版であること）、
-  Debug / Releaseのビルド、公式SDKを変更しない別ディレクトリへの出力、`DxLibFbx.json`の作成を行います。
-  マニフェストには各ライブラリのパス・SHA-256・出所、FBX SDKの版と場所、コンパイラ、定義、実行時ライブラリを記録します。
-
-## リンクの構成
-
-`CMake/FindDxLib.cmake`は`DXF_DXLIB_CUSTOM_ROOT`が指定されると次のように動きます（未指定時は従来の公式SDKの自動リンク）。
-
-- `DX_LIB_NOT_DEFAULTPATH`を定義し、`DxLib.h`の自動リンクを無効にする（公式のDxLib本体を二重にリンクしないため）。
-- マニフェストに記録したライブラリだけを構成別に明示リンクし、設定時にSHA-256を照合する。選択したライブラリは設定ログへ出す。
-  - 本体: ソースからビルドした`DxLib_fbx_x64_MT(d).lib`。
-  - DxLib同梱: 自動リンクと同じ組（DxUseCLib、DxDrawFunc、Bullet、libtiff、libpng、zlib、libjpeg、Ogg/Vorbis/Theora、Opus）の`_vs2015_x64_MT(d)`。
-  - FBX SDK: `libfbxsdk-mt.lib`、`libxml2-mt.lib`、`zlib-mt.lib`（readmeの指示どおり明示リンク）。
-  - Windows: `bcrypt.lib`（FBX SDK同梱のlibxml2 2.15.3が`BCryptGenRandom`を使う。リンク時の未解決シンボルで確認）。
-- `DXF_DXLIB_HAS_FBX=1|0`を定義し、`DXF_REQUIRE_FBX_MODEL=ON`ではFBX対応ビルドでなければ設定段階でエラーにする。
-
-DxLib同梱のzlib 1.2.12とFBX SDKのzlib 1.3.2は、Debug / Releaseとも重複定義エラーなくリンクできることを確認しました。
+  Debug／Releaseのビルド、公式SDKを変更しない別ディレクトリへの出力、`DxLibFbx.json`の作成を行います。
+  マニフェストには各ライブラリのパス・SHA-256・出所、コンパイラ、定義、実行時ライブラリを記録します。
+- `FindDxLib.cmake`は`DX_LIB_NOT_DEFAULTPATH`で`DxLib.h`の自動リンクを無効にし、マニフェストのライブラリだけを構成別に明示リンクします
+  （設定時にSHA-256を照合）。DxLib同梱の外部ライブラリ（DxUseCLib、DxDrawFunc、Bullet、libtiff、libpng、zlib、libjpeg、
+  Ogg/Vorbis/Theora、Opus）は自動リンクと同じ組の`_vs2015_x64_MT(d)`を使います。
 
 ### 名前修飾の橋渡し（`Tools/DxLibFbx/DxLibV140AbiBridge.cpp`）
 
@@ -58,23 +79,33 @@ DxLib同梱のzlib 1.2.12とFBX SDKのzlib 1.3.2は、Debug / Releaseとも重�
 - `Graphics_Image_InitSetupGraphHandleGParam_Normal_NonDrawValid`
 
 橋渡しは、旧来の引数型で受けて本物の実装へ転送するだけの3関数です（空実装・代替処理ではありません）。
-v140以降のMSVCの静的ライブラリはMicrosoftが相互のリンク互換を保証しており、今回の差はこの名前解決だけです。
-`DxUseCLib`をソースから再ビルドする方法もありますが、Bullet 2.75（名前変更版）・libpng・zlib・libjpeg・Ogg/Vorbis/Theora・Opus・libtiff・Live2Dの
-外部ソースが必要になるため採用していません。
 
-## 試験用モデルと最小実SDK試験
+## 任意: DxLib自身のFBX読込との比較構成
 
-- `Tools/FbxSampleGen`: FBX SDKで自作の`Assets/Models/StaticBox.fbx`・`SkinnedColumn.fbx`・`ModelChecker.bmp`を生成します（第三者のモデルは使いません）。
-  テクスチャの参照は相対名だけで、書き出し時の絶対パスや利用者名を埋め込みません。
-- `Tools/FbxModelProbe`: `.fbx`を`MV1LoadModel`へ直接渡し、メッシュ・材質・テクスチャ（64×64の実画像であること、描画結果に色が出ること）、
-  骨階層（Root→Bone1）、クリップ名（Bend・Twist）、時刻変更による骨姿勢の変化、複製の独立した再生時刻、解放と再読込、
-  日本語パス、不在・破損ファイルを確認します。FBX非対応のDxLibにリンクすると読込が失敗し、試験も失敗します。
+ufbxの変換結果を確かめるため、DxLibをFBX読込有効でビルドする構成も残しています（通常は不要です）。
+Autodesk FBX SDK 2020.3.11を**ご自身で**インストールし、付属の利用許諾に同意したうえで次を実行します。
 
-DxLibのアニメーション時間は、1秒のクリップが30.0になる単位でした（実測）。フレームワークの公開APIは秒で扱い、この変換を内部で行います。
+```powershell
+powershell -ExecutionPolicy Bypass -File Tools\DxLibFbx\BuildDxLibFbx.ps1 -WithFbxSdk
+# 出力: ThirdParty\DxLib-3.25a-fbx。FBX SDKの静的ライブラリとbcrypt.libもマニフェストに記録される。
+```
+
+`Tools/FbxModelProbe`は同じ27項目の確認を、ufbx経路（`-DDXF_PROBE_UFBX=ON`）とDxLibのFBX読込経路の両方で実行できます。
+
+## 試験用モデル
+
+- `Tools/FbxSampleGen`: 自作の`Assets/Models/StaticBox.fbx`・`SkinnedColumn.fbx`・`ModelChecker.bmp`を生成した道具です
+  （生成にはFBX SDKが必要ですが、生成物はリポジトリに含まれるため利用者は実行不要です）。
+- `Tools/FbxModelProbe`: 最小実SDK試験。メッシュ・材質・テクスチャ（64×64の実画像、描画結果の色）、骨階層、クリップ名、
+  時刻による姿勢変化、複製の独立した時刻、解放と再読込、日本語パス、不在・破損ファイルを確認します。
+
+DxLibのアニメーション時間は、1秒のクリップが30.0になる単位でした（実測）。フレームワークの公開APIは秒で扱い、
+読み込み時にクリップごとにネイティブ側の長さを計測して変換します。
 
 ## 制限
 
 - 対象はx64・MSVC・静的CRT（`/MT`・`/MTd`）です。`/MD`系、x86、ARM64は作っていません。
-- DxLibの版を変える場合は、ソースと公式SDKの両方を同じ版にそろえ、`BuildDxLibFbx.ps1`の期待ハッシュを更新します。
-- FBX SDKのDebugライブラリにはPDBが同梱されないため、リンク時にLNK4099の警告が出ます。
-- 生成物の再配布条件は、採用したFBX SDKのEULAを別途確認してください。
+- DxLibの版を変える場合は、ソースと公式SDKの両方を同じ版にそろえ、期待ハッシュ（`SetupDxLib.ps1`・`BuildDxLibFbx.ps1`）を更新します。
+- ufbxの変換はアニメーションを指定間隔以下（既定1/30秒）の行列キーへ標本化します。短いクリップも終端を含めます。
+  全ノード・全クリップのキー数見積りが100万を超える入力は変換前に拒否します。ブレンドシェイプ（モーフ）、
+  複数UV、頂点カラー、PBR材質、カメラ・ライトは変換しません。スキンは1メッシュにつき最初のスキンだけを使います。

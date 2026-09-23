@@ -104,11 +104,39 @@ TResult<void> FRender3DContext::DrawMesh(const FGeometry3D& Geometry, const FDra
 	}
 	return Submit({Geometry, Options});
 }
+// 読み込んだモデルを1体描画する。変換と再生状態は受付時点の値を複写する。
+// @param Instance 描画するインスタンス。
+TResult<void> FRender3DContext::DrawModel(const FModelInstance& Instance)
+{
+	if (!m_pAccess->IsAccepting())
+	{
+		return StateError_Internal();
+	}
+	if (!Instance.IsValid())
+	{
+		return TResult<void>::Failure(EErrorCode::InvalidArgument, "Model instance is not valid");
+	}
+	if (m_Models.Size() >= MaxFrameModels)
+	{
+		return LimitError_Internal();
+	}
+	FRecordedModel Record;
+	Record.Instance = Instance.GetResource_Internal();
+	Record.Draw.pInstance = Record.Instance.Get();
+	Record.Draw.World = Instance.GetTransform();
+	Record.Draw.Clip = Instance.GetClip();
+	Record.Draw.NativeTime = Instance.GetNativeTime_Internal();
+	Record.View = m_View;
+	Record.Serial = m_ViewSerial;
+	m_Models.PushBack(Toolbox::Move(Record));
+	return {};
+}
 void FRender3DContext::Clear_Internal() noexcept
 {
 	if (m_pAccess->IsAllowed())
 	{
 		m_Commands.Clear();
+		m_Models.Clear();
 		m_PrimitiveCount = 0;
 	}
 }
@@ -120,14 +148,20 @@ TResult<void> FRender3DContext::Execute_Internal(IRenderBackend& Backend)
 	}
 	TGuardValue Busy(m_pAccess->m_bBusy, true);
 	auto Commands = Toolbox::Move(m_Commands);
+	// 実行または破棄まで、記録したインスタンスを生存させる。
+	auto Models = Toolbox::Move(m_Models);
 	m_PrimitiveCount = 0;
-	if (Commands.IsEmpty())
+	if (Commands.IsEmpty() && Models.IsEmpty())
 	{
 		return {};
 	}
-	if (!Backend.SupportsGeometry3D())
+	if (!Commands.IsEmpty() && !Backend.SupportsGeometry3D())
 	{
 		return TResult<void>::Failure(EErrorCode::BackendFailure, "Backend has no 3D geometry capability");
+	}
+	if (!Models.IsEmpty() && !Backend.SupportsModels3D())
+	{
+		return TResult<void>::Failure(EErrorCode::BackendFailure, "Backend has no 3D model capability");
 	}
 	// すべての変換・検証・確保を、Backendの状態を変更する前に終える。
 	Toolbox::TVector<FPreparedGeometry3D> Prepared;
@@ -142,29 +176,48 @@ TResult<void> FRender3DContext::Execute_Internal(IRenderBackend& Backend)
 		Prepared.PushBack(Toolbox::Move(Result).Value());
 	}
 	// SetViewの呼出し区間を跨がずに計画する。同じIdを再使用しても別区間。
+	// モデルは不透明として、同じ区間の形状（不透明・透明・Overlay）より先に描く。
 	struct FViewPass
 	{
 		FRenderView3D View;
 		Toolbox::TVector<FPreparedGeometry3D> Packets;
+		Toolbox::size_t ModelBegin = 0;
+		Toolbox::size_t ModelEnd = 0;
 	};
 	Toolbox::TVector<FViewPass> Passes;
-	for (Toolbox::size_t Begin = 0; Begin < Commands.Size();)
+	// 形状とモデルはどちらも区間番号の昇順に並ぶため、先頭どうしを比べて区間ごとにまとめる。
+	for (Toolbox::size_t Begin = 0, ModelBegin = 0; Begin < Commands.Size() || ModelBegin < Models.Size();)
 	{
-		Toolbox::size_t End = Begin + 1;
-		while (End < Commands.Size() && Commands[End].Serial == Commands[Begin].Serial)
+		const bool bGeometryFirst =
+		    ModelBegin >= Models.Size() || (Begin < Commands.Size() && Commands[Begin].Serial <= Models[ModelBegin].Serial);
+		const Toolbox::uint64 Serial = bGeometryFirst ? Commands[Begin].Serial : Models[ModelBegin].Serial;
+		const FRenderView3D& View = bGeometryFirst ? Commands[Begin].View : Models[ModelBegin].View;
+		Toolbox::size_t End = Begin;
+		while (End < Commands.Size() && Commands[End].Serial == Serial)
 		{
 			++End;
 		}
-		auto Plan = Detail::BuildRenderPasses3D_Internal(Prepared, Begin, End, Commands[Begin].View);
-		if (!Plan)
+		Toolbox::size_t ModelEnd = ModelBegin;
+		while (ModelEnd < Models.Size() && Models[ModelEnd].Serial == Serial)
 		{
-			return TResult<void>::Failure(Plan.Error());
+			++ModelEnd;
 		}
-		if (!Plan.Value().IsEmpty())
+		FViewPass Pass{View, {}, ModelBegin, ModelEnd};
+		if (End > Begin)
 		{
-			Passes.PushBack({Commands[Begin].View, Toolbox::Move(Plan).Value()});
+			auto Plan = Detail::BuildRenderPasses3D_Internal(Prepared, Begin, End, View);
+			if (!Plan)
+			{
+				return TResult<void>::Failure(Plan.Error());
+			}
+			Pass.Packets = Toolbox::Move(Plan).Value();
+		}
+		if (!Pass.Packets.IsEmpty() || ModelEnd > ModelBegin)
+		{
+			Passes.PushBack(Toolbox::Move(Pass));
 		}
 		Begin = End;
+		ModelBegin = ModelEnd;
 	}
 	bool Active = false;
 	TResult<void> Result;
@@ -183,6 +236,18 @@ TResult<void> FRender3DContext::Execute_Internal(IRenderBackend& Backend)
 			}
 			Active = true;
 			Result = Backend.BeginView3D(Pass.View);
+			if (!Result)
+			{
+				break;
+			}
+			for (Toolbox::size_t Index = Pass.ModelBegin; Index < Pass.ModelEnd; ++Index)
+			{
+				Result = Backend.DrawModel3D(Models[Index].Draw);
+				if (!Result)
+				{
+					break;
+				}
+			}
 			if (!Result)
 			{
 				break;
