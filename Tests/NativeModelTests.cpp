@@ -203,3 +203,17 @@ TEST("Native model light failure releases owned light and restores external ligh
 		REQUIRE(DxLib::ViewTrace.Lighting == 1 && DxLib::ViewTrace.Z3D == 0);
 	}
 }
+
+TEST("Native old model backend rejects extended attributes without silently dropping them")
+{
+	FNativeModelFixture Fixture;
+	Toolbox::TVector<Toolbox::uint8> Bytes;
+	REQUIRE(Toolbox::ReadFileBytes(Toolbox::FPath(DXF_TEST_ASSET_DIR).Parent() / "Tests/Assets/AdditionalUv.fbx", Bytes,
+	                               100000));
+	auto Model = ImportFbxModel(Bytes.Data(), Bytes.Size());
+	REQUIRE(Model);
+	auto Result = Fixture.Services.pModels->LoadModel(Model.Value(), {});
+	REQUIRE(!Result);
+	REQUIRE(Result.Error().Code == EErrorCode::BackendFailure);
+	REQUIRE(DxLib::ModelTrace.Loads == 0);
+}

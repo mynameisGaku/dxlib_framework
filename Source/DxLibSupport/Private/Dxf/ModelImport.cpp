@@ -244,6 +244,13 @@ TResult<void> WriteMesh_Internal(FContext_Internal& Context, FWriter_Internal& W
 	Toolbox::TVector<FVertex_Internal> Corners;
 	Toolbox::TVector<Toolbox::uint32> FaceMaterials;
 	Corners.Reserve(Mesh->num_triangles * 3);
+	// 追加UVは存在する組だけ確保する。通常のモデルの頂点サイズを増やさない。
+	Toolbox::TVector<Toolbox::TVector<FVector2>> ExtraCorners;
+	ExtraCorners.Resize(Mesh->uv_sets.count > 0 ? Mesh->uv_sets.count - 1 : 0);
+	for (auto& Set : ExtraCorners)
+	{
+		Set.Reserve(Mesh->num_triangles * 3);
+	}
 	FaceMaterials.Reserve(Mesh->num_triangles);
 	for (Toolbox::size_t FaceIndex = 0; FaceIndex < Mesh->num_faces; ++FaceIndex)
 	{
@@ -277,12 +284,26 @@ TResult<void> WriteMesh_Internal(FContext_Internal& Context, FWriter_Internal& W
 				Vertex.Normal[1] = static_cast<Toolbox::f32>(Normal.y);
 				Vertex.Normal[2] = static_cast<Toolbox::f32>(Normal.z);
 			}
-			if (Mesh->vertex_uv.exists)
+			for (Toolbox::size_t Set = 0; Set < Mesh->uv_sets.count; ++Set)
 			{
-				const ufbx_vec2 Uv = ufbx_get_vertex_vec2(&Mesh->vertex_uv, Index);
-				// FBXのVは下から、DirectXのVは上から数える。
-				Vertex.Uv[0] = static_cast<Toolbox::f32>(Uv.x);
-				Vertex.Uv[1] = static_cast<Toolbox::f32>(1.0 - Uv.y);
+				// 追加UVの継ぎ目も頂点共有の判定へ含める。
+				const ufbx_vec2 Uv = ufbx_get_vertex_vec2(&Mesh->uv_sets.data[Set].vertex_uv, Index);
+				if (!Toolbox::IsFinite(Uv.x) || !Toolbox::IsFinite(Uv.y) || Toolbox::Abs(Uv.x) > 3.0e38 ||
+				    Toolbox::Abs(Uv.y) > 3.0e38)
+				{
+					return TResult<void>::Failure(EErrorCode::InvalidArgument,
+					                              "FBX UV coordinates must be finite float values");
+				}
+				if (Set == 0)
+				{
+					Vertex.Uv[0] = static_cast<Toolbox::f32>(Uv.x);
+					Vertex.Uv[1] = static_cast<Toolbox::f32>(1.0 - Uv.y);
+				}
+				else
+				{
+					ExtraCorners[Set - 1].PushBack(
+					    {static_cast<Toolbox::f32>(Uv.x), static_cast<Toolbox::f32>(1.0 - Uv.y)});
+				}
 			}
 			if (Mesh->vertex_color.exists)
 			{
@@ -318,13 +339,35 @@ TResult<void> WriteMesh_Internal(FContext_Internal& Context, FWriter_Internal& W
 	}
 	// 同じ属性の角を1頂点へまとめる。
 	Toolbox::TVector<Toolbox::uint32> Indices(Corners.Size());
-	ufbx_vertex_stream Stream = {Corners.Data(), Corners.Size(), sizeof(FVertex_Internal)};
+	ufbx_vertex_stream Streams[2] = {};
+	Streams[0] = {Corners.Data(), Corners.Size(), sizeof(FVertex_Internal)};
+	for (Toolbox::size_t Index = 0; Index < ExtraCorners.Size(); ++Index)
+	{
+		Streams[Index + 1] = {ExtraCorners[Index].Data(), Corners.Size(), sizeof(FVector2)};
+	}
 	ufbx_error Error;
 	const Toolbox::size_t VertexCount =
-	    ufbx_generate_indices(&Stream, 1, Indices.Data(), Indices.Size(), nullptr, &Error);
+	    ufbx_generate_indices(Streams, ExtraCorners.Size() + 1, Indices.Data(), Indices.Size(), nullptr, &Error);
 	if (Error.type != UFBX_ERROR_NONE)
 	{
 		return TResult<void>::Failure(EErrorCode::InvalidArgument, "FBX mesh index generation failed");
+	}
+	if (Mesh->uv_sets.count > 1)
+	{
+		// 標準.xに入らないUVは、最終頂点順でネイティブへ引き渡す。
+		FImportedModelMesh Extension;
+		Extension.FrameName = Context.NodeNames[Node->element_id] + "_mesh";
+		for (Toolbox::size_t Set = 1; Set < Mesh->uv_sets.count; ++Set)
+		{
+			Toolbox::TVector<FVector2> Uvs;
+			Uvs.Reserve(VertexCount);
+			for (Toolbox::size_t Index = 0; Index < VertexCount; ++Index)
+			{
+				Uvs.PushBack(ExtraCorners[Set - 1][Index]);
+			}
+			Extension.AdditionalUvs.PushBack(Toolbox::Move(Uvs));
+		}
+		Context.pModel->MeshExtensions.PushBack(Toolbox::Move(Extension));
 	}
 	const Toolbox::size_t TriangleCount = Indices.Size() / 3;
 	Writer.Text("Mesh ");
@@ -627,12 +670,14 @@ namespace
 TResult<void> CheckFeatures_Internal(const ufbx_scene& Scene, Toolbox::TVector<Toolbox::FString>& Warnings)
 {
 	// 複数メッシュに同じ未対応属性があっても、理由ごとに1件へまとめる。
-	bool bExtraUv = false;
 	// 複数の色セットは先頭だけ使うため、省略を通知する。
 	bool bExtraColor = false;
 	for (const ufbx_mesh* Mesh : Scene.meshes)
 	{
-		bExtraUv = bExtraUv || Mesh->uv_sets.count > 1;
+		if (Mesh->uv_sets.count > 2)
+		{
+			return TResult<void>::Failure(EErrorCode::InvalidArgument, "FBX meshes support at most two UV sets");
+		}
 		bExtraColor = bExtraColor || Mesh->color_sets.count > 1;
 		if (Mesh->skin_deformers.count > 1)
 		{
@@ -651,13 +696,30 @@ TResult<void> CheckFeatures_Internal(const ufbx_scene& Scene, Toolbox::TVector<T
 	{
 		Warnings.PushBack("Morph targets are ignored; only the base mesh and skeletal animation are imported");
 	}
-	if (bExtraUv)
-	{
-		Warnings.PushBack("Additional UV sets are ignored; only the first UV set is imported");
-	}
 	if (bExtraColor)
 	{
 		Warnings.PushBack("Additional vertex color sets are ignored; only the first color set is imported");
+	}
+	// UVを保持しても、標準材質はUV0で描く。異なる組の指定を黙って無視しない。
+	bool bTextureUvSelection = false;
+	for (const ufbx_mesh* Mesh : Scene.meshes)
+	{
+		for (const ufbx_material* Material : Mesh->materials)
+		{
+			const ufbx_texture* Texture = Material->fbx.diffuse_color.texture;
+			if (Texture == nullptr)
+			{
+				Texture = Material->pbr.base_color.texture;
+			}
+			if (Texture != nullptr && Texture->uv_set.length > 0)
+			{
+				bTextureUvSelection = bTextureUvSelection || Mesh->uv_sets.count == 0 || ToString_Internal(Texture->uv_set) != ToString_Internal(Mesh->uv_sets.data[0].name);
+			}
+		}
+	}
+	if (bTextureUvSelection)
+	{
+		Warnings.PushBack("Texture UV selection is not applied by the standard material; it uses UV0 while preserving UV1 for custom shaders");
 	}
 	// 基本拡散色以外の材質属性を読み込めたものとして扱わない。
 	bool bAdvancedMaterial = false;

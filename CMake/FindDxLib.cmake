@@ -123,9 +123,16 @@ if(DxLib_FOUND AND NOT TARGET DxLib::SDK)
         else()
             set(_dxf_fbx_define 0)
         endif()
+        string(JSON _dxf_extension ERROR_VARIABLE _dxf_extension_error GET "${_dxf_json}" model_extension_version)
+        if(_dxf_extension_error)
+            set(_dxf_extension 0)
+        endif()
+        if(NOT _dxf_extension MATCHES "^[0-9]+$")
+            message(FATAL_ERROR "Invalid DxLib model extension version")
+        endif()
         set_target_properties(DxLib::SDK PROPERTIES
             INTERFACE_INCLUDE_DIRECTORIES "${DxLib_INCLUDE_DIR}"
-            INTERFACE_COMPILE_DEFINITIONS "DX_LIB_NOT_DEFAULTPATH;DXF_DXLIB_HAS_FBX=${_dxf_fbx_define};DXF_DXLIB_MODELS=1"
+            INTERFACE_COMPILE_DEFINITIONS "DX_LIB_NOT_DEFAULTPATH;DXF_DXLIB_HAS_FBX=${_dxf_fbx_define};DXF_DXLIB_MODELS=1;DXF_DXLIB_MODEL_EXTENSION=${_dxf_extension}"
             INTERFACE_LINK_LIBRARIES "${_dxf_link};${_dxf_system_libs}")
     else()
         # DxLib.h emits the version/architecture-specific MSVC autolink directives.

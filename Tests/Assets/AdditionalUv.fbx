@@ -1,0 +1,25 @@
+; FBX 7.4.0 project file
+FBXHeaderExtension: { FBXVersion: 7400 }
+Objects: {
+ Model: 1, "Model::UVs", "Mesh" { }
+ Geometry: 2, "Geometry::UVs", "Mesh" {
+  Vertices: *9 { a: -100,0,0,0,200,0,100,0,0 }
+  PolygonVertexIndex: *3 { a: 0,1,-3 }
+  LayerElementUV: 0 {
+   Name: "Base"
+   MappingInformationType: "ByPolygonVertex"
+   ReferenceInformationType: "Direct"
+   UV: *6 { a: 0,0,0,1,1,0 }
+  }
+  LayerElementUV: 1 {
+   Name: "Detail"
+   MappingInformationType: "ByPolygonVertex"
+   ReferenceInformationType: "Direct"
+   UV: *6 { a: 0.2,0.3,0.2,0.8,0.7,0.3 }
+  }
+ }
+}
+Connections: {
+ C: "OO",1,0
+ C: "OO",2,1
+}

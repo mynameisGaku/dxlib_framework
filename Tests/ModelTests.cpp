@@ -658,7 +658,10 @@ TEST("model_import reports partial geometry and unsupported material features")
 	REQUIRE(Imported);
 	REQUIRE(Count_Internal(Imported.Value().ModelData, "Mesh Triangle_mesh") == 1);
 	REQUIRE(HasWarning_Internal(Imported.Value(), "Morph"));
-	REQUIRE(HasWarning_Internal(Imported.Value(), "UV"));
+	REQUIRE(!HasWarning_Internal(Imported.Value(), "UV"));
+	REQUIRE(Imported.Value().MeshExtensions.Size() == 1);
+	REQUIRE(Imported.Value().MeshExtensions[0].AdditionalUvs.Size() == 1);
+	REQUIRE(Imported.Value().MeshExtensions[0].AdditionalUvs[0].Size() == 3);
 	REQUIRE(!HasWarning_Internal(Imported.Value(), "Vertex colors"));
 	REQUIRE(Imported.Value().VertexColorFrames.Size() == 1);
 	REQUIRE(Imported.Value().VertexColorFrames[0] == "Triangle_mesh");
@@ -702,7 +705,9 @@ TEST("model warnings remain accessible on a cached model")
 {
 	// 未対応のUVと頂点色を含むファイルを、キャッシュ経由で2回取得する。
 	const Toolbox::FPath Scratch = Test::PrepareScratchDirectory("model-warning-cache");
-	Test::WriteScratchFile(Scratch / "features.fbx", FeatureFbx_Internal(""));
+	Test::WriteScratchFile(
+	    Scratch / "features.fbx",
+	    FeatureFbx_Internal("Material: 7, \"Material::Custom\", \"\" { ShadingModel: \"CustomPBR\" }"));
 	FFakeBackend Backend;
 	FFakeModelBackend Models;
 	FAssetService Assets(Backend, Backend, Backend, &Models);
@@ -751,4 +756,44 @@ TEST("model_import rejects vertex colors outside native range")
 	auto Imported = ImportFbxModel(Source.Data(), Source.Size());
 	REQUIRE(!Imported);
 	REQUIRE(Imported.Error().Message == "FBX vertex color multiplied by diffuse must be finite and in 0..1");
+}
+
+TEST("model_import keeps second UV coordinates and splits their seams")
+{
+	// 同一位置でも追加UVが異なる2面を共有してはいけない。
+	const char Source[] = R"FBX(; FBX 7.4.0 project file
+FBXHeaderExtension: { FBXVersion: 7400 }
+Objects: {
+ Model: 1, "Model::Seam", "Mesh" { }
+ Geometry: 2, "Geometry::Seam", "Mesh" {
+  Vertices: *9 { a: 0,0,0,1,0,0,0,1,0 }
+  PolygonVertexIndex: *6 { a: 0,1,-3,0,1,-3 }
+  LayerElementUV: 0 {
+   Name: "UV0"
+   MappingInformationType: "ByPolygonVertex"
+   ReferenceInformationType: "Direct"
+   UV: *12 { a: 0,0,1,0,0,1,0,0,1,0,0,1 }
+  }
+  LayerElementUV: 1 {
+   Name: "UV1"
+   MappingInformationType: "ByPolygonVertex"
+   ReferenceInformationType: "Direct"
+   UV: *12 { a: 0,0,1,0,0,1,0.5,0,1,0,0,1 }
+  }
+ }
+}
+Connections: { C: "OO",1,0
+ C: "OO",2,1
+}
+)FBX";
+	auto Imported = ImportFbxModel(Source, sizeof(Source) - 1);
+	REQUIRE(Imported);
+	const auto& Uvs = Imported.Value().MeshExtensions[0].AdditionalUvs[0];
+	REQUIRE(Uvs.Size() == 4);
+	Toolbox::size_t SeamVertices = 0;
+	for (const auto& Uv : Uvs)
+	{
+		SeamVertices += Uv.X == 0.5f && Uv.Y == 1.0f ? 1 : 0;
+	}
+	REQUIRE(SeamVertices == 1);
 }

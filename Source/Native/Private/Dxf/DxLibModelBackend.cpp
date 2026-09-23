@@ -9,6 +9,9 @@
 #ifndef DXF_DXLIB_MODELS
 #error "DXF_DXLIB_MODELS must be defined by FindDxLib (1: models available, 0: official package only)"
 #endif
+#if defined(DXF_DXLIB_MODEL_EXTENSION) && DXF_DXLIB_MODEL_EXTENSION >= 1
+extern "C" const Dxf::FImportedModel* DxfSetModelExtension(const Dxf::FImportedModel* Model);
+#endif
 namespace Dxf
 {
 namespace
@@ -159,9 +162,28 @@ TResult<FModelAllocation> FDxLibModelBackend::LoadModel(const FImportedModel& Mo
 	FTextureSource_Internal Source;
 	Source.pModel = &Model;
 	Source.pDirectory = &Directory;
+#if defined(DXF_DXLIB_MODEL_EXTENSION) && DXF_DXLIB_MODEL_EXTENSION >= 1
+	// 拡張属性はこの同期呼出しの間だけ参照する。
+	if (DxLib::GetUseASyncLoadFlag())
+	{
+		return TResult<FModelAllocation>::Failure(EErrorCode::InvalidState,
+		                                          "Model import requires synchronous native loading");
+	}
+	const FImportedModel* PreviousExtension = DxfSetModelExtension(&Model);
+#else
+	if (!Model.MeshExtensions.IsEmpty())
+	{
+		return TResult<FModelAllocation>::Failure(
+		    EErrorCode::BackendFailure,
+		    "Additional model attributes require an updated source DxLib build; run Setup.cmd");
+	}
+#endif
 	const Toolbox::int32 Handle =
 	    DxLib::MV1LoadModelFromMem(Model.ModelData.Data(), static_cast<int>(Model.ModelData.Size() - 1),
 	                               &ReadTexture_Internal, &ReleaseTexture_Internal, &Source);
+#if defined(DXF_DXLIB_MODEL_EXTENSION) && DXF_DXLIB_MODEL_EXTENSION >= 1
+	DxfSetModelExtension(PreviousExtension);
+#endif
 	if (Handle < 0)
 	{
 		return TResult<FModelAllocation>::Failure(EErrorCode::BackendFailure, "MV1LoadModelFromMem failed");

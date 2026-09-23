@@ -2,6 +2,7 @@
 #ifndef DXF_IMPORTED_MODEL_H
 #define DXF_IMPORTED_MODEL_H
 #include "Dxf/ImportedModelTexture.h"
+#include "Dxf/ImportedModelMesh.h"
 #include "Dxf/ImportedModelClip.h"
 namespace Dxf
 {
@@ -14,6 +15,10 @@ struct FImportedModel
 	 * DxLibが読めるテキスト形式のモデルデータ（DirectX .x）。
 	 */
 	Toolbox::TVector<char> ModelData;
+	/**
+	 * DxLibの読込境界で付加するメッシュ属性。空なら標準.xだけで読める。
+	 */
+	Toolbox::TVector<FImportedModelMesh> MeshExtensions;
 	/**
 	 * 頂点色を有効にする変換後のフレーム名。材質別に分かれたメッシュすべてへ適用する。
 	 */

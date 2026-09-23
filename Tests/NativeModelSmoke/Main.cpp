@@ -3,6 +3,7 @@
 // 2体の独立したインスタンス・一時停止・速度・再読込・受付後の破棄・日本語パス・描画失敗・終了順序を扱う。
 // 使い方: NativeModelSmoke <ProjectRoot> <画像の出力ディレクトリ>
 #include "Dxf/AssetService.h"
+#include "Dxf/ModelImport.h"
 #include "Dxf/DxLibSession.h"
 #include "Dxf/NativeBackends.h"
 #include "Dxf/RenderSystem.h"
@@ -231,6 +232,28 @@ void Run_Internal(const Toolbox::FPath& Root, const Toolbox::FPath& OutDir)
 	Check_Internal(Assets.SetProjectRoot(Root), "project root");
 	FRenderSystem Renderer(Smoke.Services.Renderer);
 
+	// 実DxLibの最終頂点から、追加UVが落ちずに保持されていることを確認する。
+	Toolbox::TVector<Toolbox::uint8> UvBytes;
+	Check_Internal(Toolbox::ReadFileBytes(Root / "Tests/Assets/AdditionalUv.fbx", UvBytes, 100000),
+	               "read additional UV fixture");
+	auto UvData = TakeOrThrow_Internal(ImportFbxModel(UvBytes.Data(), UvBytes.Size()));
+	auto UvAllocation = TakeOrThrow_Internal(Smoke.Services.pModels->LoadModel(UvData, {}));
+	const Toolbox::int32 UvHandle = UvAllocation.NativeHandle;
+	Check_Internal(DxLib::MV1SetupReferenceMesh(UvHandle, -1, FALSE) >= 0, "setup native UV reference");
+	const auto UvReference = DxLib::MV1GetReferenceMesh(UvHandle, -1, FALSE);
+	bool UvsMatch = UvReference.VertexNum == 3;
+	for (Toolbox::int32 Index = 0; Index < UvReference.VertexNum; ++Index)
+	{
+		const auto& Vertex = UvReference.Vertexs[Index];
+		UvsMatch = UvsMatch && Toolbox::Abs(Vertex.TexCoord[1].u - (Vertex.TexCoord[0].u * 0.5f + 0.2f)) < 0.0001f;
+		UvsMatch = UvsMatch && Toolbox::Abs(Vertex.TexCoord[1].v - (Vertex.TexCoord[0].v * 0.5f + 0.2f)) < 0.0001f;
+	}
+	Check_Internal(UvsMatch, "second UV set survives native model conversion");
+	Smoke.Services.pModels->DeleteModel(UvHandle);
+	FModel UvModel = TakeOrThrow_Internal(Assets.LoadModel("Tests/Assets/AdditionalUv.fbx"));
+	FModelInstance UvInstance = TakeOrThrow_Internal(Assets.CreateModelInstance(UvModel));
+	const FSignature UvFrame = Smoke.Frame(Renderer, &UvInstance, nullptr, "additional-uv");
+	Check_Internal(UvFrame.Pixels[0] + UvFrame.Pixels[1] > 1000, "model with two UV sets draws");
 	// 頂点色を補間し、材質の拡散色を乗算した三角形を実画面で確認する。
 	FModel Colors = TakeOrThrow_Internal(Assets.LoadModel("Tests/Assets/VertexColors.fbx"));
 	FModelInstance Colored = TakeOrThrow_Internal(Assets.CreateModelInstance(Colors));
