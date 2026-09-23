@@ -1,0 +1,2 @@
+# Preserve historical bytes, including original line endings and whitespace.
+IntegrationPackages/** -text -whitespace

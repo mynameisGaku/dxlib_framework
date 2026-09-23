@@ -1,0 +1,127 @@
+[
+  {
+    "source": "apply_application_renderer.py",
+    "destination": "Docs/Archive/IntegrationPackages/apply_application_renderer.py",
+    "sha256": "e374f483c7aa85df4ff4209f9e854534aec05274ce84e1a351654f66f73379bc"
+  },
+  {
+    "source": "apply_debug_tools.py",
+    "destination": "Docs/Archive/IntegrationPackages/apply_debug_tools.py",
+    "sha256": "101f3c3c508bc403a513e99a0279aa582af4bc6b94454dc22e71b297d2b837e1"
+  },
+  {
+    "source": "apply_physics_snapshot.py",
+    "destination": "Docs/Archive/IntegrationPackages/apply_physics_snapshot.py",
+    "sha256": "d2b732118ed00513fa06d16c956157c1363a5163b20541d3ca0d96fc61f02714"
+  },
+  {
+    "source": "apply_render_views.py",
+    "destination": "Docs/Archive/IntegrationPackages/apply_render_views.py",
+    "sha256": "612e20d871638e291e3a3ce09cd7d631718b5592b61c950f28d4d2a0ef3f1f4c"
+  },
+  {
+    "source": "apply_scene_tasks.py",
+    "destination": "Docs/Archive/IntegrationPackages/apply_scene_tasks.py",
+    "sha256": "c02e1b9f4d7af2e8a731e17369fee3442800bf06cab5caa84640d47b25ed729a"
+  },
+  {
+    "source": "apply_scope_isolation.py",
+    "destination": "Docs/Archive/IntegrationPackages/apply_scope_isolation.py",
+    "sha256": "d1413cb831ba021421d02bc1d82ccce06b66af17984d76a185fccee44052ff91"
+  },
+  {
+    "source": "apply_stage2.py",
+    "destination": "Docs/Archive/IntegrationPackages/apply_stage2.py",
+    "sha256": "61164276c755d840edffd832c2f25f24eadfbab3968e96bec0339b5ecb3a529c"
+  },
+  {
+    "source": "apply_task_dispatcher.py",
+    "destination": "Docs/Archive/IntegrationPackages/apply_task_dispatcher.py",
+    "sha256": "b336f679cf0383054c098503a23bb8061108af7405376cfc1233ed2216de3a94"
+  },
+  {
+    "source": "integration.py",
+    "destination": "Docs/Archive/IntegrationPackages/integration.py",
+    "sha256": "df823fffc46160f09df16b5b670aaaa2f96a203be4cad885e8c21cd46dfe57b1"
+  },
+  {
+    "source": "test_applier.py",
+    "destination": "Docs/Archive/IntegrationPackages/test_applier.py",
+    "sha256": "acf0dcdf6cd40139939f82d56605bfdc98e7933932ff550ff01869e95374359f"
+  },
+  {
+    "source": "test_apply.py",
+    "destination": "Docs/Archive/IntegrationPackages/test_apply.py",
+    "sha256": "1f3dedce6107634b547dc2b398d85e0adc4d001bb8fadc018db4ed2ed183d424"
+  },
+  {
+    "source": "APPLY.md",
+    "destination": "Docs/Archive/IntegrationPackages/APPLY.md",
+    "sha256": "8d0a65d280b417142efbfbe9c9d7b2902e7afe3ffed8ddd9cf8d61b9a7a38be9"
+  },
+  {
+    "source": "AUDIT.md",
+    "destination": "Docs/Archive/IntegrationPackages/AUDIT.md",
+    "sha256": "28ccf8cfe2741135a5558f30a66c6dae27816c47db18194223033ec917e999f0"
+  },
+  {
+    "source": "MANIFEST.json",
+    "destination": "Docs/Archive/IntegrationPackages/MANIFEST.json",
+    "sha256": "68c08acd0717211775d0b6ff0ad483ce2605d2d2e7bb8f49c5f1acf72adf7d8f"
+  },
+  {
+    "source": "PACKAGE_SHA256.json",
+    "destination": "Docs/Archive/IntegrationPackages/PACKAGE_SHA256.json",
+    "sha256": "89bd66cd592ec969a3e27a7b155374b4bfd60d7bf27c1e13cc4b7fd220b4cdb3"
+  },
+  {
+    "source": "SHA256.json",
+    "destination": "Docs/Archive/IntegrationPackages/SHA256.json",
+    "sha256": "db39fa56ddc58b47420ddcad91e76815b0363ee8a27c764817a72523543f1ee0"
+  },
+  {
+    "source": "STATUS.json",
+    "destination": "Docs/Archive/IntegrationPackages/STATUS.json",
+    "sha256": "318235858d948e0f12adfb00788d88be706d308c5d63abda73c546937e76dd5e"
+  },
+  {
+    "source": "VALIDATION.json",
+    "destination": "Docs/Archive/IntegrationPackages/VALIDATION.json",
+    "sha256": "9c6ab7d9a4b5708b3f85bd566690737f4c6191bb53092f7f9856a04825465dd5"
+  },
+  {
+    "source": "VALIDATION_SOURCE_SHA256.json",
+    "destination": "Docs/Archive/IntegrationPackages/VALIDATION_SOURCE_SHA256.json",
+    "sha256": "1e8e728b9863df2779e92326745b3981cc86eafe0a70376792bfe81931555c3c"
+  },
+  {
+    "source": "dxlib_framework_c75e7bb_multithreading_stage1.patch",
+    "destination": "Docs/Archive/IntegrationPackages/dxlib_framework_c75e7bb_multithreading_stage1.patch",
+    "sha256": "6f9bf39abe7a221a05837330a6e22aaa33fe3861a06033814d7f67b50186c517"
+  },
+  {
+    "source": "e753045_render_jobs.patch",
+    "destination": "Docs/Archive/IntegrationPackages/e753045_render_jobs.patch",
+    "sha256": "1099e147d371eacc55758c33e31a965cb085365bd01f2320fb6276bdc0a7ff72"
+  },
+  {
+    "source": "scene_task_lifetime.patch",
+    "destination": "Docs/Archive/IntegrationPackages/scene_task_lifetime.patch",
+    "sha256": "9c22ff01d88c769decab108fcaf63d06a4e9f03bc2952ca77dab938ed1121eb5"
+  },
+  {
+    "source": "task_dispatcher_recovery.patch",
+    "destination": "Docs/Archive/IntegrationPackages/task_dispatcher_recovery.patch",
+    "sha256": "4934f5a665a3f354595f6bcbaf5bb87f3514b2873958843f5aa67315e6f269bf"
+  },
+  {
+    "source": "no-stl.log",
+    "destination": "Docs/Archive/IntegrationPackages/no-stl.log",
+    "sha256": "428cbdbe1888187923cd1bb6fddb61234c7689bd18076afd441ed2e434c2b086"
+  },
+  {
+    "source": "README.md",
+    "destination": "Docs/Archive/IntegrationPackages/OriginalREADME.md",
+    "sha256": "580bf9fc835e90a5cf1dd33b666ee16a52acbd97a947d685b25456c86defbbef"
+  }
+]
