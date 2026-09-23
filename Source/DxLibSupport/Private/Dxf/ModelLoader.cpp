@@ -141,6 +141,11 @@ TResult<FModel> FModelLoader::Load(const Toolbox::FString& Path, const FModelLoa
 	}
 	FModelMetadata Metadata;
 	Metadata.Path = Path;
+	Metadata.ImportWarnings = Toolbox::Move(Imported.Value().Warnings);
+	for (const Toolbox::FString& Warning : Metadata.ImportWarnings)
+	{
+		DXF_LOG_WARNING("Model", "%s (%s)", Warning.CStr(), Path.CStr());
+	}
 	for (Toolbox::size_t Index = 0; Index < Imported.Value().Clips.Size(); ++Index)
 	{
 		const FImportedModelClip& Clip = Imported.Value().Clips[Index];

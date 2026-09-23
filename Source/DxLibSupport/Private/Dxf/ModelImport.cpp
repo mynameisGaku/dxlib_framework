@@ -569,6 +569,77 @@ void WriteAnimations_Internal(FContext_Internal& Context, FWriter_Internal& Writ
 }
 } // namespace
 
+namespace
+{
+// 現在の変換で失われる機能を記録し、姿勢を正しく保持できないスキンは拒否する。
+// @param Scene ufbxによる解析結果。
+// @param Warnings 部分読み込みの理由を追記する先。
+TResult<void> CheckFeatures_Internal(const ufbx_scene& Scene, Toolbox::TVector<Toolbox::FString>& Warnings)
+{
+	// 複数メッシュに同じ未対応属性があっても、理由ごとに1件へまとめる。
+	bool bExtraUv = false;
+	bool bVertexColor = false;
+	for (const ufbx_mesh* Mesh : Scene.meshes)
+	{
+		bExtraUv = bExtraUv || Mesh->uv_sets.count > 1;
+		bVertexColor = bVertexColor || Mesh->vertex_color.exists;
+		if (Mesh->skin_deformers.count > 1)
+		{
+			return TResult<void>::Failure(EErrorCode::InvalidArgument, "FBX meshes with multiple skins are unsupported");
+		}
+	}
+	for (const ufbx_skin_deformer* Skin : Scene.skin_deformers)
+	{
+		if (Skin->skinning_method != UFBX_SKINNING_METHOD_LINEAR && Skin->skinning_method != UFBX_SKINNING_METHOD_RIGID)
+		{
+			return TResult<void>::Failure(EErrorCode::InvalidArgument, "FBX dual-quaternion skinning is unsupported");
+		}
+	}
+	if (Scene.blend_deformers.count > 0)
+	{
+		Warnings.PushBack("Morph targets are ignored; only the base mesh and skeletal animation are imported");
+	}
+	if (bExtraUv)
+	{
+		Warnings.PushBack("Additional UV sets are ignored; only the first UV set is imported");
+	}
+	if (bVertexColor)
+	{
+		Warnings.PushBack("Vertex colors are ignored");
+	}
+	// 基本拡散色以外の材質属性を読み込めたものとして扱わない。
+	bool bAdvancedMaterial = false;
+	bool bPhong = false;
+	for (const ufbx_material* Material : Scene.materials)
+	{
+		bAdvancedMaterial = bAdvancedMaterial || (Material->shader_type != UFBX_SHADER_FBX_LAMBERT && Material->shader_type != UFBX_SHADER_FBX_PHONG);
+		bPhong = bPhong || Material->shader_type == UFBX_SHADER_FBX_PHONG;
+	}
+	if (bAdvancedMaterial)
+	{
+		Warnings.PushBack("PBR or unknown material shading is unsupported; only the FBX diffuse color and base texture fallback are imported");
+	}
+	if (bPhong)
+	{
+		Warnings.PushBack("Phong specular, shininess and emission are ignored; only diffuse color and texture are imported");
+	}
+	if (Scene.cameras.count > 0 || Scene.lights.count > 0)
+	{
+		Warnings.PushBack("File cameras and lights are ignored; use the render view settings");
+	}
+	if (Scene.constraints.count > 0)
+	{
+		return TResult<void>::Failure(EErrorCode::InvalidArgument, "FBX constraints must be baked into node animation before import");
+	}
+	// ufbxが補正して読み進めた内容も、呼出し側が確認できるように残す。
+	for (const ufbx_warning& Warning : Scene.metadata.warnings)
+	{
+		Warnings.PushBack(Toolbox::FString("ufbx: ") + Toolbox::FString(Warning.description.data, Warning.description.length));
+	}
+	return {};
+}
+} // namespace
+
 TResult<FImportedModel> ImportFbxModel(const void* Data, Toolbox::size_t Size, const FModelImportOptions& Options)
 {
 	if (Data == nullptr || Size == 0)
@@ -593,6 +664,8 @@ TResult<FImportedModel> ImportFbxModel(const void* Data, Toolbox::size_t Size, c
 	LoadOptions.handedness_conversion_axis = UFBX_MIRROR_AXIS_Z;
 	LoadOptions.space_conversion = UFBX_SPACE_CONVERSION_MODIFY_GEOMETRY;
 	LoadOptions.generate_missing_normals = true;
+	// OBJ等の別形式を拡張子だけFBXへ変えて受け付けない。
+	LoadOptions.file_format = UFBX_FILE_FORMAT_FBX;
 	ufbx_error Error;
 	// ufbx自身の所有型で、変換中に例外が発生した場合も解析結果を解放する。
 	ufbx_unique_ptr<ufbx_scene> SceneOwner(ufbx_load_memory(Data, Size, &LoadOptions, &Error));
@@ -623,6 +696,12 @@ TResult<FImportedModel> ImportFbxModel(const void* Data, Toolbox::size_t Size, c
 		}
 	}
 	FImportedModel Model;
+	// 省略と失敗を分類し、失敗した入力をネイティブへ渡さない。
+	auto Features = CheckFeatures_Internal(*Scene, Model.Warnings);
+	if (!Features)
+	{
+		return TResult<FImportedModel>::Failure(Features.Error());
+	}
 	Model.SamplesPerSecond = Options.SamplesPerSecond;
 	FContext_Internal Context;
 	Context.pScene = Scene;

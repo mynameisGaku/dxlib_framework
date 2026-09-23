@@ -161,7 +161,7 @@ TResult<FModel> FAssetService::LoadModel(const Toolbox::FString& Path, const FMo
 	}
 	// 検索または入力のキー。設定が異なれば別のモデルとして扱う。
 	char Suffix[64];
-	snprintf(Suffix, sizeof(Suffix), "|%.9g|%u", Options.TargetUnitMeters, static_cast<unsigned>(Options.SamplesPerSecond));
+	snprintf(Suffix, sizeof(Suffix), "|%a|%u", Options.TargetUnitMeters, static_cast<unsigned>(Options.SamplesPerSecond));
 	const Toolbox::FString Key = Resolved + Suffix;
 	// 再利用可能なキャッシュを取得して有効性を確認する。
 	if (auto Cached = m_ModelCache.Find(Key))

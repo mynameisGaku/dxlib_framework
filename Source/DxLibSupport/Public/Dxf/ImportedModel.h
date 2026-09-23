@@ -26,6 +26,10 @@ struct FImportedModel
 	 * クリップのサンプリング間隔（1秒あたりのキー数）。
 	 */
 	Toolbox::uint32 SamplesPerSecond = 0;
+	/**
+	 * 未対応データを省略した理由と、解析時の回復可能な問題。成功でも空とは限らない。
+	 */
+	Toolbox::TVector<Toolbox::FString> Warnings;
 };
 } // namespace Dxf
 #endif

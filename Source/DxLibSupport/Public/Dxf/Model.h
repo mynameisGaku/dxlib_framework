@@ -52,6 +52,10 @@ struct FModelMetadata
 	 * FBX上の順序どおりのクリップ。
 	 */
 	Toolbox::TVector<FModelClipInfo> Clips;
+	/**
+	 * 読み込みで省略した機能などの警告。キャッシュから取得しても保持する。
+	 */
+	Toolbox::TVector<Toolbox::FString> ImportWarnings;
 };
 /**
  * 読み込んだモデルデータ（インスタンスの複製元）を保持するレコード。
@@ -155,6 +159,22 @@ public:
 	 * @param Name FBX上のクリップ名（UTF-8）。
 	 */
 	Toolbox::int32 FindClip(const Toolbox::FString& Name) const noexcept;
+	/**
+	 * 部分読み込みの警告数。無効なモデルでは0。
+	 */
+	Toolbox::size_t GetImportWarningCount() const noexcept
+	{
+		return m_pResource ? m_pResource->GetMetadata().ImportWarnings.Size() : 0;
+	}
+	/**
+	 * 警告本文を取得する。範囲外はnullptr。モデルの生存中だけ有効。
+	 * @param Index 警告番号。
+	 */
+	const Toolbox::FString* GetImportWarning(Toolbox::size_t Index) const noexcept
+	{
+		return Index < GetImportWarningCount() ? &m_pResource->GetMetadata().ImportWarnings[Index] : nullptr;
+	}
+
 	/**
 	 * 解決済みの読み込みパスを取得する。
 	 */

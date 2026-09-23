@@ -3,6 +3,7 @@
 // ネイティブ境界だけをテスト実装に置き換え、DxLibとFBX SDKは使わない。
 #include "Support/FakeBackend.h"
 #include "Support/Test.h"
+#include "Support/TestFs.h"
 #include "Dxf/AssetService.h"
 #include "Dxf/ModelImport.h"
 #include "Dxf/RenderSystem.h"
@@ -583,4 +584,145 @@ Objects: {
 	REQUIRE(!Imported);
 	REQUIRE(Imported.Error().Code == EErrorCode::InvalidArgument);
 	REQUIRE(Imported.Error().Message == "FBX animation duration is invalid or exceeds the key limit");
+}
+
+namespace
+{
+// 未対応属性を含めた最小FBX。外部SDKでの生成には依存しない。
+Toolbox::FString FeatureFbx_Internal(const char* ExtraObjects, const char* ExtraConnections = "")
+{
+	// 面・頂点・2組のUV・頂点色を持つ三角形。
+	Toolbox::FString Source = R"FBX(; FBX 7.4.0 project file
+FBXHeaderExtension: { FBXVersion: 7400 }
+Objects: {
+ Model: 1, "Model::Triangle", "Mesh" { }
+ Geometry: 2, "Geometry::Triangle", "Mesh" {
+  Vertices: *9 { a: 0,0,0,1,0,0,0,1,0 }
+  PolygonVertexIndex: *3 { a: 0,1,-3 }
+  LayerElementUV: 0 {
+   Name: "UV0"
+   MappingInformationType: "ByPolygonVertex"
+   ReferenceInformationType: "Direct"
+   UV: *6 { a: 0,0,1,0,0,1 }
+  }
+  LayerElementUV: 1 {
+   Name: "UV1"
+   MappingInformationType: "ByPolygonVertex"
+   ReferenceInformationType: "Direct"
+   UV: *6 { a: 0,0,0.5,0,0,0.5 }
+  }
+  LayerElementColor: 0 {
+   MappingInformationType: "ByPolygonVertex"
+   ReferenceInformationType: "Direct"
+   Colors: *12 { a: 1,0,0,1,0,1,0,1,0,0,1,1 }
+  }
+ }
+)FBX";
+	Source += ExtraObjects;
+	Source += "\n}\nConnections: {\n C: \"OO\",1,0\n C: \"OO\",2,1\n";
+	Source += ExtraConnections;
+	Source += "\n}\n";
+	return Source;
+}
+
+// 警告が対象機能を説明しているかを確認する。
+bool HasWarning_Internal(const FImportedModel& Model, const char* Fragment)
+{
+	// 探す文言のバイト数。
+	const Toolbox::FString Expected(Fragment);
+	for (const Toolbox::FString& Warning : Model.Warnings)
+	{
+		for (Toolbox::size_t Index = 0; Index + Expected.Size() <= Warning.Size(); ++Index)
+		{
+			if (Toolbox::FString(Warning.Data() + Index, Expected.Size()) == Expected)
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+} // namespace
+
+TEST("model_import reports partial geometry and unsupported material features")
+{
+	// モーフ、独自PBR材質、カメラ、ライトは取り込まないことを明示する。
+	const Toolbox::FString Source = FeatureFbx_Internal(R"FBX(
+ Deformer: 3, "Deformer::Morph", "BlendShape" { }
+ Material: 4, "Material::CustomPBR", "" { ShadingModel: "CustomPBR" }
+ NodeAttribute: 5, "NodeAttribute::Camera", "Camera" { }
+ NodeAttribute: 6, "NodeAttribute::Light", "Light" { }
+)FBX");
+	// 対応部分のメッシュを保ちつつ、失われた各属性が通知される。
+	auto Imported = ImportFbxModel(Source.Data(), Source.Size());
+	REQUIRE(Imported);
+	REQUIRE(Count_Internal(Imported.Value().ModelData, "Mesh Triangle_mesh") == 1);
+	REQUIRE(HasWarning_Internal(Imported.Value(), "Morph"));
+	REQUIRE(HasWarning_Internal(Imported.Value(), "UV"));
+	REQUIRE(HasWarning_Internal(Imported.Value(), "Vertex colors"));
+	REQUIRE(HasWarning_Internal(Imported.Value(), "PBR"));
+	REQUIRE(HasWarning_Internal(Imported.Value(), "cameras and lights"));
+}
+
+TEST("model_import rejects dual quaternion and multiple skin deformers")
+{
+	// 線形変換へ黙って置き換えられないスキン方式。
+	const Toolbox::FString Dual = FeatureFbx_Internal(R"FBX(
+ Deformer: 3, "Deformer::Skin", "Skin" { SkinningType: "DualQuaternion" }
+)FBX", " C: \"OO\",3,2\n");
+	auto DualResult = ImportFbxModel(Dual.Data(), Dual.Size());
+	REQUIRE(!DualResult);
+	REQUIRE(DualResult.Error().Message == "FBX dual-quaternion skinning is unsupported");
+	// 2つ目のスキンを捨てて成功させない。
+	const Toolbox::FString Multiple = FeatureFbx_Internal(R"FBX(
+ Deformer: 3, "Deformer::A", "Skin" { }
+ Deformer: 4, "Deformer::B", "Skin" { }
+)FBX", " C: \"OO\",3,2\n C: \"OO\",4,2\n");
+	auto MultipleResult = ImportFbxModel(Multiple.Data(), Multiple.Size());
+	REQUIRE(!MultipleResult);
+	REQUIRE(MultipleResult.Error().Message == "FBX meshes with multiple skins are unsupported");
+}
+
+TEST("model_import refuses a different format instead of silently accepting it as FBX")
+{
+	// ufbxが自動判定なら読み込めるOBJを、FBX専用入口では拒否する。
+	const char Source[] = "v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n";
+	REQUIRE(!ImportFbxModel(Source, sizeof(Source) - 1));
+}
+
+TEST("model warnings remain accessible on a cached model")
+{
+	// 未対応のUVと頂点色を含むファイルを、キャッシュ経由で2回取得する。
+	const Toolbox::FPath Scratch = Test::PrepareScratchDirectory("model-warning-cache");
+	Test::WriteScratchFile(Scratch / "features.fbx", FeatureFbx_Internal(""));
+	FFakeBackend Backend;
+	FFakeModelBackend Models;
+	FAssetService Assets(Backend, Backend, Backend, &Models);
+	REQUIRE(Assets.SetProjectRoot(Scratch));
+	auto First = Assets.LoadModel("features.fbx");
+	REQUIRE(First);
+	REQUIRE(First.Value().GetImportWarningCount() > 0);
+	auto Cached = Assets.LoadModel("features.fbx");
+	REQUIRE(Cached);
+	REQUIRE(Models.m_Loads == 1);
+	REQUIRE(Cached.Value().GetImportWarningCount() == First.Value().GetImportWarningCount());
+	REQUIRE(*Cached.Value().GetImportWarning(0) == *First.Value().GetImportWarning(0));
+	REQUIRE(Cached.Value().GetImportWarning(Cached.Value().GetImportWarningCount()) == nullptr);
+}
+
+TEST("model cache does not merge distinct unit conversion settings")
+{
+	// 表示上同じ9桁になる設定でも、同じキャッシュへまとめない。
+	FFakeBackend Backend;
+	FFakeModelBackend Models;
+	FAssetService Assets(Backend, Backend, Backend, &Models);
+	REQUIRE(Assets.SetProjectRoot(Toolbox::FPath(DXF_TEST_ASSET_DIR).Parent()));
+	FModelLoadOptions Options;
+	Options.TargetUnitMeters = 1.0;
+	auto First = Assets.LoadModel("Assets/Models/StaticBox.fbx", Options);
+	REQUIRE(First);
+	Options.TargetUnitMeters = 1.0000000001;
+	auto Second = Assets.LoadModel("Assets/Models/StaticBox.fbx", Options);
+	REQUIRE(Second);
+	REQUIRE(Models.m_Loads == 2);
 }

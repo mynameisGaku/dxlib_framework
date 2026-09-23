@@ -230,7 +230,7 @@ if(DXF_BUILD_TESTS)
     dxf_add_application_render_integration_tests(dxf::framework)
 
     # モデル: 実際の.fbxの変換（ufbx）と、読み込み・解放順序・再生・Get3Dの描画命令。DxLibとFBX SDKは不要。
-    add_executable(dxf_model_tests Tests/TestMain.cpp Tests/ModelTests.cpp)
+    add_executable(dxf_model_tests Tests/TestMain.cpp Tests/ModelTests.cpp Tests/Support/TestFs.cpp)
     target_link_libraries(dxf_model_tests PRIVATE dxf::framework)
     target_include_directories(dxf_model_tests PRIVATE Tests)
     target_compile_definitions(dxf_model_tests PRIVATE DXF_TEST_ASSET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/Assets")
