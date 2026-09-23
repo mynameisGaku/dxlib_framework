@@ -2,6 +2,8 @@
 #include "RenderDebugScene.h"
 #include "TransparencyDemo.h"
 #include "Dxf/AssetService.h"
+#include "Dxf/ViewCoordinates.h"
+#include <stdio.h>
 #include "Dxf/RenderContext.h"
 #include "Dxf/SceneNavigator.h"
 #include "Toolbox/Log.h"
@@ -74,6 +76,7 @@ TResult<void> ARenderDebugScene::OnInitialize(const FInitContext& Context)
 	}
 	m_Font = Toolbox::Move(Font).Value();
 	ResetSimulation_Internal();
+	PrepareView_Internal();
 	return {};
 }
 void ARenderDebugScene::ResetSimulation_Internal()
@@ -126,6 +129,7 @@ void ARenderDebugScene::ResetSimulation_Internal()
 	m_Recorder = Toolbox::Move(Recorder);
 	m_Live2D = Toolbox::Move(Live2D);
 	m_Selected = {};
+	m_PickedCollider.Reset();
 	m_Simulation.Reset();
 	m_HistoryAge = 0;
 	m_SimSeconds = 0;
@@ -195,6 +199,7 @@ void ARenderDebugScene::UpdateCamera_Internal(const FInputSnapshot& Input, Toolb
 void ARenderDebugScene::OnTick(const FTickContext& Context)
 {
 	const auto& Input = Context.Input;
+	const auto PreviousAge = m_HistoryAge;
 	if (Input.WasPressed(EKey::F7))
 	{
 		m_bTransparencyDemo = !m_bTransparencyDemo;
@@ -240,6 +245,7 @@ void ARenderDebugScene::OnTick(const FTickContext& Context)
 		DXF_LOG_INFO("RenderDebug", "3D physics observation %s", m_Recorder.IsEnabled() ? "enabled" : "disabled");
 		m_HistoryAge = 0;
 		m_Selected = {};
+		m_PickedCollider.Reset();
 		Capture_Internal(true);
 	}
 	if (Input.WasPressed(EKey::F9))
@@ -286,7 +292,7 @@ void ARenderDebugScene::OnTick(const FTickContext& Context)
 		Capture2D_Internal();
 	}
 	const auto& History = m_Recorder.GetHistory();
-	if (m_Simulation.IsPaused() && History.GetCount() != 0)
+	if (m_Recorder.IsEnabled() && m_Simulation.IsPaused() && History.GetCount() != 0)
 	{
 		if (Input.WasPressed(EKey::Z))
 		{
@@ -306,24 +312,49 @@ void ARenderDebugScene::OnTick(const FTickContext& Context)
 			m_Selected = Toolbox::Move(Selected).Value();
 		}
 	}
+	if (PreviousAge != m_HistoryAge)
+	{
+		m_PickedCollider.Reset();
+	}
+	PrepareView_Internal();
+	UpdatePicking_Internal(Input);
 }
 void ARenderDebugScene::OnDraw(FRenderContext& Render) const
 {
-	auto View = m_Camera.MakeView(m_View);
-	if (!View)
-	{
-		throw Toolbox::FException(View.Error().Message);
-	}
-	Require_Internal(Render.Get3D().SetView(View.Value()));
+	Require_Internal(Render.Get3D().SetView(m_DrawView));
 	// 固定更新直後の値を描く。履歴選択は描画だけを変更し、Worldへ書き戻さない。
 	// 観察無効中は空の値になり、Worldを直接読んで代わりに描くことはしない。
-	const auto& Snapshot = m_HistoryAge == 0 ? m_Recorder.GetLive() : m_Selected;
+	const auto& Snapshot = GetDisplaySnapshot();
 	for (Toolbox::size_t Index = 0; Index < Snapshot.Items.Size(); ++Index)
 	{
 		const auto& Item = Snapshot.Items[Index];
 		FDrawStyle3D Style;
 		Style.Color = Item.Type == EBodyType::Static ? FColor{100, 100, 100, 255} :
 			(Index % 2 == 0 ? FColor{255, 150, 60, 255} : FColor{80, 160, 255, 255});
+		const bool Picked = m_PickedCollider && *m_PickedCollider == Item.Collider;
+		if (Picked)
+		{
+			Style.Color = {255, 220, 30, 255};
+			// 印は重心であり、交点やCollider中心とは限らない。観察用に遮蔽を無視する。
+			const auto Point = ProjectWorldToScreen(m_DrawView, 1280, 720, Item.CenterOfMass);
+			if (Point && Point.Value().bInsideView)
+			{
+				Require_Internal(Render.Get2D().DrawCircle(Point.Value().Screen, 7));
+				Require_Internal(Render.Get2D().DrawText(m_Font, "Collider COM", {Point.Value().Screen.X + 12, Point.Value().Screen.Y}));
+			}
+			char Identity[256];
+			snprintf(Identity, sizeof(Identity), "%s Step=%llu World=%llu Body=%llu:%llu Collider=%llu:%llu", m_HistoryAge ? "HISTORY" : "LIVE", Snapshot.Step, Snapshot.World, static_cast<Toolbox::uint64>(Item.Collider.Body.Index), Item.Collider.Body.Generation, static_cast<Toolbox::uint64>(Item.Collider.Index), Item.Collider.Generation);
+			char State[256];
+			snprintf(State, sizeof(State), "COM=(%.2f,%.2f,%.2f) Velocity=(%.2f,%.2f,%.2f) Sleeping=%s", Item.CenterOfMass.X, Item.CenterOfMass.Y, Item.CenterOfMass.Z, Item.Velocity.X, Item.Velocity.Y, Item.Velocity.Z, Item.bSleeping ? "yes" : "no");
+			FDrawStyle Details;
+			Details.Layer = 1100;
+			Details.Color = {0, 0, 0, 255};
+			Require_Internal(Render.Get2D().FillRectangle({0, 650, 950, 720}, Details));
+			Details.Layer = 1101;
+			Details.Color = {255, 255, 255, 255};
+			Require_Internal(Render.Get2D().DrawText(m_Font, Identity, {12, 654}, Details));
+			Require_Internal(Render.Get2D().DrawText(m_Font, State, {12, 682}, Details));
+		}
 		Item.Shape.Visit([&](const auto& Shape)
 		{
 			if constexpr (Toolbox::IsSame<Toolbox::TDecay<decltype(Shape)>, Toolbox::FSphere>)
@@ -398,16 +429,98 @@ void ARenderDebugScene::DrawPanel_Internal(FRender2DContext& Render) const
 			Toolbox::ToString(Live.Items.Size()) + "。表示用の別登録なし。" :
 		Toolbox::FString("観察OFF: 採取と履歴保存を停止中。Worldの更新は継続。");
 	Require_Internal(Render.DrawText(m_Font, Observed, {16, 140}, Text));
-	Require_Internal(Render.DrawText(m_Font, m_DroppedSeconds > 0 ? "更新上限でゲーム時間を破棄。GPU時間は未計測。" :
-		"履歴は観察専用でWorldへ書き戻さない。接触点/Impulse/GPU時間は未計測。", {16, 166}, Text));
+	Require_Internal(Render.DrawText(m_Font, m_DroppedSeconds > 0 ? "更新上限でゲーム時間を破棄。GPU時間は未計測。" : "左クリック:表示Colliderを選択。履歴は観察専用。接触点/Impulse/GPU時間は未計測。", {16, 166}, Text));
 }
 void ARenderDebugScene::OnDeinitialize() noexcept
 {
 	m_Recorder.Clear();
 	m_Selected = {};
+	m_PickedCollider.Reset();
 	m_Live2D = {};
 	m_pWorld2D.Reset();
 	m_pWorld.Reset();
 	m_Font = {};
 }
 }
+
+namespace Dxf::RenderDebug
+{
+const FPhysicsDebugSnapshot3D& ARenderDebugScene::GetDisplaySnapshot() const noexcept
+{
+	return m_Recorder.IsEnabled() && m_HistoryAge != 0 ? m_Selected : m_Recorder.GetLive();
+}
+const FRenderView3D& ARenderDebugScene::GetDisplayView() const noexcept
+{
+	return m_DrawView;
+}
+Toolbox::TOptional<FColliderId3D> ARenderDebugScene::GetPickedCollider() const
+{
+	return m_PickedCollider;
+}
+Toolbox::f64 ARenderDebugScene::GetSimulationSeconds() const noexcept
+{
+	return m_SimSeconds;
+}
+Toolbox::size_t ARenderDebugScene::GetHistoryCount() const noexcept
+{
+	return m_Recorder.GetHistory().GetCount();
+}
+void ARenderDebugScene::PrepareView_Internal()
+{
+	const auto View = m_Camera.MakeView(m_View);
+	if (!View)
+	{
+		throw Toolbox::FException(View.Error().Message);
+	}
+	m_DrawView = View.Value();
+}
+void ARenderDebugScene::UpdatePicking_Internal(const FInputSnapshot& Input)
+{
+	if (!m_Recorder.IsEnabled())
+	{
+		m_PickedCollider.Reset();
+		return;
+	}
+	const auto& Snapshot = GetDisplaySnapshot();
+	bool Found = false;
+	for (const auto& Item : Snapshot.Items)
+	{
+		Found = Found || (m_PickedCollider && *m_PickedCollider == Item.Collider);
+	}
+	if (!Found)
+	{
+		m_PickedCollider.Reset();
+	}
+	if (!Input.WasMousePressed(EMouseButton::Left))
+	{
+		return;
+	}
+	const auto& Raw = Input.GetRaw();
+	// 可視パネルと2D観察域のクリックは3Dへ渡さない。汎用UIルーターは作らない。
+	if ((m_bPanel && Raw.MouseX >= 0 && Raw.MouseX < 1280 && Raw.MouseY >= 0 && Raw.MouseY < 208) ||
+	    (m_b2D && Raw.MouseX >= 950 && Raw.MouseX < 1270 && Raw.MouseY >= 520 && Raw.MouseY < 710) ||
+	    (m_PickedCollider && Raw.MouseX >= 0 && Raw.MouseX < 950 && Raw.MouseY >= 650 && Raw.MouseY < 720))
+	{
+		return;
+	}
+	const auto Ray = MakeViewPickSegment(m_DrawView, 1280, 720, {static_cast<Toolbox::f32>(Raw.MouseX), static_cast<Toolbox::f32>(Raw.MouseY)});
+	if (!Ray)
+	{
+		throw Toolbox::FException(Ray.Error().Message);
+	}
+	m_PickedCollider.Reset();
+	if (!Ray.Value())
+	{
+		return;
+	}
+	const auto Pick = PickPhysicsDebugSnapshot3D(Snapshot, *Ray.Value());
+	if (!Pick)
+	{
+		throw Toolbox::FException(Pick.Error().Message);
+	}
+	if (Pick.Value())
+	{
+		m_PickedCollider = Pick.Value()->Collider;
+	}
+}
+} // namespace Dxf::RenderDebug

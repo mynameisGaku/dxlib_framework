@@ -40,9 +40,19 @@ def main() -> int:
         consumer = work / 'Consumer'
         consumer.mkdir()
         (consumer / 'Main.cpp').write_text('''#include "Dxf/GameScene.h"
+#include "Dxf/PhysicsDebugPicking3D.h"
 #include "Dxf/RenderQueue2D.h"
 int main()
 {
+    Dxf::FPhysicsWorld3D World;
+    const auto Body=World.CreateBody({});
+    Dxf::FColliderDescription3D Collider;
+    Collider.Shape=Toolbox::FSphere{{0,0,0},1};
+    const auto Id=World.AttachCollider(Body,Collider);
+    const auto Snapshot=Dxf::CapturePhysicsDebugSnapshot3D(World,0);
+    if (!Snapshot) { return 6; }
+    const auto Pick=Dxf::PickPhysicsDebugSnapshot3D(Snapshot.Value(),{{0,0,-5},{0,0,5}});
+    if (!Pick || !Pick.Value() || Pick.Value()->Collider!=Id) { return 7; }
     Dxf::DGameScene Scene;
     Scene.Shutdown_Internal();
     Dxf::FRenderQueue2D Queue;
@@ -70,7 +80,7 @@ int main()
 project(RelocatedConsumer LANGUAGES CXX)
 find_package(dxlib_framework CONFIG REQUIRED)
 add_executable(Consumer Main.cpp)
-target_link_libraries(Consumer PRIVATE dxf::framework)
+target_link_libraries(Consumer PRIVATE dxf::framework dxf::debug_tools)
 add_executable(SupportOnly Support.cpp)
 target_link_libraries(SupportOnly PRIVATE dxf::support)
 if(NOT TARGET dxf::toolbox OR NOT TARGET dxf::foundation OR NOT TARGET dxf::support OR NOT TARGET dxf::runtime OR NOT TARGET dxf::gameplay)

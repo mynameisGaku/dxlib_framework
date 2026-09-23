@@ -162,3 +162,7 @@ Objectのコンストラクタ中に所属Collectionへ終了が要求された�
 ## ビュー座標と簡易選択
 
 `Dxf/ViewCoordinates.h`の`ProjectWorldToScreen`と`MakeViewPickSegment`はNativeなしでも使える。[座標・失敗条件と最小例](Rendering/ViewCoordinates.md)を参照。球/OBBとの交差は`Toolbox/SegmentIntersection.h`。
+
+## Physics観察値の選択
+
+`Dxf/PhysicsDebugPicking3D.h`の`PickPhysicsDebugSnapshot3D(Snapshot, Segment)`は、保存した球/OBBの最近接交点を返すDebug層の値問い合わせ。[契約とRenderDebug操作](Rendering/PhysicsSnapshotPicking.md)。既存support単独の座標変換はDebugに依存しない。

@@ -131,3 +131,7 @@ f32へ丸めたEye/Targetで視線基底が潰れる場合、姿勢の変更を�
 | 9 | sln・exe直接・別CWDからの起動 | 未実施（ビルドディレクトリから起動） |
 
 Release構成の実SDK実行ファイルは、公式SDKの`DxLib_vs2015_x64_MT.lib`がFBX SDKを要求するためリンクできない（Validation記録を参照）。
+
+## 採取済みColliderの選択
+
+RenderDebugは左クリックで表示Snapshotの球・箱を選択し、採取時のID・重心・速度・休止状態を表示する。[問い合わせAPI、履歴と観察OFFの契約](PhysicsSnapshotPicking.md)を参照。

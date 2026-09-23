@@ -10,6 +10,7 @@
 #include "Dxf/PhysicsDebugDisplay2D.h"
 #include "Dxf/PhysicsDebugDisplay3D.h"
 #include "Dxf/Font.h"
+#include "Dxf/PhysicsDebugPicking3D.h"
 namespace Dxf::RenderDebug
 {
 /**
@@ -23,6 +24,27 @@ public:
 	 * @param Jobs Applicationが所有し、Sceneより長く存続する共有JobSystem。
 	 */
 	explicit ARenderDebugScene(Toolbox::FJobSystem& Jobs);
+	/**
+	 * 描画・選択で共有する採取値。借用は次の更新まで。Worldを再採取しない。
+	 */
+	const FPhysicsDebugSnapshot3D& GetDisplaySnapshot() const noexcept;
+	/**
+	 * 今回描画する準備済みビューを返す。
+	 */
+	const FRenderView3D& GetDisplayView() const noexcept;
+	/**
+	 * 選択中の採取元ID。Live Worldでの生存保証ではない。
+	 */
+	Toolbox::TOptional<FColliderId3D> GetPickedCollider() const;
+	/**
+	 * サンプルが実際にStepへ渡した秒数。観察のためのStepは行わない。
+	 */
+	Toolbox::f64 GetSimulationSeconds() const noexcept;
+	/**
+	 * 保存された履歴件数。観察OFFでも既存履歴を保持する。
+	 */
+	Toolbox::size_t GetHistoryCount() const noexcept;
+
 protected:
 	/**
 	 * @param Context フォント資源の取得に使用する初期化Context。
@@ -108,6 +130,24 @@ private:
 	 * カメラ以外のビュー設定。
 	 */
 	FRenderView3D m_View;
+	/**
+	 * 更新後に一度準備し、クリックと描画で共有するビュー。
+	 */
+	FRenderView3D m_DrawView;
+	/**
+	 * 世代を含む選択ID。履歴Snapshotのm_Selectedとは別の状態。
+	 */
+	Toolbox::TOptional<FColliderId3D> m_PickedCollider;
+	/**
+	 * 表示用ビューを確定する。初期化時と更新の末尾で呼ぶ。
+	 */
+	void PrepareView_Internal();
+	/**
+	 * 表示対象のIDを照合し、必要なら同じSnapshotをクリック選択する。
+	 * @param Input 現フレームの入力。採取やWorld更新は行わない。
+	 */
+	void UpdatePicking_Internal(const FInputSnapshot& Input);
+
 	/**
 	 * 物理の重ね表示設定。
 	 */

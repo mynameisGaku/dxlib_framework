@@ -60,3 +60,7 @@ Scope/世代/容量を持つ設計を維持し、失効したIDへポインタ�
 ## 2026-09-23 Viewport座標・代理形状の選択
 
 [指定ビューの座標変換](../Rendering/ViewCoordinates.md)とModelViewerの球/OBB選択を追加。左右Viewport、透視/正射影、投影位置の2Dラベルを扱う。過去節の選択課題のうち、この限定範囲は完了。Physics全WorldのRaycast、選択IDとの汎用連携、精密モデルPicking、ギズモ/Inspectorは未実装として保持する。今回の変更で既存ufbx・モデル機能は変更しない。
+
+## 2026-09-23 採取済みCollider選択
+
+[Physics Snapshot選択](../Rendering/PhysicsSnapshotPicking.md)をDebug層へ追加し、RenderDebugの実World由来の表示値・履歴・世代付きIDへ接続した。Live World全体のRaycast、GameObject対応表、精密モデル選択、汎用Inspectorは引き続き対象外。

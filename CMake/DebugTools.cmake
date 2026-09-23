@@ -4,6 +4,7 @@ add_library(dxf_debug_tools STATIC
     Source/Debug/Private/Dxf/DebugCamera3D.cpp
     Source/Debug/Private/Dxf/DebugStepController.cpp
     Source/Debug/Private/Dxf/DebugSnapshotHistory.cpp
+    Source/Debug/Private/Dxf/PhysicsDebugPicking3D.cpp
     Source/Debug/Private/Dxf/PhysicsDebugSnapshot3D.cpp
     Source/Debug/Private/Dxf/PhysicsDebugSnapshot2D.cpp
     Source/Debug/Private/Dxf/PhysicsDebugRecorder3D.cpp
@@ -28,8 +29,9 @@ if(DXF_BUILD_TESTS)
     dxf_warnings(dxf_debug_tools_tests)
     add_test(NAME DebugTools COMMAND dxf_debug_tools_tests)
     set_tests_properties(DebugTools PROPERTIES TIMEOUT 60 LABELS "portable;debug-tools")
-    add_executable(dxf_debug_physics_tests Tools/RenderValidation/Main.cpp Tests/DebugPhysicsIntegrationTests.cpp)
-    target_link_libraries(dxf_debug_physics_tests PRIVATE dxf::debug_tools dxf::physics)
+    add_executable(dxf_debug_physics_tests Tools/RenderValidation/Main.cpp Tests/DebugPhysicsIntegrationTests.cpp Tests/PhysicsDebugPickingTests.cpp Tests/RenderDebugPickingTests.cpp
+        Examples/RenderDebug/RenderDebugScene.cpp Examples/RenderDebug/TransparencyDemo.cpp)
+    target_link_libraries(dxf_debug_physics_tests PRIVATE dxf::debug_tools dxf::physics dxf::framework)
     target_include_directories(dxf_debug_physics_tests PRIVATE Tests)
     dxf_warnings(dxf_debug_physics_tests)
     add_test(NAME DebugPhysicsCapture COMMAND dxf_debug_physics_tests)
@@ -67,3 +69,17 @@ if(DXF_BUILD_RENDER_DEBUG)
     dxf_runtime_paths(RenderDebug RenderDebug)
 endif()
 unset(_dxf_debug_default)
+
+# 実RenderDebug本体を固定入力で検証する開発用入口。モデル試験の制限時間は変更しない。
+if(DXF_BUILD_NATIVE_SMOKE)
+    add_executable(NativePhysicsDebugSmoke Tests/NativePhysicsDebugSmoke/Main.cpp
+        Examples/RenderDebug/RenderDebugScene.cpp Examples/RenderDebug/TransparencyDemo.cpp)
+    target_link_libraries(NativePhysicsDebugSmoke PRIVATE dxf::native dxf::debug_tools)
+    target_compile_definitions(NativePhysicsDebugSmoke PRIVATE DX_NON_USING_NAMESPACE_DXLIB NOMINMAX)
+    target_compile_options(NativePhysicsDebugSmoke PRIVATE /UUNICODE /U_UNICODE)
+    dxf_warnings(NativePhysicsDebugSmoke)
+    if(DXF_RUN_DEVICE_TESTS)
+        add_test(NAME NativePhysicsDebugDeviceSmoke COMMAND NativePhysicsDebugSmoke "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/model-smoke")
+        set_tests_properties(NativePhysicsDebugDeviceSmoke PROPERTIES TIMEOUT 120 LABELS "real-sdk;device;physics;debug-tools")
+    endif()
+endif()
