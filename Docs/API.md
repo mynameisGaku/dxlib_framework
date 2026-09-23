@@ -158,3 +158,7 @@ Objectのコンストラクタ中に所属Collectionへ終了が要求された�
 
 `Toolbox/Log.h`の`DXF_LOG_VERBOSE` / `DXF_LOG_INFO` / `DXF_LOG_WARNING` / `DXF_LOG_ERROR`で、分類名とprintf形式の本文を記録します。
 既定の出力先はVisual Studioの出力ウィンドウと標準エラーで、`SetLogSink`で差し替えられます。詳細は[Logging.md](Logging.md)を参照してください。
+
+## ビュー座標と簡易選択
+
+`Dxf/ViewCoordinates.h`の`ProjectWorldToScreen`と`MakeViewPickSegment`はNativeなしでも使える。[座標・失敗条件と最小例](Rendering/ViewCoordinates.md)を参照。球/OBBとの交差は`Toolbox/SegmentIntersection.h`。

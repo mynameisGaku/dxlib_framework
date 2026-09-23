@@ -87,3 +87,7 @@ World.Remove(Ball);
 `FMesh`も構築時に三角形用の四分木／八分木を構築し、問い合わせ境界に近い三角形へ候補を絞ります。メッシュデータは不変として共有し、変更するときは新しい`FMesh`を作って`World.Update`へ渡します。`Intersects(A, B)`による形状同士の直接判定も可能です。
 
 判定は接触を含みます。メッシュは閉じた内部を自動で充填しないため、表面に触れず完全に内部にある形状はメッシュと交差しません。ワールドは単一スレッドで使用します。連続衝突判定、貫通量・接触点の算出、剛体の押し戻し・物理応答は提供しません。
+
+## 有限線分と球・箱
+
+`SegmentIntersection.h`の`IntersectSegment`は球/OBBへの最初の交点を0～1の割合で返す。非交差は空Optional、不正入力はFException。[Viewport選択での利用](Rendering/ViewCoordinates.md)。

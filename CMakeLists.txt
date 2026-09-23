@@ -87,6 +87,7 @@ add_library(dxf_toolbox STATIC
     Source/Toolbox/Private/Toolbox/Collision2D.cpp
     Source/Toolbox/Private/Toolbox/Contact2D.cpp
     Source/Toolbox/Private/Toolbox/Contact3D.cpp
+    Source/Toolbox/Private/Toolbox/SegmentIntersection.cpp
     Source/Toolbox/Private/Toolbox/ContinuousCollision.cpp
     Source/Toolbox/Private/Toolbox/FixedStepScheduler.cpp
     Source/Toolbox/Private/Toolbox/Mesh.cpp
@@ -139,6 +140,7 @@ add_library(dxf_support STATIC
     Source/DxLibSupport/Private/Dxf/ModelLightInfo.cpp
     Source/DxLibSupport/Private/Dxf/ModelImport.cpp
     Source/DxLibSupport/Private/Dxf/ModelLoader.cpp
+    Source/DxLibSupport/Private/Dxf/ViewCoordinates.cpp
     Source/DxLibSupport/Private/Dxf/RenderGeometry3D.cpp
     Source/DxLibSupport/Private/Dxf/Render2DContext.cpp
     Source/DxLibSupport/Private/Dxf/Render3DContext.cpp
@@ -300,7 +302,8 @@ if(DXF_BUILD_NATIVE_SMOKE)
     target_link_libraries(NativeSmoke PRIVATE dxf::native_backends)
     dxf_warnings(NativeSmoke)
     # 実SDKのモデル試験。FBX SDKなしで.fbxを読み、描画結果を読み戻して確かめる。
-    add_executable(NativeModelSmoke Tests/NativeModelSmoke/Main.cpp)
+    add_executable(NativeModelSmoke Tests/NativeModelSmoke/Main.cpp Tests/NativeModelSmoke/Picking.cpp
+        Examples/ModelViewer/ModelViewerScene.cpp Examples/ModelViewer/PickingExample.cpp)
     target_link_libraries(NativeModelSmoke PRIVATE dxf::native)
     target_compile_definitions(NativeModelSmoke PRIVATE DX_NON_USING_NAMESPACE_DXLIB NOMINMAX)
     target_compile_options(NativeModelSmoke PRIVATE /UUNICODE /U_UNICODE)
@@ -345,7 +348,7 @@ if(DXF_BUILD_MODEL_VIEWER)
         message(FATAL_ERROR "DXF_BUILD_MODEL_VIEWER requires DXF_BUILD_NATIVE=ON")
     endif()
     # .fbxを事前変換なしで読み、2体を独立に再生する確認用の例。
-    add_executable(ModelViewer WIN32 Examples/ModelViewer/WindowsMain.cpp Examples/ModelViewer/ModelViewerScene.cpp)
+    add_executable(ModelViewer WIN32 Examples/ModelViewer/WindowsMain.cpp Examples/ModelViewer/ModelViewerScene.cpp Examples/ModelViewer/PickingExample.cpp)
     dxf_ide_headers(ModelViewer Examples/ModelViewer)
     target_link_libraries(ModelViewer PRIVATE dxf::native)
     dxf_warnings(ModelViewer)

@@ -3,6 +3,7 @@
 // 2体の独立したインスタンス・一時停止・速度・再読込・受付後の破棄・日本語パス・描画失敗・終了順序を扱う。
 // 使い方: NativeModelSmoke <ProjectRoot> <画像の出力ディレクトリ>
 #include "Dxf/AssetService.h"
+#include "Dxf/ViewCoordinates.h"
 #include "Dxf/Application.h"
 #include "Dxf/GameScene.h"
 #include "Dxf/ModelImport.h"
@@ -25,6 +26,7 @@
 #undef CopyFile
 #endif
 #include <stdio.h>
+void RunPickingExample(const Toolbox::FPath& Root, const Toolbox::FPath& Output);
 namespace
 {
 using namespace Dxf;
@@ -242,6 +244,7 @@ FModelInstance Place_Internal(FAssetService& Assets, const FModel& Model, Toolbo
 void ViewportProjection_Internal(FSmoke& Smoke, FRenderSystem& Renderer, FAssetService& Assets)
 {
 	const auto Target = TakeOrThrow_Internal(Assets.CreateRenderTarget(641, 481));
+	Toolbox::TArray<FRenderView3D, 2> Views;
 	for (Toolbox::int32 Ortho = 0; Ortho < 2; ++Ortho)
 	{
 		RequireSuccess_Internal(Renderer.BeginFrame(Width, Height, Background));
@@ -257,6 +260,7 @@ void ViewportProjection_Internal(FSmoke& Smoke, FRenderSystem& Renderer, FAssetS
 			View.bOrthographic = Ortho != 0;
 			View.OrthographicHeight = 8;
 			View.VerticalFov = 1.5707963268f;
+			Views[Side] = View;
 			View.Debug.Lighting = ELightingMode3D::Unlit;
 			RequireSuccess_Internal(Render.Get3D().SetView(View));
 			RequireSuccess_Internal(Render.Get3D().DrawTriangle({-1, -1, 0}, {1, -1, 0}, {1, 1, 0}));
@@ -299,6 +303,10 @@ void ViewportProjection_Internal(FSmoke& Smoke, FRenderSystem& Renderer, FAssetS
 			    }
 			    for (Toolbox::int32 Side = 0; Side < 2; ++Side)
 			    {
+				    // 描画時の値を保存し、Nativeの最後のカメラとは独立に四隅を求める。
+				    const auto TopLeft = TakeOrThrow_Internal(ProjectWorldToScreen(Views[Side], 641, 481, {-1, 1, 0}));
+				    const auto BottomRight = TakeOrThrow_Internal(ProjectWorldToScreen(Views[Side], 641, 481, {1, -1, 0}));
+				    Check_Internal(Toolbox::Abs(TopLeft.Screen.X - MinX[Side]) <= 1 && Toolbox::Abs(TopLeft.Screen.Y - MinY[Side]) <= 1 && Toolbox::Abs(BottomRight.Screen.X - (MaxX[Side] + 1)) <= 1 && Toolbox::Abs(BottomRight.Screen.Y - (MaxY[Side] + 1)) <= 1, "projection API matches off-center rendered corners on unequal odd target views");
 				    const Toolbox::int32 ExpectedSize = Side == 0 ? 60 : 120;
 				    const Toolbox::int32 CenterX = Side == 0 ? 320 : 961;
 				    const Toolbox::int32 CenterY = Side == 0 ? 240 : 481;
@@ -880,6 +888,7 @@ struct FApplicationModelTrace
 	bool bInvalidate = false;
 	// 分割時の更新数と描画時刻を観察する。
 	bool bSplit = false;
+	bool bPicking = false;
 	Toolbox::int32 Ticks = 0;
 	Toolbox::f64 TimeBeforeDraw = 0;
 	Toolbox::f64 TimeAfterDraw = 0;
@@ -928,6 +937,10 @@ protected:
 			View.Viewport = {Side * 320, 0, (Side + 1) * 320, 480};
 			RequireSuccess_Internal(Render.Get3D().SetView(View));
 			RequireSuccess_Internal(Render.Get3D().DrawModel(m_Instance));
+			if (m_Trace.bPicking)
+			{
+				Check_Internal(static_cast<bool>(MakeViewPickSegment(View, Width, Height, {static_cast<Toolbox::f32>(Side * 320 + 160), 240})), "animation draw pick segment is independent of model time");
+			}
 		}
 		m_Trace.TimeAfterDraw = m_Instance.GetTime();
 		FDrawStyle Style;
@@ -981,12 +994,13 @@ private:
 };
 
 // 低レベルRenderer試験とは別に、ApplicationとScene所有境界を実DxLibで通す。
-void RunApplication_Internal(const Toolbox::FPath& Root, bool bFail, bool bSplit = false)
+void RunApplication_Internal(const Toolbox::FPath& Root, bool bFail, bool bSplit = false, bool bPicking = false)
 {
 	FDxLibBackends Backends;
 	FApplicationModelTrace Trace;
 	Trace.bInvalidate = bFail;
 	Trace.bSplit = bSplit;
+	Trace.bPicking = bPicking;
 	FApplicationSettings Settings;
 	Settings.Window.Width = Width;
 	Settings.Window.Height = Height;
@@ -1009,7 +1023,6 @@ void RunApplication_Internal(const Toolbox::FPath& Root, bool bFail, bool bSplit
 	Check_Internal(Trace.Ticks == 1 && Trace.TimeBeforeDraw == Trace.TimeAfterDraw,
 	               "real Application updates object once regardless of viewport count");
 	const FSignature Initial = Trace.Image;
-	if (bSplit)
 	{
 		Check_Internal(static_cast<bool>(App.Step(1.0 / 60.0)) && Trace.Ticks == 2 &&
 		                   Toolbox::Abs(Trace.TimeBeforeDraw - (0.5 + 1.0 / 60.0)) < 0.000001 &&
@@ -1019,15 +1032,15 @@ void RunApplication_Internal(const Toolbox::FPath& Root, bool bFail, bool bSplit
 	const Toolbox::int32 ShaderCount = DxLib::GetHandleNum(DX_HANDLETYPE_SHADER);
 	Check_Internal(ShaderCount > 0, "PBR created a shader handle");
 	RequireSuccess_Internal(App.GetScenes().RequestChange<DGameScene>());
-	Check_Internal(static_cast<bool>(App.Step(bSplit ? 1.0 / 60.0 : 0)), "real Application switches to empty scene");
+	Check_Internal(static_cast<bool>(App.Step(1.0 / 60.0)), "real Application switches to empty scene");
 	App.GetAssets().CollectUnused();
 	Check_Internal(DxLib::GetHandleNum(DX_HANDLETYPE_MODEL) == 0 && DxLib::GetHandleNum(DX_HANDLETYPE_MODEL_BASE) == 0,
 	               "scene retirement and collection release native model handles");
-	Check_Internal(Trace.Deinitialized == 1 && Trace.Captured == (bSplit ? 2 : 1),
+	Check_Internal(Trace.Deinitialized == 1 && Trace.Captured == 2,
 	               "retired GameScene releases object and does not replay model draw");
 	RequireSuccess_Internal(App.GetScenes().RequestChange<ACombinedModelScene>(Trace));
-	Check_Internal(static_cast<bool>(App.Step(bSplit ? 1.0 / 60.0 : 0)), "real Application reloads model scene");
-	Check_Internal(Trace.Initialized == 2 && Trace.Captured == (bSplit ? 3 : 2) &&
+	Check_Internal(static_cast<bool>(App.Step(1.0 / 60.0)), "real Application reloads model scene");
+	Check_Internal(Trace.Initialized == 2 && Trace.Captured == 3 &&
 	                   Trace.Image.ColorHash[0] == Initial.ColorHash[0] &&
 	                   Trace.Image.ColorHash[1] == Initial.ColorHash[1],
 	               "scene reload reproduces combined model pixels");
@@ -1050,13 +1063,17 @@ Toolbox::int32 main(Toolbox::int32 ArgCount, char** Args)
 	{
 		const Toolbox::FPath OutDir(Args[2]);
 		Toolbox::CreateDirectory(OutDir);
+		RunPickingExample(Toolbox::FPath(Args[1]), OutDir);
 		Run_Internal(Toolbox::FPath(Args[1]), OutDir);
 		RunApplication_Internal(Toolbox::FPath(Args[1]), false);
 		RunApplication_Internal(Toolbox::FPath(Args[1]), true);
 		RunApplication_Internal(Toolbox::FPath(Args[1]), false, true);
+		RunApplication_Internal(Toolbox::FPath(Args[1]), false, false, true);
+		RunApplication_Internal(Toolbox::FPath(Args[1]), false, true, true);
 		RunApplication_Internal(Toolbox::FPath(Args[1]), true, true);
 		RunApplication_Internal(Toolbox::FPath(Args[1]), false);
 		// 同じプロセスでGPU資源を作り直し、古いハンドルを再利用しない。
+		RunPickingExample(Toolbox::FPath(Args[1]), OutDir);
 		Run_Internal(Toolbox::FPath(Args[1]), OutDir);
 	}
 	catch (const Toolbox::FException& Error)

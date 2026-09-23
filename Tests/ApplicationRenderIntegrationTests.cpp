@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: NOASSERTION
 #include "Support/Test.h"
+#include "Dxf/ViewCoordinates.h"
 #include "Support/FakeBackend.h"
 #include "Dxf/Application.h"
 #include "Dxf/PhysicsScene3D.h"
@@ -405,7 +406,7 @@ TEST("application waits for a failed generated batch and does not present queued
 class AViewportPhysicsScene final : public DPhysicsScene3D
 {
 public:
-	explicit AViewportPhysicsScene(bool Split) : m_bSplit(Split)
+	explicit AViewportPhysicsScene(bool Split, bool Picking) : m_bSplit(Split), m_bPicking(Picking)
 	{
 	}
 	mutable Toolbox::uint64 Before = 0;
@@ -422,22 +423,29 @@ protected:
 			View.Viewport = {Side * 160, 0, (Side + 1) * 160, 240};
 			RequireRender_Internal(Render.Get3D().SetView(View));
 			RequireRender_Internal(Render.Get3D().DrawLine({0, 0, 0}, {1, 0, 0}));
+			if (m_bPicking)
+			{
+				REQUIRE(MakeViewPickSegment(View, 320, 240, {static_cast<f32>(Side * 160 + 80), 120}));
+				REQUIRE(ProjectWorldToScreen(View, 320, 240, {0, 0, 0}));
+			}
 		}
 		After = GetPhysicsWorld().CaptureSnapshot().StepIndex;
 	}
 
 private:
 	bool m_bSplit;
+	bool m_bPicking;
 };
 TEST("real Application physics advances once while two viewports only draw")
 {
-	for (int32 Split = 0; Split < 2; ++Split)
+	for (int32 Mode = 0; Mode < 4; ++Mode)
 	{
+		const bool Split = (Mode & 1) != 0;
 		Testing::FFakeBackend Services;
 		FApplicationRenderTrace Trace;
 		FApplicationRecordingBackend Renderer(Trace);
 		FApplication App({Services, Services, Services, Services, Services, Renderer}, MakeSettings_Internal());
-		auto Scene = MakeUnique<AViewportPhysicsScene>(Split != 0);
+		auto Scene = MakeUnique<AViewportPhysicsScene>(Split, (Mode & 2) != 0);
 		auto* Observer = Scene.Get();
 		REQUIRE(App.Start(Move(Scene)));
 		REQUIRE(App.Step(0));

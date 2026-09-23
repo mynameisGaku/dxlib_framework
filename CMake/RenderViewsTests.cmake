@@ -4,7 +4,9 @@ function(dxf_add_render_views_tests CoreTarget)
     add_executable(dxf_render_views_tests
         "${_root}/Tools/RenderValidation/Main.cpp"
         "${_root}/Tests/RenderViewsTests.cpp"
-        "${_root}/Tests/DebugDrawStoreTests.cpp")
+        "${_root}/Tests/DebugDrawStoreTests.cpp"
+        "${_root}/Tests/ViewCoordinatesTests.cpp"
+        "${_root}/Examples/ModelViewer/PickingExample.cpp")
     target_link_libraries(dxf_render_views_tests PRIVATE ${CoreTarget})
     target_include_directories(dxf_render_views_tests PRIVATE "${_root}/Tests")
     add_executable(dxf_native_views_tests

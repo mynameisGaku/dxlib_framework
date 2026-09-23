@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: NOASSERTION
 #include "ModelViewerScene.h"
+#include "PickingExample.h"
 #include "Dxf/AssetService.h"
 #include "Dxf/RenderContext.h"
 #include "Dxf/SceneNavigator.h"
@@ -66,6 +67,7 @@ TResult<void> AModelViewerScene::OnInitialize(const FInitContext& Context)
 	}
 	m_Font = Font.Value();
 	DXF_LOG_INFO("ModelViewer", "Scene %u initialized", m_Generation);
+	PrepareViews_Internal();
 	return Load_Internal();
 }
 
@@ -93,6 +95,7 @@ void AModelViewerScene::OnTick(const FTickContext& Context)
 		m_Box = FModel();
 		m_pAssets->CollectUnused();
 		Require_Internal(Load_Internal());
+		m_Selected = -1;
 		++m_Reloads;
 		DXF_LOG_INFO("ModelViewer", "Reloaded models (%u)", m_Reloads);
 	}
@@ -119,12 +122,53 @@ void AModelViewerScene::OnTick(const FTickContext& Context)
 	{
 		m_bSplit = !m_bSplit;
 	}
+	if (Input.WasPressed(EKey::P))
+	{
+		m_bPicking = !m_bPicking;
+		m_Selected = -1;
+	}
+	if (Input.WasPressed(EKey::O))
+	{
+		m_View.bOrthographic = !m_View.bOrthographic;
+		m_View.OrthographicHeight = 400;
+	}
 	const Toolbox::f64 Delta = Context.Time.DeltaSeconds;
 	Require_Internal(m_Left.Advance(Delta));
 	Require_Internal(m_Right.Advance(Delta));
 	m_BoxAngle += Delta * 0.8;
 	Require_Internal(m_BoxInstance.SetTransform(Toolbox::FMatrix4::Translation({0, 20, 220}) *
 	                                            Toolbox::FMatrix4::Rotation({0, 1, 0}, static_cast<Toolbox::f32>(m_BoxAngle))));
+	// 更新後の形状とカメラを、選択と描画で共用する。入力取得は既存Snapshotの一回だけ。
+	PrepareViews_Internal();
+	if (m_bPicking && Input.WasMousePressed(EMouseButton::Left))
+	{
+		m_Selected = -1;
+		const FVector2 Mouse{static_cast<Toolbox::f32>(Input.GetRaw().MouseX), static_cast<Toolbox::f32>(Input.GetRaw().MouseY)};
+		for (Toolbox::int32 Side = 0; Side < (m_bSplit ? 2 : 1); ++Side)
+		{
+			const Toolbox::int32 Picked = Take_Internal(PickExampleShapes(m_DrawViews[Side], 1280, 720, Mouse, m_PickSphere, m_PickBox));
+			if (Picked >= 0)
+			{
+				m_Selected = Picked;
+				break;
+			}
+		}
+	}
+}
+
+void AModelViewerScene::PrepareViews_Internal()
+{
+	for (Toolbox::int32 Side = 0; Side < 2; ++Side)
+	{
+		m_DrawViews[Side] = m_View;
+		m_DrawViews[Side].bViewport = m_bSplit;
+		m_DrawViews[Side].Viewport = {Side * 640, 0, (Side + 1) * 640, 720};
+		if (Side == 1)
+		{
+			m_DrawViews[Side].Eye = {400, 260, -450};
+			m_DrawViews[Side].LightDirection = {1, -1, 0};
+		}
+	}
 }
 
 void AModelViewerScene::OnDraw(FRenderContext& Render) const
@@ -133,15 +177,28 @@ void AModelViewerScene::OnDraw(FRenderContext& Render) const
 	// 表示回数に関係なくアニメーション更新はOnTickだけで行う。
 	for (Toolbox::int32 Side = 0; Side < (m_bSplit ? 2 : 1); ++Side)
 	{
-		FRenderView3D View = m_View;
-		View.bViewport = m_bSplit;
-		View.Viewport = {Side * 640, 0, (Side + 1) * 640, 720};
-		if (Side == 1)
-		{
-			View.Eye = {400, 260, -450};
-			View.LightDirection = {1, -1, 0};
-		}
+		const FRenderView3D& View = m_DrawViews[Side];
 		Require_Internal(Draw3D.SetView(View));
+		if (m_bPicking)
+		{
+			FDrawStyle3D SphereStyle;
+			SphereStyle.Color = m_Selected == 0 ? FColor{255, 220, 30, 255} : FColor{80, 180, 240, 255};
+			FDrawStyle3D BoxStyle;
+			BoxStyle.Color = m_Selected == 1 ? FColor{255, 220, 30, 255} : FColor{240, 100, 80, 255};
+			Require_Internal(Draw3D.DrawSphere(m_PickSphere, SphereStyle, 32));
+			Require_Internal(Draw3D.DrawBox(m_PickBox, BoxStyle));
+			// 選択した形状の中心に合わせ、同じビューの投影値で全画面2Dへ印を置く。
+			if (m_Selected >= 0)
+			{
+				const auto Point = Take_Internal(ProjectWorldToScreen(View, 1280, 720, m_Selected == 0 ? m_PickSphere.Center : m_PickBox.Center));
+				if (Point.bInsideView)
+				{
+					Require_Internal(Render.Get2D().DrawCircle(Point.Screen, 6));
+					Require_Internal(Render.Get2D().DrawText(m_Font, m_Selected == 0 ? "Sphere" : "Box", {Point.Screen.X + 10, Point.Screen.Y}));
+				}
+			}
+			continue;
+		}
 		Require_Internal(Draw3D.DrawModel(m_Left));
 		Require_Internal(Draw3D.DrawModel(m_Right));
 		Require_Internal(Draw3D.DrawModel(m_BoxInstance));
@@ -155,9 +212,13 @@ void AModelViewerScene::OnDraw(FRenderContext& Render) const
 			Require_Internal(Draw3D.DrawLine({-300, 0, Offset}, {300, 0, Offset}, Grid));
 		}
 	}
+	if (m_bPicking)
+	{
+		Require_Internal(Render.Get2D().DrawText(m_Font, "Shape picking (sphere / box): left click   [P] models   [V] split   [O] orthographic", {12, 62}));
+	}
 	char Text[256];
 	snprintf(Text, sizeof(Text),
-	         "Scene #%u  reloads=%u   [1] left pause  [2] right speed  [3] right clip  [V] split  [R] reload  [Enter] "
+	         "Scene #%u  reloads=%u   [1] left pause  [2] right speed  [3] right clip  [V] split  [P] picking  [R] reload  [Enter] "
 	         "next scene  [Esc] quit",
 	         m_Generation, m_Reloads);
 	Require_Internal(Render.Get2D().DrawText(m_Font, Text, {12, 12}));
@@ -171,6 +232,7 @@ void AModelViewerScene::OnDraw(FRenderContext& Render) const
 
 void AModelViewerScene::OnDeinitialize() noexcept
 {
+	m_Selected = -1;
 	m_Left = FModelInstance();
 	m_Right = FModelInstance();
 	m_BoxInstance = FModelInstance();
