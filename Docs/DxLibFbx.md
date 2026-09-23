@@ -29,13 +29,14 @@ Setup.cmd
 2. 公式ソース`DxLibMake3_25a.zip`（https://dxlib.xsrv.jp/DxLib/DxLibMake3_25a.zip）を取得し、SHA-256
    `2f09078692d3b64448c6ffe80392d77d0f413ce652115a1d7f0063baf475322a`を照合します。
 3. `Tools/DxLibFbx/BuildDxLibFbx.ps1`でビルドし、`ThirdParty/DxLib-3.25a-source`（`include/`、`lib/`、`DxLibFbx.json`）を作ります。
-   Visual Studio（C++によるデスクトップ開発）以外に必要なものはありません。数分かかります。
+   Visual Studioの「C++によるデスクトップ開発」とWindows SDK（`fxc.exe`を含む）が必要です。数分かかります。
 
 `CMake/FindDxLib.cmake`は、`DXF_DXLIB_CUSTOM_ROOT`が未指定なら`ThirdParty/DxLib-<版>-source`を自動で使います
 （`-DDXF_DXLIB_AUTO_SOURCE_BUILD=OFF`で公式パッケージへ戻せます）。公式パッケージだけの構成ではモデル機能を無効にし
 （`DXF_DXLIB_MODELS=0`）、読み込みは「Setup.cmdでソースビルドを作る」旨のエラーを返します。リンクエラーにはしません。
 
-作ったゲームの実行ファイルは静的リンクで、Windowsの標準DLL以外に依存しません（利用者のPCにも追加の導入は不要です）。
+基本PBRのシェーダーはSetup時にコンパイルしてライブラリへ組み込みます。ゲーム実行時のシェーダーコンパイルは不要です。
+配布先の確認とSDK未導入環境での再実行手順は[独立環境での検証](Development/FbxCleanEnvironment.md)を参照してください。
 SDK・ビルド生成物（`ThirdParty/`、`Build/`）はGitへ追加しません。
 
 ## アプリケーションから使う
@@ -58,7 +59,7 @@ SDK・ビルド生成物（`ThirdParty/`、`Build/`）はGitへ追加しませ�
 
 ## ビルドの内容
 
-- `Tools/DxLibFbx/CMakeLists.txt`は、公式`DxLibMake.vcxproj`の`ClCompile`一覧（77ファイル）をそのまま読み、x64でビルドします。
+- `Tools/DxLibFbx/CMakeLists.txt`は、公式`DxLibMake.vcxproj`の`ClCompile`一覧をそのまま読み、x64でビルドします。
   公式プロジェクトはWin32構成だけのため、x64の構成は同じ定義（`WIN32;_LIB;_DEBUG|NDEBUG`）で作ります。
   ソースはShift_JISなので、`/source-charset:.932 /execution-charset:.932`で文字コードを固定します。
 - `BuildDxLibFbx.ps1`は、ソースZIPのハッシュ照合、ソースと公式SDKのヘッダー一致の確認（同じ版であること）、
@@ -108,12 +109,9 @@ DxLibのアニメーション時間は、1秒のクリップが30.0になる単�
 
 - 対象はx64・MSVC・静的CRT（`/MT`・`/MTd`）です。`/MD`系、x86、ARM64は作っていません。
 - DxLibの版を変える場合は、ソースと公式SDKの両方を同じ版にそろえ、期待ハッシュ（`SetupDxLib.ps1`・`BuildDxLibFbx.ps1`）を更新します。
-- ufbxの変換はアニメーションを指定間隔以下（既定1/30秒）の行列キーへ標本化します。短いクリップも終端を含めます。
-  全ノード・全クリップのキー数見積りが100万を超える入力は変換前に拒否します。単一ターゲットのブレンドシェイプ（モーフ）は変形量の再生に対応します。
-  PBR材質、カメラ・ライトは警告して省略します。UVは合計2組まで保持し、頂点カラーは先頭セットに対応します。複数スキンとDual Quaternion方式は拒否します。詳細は[FbxSupport](FbxSupport.md)を参照してください。
 
-## モデルの追加機能
+## 対応範囲の確認
 
-モーフ、頂点色、追加UV、静止カメラ・ライト、基本PBRを標準のufbx経路に追加しています。
-[対応範囲とAPI](FbxSupport.md)を確認してください。基本PBRはソース版DxLibの拡張3とDirect3D11が必要です。
-シェーダーはSetup時にWindows SDKのfxcで組み込みます。利用者の実行時にはコンパイラーやFBX SDKを要求しません。
+モーフ、頂点色、追加UV、静止カメラ・ライト、基本PBRは標準のufbx経路で扱います。
+機能ごとの対応条件・警告付き部分読み込み・拒否条件・APIは[FBX対応範囲](FbxSupport.md)を唯一の対応表とします。
+過去のValidation記録の「対象外」は、その検証時点の結果です。現行の利用条件として読み替えないでください。
