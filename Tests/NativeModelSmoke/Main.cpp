@@ -68,6 +68,9 @@ struct FSignature
 	Toolbox::uint64 Hash[2] = {1469598103934665603ull, 1469598103934665603ull};
 	Toolbox::uint32 Pixels[2] = {0, 0};
 	Toolbox::uint32 Colored[2] = {0, 0};
+	// 頂点色の各成分の優勢画素と最大値。
+	Toolbox::uint32 Dominant[3] = {0, 0, 0};
+	Toolbox::int32 MaxChannel = 0;
 };
 
 // CPU側へ読み戻した画像を解放する。Contextは使用しない。
@@ -110,6 +113,10 @@ FSignature Read_Internal()
 				    (Result.Hash[Side] ^ static_cast<Toolbox::uint64>(Y * Width + X)) * 1099511628211ull;
 				const int High = Toolbox::Max(Red, Toolbox::Max(Green, Blue));
 				const int Low = Toolbox::Min(Red, Toolbox::Min(Green, Blue));
+				Result.Dominant[0] += Red > Green + 25 && Red > Blue + 25 ? 1 : 0;
+				Result.Dominant[1] += Green > Red + 25 && Green > Blue + 25 ? 1 : 0;
+				Result.Dominant[2] += Blue > Red + 25 && Blue > Green + 25 ? 1 : 0;
+				Result.MaxChannel = Toolbox::Max(Result.MaxChannel, High);
 				// テクスチャのチェッカー（茶・青緑）は成分差が大きい。
 				Result.Colored[Side] += High - Low > 60 ? 1 : 0;
 			}
@@ -206,6 +213,14 @@ void Run_Internal(const Toolbox::FPath& Root, const Toolbox::FPath& OutDir)
 	Check_Internal(Assets.SetProjectRoot(Root), "project root");
 	FRenderSystem Renderer(Smoke.Services.Renderer);
 
+	// 頂点色を補間し、材質の拡散色を乗算した三角形を実画面で確認する。
+	FModel Colors = TakeOrThrow_Internal(Assets.LoadModel("Tests/Assets/VertexColors.fbx"));
+	FModelInstance Colored = TakeOrThrow_Internal(Assets.CreateModelInstance(Colors));
+	const FSignature ColorFrame = Smoke.Frame(Renderer, &Colored, nullptr, "vertex-colors");
+	Check_Internal(ColorFrame.Dominant[0] > 50 && ColorFrame.Dominant[1] > 50 && ColorFrame.Dominant[2] > 50,
+	               "vertex RGB colors interpolate in real rendering", Describe_Internal(ColorFrame));
+	Check_Internal(ColorFrame.MaxChannel >= 100 && ColorFrame.MaxChannel <= 129,
+	               "vertex colors multiply material diffuse once", Toolbox::ToString(ColorFrame.MaxChannel));
 	// 2体の独立したインスタンス。
 	FModel Column = TakeOrThrow_Internal(Assets.LoadModel("Assets/Models/SkinnedColumn.fbx"));
 	Check_Internal(Column.GetClipCount() == 2 && Column.FindClip("Bend") == 0 && Column.GetClip(0)->NativeDuration > 0,

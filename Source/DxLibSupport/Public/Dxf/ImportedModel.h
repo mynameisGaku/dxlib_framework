@@ -15,6 +15,10 @@ struct FImportedModel
 	 */
 	Toolbox::TVector<char> ModelData;
 	/**
+	 * 頂点色を有効にする変換後のフレーム名。材質別に分かれたメッシュすべてへ適用する。
+	 */
+	Toolbox::TVector<Toolbox::FString> VertexColorFrames;
+	/**
 	 * 参照するテクスチャ。
 	 */
 	Toolbox::TVector<FImportedModelTexture> Textures;

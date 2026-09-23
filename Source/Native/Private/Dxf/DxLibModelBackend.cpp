@@ -19,8 +19,9 @@ constexpr Toolbox::size_t MaxTextureFileBytes = 256u * 1024u * 1024u;
 // モデル機能のない構成の失敗。
 TResult<void> Unavailable_Internal()
 {
-	return TResult<void>::Failure(EErrorCode::BackendFailure,
-	                              "Model support is unavailable in this DxLib build (run Setup.cmd to build DxLib from source)");
+	return TResult<void>::Failure(
+	    EErrorCode::BackendFailure,
+	    "Model support is unavailable in this DxLib build (run Setup.cmd to build DxLib from source)");
 }
 
 #if DXF_DXLIB_MODELS
@@ -78,9 +79,10 @@ int ReadTexture_Internal(const char* FilePath, void** FileImageAddr, int* FileSi
 			else
 			{
 				// 相対パスはモデルのディレクトリから、見つからなければFBXに記録された絶対パスを試す。
-				bool bFound = !Texture.RelativePath.IsEmpty() &&
-				              Toolbox::ReadFileBytes(Toolbox::FPath(*Source->pDirectory) / Toolbox::FPath(Texture.RelativePath), Bytes,
-				                                     MaxTextureFileBytes);
+				bool bFound =
+				    !Texture.RelativePath.IsEmpty() &&
+				    Toolbox::ReadFileBytes(Toolbox::FPath(*Source->pDirectory) / Toolbox::FPath(Texture.RelativePath),
+				                           Bytes, MaxTextureFileBytes);
 				if (!bFound && !Texture.AbsolutePath.IsEmpty())
 				{
 					bFound = Toolbox::ReadFileBytes(Toolbox::FPath(Texture.AbsolutePath), Bytes, MaxTextureFileBytes);
@@ -90,7 +92,8 @@ int ReadTexture_Internal(const char* FilePath, void** FileImageAddr, int* FileSi
 					Bytes.Clear();
 				}
 			}
-			if (!Bytes.IsEmpty() && Bytes.Size() <= static_cast<Toolbox::size_t>(Toolbox::TNumericLimits<Toolbox::int32>::Max()))
+			if (!Bytes.IsEmpty() &&
+			    Bytes.Size() <= static_cast<Toolbox::size_t>(Toolbox::TNumericLimits<Toolbox::int32>::Max()))
 			{
 				Source->Loaded.PushBack(Toolbox::Move(Bytes));
 				*FileImageAddr = Source->Loaded[Source->Loaded.Size() - 1].Data();
@@ -150,21 +153,45 @@ TResult<FModelAllocation> FDxLibModelBackend::LoadModel(const FImportedModel& Mo
 	if (Model.ModelData.Size() < 2 ||
 	    Model.ModelData.Size() - 1 > static_cast<Toolbox::size_t>(Toolbox::TNumericLimits<Toolbox::int32>::Max()))
 	{
-		return TResult<FModelAllocation>::Failure(EErrorCode::InvalidArgument, "Converted model data is empty or too large");
+		return TResult<FModelAllocation>::Failure(EErrorCode::InvalidArgument,
+		                                          "Converted model data is empty or too large");
 	}
 	FTextureSource_Internal Source;
 	Source.pModel = &Model;
 	Source.pDirectory = &Directory;
-	const Toolbox::int32 Handle = DxLib::MV1LoadModelFromMem(Model.ModelData.Data(), static_cast<int>(Model.ModelData.Size() - 1),
-	                                                         &ReadTexture_Internal, &ReleaseTexture_Internal, &Source);
+	const Toolbox::int32 Handle =
+	    DxLib::MV1LoadModelFromMem(Model.ModelData.Data(), static_cast<int>(Model.ModelData.Size() - 1),
+	                               &ReadTexture_Internal, &ReleaseTexture_Internal, &Source);
 	if (Handle < 0)
 	{
 		return TResult<FModelAllocation>::Failure(EErrorCode::BackendFailure, "MV1LoadModelFromMem failed");
 	}
+	// DxLibは頂点色を既定で無効にするため、色を持つフレームだけ明示的に有効にする。
+	for (const Toolbox::FString& Name : Model.VertexColorFrames)
+	{
+		const Toolbox::int32 Frame = DxLib::MV1SearchFrame(Handle, Name.CStr());
+		const Toolbox::int32 MeshCount = Frame < 0 ? -1 : DxLib::MV1GetFrameMeshNum(Handle, Frame);
+		if (MeshCount <= 0)
+		{
+			DxLib::MV1DeleteModel(Handle);
+			return TResult<FModelAllocation>::Failure(EErrorCode::BackendFailure,
+			                                          "Vertex color frame was lost during native import");
+		}
+		for (Toolbox::int32 Index = 0; Index < MeshCount; ++Index)
+		{
+			const Toolbox::int32 Mesh = DxLib::MV1GetFrameMesh(Handle, Frame, Index);
+			if (Mesh < 0 || DxLib::MV1SetMeshUseVertDifColor(Handle, Mesh, TRUE) < 0)
+			{
+				DxLib::MV1DeleteModel(Handle);
+				return TResult<FModelAllocation>::Failure(EErrorCode::BackendFailure,
+				                                          "Native vertex color setup failed");
+			}
+		}
+	}
 	if (Source.Missing > 0)
 	{
-		DXF_LOG_WARNING("Model", "%u texture(s) could not be read from %s (first: %s)", Source.Missing, Directory.CStr(),
-		                Source.FirstMissing.CStr());
+		DXF_LOG_WARNING("Model", "%u texture(s) could not be read from %s (first: %s)", Source.Missing,
+		                Directory.CStr(), Source.FirstMissing.CStr());
 	}
 	FModelAllocation Allocation;
 	Allocation.NativeHandle = Handle;
@@ -172,7 +199,8 @@ TResult<FModelAllocation> FDxLibModelBackend::LoadModel(const FImportedModel& Mo
 	if (DxLib::MV1GetAnimNum(Handle) != static_cast<int>(Model.Clips.Size()))
 	{
 		DxLib::MV1DeleteModel(Handle);
-		return TResult<FModelAllocation>::Failure(EErrorCode::BackendFailure, "Model clip count differs from the converted data");
+		return TResult<FModelAllocation>::Failure(EErrorCode::BackendFailure,
+		                                          "Model clip count differs from the converted data");
 	}
 	for (Toolbox::size_t Index = 0; Index < Model.Clips.Size(); ++Index)
 	{

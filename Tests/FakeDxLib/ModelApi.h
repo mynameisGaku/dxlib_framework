@@ -33,6 +33,10 @@ struct FModelTrace
 	Toolbox::int32 LastAttachedClip = -1;
 	Toolbox::f32 LastTime = -1.0f;
 	Toolbox::int32 Draws = 0;
+	// 頂点色の設定回数と、検索・設定の失敗を再現する指定。
+	Toolbox::int32 ColorMeshes = 0;
+	bool bFailColorFrame = false;
+	bool bFailColorSetup = false;
 	Toolbox::int32 LightingAtDraw = -1;
 	Toolbox::int32 DepthAtDraw = -1;
 	MATRIX LastMatrix{};
@@ -47,7 +51,8 @@ inline FModelTrace ModelTrace;
 /**
  * メモリ上のモデルの読み込みを再現する。指定があればテクスチャの読み込みを1回要求する。
  */
-inline Toolbox::int32 MV1LoadModelFromMem(const void*, int FileSize, int (*FileReadFunc)(const char*, void**, int*, void*),
+inline Toolbox::int32 MV1LoadModelFromMem(const void*, int FileSize,
+                                          int (*FileReadFunc)(const char*, void**, int*, void*),
                                           int (*FileReleaseFunc)(void*, void*), void* FileReadFuncData)
 {
 	++ModelTrace.Loads;
@@ -64,6 +69,24 @@ inline Toolbox::int32 MV1LoadModelFromMem(const void*, int FileSize, int (*FileR
 		}
 	}
 	return ModelTrace.bFailLoad ? -1 : ModelTrace.NextHandle++;
+}
+// 頂点色フレームは材質ごとの2メッシュに分かれる。
+inline Toolbox::int32 MV1SearchFrame(Toolbox::int32, const char*)
+{
+	return ModelTrace.bFailColorFrame ? -1 : 1;
+}
+inline Toolbox::int32 MV1GetFrameMeshNum(Toolbox::int32, Toolbox::int32)
+{
+	return 2;
+}
+inline Toolbox::int32 MV1GetFrameMesh(Toolbox::int32, Toolbox::int32, Toolbox::int32 Index)
+{
+	return Index + 3;
+}
+inline Toolbox::int32 MV1SetMeshUseVertDifColor(Toolbox::int32, Toolbox::int32, Toolbox::int32)
+{
+	++ModelTrace.ColorMeshes;
+	return ModelTrace.bFailColorSetup ? -1 : 0;
 }
 inline Toolbox::int32 MV1GetAnimNum(Toolbox::int32)
 {

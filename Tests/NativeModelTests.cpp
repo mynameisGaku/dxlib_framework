@@ -4,6 +4,8 @@
 #include "Dxf/AssetService.h"
 #include "Dxf/NativeBackends.h"
 #include "Dxf/RenderSystem.h"
+#include "Dxf/ModelImport.h"
+#include "Toolbox/Platform.h"
 #include "DxLib.h"
 namespace
 {
@@ -88,14 +90,16 @@ TEST("Native model draw attaches clips once, sets native time and transposes the
 	REQUIRE(DxLib::ModelTrace.Draws == 1 && DxLib::ModelTrace.Attaches == 1 && DxLib::ModelTrace.LastAttachedClip == 0);
 	REQUIRE(DxLib::ModelTrace.LastTime > 15.0f - 1e-3f && DxLib::ModelTrace.LastTime < 15.0f + 1e-3f);
 	// DxLibの行ベクトル形式では平行移動が最終行に入る。
-	REQUIRE(DxLib::ModelTrace.LastMatrix.m[3][0] == 1 && DxLib::ModelTrace.LastMatrix.m[3][1] == 2 && DxLib::ModelTrace.LastMatrix.m[3][2] == 3);
+	REQUIRE(DxLib::ModelTrace.LastMatrix.m[3][0] == 1 && DxLib::ModelTrace.LastMatrix.m[3][1] == 2 &&
+	        DxLib::ModelTrace.LastMatrix.m[3][2] == 3);
 	REQUIRE(DxLib::ModelTrace.LastMatrix.m[0][3] == 0 && DxLib::ModelTrace.LastMatrix.m[3][3] == 1);
 	// 同じクリップでは付け直さない。
 	REQUIRE(Instance.Advance(0.25) && DrawOnce_Internal(Renderer, Instance));
 	REQUIRE(DxLib::ModelTrace.Attaches == 1 && DxLib::ModelTrace.Detaches == 0);
 	// クリップの変更と停止は、前のクリップを外してから反映する。
 	REQUIRE(Instance.Play("Twist") && DrawOnce_Internal(Renderer, Instance));
-	REQUIRE(DxLib::ModelTrace.Detaches == 1 && DxLib::ModelTrace.Attaches == 2 && DxLib::ModelTrace.LastAttachedClip == 1);
+	REQUIRE(DxLib::ModelTrace.Detaches == 1 && DxLib::ModelTrace.Attaches == 2 &&
+	        DxLib::ModelTrace.LastAttachedClip == 1);
 	Instance.Stop();
 	REQUIRE(DrawOnce_Internal(Renderer, Instance));
 	REQUIRE(DxLib::ModelTrace.Detaches == 2 && DxLib::ModelTrace.Attaches == 2);
@@ -118,4 +122,27 @@ TEST("Native model draw failure does not present and released instances are dele
 	REQUIRE(DxLib::ModelTrace.Deleted == 1);
 	Fixture.Assets.Shutdown();
 	REQUIRE(DxLib::ModelTrace.Deleted == 2);
+}
+
+TEST("Native vertex colors configure all material meshes and reject lost frames")
+{
+	FNativeModelFixture Fixture;
+	// 既存モデルに頂点色を持つフレームの記録を追加し、境界の設定と解放を検証する。
+	Toolbox::TVector<Toolbox::uint8> Bytes;
+	REQUIRE(Toolbox::ReadFileBytes(Toolbox::FPath(DXF_TEST_ASSET_DIR) / "Models/SkinnedColumn.fbx", Bytes,
+	                               16u * 1024u * 1024u));
+	auto Converted = ImportFbxModel(Bytes.Data(), Bytes.Size());
+	REQUIRE(Converted);
+	Converted.Value().VertexColorFrames.PushBack("Colored");
+	auto Loaded = Fixture.Services.pModels->LoadModel(Converted.Value(), {});
+	REQUIRE(Loaded);
+	REQUIRE(DxLib::ModelTrace.ColorMeshes == 2);
+	Fixture.Services.pModels->DeleteModel(Loaded.Value().NativeHandle);
+	DxLib::ModelTrace.bFailColorFrame = true;
+	REQUIRE(!Fixture.Services.pModels->LoadModel(Converted.Value(), {}));
+	REQUIRE(DxLib::ModelTrace.Deleted == 2);
+	DxLib::ModelTrace.bFailColorFrame = false;
+	DxLib::ModelTrace.bFailColorSetup = true;
+	REQUIRE(!Fixture.Services.pModels->LoadModel(Converted.Value(), {}));
+	REQUIRE(DxLib::ModelTrace.Deleted == 3);
 }

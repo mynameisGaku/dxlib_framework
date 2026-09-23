@@ -659,7 +659,13 @@ TEST("model_import reports partial geometry and unsupported material features")
 	REQUIRE(Count_Internal(Imported.Value().ModelData, "Mesh Triangle_mesh") == 1);
 	REQUIRE(HasWarning_Internal(Imported.Value(), "Morph"));
 	REQUIRE(HasWarning_Internal(Imported.Value(), "UV"));
-	REQUIRE(HasWarning_Internal(Imported.Value(), "Vertex colors"));
+	REQUIRE(!HasWarning_Internal(Imported.Value(), "Vertex colors"));
+	REQUIRE(Imported.Value().VertexColorFrames.Size() == 1);
+	REQUIRE(Imported.Value().VertexColorFrames[0] == "Triangle_mesh");
+	REQUIRE(Count_Internal(Imported.Value().ModelData, "MeshVertexColors") == 1);
+	REQUIRE(Count_Internal(Imported.Value().ModelData, "204;0;0;255") == 1);
+	REQUIRE(Count_Internal(Imported.Value().ModelData, "0;204;0;255") == 1);
+	REQUIRE(Count_Internal(Imported.Value().ModelData, "0;0;204;255") == 1);
 	REQUIRE(HasWarning_Internal(Imported.Value(), "PBR"));
 	REQUIRE(HasWarning_Internal(Imported.Value(), "cameras and lights"));
 }
@@ -669,7 +675,8 @@ TEST("model_import rejects dual quaternion and multiple skin deformers")
 	// 線形変換へ黙って置き換えられないスキン方式。
 	const Toolbox::FString Dual = FeatureFbx_Internal(R"FBX(
  Deformer: 3, "Deformer::Skin", "Skin" { SkinningType: "DualQuaternion" }
-)FBX", " C: \"OO\",3,2\n");
+)FBX",
+	                                                  " C: \"OO\",3,2\n");
 	auto DualResult = ImportFbxModel(Dual.Data(), Dual.Size());
 	REQUIRE(!DualResult);
 	REQUIRE(DualResult.Error().Message == "FBX dual-quaternion skinning is unsupported");
@@ -677,7 +684,8 @@ TEST("model_import rejects dual quaternion and multiple skin deformers")
 	const Toolbox::FString Multiple = FeatureFbx_Internal(R"FBX(
  Deformer: 3, "Deformer::A", "Skin" { }
  Deformer: 4, "Deformer::B", "Skin" { }
-)FBX", " C: \"OO\",3,2\n C: \"OO\",4,2\n");
+)FBX",
+	                                                      " C: \"OO\",3,2\n C: \"OO\",4,2\n");
 	auto MultipleResult = ImportFbxModel(Multiple.Data(), Multiple.Size());
 	REQUIRE(!MultipleResult);
 	REQUIRE(MultipleResult.Error().Message == "FBX meshes with multiple skins are unsupported");
@@ -725,4 +733,22 @@ TEST("model cache does not merge distinct unit conversion settings")
 	auto Second = Assets.LoadModel("Assets/Models/StaticBox.fbx", Options);
 	REQUIRE(Second);
 	REQUIRE(Models.m_Loads == 2);
+}
+
+TEST("model_import rejects vertex colors outside native range")
+{
+	// 頂点色と拡散色の積が表現範囲を超える場合、暗黙の丸めで成功扱いにしない。
+	const Toolbox::FString Source = FeatureFbx_Internal(R"FBX(
+ Material: 3, "Material::Bright", "" {
+  ShadingModel: "lambert"
+  Properties70: {
+   P: "DiffuseColor", "Color", "", "A",2,2,2
+   P: "DiffuseFactor", "Number", "", "A",1
+  }
+ }
+)FBX",
+	                                                    " C: \"OO\",3,1\n");
+	auto Imported = ImportFbxModel(Source.Data(), Source.Size());
+	REQUIRE(!Imported);
+	REQUIRE(Imported.Error().Message == "FBX vertex color multiplied by diffuse must be finite and in 0..1");
 }

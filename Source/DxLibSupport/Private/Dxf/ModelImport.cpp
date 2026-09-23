@@ -18,9 +18,11 @@ struct FVertex_Internal
 	Toolbox::f32 Position[3];
 	Toolbox::f32 Normal[3];
 	Toolbox::f32 Uv[2];
+	// 材質の拡散色を掛けた頂点色。色の境界も頂点の共有判定に含める。
+	Toolbox::f32 Color[4];
 	Toolbox::uint32 ControlPoint;
 };
-static_assert(sizeof(FVertex_Internal) == 36, "FVertex_Internal must not contain padding");
+static_assert(sizeof(FVertex_Internal) == 52, "FVertex_Internal must not contain padding");
 
 /**
  * .xのテキストを組み立てる。
@@ -173,13 +175,9 @@ const Toolbox::FString* AddTexture_Internal(FContext_Internal& Context, const uf
 	return &Context.pModel->Textures[static_cast<Toolbox::size_t>(Slot)].Name;
 }
 
-/**
- * 材質を.xのMaterialとして書く。
- */
-void WriteMaterial_Internal(FContext_Internal& Context, FWriter_Internal& Writer, const ufbx_material* Material)
+// 材質の拡散色と不透明度を求める。未指定の成分は呼出し側の既定値を保つ。
+void DiffuseColor_Internal(const ufbx_material* Material, Toolbox::f64 (&Color)[4])
 {
-	Toolbox::f64 Color[4] = {0.8, 0.8, 0.8, 1.0};
-	const ufbx_texture* Texture = nullptr;
 	if (Material != nullptr)
 	{
 		const ufbx_material_map& Diffuse = Material->fbx.diffuse_color;
@@ -195,7 +193,19 @@ void WriteMaterial_Internal(FContext_Internal& Context, FWriter_Internal& Writer
 		{
 			Color[3] = 1.0 - Material->fbx.transparency_factor.value_real;
 		}
-		Texture = Diffuse.texture;
+	}
+}
+
+// 材質の色とテクスチャ参照を出力する。
+void WriteMaterial_Internal(FContext_Internal& Context, FWriter_Internal& Writer, const ufbx_material* Material)
+{
+	// 材質がない場合に使う拡散色。
+	Toolbox::f64 Color[4] = {0.8, 0.8, 0.8, 1.0};
+	DiffuseColor_Internal(Material, Color);
+	const ufbx_texture* Texture = nullptr;
+	if (Material != nullptr)
+	{
+		Texture = Material->fbx.diffuse_color.texture;
 		if (Texture == nullptr)
 		{
 			Texture = Material->pbr.base_color.texture;
@@ -273,6 +283,26 @@ TResult<void> WriteMesh_Internal(FContext_Internal& Context, FWriter_Internal& W
 				// FBXのVは下から、DirectXのVは上から数える。
 				Vertex.Uv[0] = static_cast<Toolbox::f32>(Uv.x);
 				Vertex.Uv[1] = static_cast<Toolbox::f32>(1.0 - Uv.y);
+			}
+			if (Mesh->vertex_color.exists)
+			{
+				// 頂点色は材質の拡散色に乗算する。面ごとに材質が異なる場合も共有しない。
+				const ufbx_vec4 Color = ufbx_get_vertex_vec4(&Mesh->vertex_color, Index);
+				Toolbox::f64 Diffuse[4] = {0.8, 0.8, 0.8, 1.0};
+				DiffuseColor_Internal(Material < Mesh->materials.count ? Mesh->materials.data[Material] : nullptr,
+				                      Diffuse);
+				for (Toolbox::size_t Component = 0; Component < 4; ++Component)
+				{
+					// DxLibの頂点色は8ビット。範囲外や非有限値を黙って補正しない。
+					const Toolbox::f64 Value = Color.v[Component] * Diffuse[Component];
+					if (!(Value >= 0.0 && Value <= 1.0))
+					{
+						return TResult<void>::Failure(
+						    EErrorCode::InvalidArgument,
+						    "FBX vertex color multiplied by diffuse must be finite and in 0..1");
+					}
+					Vertex.Color[Component] = static_cast<Toolbox::f32>(Value);
+				}
 			}
 			Vertex.ControlPoint = Mesh->vertex_indices.data[Index];
 			Corners.PushBack(Vertex);
@@ -352,6 +382,26 @@ TResult<void> WriteMesh_Internal(FContext_Internal& Context, FWriter_Internal& W
 		Writer.Text(Index + 1 == VertexCount ? ";;\n" : ";,\n");
 	}
 	Writer.Text("}\n");
+	if (Mesh->vertex_color.exists)
+	{
+		Context.pModel->VertexColorFrames.PushBack(Context.NodeNames[Node->element_id] + "_mesh");
+		Writer.Text("MeshVertexColors {\n");
+		Writer.Unsigned(VertexCount);
+		Writer.Text(";\n");
+		for (Toolbox::size_t Index = 0; Index < VertexCount; ++Index)
+		{
+			Writer.Unsigned(Index);
+			Writer.Text(";");
+			for (Toolbox::size_t Component = 0; Component < 4; ++Component)
+			{
+				// DxLibの区切り付きIndexedColor読込は0..255を期待する。
+				Writer.Float(Corners[Index].Color[Component] * 255.0);
+				Writer.Text(";");
+			}
+			Writer.Text(Index + 1 == VertexCount ? ";;\n" : ";,\n");
+		}
+		Writer.Text("}\n");
+	}
 	// 材質。FBXで材質がないメッシュには既定の材質を1つ付ける。
 	const Toolbox::size_t MaterialCount = Mesh->materials.count > 0 ? Mesh->materials.count : 1;
 	Writer.Text("MeshMaterialList {\n");
@@ -578,14 +628,16 @@ TResult<void> CheckFeatures_Internal(const ufbx_scene& Scene, Toolbox::TVector<T
 {
 	// 複数メッシュに同じ未対応属性があっても、理由ごとに1件へまとめる。
 	bool bExtraUv = false;
-	bool bVertexColor = false;
+	// 複数の色セットは先頭だけ使うため、省略を通知する。
+	bool bExtraColor = false;
 	for (const ufbx_mesh* Mesh : Scene.meshes)
 	{
 		bExtraUv = bExtraUv || Mesh->uv_sets.count > 1;
-		bVertexColor = bVertexColor || Mesh->vertex_color.exists;
+		bExtraColor = bExtraColor || Mesh->color_sets.count > 1;
 		if (Mesh->skin_deformers.count > 1)
 		{
-			return TResult<void>::Failure(EErrorCode::InvalidArgument, "FBX meshes with multiple skins are unsupported");
+			return TResult<void>::Failure(EErrorCode::InvalidArgument,
+			                              "FBX meshes with multiple skins are unsupported");
 		}
 	}
 	for (const ufbx_skin_deformer* Skin : Scene.skin_deformers)
@@ -603,25 +655,28 @@ TResult<void> CheckFeatures_Internal(const ufbx_scene& Scene, Toolbox::TVector<T
 	{
 		Warnings.PushBack("Additional UV sets are ignored; only the first UV set is imported");
 	}
-	if (bVertexColor)
+	if (bExtraColor)
 	{
-		Warnings.PushBack("Vertex colors are ignored");
+		Warnings.PushBack("Additional vertex color sets are ignored; only the first color set is imported");
 	}
 	// 基本拡散色以外の材質属性を読み込めたものとして扱わない。
 	bool bAdvancedMaterial = false;
 	bool bPhong = false;
 	for (const ufbx_material* Material : Scene.materials)
 	{
-		bAdvancedMaterial = bAdvancedMaterial || (Material->shader_type != UFBX_SHADER_FBX_LAMBERT && Material->shader_type != UFBX_SHADER_FBX_PHONG);
+		bAdvancedMaterial = bAdvancedMaterial || (Material->shader_type != UFBX_SHADER_FBX_LAMBERT &&
+		                                          Material->shader_type != UFBX_SHADER_FBX_PHONG);
 		bPhong = bPhong || Material->shader_type == UFBX_SHADER_FBX_PHONG;
 	}
 	if (bAdvancedMaterial)
 	{
-		Warnings.PushBack("PBR or unknown material shading is unsupported; only the FBX diffuse color and base texture fallback are imported");
+		Warnings.PushBack("PBR or unknown material shading is unsupported; only the FBX diffuse color and base texture "
+		                  "fallback are imported");
 	}
 	if (bPhong)
 	{
-		Warnings.PushBack("Phong specular, shininess and emission are ignored; only diffuse color and texture are imported");
+		Warnings.PushBack(
+		    "Phong specular, shininess and emission are ignored; only diffuse color and texture are imported");
 	}
 	if (Scene.cameras.count > 0 || Scene.lights.count > 0)
 	{
@@ -629,12 +684,14 @@ TResult<void> CheckFeatures_Internal(const ufbx_scene& Scene, Toolbox::TVector<T
 	}
 	if (Scene.constraints.count > 0)
 	{
-		return TResult<void>::Failure(EErrorCode::InvalidArgument, "FBX constraints must be baked into node animation before import");
+		return TResult<void>::Failure(EErrorCode::InvalidArgument,
+		                              "FBX constraints must be baked into node animation before import");
 	}
 	// ufbxが補正して読み進めた内容も、呼出し側が確認できるように残す。
 	for (const ufbx_warning& Warning : Scene.metadata.warnings)
 	{
-		Warnings.PushBack(Toolbox::FString("ufbx: ") + Toolbox::FString(Warning.description.data, Warning.description.length));
+		Warnings.PushBack(Toolbox::FString("ufbx: ") +
+		                  Toolbox::FString(Warning.description.data, Warning.description.length));
 	}
 	return {};
 }
