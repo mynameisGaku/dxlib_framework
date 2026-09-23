@@ -3,6 +3,9 @@
 DxLibを描画・入力・音声の実装として使う、C++20のゲームフレームワークです。
 Windows / Visual Studio / x64を対象にしています。Source・Examples・TestsではSTLを使わず、共通機能はToolboxを使います。
 
+ゲーム固有の処理に集中できることを主目的とし、内部の責務分離と利用側の単純な公開APIを両立します。
+描画・音声だけ、Sceneまで、GameObject／Componentまで、必要な層を選んで利用できます。
+
 ## 開発を始める
 
 Visual Studioの「C++によるデスクトップ開発」（Windows SDKとCMakeを含む）を導入し、ルートで実行します。
@@ -15,6 +18,9 @@ GenerateProjectFiles.bat
 `dxlib_framework.slnx`を開いてDebugまたはReleaseでビルドします。
 通常のソリューションはToolbox・フレームワーク・Sandbox・Starterを対象とします。
 `Setup.cmd`はDxLibの取得とソースビルドを行います。モデルの読み込みにAutodesk FBX SDKは不要です。
+
+空の開始点はStarter、小さいゲームの流れはSandboxを起動してください。Sandboxはタイトル→プレイ→結果→リトライを公開APIだけで構成しています。
+[小さいゲームを組む](Docs/SmallGame.md)で、処理を置く場所と操作を確認できます。
 
 テストやModelViewerを使う場合は、開発用ソリューションを生成します。
 

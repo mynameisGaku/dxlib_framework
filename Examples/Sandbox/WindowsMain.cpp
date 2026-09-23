@@ -2,6 +2,7 @@
 #include "Dxf/NativeBackends.h"
 #include "Dxf/AppRunner.h"
 #include "SandboxGame.h"
+#include "SandboxMenuScene.h"
 #include "../Shared/ProjectRootEntry.h"
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -55,7 +56,7 @@ Toolbox::int32 WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, Toolbox::int32)
 
 		// 処理結果。
 		auto Result = Runner.Run(
-		    Application, Toolbox::MakeUnique<Dxf::Sandbox::DSandboxScene>(ProjectRoot.ToUtf8() + "/Assets"));
+		    Application, Toolbox::MakeUnique<Dxf::Sandbox::ASandboxMenuScene>());
 		if (!Result)
 		{
 			ShowError_Internal(Result.Error().Message);

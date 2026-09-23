@@ -3,6 +3,7 @@
 #include "Support/FakeBackend.h"
 #include "Dxf/Application.h"
 #include "SandboxGame.h"
+#include "SandboxMenuScene.h"
 using namespace Dxf;
 using namespace Dxf::Testing;
 using namespace Dxf::Sandbox;
@@ -76,4 +77,78 @@ TEST("Sandbox propagates missing assets instead of entering a half-constructed s
 	FApplication App(SandboxServices_Internal(Backend));
 	REQUIRE(!App.Start(Toolbox::MakeUnique<DSandboxScene>("MissingAssets")));
 	REQUIRE(Backend.GetTrace().Textures.IsEmpty() && Backend.GetTrace().Sounds.IsEmpty());
+}
+
+TEST("Sandbox public game flow retries with fresh objects and scoped audio")
+{
+	// OS境界だけを置き換え、サンプル本体とApplicationを使う。
+	FFakeBackend Backend;
+	FApplication App(SandboxServices_Internal(Backend));
+	REQUIRE(App.Start(Toolbox::MakeUnique<ASandboxMenuScene>()));
+	Toolbox::f64 Time = 0;
+	// 各要求の次の境界まで進め、キーの押下状態も解除する。
+	auto Press = [&](EKey Key)
+	{
+		Backend.GetTrace().Input.Keys[static_cast<Toolbox::size_t>(Key)] = true;
+		REQUIRE(App.Step(Time += 0.1));
+		Backend.GetTrace().Input.Keys[static_cast<Toolbox::size_t>(Key)] = false;
+		REQUIRE(App.Step(Time += 0.1));
+	};
+	for (Toolbox::int32 Attempt = 0; Attempt < 3; ++Attempt)
+	{
+		Press(EKey::Enter);
+		auto* Play = App.GetScenes().GetCurrent()->TryCast<DSandboxScene>();
+		REQUIRE(Play);
+		const auto Player = Play->GetPlayer();
+		REQUIRE(Player.Get()->GetPosition().X == 320);
+		Press(EKey::Space);
+		REQUIRE(Backend.GetTrace().Clones == Attempt + 1);
+		Press(EKey::P);
+		Backend.GetTrace().Input.Keys[static_cast<Toolbox::size_t>(EKey::D)] = true;
+		REQUIRE(App.Step(Time += 0.1));
+		REQUIRE(Player.Get()->GetPosition().X == 320);
+		Press(EKey::P);
+		for (Toolbox::int32 Frame = 0; Frame < 40; ++Frame)
+		{
+			REQUIRE(App.Step(Time += 0.1));
+		}
+		Backend.GetTrace().Input.Keys[static_cast<Toolbox::size_t>(EKey::D)] = false;
+		REQUIRE(App.GetScenes().GetCurrent()->TryCast<ASandboxMenuScene>());
+		REQUIRE(!Player.Get());
+		for (const auto& Sound : Backend.GetTrace().Sounds)
+		{
+			REQUIRE(!Sound.Second);
+		}
+	}
+	Press(EKey::Space);
+	REQUIRE(App.GetScenes().GetCurrent()->TryCast<ASandboxMenuScene>());
+	Backend.GetTrace().Input.Keys[static_cast<Toolbox::size_t>(EKey::Escape)] = true;
+	const auto Quit = App.Step(Time += 0.1);
+	REQUIRE(Quit && !Quit.Value());
+	REQUIRE(Backend.GetTrace().Textures.IsEmpty() && Backend.GetTrace().Sounds.IsEmpty() &&
+	        Backend.GetTrace().Fonts.IsEmpty());
+}
+TEST("Sandbox game entry failure preserves menu and allows retry")
+{
+	FFakeBackend Backend;
+	FApplication App(SandboxServices_Internal(Backend));
+	REQUIRE(App.Start(Toolbox::MakeUnique<ASandboxMenuScene>()));
+	Backend.GetTrace().bFailTexture = true;
+	Backend.GetTrace().Input.Keys[static_cast<Toolbox::size_t>(EKey::Enter)] = true;
+	REQUIRE(App.Step(0));
+	REQUIRE(App.Step(0.1));
+	REQUIRE(App.IsRunning());
+	REQUIRE(App.GetScenes().GetCurrent()->TryCast<ASandboxMenuScene>());
+	REQUIRE(App.GetScenes().GetLastTransitionError());
+	Backend.GetTrace().Input.Keys[static_cast<Toolbox::size_t>(EKey::Enter)] = false;
+	REQUIRE(App.Step(0.2));
+	Backend.GetTrace().bFailTexture = false;
+	Backend.GetTrace().Input.Keys[static_cast<Toolbox::size_t>(EKey::Enter)] = true;
+	REQUIRE(App.Step(0.3));
+	REQUIRE(App.Step(0.4));
+	REQUIRE(App.GetScenes().GetCurrent()->TryCast<DSandboxScene>());
+	REQUIRE(!App.GetScenes().GetLastTransitionError());
+	App.Shutdown();
+	REQUIRE(Backend.GetTrace().Textures.IsEmpty() && Backend.GetTrace().Sounds.IsEmpty() &&
+	        Backend.GetTrace().Fonts.IsEmpty());
 }

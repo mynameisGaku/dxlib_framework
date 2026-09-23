@@ -1,4 +1,5 @@
 #include "SandboxGame.h"
+#include "SandboxMenuScene.h"
 #include "Dxf/GameObjectComponent.h"
 #include "Dxf/AssetService.h"
 #include "Dxf/AudioPlayer.h"
@@ -87,8 +88,8 @@ void DPlayer::OnTick(const FTickContext& Context)
 // 必要な依存関係を受け取り、初期状態を構築する。
 // @param AssetRoot アセットの基準ディレクトリ。
 // @param bAlternate 代替シーンの配色を使用するか。
-DSandboxScene::DSandboxScene(Toolbox::FString AssetRoot, bool bAlternate)
-    : m_AssetRoot(Toolbox::Move(AssetRoot)), m_bAlternate(bAlternate)
+DSandboxScene::DSandboxScene(Toolbox::FString AssetRoot, bool bAlternate, bool bGoalGame)
+    : m_AssetRoot(Toolbox::Move(AssetRoot)), m_bAlternate(bAlternate), m_bGoalGame(bGoalGame)
 {
 }
 // 派生型固有の初期化を行う。
@@ -144,11 +145,21 @@ void DSandboxScene::OnTick(const FTickContext& Context)
 		Context.Scenes->RequestQuit();
 		return;
 	}
+	// 子のプレイヤーが前フレームで到達したゴールを確定する。ポーズ中は進めない。
+	if (m_bGoalGame && !GetClock().IsPaused())
+	{
+		if (m_Player.Get() && m_Player.Get()->GetPosition().X >= 1100 && Context.Scenes)
+		{
+			RequireSuccess_Internal(
+			    Context.Scenes->RequestChange<ASandboxMenuScene>(true, Context.Time.ElapsedSeconds));
+			return;
+		}
+	}
 	if (Context.Input.WasPressed(EKey::P))
 	{
 		GetClock().SetPaused(!GetClock().IsPaused());
 	}
-	if (Context.Input.WasPressed(EKey::Enter) && Context.Scenes)
+	if (!m_bGoalGame && Context.Input.WasPressed(EKey::Enter) && Context.Scenes)
 	{
 		RequireSuccess_Internal(Context.Scenes->RequestChange<DSandboxScene>(m_AssetRoot, !m_bAlternate));
 	}
@@ -165,7 +176,6 @@ void DSandboxScene::OnTick(const FTickContext& Context)
 			throw Toolbox::FException(Voice.Error().Message);
 		}
 	}
-
 }
 // 現在の状態を描画する。
 // @param Render 現在の描画コンテキスト。
@@ -176,15 +186,26 @@ void DSandboxScene::OnDraw(FRenderContext& Render) const
 	Background.Color = m_bAlternate ? FColor{30, 30, 30, 255} : FColor{12, 12, 12, 255};
 	Background.Layer = -10;
 	RequireSuccess_Internal(Render.Get2D().FillRectangle({0, 160, 1280, 720}, Background));
+	if (m_bGoalGame)
+	{
+		// プレイヤーより背面にゴール帯を描く。
+		FDrawStyle Goal;
+		Goal.Color = {40, 160, 80, 255};
+		RequireSuccess_Internal(Render.Get2D().FillRectangle({1100, 160, 1280, 720}, Goal));
+	}
 	// 描画する文字列。
 	FDrawStyle Text;
 	Text.Layer = 100;
 	RequireSuccess_Internal(Render.Get2D().DrawText(m_Font, "dxlib_framework / Sandbox", {24, 20}, Text));
-	RequireSuccess_Internal(Render.Get2D().DrawText(
-	    m_Font, "WASD: 移動  SPACE: 効果音  P: ポーズ  ENTER: シーン切替  ESC: 終了", {24, 56}, Text));
+	RequireSuccess_Internal(
+	    Render.Get2D().DrawText(m_Font,
+	                            m_bGoalGame ? "WASD: 移動して右端へ  SPACE: 効果音  P: ポーズ  ESC: 終了"
+	                                        : "WASD: 移動  SPACE: 効果音  P: ポーズ  ENTER: シーン切替  ESC: 終了",
+	                            {24, 56}, Text));
 	// 画面へ表示する状態の文字列。
-	const Toolbox::FString Status =
-	    "シーン訪問回数: " + Toolbox::ToString(m_VisitCount) + (GetClock().IsPaused() ? "  [PAUSED]" : "");
+	const Toolbox::FString Status = (m_bGoalGame ? Toolbox::FString("緑色の帯に入るとクリア")
+	                                             : "シーン訪問回数: " + Toolbox::ToString(m_VisitCount)) +
+	                                (GetClock().IsPaused() ? "  [PAUSED]" : "");
 	RequireSuccess_Internal(Render.Get2D().DrawText(m_Font, Status, {24, 92}, Text));
 }
 } // namespace Dxf::Sandbox

@@ -84,8 +84,9 @@ public:
 	 * 必要な依存関係を受け取り、初期状態を構築する。
 	 * @param AssetRoot アセットの基準ディレクトリ。
 	 * @param bAlternate 代替シーンの配色を使用するか。
+	 * @param bGoalGame 右端到達で結果画面へ進むか。
 	 */
-	explicit DSandboxScene(Toolbox::FString AssetRoot, bool bAlternate = false);
+	explicit DSandboxScene(Toolbox::FString AssetRoot = "Assets", bool bAlternate = false, bool bGoalGame = false);
 	/**
 	 * プレイヤーのハンドルを取得する。
 	 */
@@ -141,5 +142,9 @@ private:
 	 * 代替シーンの配色を使うか。
 	 */
 	bool m_bAlternate = false;
+	/**
+	 * 小さいゲームのゴール判定を行うか。
+	 */
+	bool m_bGoalGame = false;
 };
 } // namespace Dxf::Sandbox
