@@ -308,6 +308,13 @@ if(DXF_BUILD_NATIVE_SMOKE)
     target_compile_definitions(NativeModelSmoke PRIVATE DX_NON_USING_NAMESPACE_DXLIB NOMINMAX)
     target_compile_options(NativeModelSmoke PRIVATE /UUNICODE /U_UNICODE)
     dxf_warnings(NativeModelSmoke)
+    # Visual Studioで起動対象に選んでF5を押したときの二引数（ソースルート、構成別の出力先）と作業ディレクトリ。
+    # CTestの登録（DXF_RUN_DEVICE_TESTS）とは独立に設定し、CTestの出力先model-smokeは上書きしない。
+    set_target_properties(NativeModelSmoke PROPERTIES
+        VS_DEBUGGER_COMMAND_ARGUMENTS
+            "\"${CMAKE_CURRENT_SOURCE_DIR}\" \"${CMAKE_CURRENT_BINARY_DIR}/model-smoke-vs-$<CONFIG>\""
+        VS_DEBUGGER_WORKING_DIRECTORY
+            "$<TARGET_FILE_DIR:NativeModelSmoke>")
     # Sandboxの利用経路を入力だけ固定して実画面で確認する。通常のソリューションには含めない。
     add_executable(NativeSandboxSmoke Tests/SandboxSmoke/Main.cpp Examples/Sandbox/SandboxGame.cpp Examples/Sandbox/SandboxMenuScene.cpp)
     target_include_directories(NativeSandboxSmoke PRIVATE Examples/Sandbox)

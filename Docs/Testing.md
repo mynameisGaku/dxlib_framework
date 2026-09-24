@@ -122,6 +122,12 @@ ctest --test-dir Build/DebugValidation-local -C Release -j 1 --no-tests=error --
 これは同じPCで実DxLib SDKを使用しない検証です。SDK未導入PC・実DxLib描画・rootの実デバイス試験とは別の結果として扱ってください。[修復の実行記録](Development/DebugValidationRepair-2026-09-24.md)に修正前の失敗、今回の結果と未解決事項を記録しています。
 
 
+## Visual StudioからNativeModelSmokeを起動する（F5）
+
+`GenerateProjectFiles.bat -Development` で生成したルートの `dxlib_framework-development` ソリューションを開き、`NativeModelSmoke` を起動対象に選んでF5を押すと、CMakeが生成した二引数（ソースルートと、構成別の出力先 `Build/VisualStudio-development/model-smoke-vs-Debug` または `-Release`）が付き、作業ディレクトリは同じ構成の実行ファイルのディレクトリになります。手で引数を入力する必要はありません。既定の起動対象は変更していません。CMakeLists.txtを変更した後や設定が見当たらない場合は、同じコマンドで再生成してください。
+
+この設定はVisual Studio Generatorだけに適用され、デバイス試験のCTest登録（`DXF_RUN_DEVICE_TESTS`、通常の `-Development` ではOFF）とは独立しています。CTestの `NativeModelDeviceSmoke` は、デバイス試験を有効にしたBuildで `model-smoke` へ出力します。出力先が別でも同じデバイスを使うため、F5・CTest・Debug・Releaseの実行は重ねないでください。exeを直接起動する場合は、従来どおり `NativeModelSmoke <ProjectRoot> <output directory>` の二引数が必要で、引数がなければ使い方を表示して終了コード2で終わります（出力先の親ディレクトリは存在している必要があります）。
+
 ## モデル実描画の終了・再起動の診断
 
 `NativeModelDeviceSmoke` はPicking、低レベル描画、複数の新規Application、再度Pickingと描画を同じプロセスで実行します。順序・画素判定・既存の120秒上限は維持します。
