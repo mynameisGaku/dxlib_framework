@@ -105,6 +105,11 @@ const FCase* GetWorldSweepCases(Toolbox::size_t& Count) noexcept;
  * @param Count 返す配列の要素数。
  */
 const FCase* GetWorldSweepNormalCases(Toolbox::size_t& Count) noexcept;
+/**
+ * 2D／3Dの円・球の移動候補（ComputeSlideMove、最大1回の滑り補正）の実World回帰を返す。
+ * @param Count 返す配列の要素数。
+ */
+const FCase* GetWorldSlideCases(Toolbox::size_t& Count) noexcept;
 } // namespace PhysicsTest
 #define PHYSICS_REQUIRE(...) PhysicsTest::Require_Internal(static_cast<bool>((__VA_ARGS__)), #__VA_ARGS__)
 #endif

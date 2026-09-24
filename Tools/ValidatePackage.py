@@ -78,6 +78,8 @@ int main()
 ''', encoding='utf-8')
         (consumer / 'Physics.cpp').write_text('''#include "Dxf/RigidBody2D.h"
 #include "Dxf/RigidBody3D.h"
+#include "Dxf/WorldSlideMove2D.h"
+#include "Dxf/WorldSlideMove3D.h"
 // 円スイープ: 中心線の射線は外れ、半径のある移動は当たる。除外・カテゴリ・静止・削除後の失効。
 // 接触法線: 壁の左下の角(4.5,0.4)から中心(4.2,0)へ向く(-0.6,-0.8)。初期接触・半径0では空。
 static int Sweep2D()
@@ -155,6 +157,52 @@ static int Sweep3D()
     if (!Still || !Still->bInitialContact || Still->Collider != WallId || Still->Normal) { return 114; }
     World.DestroyBody(WallBody);
     if (World.IsColliderAlive(Hit->Collider) || World.SweepClosest(Probe, {10,0,0}, Self, Obstacles)) { return 115; }
+    return 0;
+}
+// 円の移動候補: 正面の壁で停止、斜めに当たって1回滑り途中の板で停止、板を外すと滑り切る、初期接触で停止。
+static int Slide2D()
+{
+    Dxf::FPhysicsWorld2D World;
+    const auto Level = World.CreateBody({});
+    Dxf::FColliderDescription2D Wall;
+    Wall.Shape = Toolbox::FOrientedBox2D{{6,0},{1,50},0};
+    World.AttachCollider(Level, Wall);
+    Dxf::FColliderDescription2D Plate;
+    Plate.Shape = Toolbox::FOrientedBox2D{{4,3},{0.9f,0},0};
+    const auto PlateId = World.AttachCollider(Level, Plate);
+    const Toolbox::FCircle2D Probe{{0,0},0.5f};
+    const auto Head = Dxf::ComputeSlideMove(World, Probe, {10,0}, 0.01);
+    if (Head.Stop != Dxf::EWorldSlideStop::Blocked || Toolbox::Abs(Head.EndCenter.X - 4.49f) > 1e-5f) { return 121; }
+    const auto Stopped = Dxf::ComputeSlideMove(World, Probe, {10,4}, 0.01);
+    if (Stopped.Stop != Dxf::EWorldSlideStop::Blocked || !Stopped.SlideHit || Stopped.SlideHit->Collider != PlateId || Toolbox::Abs(Stopped.EndCenter.Y - 2.49f) > 1e-5f) { return 122; }
+    World.DetachCollider(PlateId);
+    const auto Slid = Dxf::ComputeSlideMove(World, Probe, {10,4}, 0.01);
+    if (Slid.Stop != Dxf::EWorldSlideStop::SlideCompleted || Slid.EndCenter.Y != 4 || Slid.EndCenter.X >= 4.5f) { return 123; }
+    const auto Touching = Dxf::ComputeSlideMove(World, Toolbox::FCircle2D{{4.8f,0},0.5f}, {10,4}, 0.01);
+    if (Touching.Stop != Dxf::EWorldSlideStop::InitialContact || Touching.EndCenter.X != 4.8f) { return 124; }
+    return 0;
+}
+// 球の移動候補: 2Dと同じ配置をZ=0の平面に置く（奥行きの大きいOBB）。
+static int Slide3D()
+{
+    Dxf::FPhysicsWorld3D World;
+    const auto Level = World.CreateBody({});
+    Dxf::FColliderDescription3D Wall;
+    Wall.Shape = Toolbox::FOBB{{6,0,0},{1,50,50}};
+    World.AttachCollider(Level, Wall);
+    Dxf::FColliderDescription3D Plate;
+    Plate.Shape = Toolbox::FOBB{{4,3,0},{0.9f,0,50}};
+    const auto PlateId = World.AttachCollider(Level, Plate);
+    const Toolbox::FSphere Probe{{0,0,0},0.5f};
+    const auto Head = Dxf::ComputeSlideMove(World, Probe, {10,0,0}, 0.01);
+    if (Head.Stop != Dxf::EWorldSlideStop::Blocked || Toolbox::Abs(Head.EndCenter.X - 4.49f) > 1e-5f) { return 131; }
+    const auto Stopped = Dxf::ComputeSlideMove(World, Probe, {10,4,0}, 0.01);
+    if (Stopped.Stop != Dxf::EWorldSlideStop::Blocked || !Stopped.SlideHit || Stopped.SlideHit->Collider != PlateId || Toolbox::Abs(Stopped.EndCenter.Y - 2.49f) > 1e-5f) { return 132; }
+    World.DetachCollider(PlateId);
+    const auto Slid = Dxf::ComputeSlideMove(World, Probe, {10,4,0}, 0.01);
+    if (Slid.Stop != Dxf::EWorldSlideStop::SlideCompleted || Slid.EndCenter.Y != 4 || Slid.EndCenter.X >= 4.5f) { return 133; }
+    const auto Touching = Dxf::ComputeSlideMove(World, Toolbox::FSphere{{4.8f,0,0},0.5f}, {10,4,0}, 0.01);
+    if (Touching.Stop != Dxf::EWorldSlideStop::InitialContact || Touching.EndCenter.X != 4.8f) { return 134; }
     return 0;
 }
 int main()
@@ -295,6 +343,10 @@ int main()
     if (Sweep2DCode != 0) { return Sweep2DCode; }
     const int Sweep3DCode = Sweep3D();
     if (Sweep3DCode != 0) { return Sweep3DCode; }
+    const int Slide2DCode = Slide2D();
+    if (Slide2DCode != 0) { return Slide2DCode; }
+    const int Slide3DCode = Slide3D();
+    if (Slide3DCode != 0) { return Slide3DCode; }
     return 0;
 }
 ''', encoding='utf-8')

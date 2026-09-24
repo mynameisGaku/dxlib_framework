@@ -18,6 +18,7 @@ function(dxf_add_physics_tests Target CoreTarget)
         "${_root}/Tests/Physics/WorldOverlapTests.cpp"
         "${_root}/Tests/Physics/WorldSweepTests.cpp"
         "${_root}/Tests/Physics/WorldSweepNormalTests.cpp"
+        "${_root}/Tests/Physics/WorldSlideTests.cpp"
         "${_root}/Tests/Physics/TestCases.h")
     target_include_directories(${Target} PRIVATE "${_root}/Tests/Physics" "${_root}/Source/Physics/Private")
     target_include_directories(${Target} PRIVATE "${_root}/Tests/Physics" "${_root}/Source/Physics/Private")

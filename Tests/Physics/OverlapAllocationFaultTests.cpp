@@ -4,8 +4,11 @@
 // 注入解除後に同じWorldで全件取得へ戻る／この区間の一時配列に由来する未解放が増えない。
 // あわせて、SweepClosestの通常経路（ヒット・非交差・静止・マスク0・半径0）が確保しないことを確認する。
 // 接触法線の有無（法線あり・初期接触・非交差・半径0）でも確保しないことを確認する。
+// 移動候補（ComputeSlideMove）の最初の接触から補正する経路・到達・初期接触も確保しないことを確認する。
 #include "Dxf/RigidBody2D.h"
 #include "Dxf/RigidBody3D.h"
+#include "Dxf/WorldSlideMove2D.h"
+#include "Dxf/WorldSlideMove3D.h"
 #include "../../Source/Toolbox/Private/Toolbox/Testing/AllocationFault.h"
 #include <stdio.h>
 using namespace Toolbox;
@@ -230,6 +233,34 @@ void SweepNormalWithoutAllocation_Internal(const char* Name, const TWorld& World
 	                       }),
 	               Label);
 }
+
+// 移動候補の通常経路（法線付きの最初の接触から補正して問い合わせる・到達・初期接触）は確保しない。
+template <typename TWorld, typename TProbe, typename TVector>
+void SlideWithoutAllocation_Internal(const char* Name, const TWorld& World, const TProbe& Probe, TVector Slide,
+                                     TVector Away, const TProbe& Touching)
+{
+	char Label[256];
+	snprintf(Label, sizeof(Label), "%s slide move paths do not allocate", Name);
+	Check_Internal(
+	    WithoutAllocation_Internal(
+	        [&]
+	        {
+		        const auto Move = ComputeSlideMove(World, Probe, Slide, 0.01);
+		        return Move.FirstHit && !Move.FirstHit->bInitialContact && Move.FirstHit->Normal &&
+		               Move.Stop != EWorldSlideStop::InitialContact;
+	        }) &&
+	        WithoutAllocation_Internal(
+	            [&]
+	            {
+		            return ComputeSlideMove(World, Probe, Away, 0.01).Stop == EWorldSlideStop::ReachedDesiredEnd;
+	            }) &&
+	        WithoutAllocation_Internal(
+	            [&]
+	            {
+		            return ComputeSlideMove(World, Touching, Slide, 0.01).Stop == EWorldSlideStop::InitialContact;
+	            }),
+	    Label);
+}
 } // namespace
 
 int main()
@@ -248,6 +279,8 @@ int main()
 		SweepWithoutAllocation_Internal("2D", World, FCircle2D{{-5, 0}, 0.25f}, FVector2{10, 0}, FVector2{-5, 50});
 		SweepNormalWithoutAllocation_Internal("2D", World, FCircle2D{{-5, 0}, 0.25f}, FVector2{10, 0}, FVector2{-5, 50},
 		                                      FCircle2D{{-0.5f, 0}, 0.25f});
+		SlideWithoutAllocation_Internal("2D", World, FCircle2D{{-5, 0.3f}, 0.25f}, FVector2{10, 0.3f}, FVector2{-5, 50},
+		                                FCircle2D{{-0.5f, 0}, 0.25f});
 	}
 	{
 		FPhysicsWorld3D World;
@@ -264,6 +297,8 @@ int main()
 		                                FVector3{-5, 50, 0});
 		SweepNormalWithoutAllocation_Internal("3D", World, FSphere{{-5, 0, 0}, 0.25f}, FVector3{10, 0, 0},
 		                                      FVector3{-5, 50, 0}, FSphere{{-0.5f, 0, 0}, 0.25f});
+		SlideWithoutAllocation_Internal("3D", World, FSphere{{-5, 0.3f, 0}, 0.25f}, FVector3{10, 0.3f, 0},
+		                                FVector3{-5, 50, 0}, FSphere{{-0.5f, 0, 0}, 0.25f});
 	}
 	printf("RESULT %s failures=%d\n", GFailures == 0 ? "PASS" : "FAIL", GFailures);
 	return GFailures == 0 ? 0 : 1;

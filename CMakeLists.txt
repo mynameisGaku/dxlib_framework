@@ -183,6 +183,7 @@ dxf_public_headers(dxf_gameplay Gameplay INTERFACE)
 add_library(dxf_physics STATIC
     Source/Physics/Private/Dxf/PhysicsWorld2D.cpp
     Source/Physics/Private/Dxf/PhysicsWorld3D.cpp
+    Source/Physics/Private/Dxf/WorldSlideMove.cpp
     Source/Physics/Private/Dxf/ParallelPhysicsCore.cpp)
 add_library(dxf::physics ALIAS dxf_physics)
 set_target_properties(dxf_physics PROPERTIES EXPORT_NAME physics DEBUG_POSTFIX d)
