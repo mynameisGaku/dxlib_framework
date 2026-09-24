@@ -180,5 +180,22 @@ FAABB Bounds(const FCollisionShape& Shape);
  * @param Tolerance 許容する数値誤差。
  */
 bool Intersects(const FCollisionShape& A, const FCollisionShape& B, f32 Tolerance = 1e-5f);
+/**
+ * 球同士が重なるか（接触を含む）を、Intersectsの球専用経路と同じ距離計算で調べる。
+ * FCollisionShape版と異なり許容距離0を受け付け、境界箱の計算を経由しない。既定値は持たない。
+ * 中心差と半径の和はf64で求める。不正形状・負や非有限の許容距離はFException。
+ * @param Sphere 一つ目の球。半径0は点。
+ * @param Other 二つ目の球。
+ * @param Tolerance 半径の和へ加える有限・非負の距離。
+ */
+bool IntersectsSphere(const FSphere& Sphere, const FSphere& Other, f32 Tolerance);
+/**
+ * 球とOBBが重なるか（接触を含む）を、Intersectsの球専用経路と同じOBB距離計算で調べる。
+ * OBB軸の丸めを含む実際の平行六面体への距離を使う。許容距離0を受け付け、既定値は持たない。
+ * @param Sphere 対象の球。半径0は点。
+ * @param Box 対象のOBB。半幅0は面・辺・点。
+ * @param Tolerance 球の半径へ加える有限・非負の距離。
+ */
+bool IntersectsSphere(const FSphere& Sphere, const FOBB& Box, f32 Tolerance);
 } // namespace Toolbox
 #endif

@@ -89,8 +89,8 @@ struct FColliderDescription3D
 	 */
 	Toolbox::f32 Restitution = 0;
 	/**
-	 * 線分問い合わせ（RaycastClosest）用のカテゴリのビット集合。複数ビットの所属も可。
-	 * 0はこのWorldの線分問い合わせから外す指定。接触・物理更新・Snapshotには影響しない。
+	 * 問い合わせ（線分のRaycastClosest・範囲のOverlapAll）用のカテゴリのビット集合。複数ビットの所属も可。
+	 * 0はこのWorldの問い合わせから外す指定。接触・物理更新・Snapshotには影響しない。
 	 */
 	Toolbox::uint32 QueryCategory = 1u;
 };
@@ -460,6 +460,21 @@ public:
 	 * @param Id 対象Collider。
 	 */
 	Toolbox::uint32 GetColliderQueryCategory(FColliderId3D Id) const;
+	/**
+	 * 範囲（球）と重なる（接触を含む）現在の全ColliderのIDを返す。範囲の中に重心があるかではなく、形状との重なりで判定する。
+	 * 結果は値所有で、生存する対象Colliderのスロット昇順。同じBodyの複数ColliderはそれぞれのIDを返す（Body単位にはまとめない）。
+	 * 交点・割合・法線は返さない。非交差は空配列。許容距離は0（範囲を膨らませない）。半径0は点の問い合わせ。
+	 * 対象はQueryCategoryとFilterが重なるColliderで、自己Bodyの全Colliderは除外する。対象外の形状は変換・計算しない。
+	 * 範囲の不正、明示した除外IDの無効/別World/旧世代、Step中/途中失敗後、対象形状の計算不能、結果の確保失敗はFException。
+	 * 失敗時に途中までの結果は返さない。問い合わせでStep・起床・採取・力の消去を行わない。
+	 * 走査は削除済みを含むスロット数nに対しO(n)、追加領域は結果件数kに対しO(k)。変更・Stepと外側で直列化する。
+	 * @param Area 3D物理ワールド座標の範囲。
+	 * @param ExcludedBody 任意の自己Body。除外しない場合は空Optional。
+	 * @param Filter 対象にする問い合わせカテゴリ。既定は全ビット。
+	 */
+	Toolbox::TVector<FColliderId3D> OverlapAll(const Toolbox::FSphere& Area,
+	                                           Toolbox::TOptional<FBodyId3D> ExcludedBody = {},
+	                                           const FWorldQueryFilter& Filter = {}) const;
 
 private:
 	/**

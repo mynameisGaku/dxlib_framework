@@ -51,6 +51,15 @@ struct FContactPoint2D
  */
 bool IsValid(const FOrientedBox2D& Box) noexcept;
 /**
+ * 円と回転矩形が重なるか（接触を含む）を調べる。接触点・法線は作らない。
+ * 中心差はf64で求め、FindContactと同じ反時計回りの角度・逆回転規約で矩形の局所座標へ移す。
+ * 許容距離は既定値を持たず、呼出し側が明示する（0で許容なし）。不正形状・負や非有限の許容距離はFException。
+ * @param Circle 対象の円。半径0は点。
+ * @param Box 対象の矩形。半幅0は辺・点。
+ * @param Tolerance 円の半径へ加える有限・非負の距離。
+ */
+bool Intersects(const FCircle2D& Circle, const FOrientedBox2D& Box, f32 Tolerance);
+/**
  * 円同士の接触を求める。不正な入力はFExceptionで通知する。
  * @param A 一つ目の円。
  * @param B 二つ目の円。

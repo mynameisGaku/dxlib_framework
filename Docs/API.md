@@ -16,6 +16,13 @@ Sight.IncludeCategories = ObstacleCategory | CharacterCategory;
 const auto Seen = World2D.RaycastClosest(Eye, Target, SelfBody, Sight);
 ```
 
+範囲（2Dの円／3Dの球）と重なる全Colliderの取得は[範囲問い合わせ](Physics/WorldOverlapQuery.md)を参照してください。
+
+```cpp
+// 自分を除いて、半径8の範囲に接するキャラクターのCollider IDをすべて取得する（スロット昇順、値所有）。
+const auto Candidates = World2D.OverlapAll(Toolbox::FCircle2D{Eye, 8.0f}, SelfBody, Characters);
+```
+
 ## GameObject／Componentの作成
 
 `DGameScene::Spawn<T>(引数...)` と `DGameObject::AddComponent<T>(引数...)` は、コンストラクタ引数を転送してインスタンスを登録し、`TResult<TObjectHandle<T>>` を返します。型は対応する基底を継承してください。

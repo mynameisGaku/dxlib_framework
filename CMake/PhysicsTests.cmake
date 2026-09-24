@@ -15,6 +15,7 @@ function(dxf_add_physics_tests Target CoreTarget)
         "${_root}/Tests/Physics/WorldQueryTests.cpp"
         "${_root}/Tests/Physics/WorldQuery2DTests.cpp"
         "${_root}/Tests/Physics/WorldQueryFilterTests.cpp"
+        "${_root}/Tests/Physics/WorldOverlapTests.cpp"
         "${_root}/Tests/Physics/TestCases.h")
     target_include_directories(${Target} PRIVATE "${_root}/Tests/Physics" "${_root}/Source/Physics/Private")
     target_include_directories(${Target} PRIVATE "${_root}/Tests/Physics" "${_root}/Source/Physics/Private")
@@ -29,4 +30,16 @@ function(dxf_add_physics_tests Target CoreTarget)
     endif()
     add_test(NAME PhysicsContinuation COMMAND ${Target})
     set_tests_properties(PhysicsContinuation PROPERTIES TIMEOUT 180 LABELS "portable;physics")
+    # 範囲問い合わせの結果確保の故障注入。確保置換はこの隔離した実行ファイルだけにリンクする。
+    add_executable(${Target}_overlap_fault
+        "${_root}/Tests/Physics/OverlapAllocationFaultTests.cpp"
+        "${_root}/Source/Toolbox/Private/Toolbox/Testing/AllocationFault.cpp")
+    target_compile_definitions(${Target}_overlap_fault PRIVATE DXF_ALLOCATION_FAULT_TEST_EXECUTABLE=1)
+    target_link_libraries(${Target}_overlap_fault PRIVATE ${CoreTarget})
+    target_compile_features(${Target}_overlap_fault PRIVATE cxx_std_20)
+    if(COMMAND dxf_warnings)
+        dxf_warnings(${Target}_overlap_fault)
+    endif()
+    add_test(NAME PhysicsOverlapFault COMMAND ${Target}_overlap_fault)
+    set_tests_properties(PhysicsOverlapFault PROPERTIES TIMEOUT 60 LABELS "portable;physics;fault")
 endfunction()

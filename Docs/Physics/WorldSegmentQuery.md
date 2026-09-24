@@ -2,6 +2,8 @@
 
 `FPhysicsWorld2D::RaycastClosest`（`Dxf/RigidBody2D.h`）と`FPhysicsWorld3D::RaycastClosest`（`Dxf/RigidBody3D.h`）は、現在登録されている形状のうち有限線分が最初に当たるColliderを返します。リンク先は `dxf::physics` だけです。カメラ、Debug、Native、GPU読戻しは不要です。名前は「Raycast」ですが、対象はStart～Endの有限線分です。無限Rayや厚みのある移動判定ではありません。
 
+「近くに何があるか」から候補を集める場合は、[範囲問い合わせ（OverlapAll）](WorldOverlapQuery.md)を使います。範囲との重なりと射線の遮蔽は別の問い合わせで、組み合わせて使います。
+
 ## 2Dと3Dの対応
 
 | 項目 | 2D | 3D |

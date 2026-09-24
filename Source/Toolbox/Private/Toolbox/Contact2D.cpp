@@ -7,6 +7,27 @@ bool IsValid(const FOrientedBox2D& Box) noexcept
 	return Box.Center.IsValid() && Box.HalfExtents.IsValid() && Box.HalfExtents.X >= 0 &&
 	       Box.HalfExtents.Y >= 0 && IsFinite(Box.Angle);
 }
+bool Intersects(const FCircle2D& Circle, const FOrientedBox2D& Box, f32 Tolerance)
+{
+	if (!IsValid(Circle) || !IsValid(Box) || !IsFinite(Tolerance) || Tolerance < 0)
+	{
+		throw FException("Invalid 2D circle-box overlap input");
+	}
+	// 差を取る前からf64にし、f32で先にあふれないようにする。
+	const f64 DeltaX = f64(Circle.Center.X) - f64(Box.Center.X);
+	const f64 DeltaY = f64(Circle.Center.Y) - f64(Box.Center.Y);
+	const f64 Cosine = Cos(f64(Box.Angle));
+	const f64 Sine = Sin(f64(Box.Angle));
+	// 矩形の局所座標と、そこでの最近点。
+	const f64 LocalX = Cosine * DeltaX + Sine * DeltaY;
+	const f64 LocalY = -Sine * DeltaX + Cosine * DeltaY;
+	const f64 NearX = Clamp(LocalX, -f64(Box.HalfExtents.X), f64(Box.HalfExtents.X));
+	const f64 NearY = Clamp(LocalY, -f64(Box.HalfExtents.Y), f64(Box.HalfExtents.Y));
+	const f64 GapX = LocalX - NearX;
+	const f64 GapY = LocalY - NearY;
+	const f64 Limit = f64(Circle.Radius) + Tolerance;
+	return GapX * GapX + GapY * GapY <= Limit * Limit;
+}
 FContactPoint2D FindContact(const FCircle2D& A, const FCircle2D& B)
 {
 	if (!IsValid(A) || !IsValid(B))

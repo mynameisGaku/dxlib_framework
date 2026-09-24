@@ -142,6 +142,76 @@ int main()
     World3D.SetColliderQueryCategory(FarCollider3D, 6u);
     World3D.DestroyBody(FarBody3D);
     if (World3D.IsColliderAlive(FarCollider3D) || World3D.RaycastClosest({0,0,0},{10,0,0},{},Sight)) { return 11; }
+    // 範囲問い合わせ: 候補を集め、障害物込みの射線で遮られていない候補を選ぶ（2D）。
+    Dxf::FWorldQueryFilter Characters;
+    Characters.IncludeCategories = 2u;
+    Dxf::FWorldQueryFilter LineOfSight;
+    LineOfSight.IncludeCategories = 1u | 2u;
+    Dxf::FPhysicsWorld2D Area2D;
+    Dxf::FBodyDescription2D At2D;
+    At2D.Type = Dxf::EBodyType::Static;
+    const auto Eye2D = Area2D.CreateBody(At2D);
+    Dxf::FColliderDescription2D Character2D;
+    Character2D.Shape = Toolbox::FCircle2D{{0,0},0.5f};
+    Character2D.QueryCategory = 2u;
+    Area2D.AttachCollider(Eye2D, Character2D);
+    At2D.Position = {0,4};
+    const auto Visible2D = Area2D.CreateBody(At2D);
+    const auto VisibleCollider2D = Area2D.AttachCollider(Visible2D, Character2D);
+    At2D.Position = {8,0};
+    const auto Hidden2D = Area2D.CreateBody(At2D);
+    const auto HiddenCollider2D = Area2D.AttachCollider(Hidden2D, Character2D);
+    At2D.Position = {5,0};
+    const auto WallBody2D = Area2D.CreateBody(At2D);
+    Dxf::FColliderDescription2D Wall2D;
+    Wall2D.Shape = Toolbox::FOrientedBox2D{{0,0},{0.5f,2},0.3f};
+    Wall2D.QueryCategory = 1u;
+    const auto WallCollider2D = Area2D.AttachCollider(WallBody2D, Wall2D);
+    const auto Candidates2D = Area2D.OverlapAll(Toolbox::FCircle2D{{0,0},10}, Eye2D, Characters);
+    if (Candidates2D.Size() != 2 || Candidates2D[0] != VisibleCollider2D || Candidates2D[1] != HiddenCollider2D) { return 12; }
+    const auto See2D = Area2D.RaycastClosest({0,0}, Area2D.GetPosition(Visible2D), Eye2D, LineOfSight);
+    const auto Block2D = Area2D.RaycastClosest({0,0}, Area2D.GetPosition(Hidden2D), Eye2D, LineOfSight);
+    if (!See2D || See2D->Collider.Body != Visible2D || !Block2D || Block2D->Collider != WallCollider2D) { return 13; }
+    if (Area2D.OverlapAll(Toolbox::FCircle2D{{5,0},0.1f}).Size() != 1) { return 14; }
+    Area2D.SetColliderQueryCategory(WallCollider2D, 0u);
+    Area2D.SetBodyTransform(Visible2D, {0,20}, 0);
+    const auto After2D = Area2D.OverlapAll(Toolbox::FCircle2D{{0,0},10}, Eye2D, Characters);
+    if (After2D.Size() != 1 || After2D[0] != HiddenCollider2D || !Area2D.OverlapAll(Toolbox::FCircle2D{{5,0},0.1f}).IsEmpty()) { return 15; }
+    Area2D.DestroyBody(Hidden2D);
+    const auto Reused2D = Area2D.CreateBody(At2D);
+    if (Reused2D.Index != Hidden2D.Index || Area2D.IsColliderAlive(HiddenCollider2D) || !Area2D.OverlapAll(Toolbox::FCircle2D{{0,0},10}, Eye2D, Characters).IsEmpty()) { return 16; }
+    // 同じ流れを3Dで（回転OBBの壁）。
+    Dxf::FPhysicsWorld3D Area3D;
+    Dxf::FBodyDescription3D At3D;
+    At3D.Type = Dxf::EBodyType::Static;
+    const auto Eye3D = Area3D.CreateBody(At3D);
+    Dxf::FColliderDescription3D Character3D;
+    Character3D.Shape = Toolbox::FSphere{{0,0,0},0.5f};
+    Character3D.QueryCategory = 2u;
+    Area3D.AttachCollider(Eye3D, Character3D);
+    At3D.Position = {0,4,0};
+    const auto Visible3D = Area3D.CreateBody(At3D);
+    const auto VisibleCollider3D = Area3D.AttachCollider(Visible3D, Character3D);
+    At3D.Position = {8,0,0};
+    const auto Hidden3D = Area3D.CreateBody(At3D);
+    const auto HiddenCollider3D = Area3D.AttachCollider(Hidden3D, Character3D);
+    At3D.Position = {5,0,0};
+    At3D.Orientation = Toolbox::FQuaternion::FromAxisAngle({0,1,0}, 0.3f);
+    const auto WallBody3D = Area3D.CreateBody(At3D);
+    Dxf::FColliderDescription3D Wall3D;
+    Wall3D.Shape = Toolbox::FOBB{{0,0,0},{0.5f,2,2}};
+    Wall3D.QueryCategory = 1u;
+    const auto WallCollider3D = Area3D.AttachCollider(WallBody3D, Wall3D);
+    const auto Candidates3D = Area3D.OverlapAll(Toolbox::FSphere{{0,0,0},10}, Eye3D, Characters);
+    if (Candidates3D.Size() != 2 || Candidates3D[0] != VisibleCollider3D || Candidates3D[1] != HiddenCollider3D) { return 17; }
+    const auto See3D = Area3D.RaycastClosest({0,0,0}, Area3D.GetPosition(Visible3D), Eye3D, LineOfSight);
+    const auto Block3D = Area3D.RaycastClosest({0,0,0}, Area3D.GetPosition(Hidden3D), Eye3D, LineOfSight);
+    if (!See3D || See3D->Collider.Body != Visible3D || !Block3D || Block3D->Collider != WallCollider3D) { return 18; }
+    Area3D.SetColliderQueryCategory(WallCollider3D, 0u);
+    const auto Open3D = Area3D.RaycastClosest({0,0,0}, Area3D.GetPosition(Hidden3D), Eye3D, LineOfSight);
+    if (!Open3D || Open3D->Collider != HiddenCollider3D) { return 19; }
+    Area3D.DestroyBody(Hidden3D);
+    if (Area3D.IsColliderAlive(HiddenCollider3D) || Area3D.OverlapAll(Toolbox::FSphere{{0,0,0},10}, Eye3D, Characters).Size() != 1) { return 20; }
     return 0;
 }
 ''', encoding='utf-8')

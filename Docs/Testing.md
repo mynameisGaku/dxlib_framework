@@ -113,7 +113,7 @@ ctest --test-dir Build/DebugValidation-local -C Release -j 1 --no-tests=error --
 
 再発確認は `python Tools/ValidateDebug.py --logs Build/DebugValidationLogs` です。毎回新しい作業ディレクトリを作り、Debug/Releaseの全ビルド、必要群の登録、Native等のOFF、JUnitの実行結果を照合します。欠落・重複・スキップ・失敗を成功にしません。Windowsでは既定Visual Studio/x64、その他は既定Generatorを使います。Python単体試験は検証器の制御だけを確認し、C++コンパイラーやSDKを要求しません。
 
-旧13群（DebugTools / DebugPhysicsCapture / RenderContinuation / JobFault 5群 / RenderViews / NativeViewsTranslation / Transparency 3群）を保持し、現行では正規のportable登録を含む21群です。DebugPhysicsCaptureはSnapshot選択と実RenderDebugの11ケース、PhysicsContinuationはWorld問い合わせ（3D 7ケース、2Dの線分交差とWorld問い合わせ9ケース、2D／3Dの対象フィルター20ケース）を含みます。`debug_tests` / `debug_physics_tests` の実行ファイル名は正規の `dxf_debug_tools_tests` / `dxf_debug_physics_tests` に統一しました。通常は名前を直接実行せずCTestを使います。
+旧13群（DebugTools / DebugPhysicsCapture / RenderContinuation / JobFault 5群 / RenderViews / NativeViewsTranslation / Transparency 3群）を保持し、現行では正規のportable登録を含む22群です（範囲問い合わせの確保故障注入 `PhysicsOverlapFault` を含む）。DebugPhysicsCaptureはSnapshot選択と実RenderDebugの11ケース、PhysicsContinuationはWorld問い合わせ（3D 7ケース、2Dの線分交差とWorld問い合わせ9ケース、2D／3Dの対象フィルター20ケース、2D／3Dの範囲問い合わせ20ケース）を含みます。範囲問い合わせの結果確保の故障注入は隔離した `PhysicsOverlapFault` 群です。`debug_tests` / `debug_physics_tests` の実行ファイル名は正規の `dxf_debug_tools_tests` / `dxf_debug_physics_tests` に統一しました。通常は名前を直接実行せずCTestを使います。
 
 警告はrootの設定を利用します。旧入口で `/WX` だったContinuation / JobFault / RenderViews / NativeViewsTranslationの4ターゲットでは厳格条件を保持します。MSVCのC4324のみ、既存FVector3/FQuaternionの `alignas(16)` による意図したパディングとしてPRIVATEで除外し、他の警告をエラーにします。型・ABIは変えません。非MSVCでは同じ4ターゲットに加え、旧coreを構成した正規層と旧Debug/Transparency試験にも `-Werror` を保持します。
 

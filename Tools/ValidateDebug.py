@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REQUIRED = {
     'DebugTools', 'DebugPhysicsCapture', 'RenderViews', 'NativeViewsTranslation',
     'RenderContinuation', 'RenderTransparency', 'RenderTransparencyFault',
-    'NativeTransparency', 'PhysicsContinuation',
+    'NativeTransparency', 'PhysicsContinuation', 'PhysicsOverlapFault',
     *(f'JobFault-{name}' for name in ('construction', 'submission', 'capture-wait',
                                    'cross-system', 'fence-allocation')),
 }

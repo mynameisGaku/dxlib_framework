@@ -2781,6 +2781,55 @@ Toolbox::TOptional<FWorldSegmentHit3D> FPhysicsWorld3D::RaycastClosest(Toolbox::
 	}
 	return Best;
 }
+// 現在の登録配列を直接走査し、範囲と重なる対象Colliderの完全なIDをスロット昇順で集める。
+Toolbox::TVector<FColliderId3D> FPhysicsWorld3D::OverlapAll(const Toolbox::FSphere& Area,
+                                                            Toolbox::TOptional<FBodyId3D> ExcludedBody,
+                                                            const FWorldQueryFilter& Filter) const
+{
+	// マスクや空Worldでも入力・状態・除外IDの検査は省略しない。
+	if (!Area.Center.IsValid() || !Toolbox::IsFinite(Area.Radius) || Area.Radius < 0)
+	{
+		throw Toolbox::FException("Invalid 3D world overlap area");
+	}
+	const FImpl& Impl = *m_pImpl;
+	Impl.RequireQueryState_Internal();
+	if (ExcludedBody)
+	{
+		(void)Impl.Resolve_Internal(*ExcludedBody);
+	}
+	// 呼出しごとのローカルな結果。一致しなければ確保しない。例外時は破棄され、部分結果は外へ出ない。
+	Toolbox::TVector<FColliderId3D> Result;
+	for (Toolbox::size_t Index = 0; Index < Impl.Colliders.Size(); ++Index)
+	{
+		// 現在のColliderスロット。
+		const auto& Record = Impl.Colliders[Index];
+		if (!Record.bAlive)
+		{
+			continue;
+		}
+		// 対象外のカテゴリと自己Bodyは、所有Bodyの参照・形状の変換へ進まない。
+		if ((Record.QueryCategory & Filter.IncludeCategories) == 0)
+		{
+			continue;
+		}
+		if (ExcludedBody && Record.Body == *ExcludedBody)
+		{
+			continue;
+		}
+		// 既存の形状変換で現在の姿勢へ移し、許容距離0で重なりを判定する。
+		const auto& Body = Impl.Resolve_Internal(Record.Body);
+		const bool bOverlaps = Record.Shape.Visit(
+		    [&](const auto& Local)
+		    {
+			    return Toolbox::IntersectsSphere(Area, FImpl::ToWorld_Internal(Body, Local), 0.0f);
+		    });
+		if (bOverlaps)
+		{
+			Result.PushBack({Record.Body, Index, Record.Generation});
+		}
+	}
+	return Result;
+}
 // Colliderの問い合わせカテゴリを変更する。問い合わせの候補だけに影響し、他の状態は変えない。
 void FPhysicsWorld3D::SetColliderQueryCategory(FColliderId3D Id, Toolbox::uint32 Categories)
 {

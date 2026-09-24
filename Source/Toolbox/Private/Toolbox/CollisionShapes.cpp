@@ -148,6 +148,14 @@ f64 SphereObbDistanceSquared_Internal(const FSphere& Sphere, const FOBB& Box) no
 	}
 	return Best;
 }
+// 球の中心間の距離の二乗。差はf64で求める。
+f64 SphereSphereDistanceSquared_Internal(const FSphere& Sphere, const FSphere& Other) noexcept
+{
+	const f64 X = f64(Sphere.Center.X) - Other.Center.X;
+	const f64 Y = f64(Sphere.Center.Y) - Other.Center.Y;
+	const f64 Z = f64(Sphere.Center.Z) - Other.Center.Z;
+	return X * X + Y * Y + Z * Z;
+}
 // 対応する球対プリミティブはGJKを通さない。引数順は呼び出し元で統一する。
 bool TrySpherePrimitive_Internal(const FSphere& Sphere, const FCollisionShape& Other, f32 Tolerance, bool& bResult)
 {
@@ -156,10 +164,7 @@ bool TrySpherePrimitive_Internal(const FSphere& Sphere, const FCollisionShape& O
 	if (HoldsAlternative<FSphere>(Other))
 	{
 		const FSphere& Right = Get<FSphere>(Other);
-		const f64 X = f64(Sphere.Center.X) - Right.Center.X;
-		const f64 Y = f64(Sphere.Center.Y) - Right.Center.Y;
-		const f64 Z = f64(Sphere.Center.Z) - Right.Center.Z;
-		Squared = X * X + Y * Y + Z * Z;
+		Squared = SphereSphereDistanceSquared_Internal(Sphere, Right);
 		Limit += Right.Radius;
 	}
 	else if (HoldsAlternative<FAABB>(Other))
@@ -589,5 +594,36 @@ bool Intersects(const FCollisionShape& A, const FCollisionShape& B, f32 Toleranc
 		return Intersects(B, A, Tolerance);
 	}
 	return ConvexIntersects(A, B, Tolerance);
+}
+namespace
+{
+// 球の座標・半径と、許容距離を検査する。
+void ValidateSphereQuery_Internal(const FSphere& Sphere, f32 Tolerance)
+{
+	if (!Sphere.Center.IsValid() || !IsFinite(Sphere.Radius) || Sphere.Radius < 0 || !IsFinite(Tolerance) ||
+	    Tolerance < 0)
+	{
+		throw FException("Invalid sphere overlap input");
+	}
+}
+} // namespace
+bool IntersectsSphere(const FSphere& Sphere, const FSphere& Other, f32 Tolerance)
+{
+	ValidateSphereQuery_Internal(Sphere, Tolerance);
+	ValidateSphereQuery_Internal(Other, 0);
+	const f64 Limit = f64(Sphere.Radius) + f64(Other.Radius) + Tolerance;
+	return SphereSphereDistanceSquared_Internal(Sphere, Other) <= Limit * Limit;
+}
+bool IntersectsSphere(const FSphere& Sphere, const FOBB& Box, f32 Tolerance)
+{
+	ValidateSphereQuery_Internal(Sphere, Tolerance);
+	// IsValid(FCollisionShape)のOBB条件と同じ（直交単位軸・非負の半幅）。
+	if (!Box.Center.IsValid() || !Box.HalfExtents.IsValid() || Box.HalfExtents.X < 0 || Box.HalfExtents.Y < 0 ||
+	    Box.HalfExtents.Z < 0 || !ValidAxes(Box.Axes))
+	{
+		throw FException("Invalid OBB overlap input");
+	}
+	const f64 Limit = f64(Sphere.Radius) + Tolerance;
+	return SphereObbDistanceSquared_Internal(Sphere, Box) <= Limit * Limit;
 }
 } // namespace Toolbox
