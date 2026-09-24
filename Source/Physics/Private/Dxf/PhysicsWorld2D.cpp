@@ -72,6 +72,8 @@ struct FColliderRecord2D
 	Toolbox::f32 Friction = 0.5f;
 	// 反発係数。
 	Toolbox::f32 Restitution = 0;
+	// 線分問い合わせ用のカテゴリ。0は問い合わせ対象外。接触には使わない。
+	Toolbox::uint32 QueryCategory = 1u;
 };
 // 速度拘束の反復で使う単一接触点。
 struct FSolvePoint2D
@@ -532,6 +534,25 @@ struct FPhysicsWorld2D::FImpl
 		const FColliderRecord2D& Record = Colliders[Id.Index];
 		const bool bMatches = Record.bAlive && Record.Generation == Id.Generation && Record.Body == Id.Body;
 		return bMatches ? &Record : nullptr;
+	}
+	// 線分問い合わせとカテゴリ操作は、Step中と途中失敗後を拒否する（Snapshotと同じ状態ガード）。
+	void RequireQueryState_Internal() const
+	{
+		if (SnapshotState.bInStep || !SnapshotState.bCaptureAllowed)
+		{
+			throw Toolbox::FException("2D world query requires an idle World with no incomplete Step");
+		}
+	}
+	// 問い合わせカテゴリを操作するColliderを返す。無効・別World・削除済み・旧世代は例外。
+	const FColliderRecord2D& ResolveQueryCollider_Internal(FColliderId2D Id) const
+	{
+		RequireQueryState_Internal();
+		const FColliderRecord2D* Record = FindCollider_Internal(Id);
+		if (Record == nullptr)
+		{
+			throw Toolbox::FException("Invalid 2D collider id");
+		}
+		return *Record;
 	}
 	// 正準順序が小さい方か調べる。
 	static bool ColliderLess_Internal(const FColliderId2D& A, const FColliderId2D& B) noexcept
@@ -2018,6 +2039,7 @@ FColliderId2D FPhysicsWorld2D::AttachCollider(FBodyId2D Body, const FColliderDes
 	Record.Shape = Description.Shape;
 	Record.Friction = Description.Friction;
 	Record.Restitution = Description.Restitution;
+	Record.QueryCategory = Description.QueryCategory;
 	// 空きスロットの再使用または末尾への追加。
 	Toolbox::size_t Index = 0;
 	if (!m_pImpl->ColliderFree.IsEmpty())
@@ -2206,9 +2228,16 @@ bool FPhysicsWorld2D::IsColliderAlive(FColliderId2D Id) const noexcept
 	return m_pImpl->FindCollider_Internal(Id) != nullptr;
 }
 // 登録配列から直接採取する。外部の観察登録一覧は使用しない。
-// 現在の登録配列を直接走査し、状態を変更せず最短の交差を返す。
+// 全ビットのフィルターへ委譲する。走査と交点計算は4引数版だけに置く。
 Toolbox::TOptional<FWorldSegmentHit2D> FPhysicsWorld2D::RaycastClosest(Toolbox::FVector2 Start, Toolbox::FVector2 End,
                                                                        Toolbox::TOptional<FBodyId2D> ExcludedBody) const
+{
+	return RaycastClosest(Start, End, ExcludedBody, FWorldQueryFilter{});
+}
+// 現在の登録配列を直接走査し、状態を変更せず、対象カテゴリの中で最短の交差を返す。
+Toolbox::TOptional<FWorldSegmentHit2D> FPhysicsWorld2D::RaycastClosest(Toolbox::FVector2 Start, Toolbox::FVector2 End,
+                                                                       Toolbox::TOptional<FBodyId2D> ExcludedBody,
+                                                                       const FWorldQueryFilter& Filter) const
 {
 	// 空Worldでも入力を先に検査する。既存円交差の変位表現に合わせる。
 	if (!Start.IsValid() || !End.IsValid() || Start == End || !(End - Start).IsValid())
@@ -2217,10 +2246,7 @@ Toolbox::TOptional<FWorldSegmentHit2D> FPhysicsWorld2D::RaycastClosest(Toolbox::
 	}
 	// 読み取り専用の内部状態。
 	const FImpl& Impl = *m_pImpl;
-	if (Impl.SnapshotState.bInStep || !Impl.SnapshotState.bCaptureAllowed)
-	{
-		throw Toolbox::FException("2D world query requires an idle World with no incomplete Step");
-	}
+	Impl.RequireQueryState_Internal();
 	if (ExcludedBody)
 	{
 		(void)Impl.Resolve_Internal(*ExcludedBody);
@@ -2232,6 +2258,11 @@ Toolbox::TOptional<FWorldSegmentHit2D> FPhysicsWorld2D::RaycastClosest(Toolbox::
 		// 現在のColliderスロット。
 		const auto& Record = Impl.Colliders[Index];
 		if (!Record.bAlive)
+		{
+			continue;
+		}
+		// 対象外のカテゴリは形状の変換・交差計算へ進まない（最短候補の選定前に絞る）。
+		if ((Record.QueryCategory & Filter.IncludeCategories) == 0)
 		{
 			continue;
 		}
@@ -2276,6 +2307,18 @@ Toolbox::TOptional<FWorldSegmentHit2D> FPhysicsWorld2D::RaycastClosest(Toolbox::
 		Best = Result;
 	}
 	return Best;
+}
+// Colliderの問い合わせカテゴリを変更する。問い合わせの候補だけに影響し、他の状態は変えない。
+void FPhysicsWorld2D::SetColliderQueryCategory(FColliderId2D Id, Toolbox::uint32 Categories)
+{
+	// 状態とIDの検査がすべて成功してから、値だけを書き換える。
+	(void)m_pImpl->ResolveQueryCollider_Internal(Id);
+	m_pImpl->Colliders[Id.Index].QueryCategory = Categories;
+}
+// Colliderの問い合わせカテゴリを返す。
+Toolbox::uint32 FPhysicsWorld2D::GetColliderQueryCategory(FColliderId2D Id) const
+{
+	return m_pImpl->ResolveQueryCollider_Internal(Id).QueryCategory;
 }
 FPhysicsSnapshot2D FPhysicsWorld2D::CaptureSnapshot(const FPhysicsSnapshotLimits& Limits) const
 {

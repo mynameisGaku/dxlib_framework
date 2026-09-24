@@ -3,6 +3,7 @@
 #define DXF_PHYSICS_RIGID_BODY_2D_H
 #include "Dxf/BodyType.h"
 #include "Dxf/WorldSegmentHit2D.h"
+#include "Dxf/WorldQueryFilter.h"
 #include "Toolbox/Optional.h"
 #include "Dxf/PhysicsSnapshot.h"
 #include "Dxf/PhysicsExecution.h"
@@ -83,6 +84,11 @@ struct FColliderDescription2D
 	 * 0〜1の反発係数。
 	 */
 	Toolbox::f32 Restitution = 0;
+	/**
+	 * 線分問い合わせ（RaycastClosest）用のカテゴリのビット集合。複数ビットの所属も可。
+	 * 0はこのWorldの線分問い合わせから外す指定。接触・物理更新・Snapshotには影響しない。
+	 */
+	Toolbox::uint32 QueryCategory = 1u;
 };
 /**
  * 接触拘束の解決設定。プロジェクトの試験条件に合わせた初期値。
@@ -415,6 +421,7 @@ public:
 	 * 現在の円/回転矩形と有限線分の最短交点を返す。非交差は空、異常はFException。
 	 * 座標はメートル単位・Y上向きの2D物理ワールド座標（ピクセルではない）。
 	 * 同距離はColliderスロット昇順。通常経路は配列確保なし、削除済みを含むスロット数に対しO(n)。
+	 * 全ビットのFWorldQueryFilterを指定した4引数版と同じ。QueryCategoryを0にしたColliderは対象にならない。
 	 * Step中/途中失敗後は拒否。変更・Stepと外側で直列化する。問い合わせで起床や採取を行わない。
 	 * @param Start ワールド始点。有限値を要求する。
 	 * @param End ワールド終点。ゼロ長・表現不能な変位は拒否する。
@@ -422,6 +429,31 @@ public:
 	 */
 	Toolbox::TOptional<FWorldSegmentHit2D> RaycastClosest(Toolbox::FVector2 Start, Toolbox::FVector2 End,
 	                                                      Toolbox::TOptional<FBodyId2D> ExcludedBody = {}) const;
+	/**
+	 * RaycastClosestに、調べるColliderの種類の絞り込みを加える。絞り込みは最短候補の選定前に行う。
+	 * ColliderのQueryCategoryとFilter.IncludeCategoriesが1ビットも重ならないColliderは、形状の変換・交差計算をしない。
+	 * 線分・World状態・除外IDの検証は、マスク0や対象なしの場合も省略しない。その他の契約は3引数版と同じ。
+	 * @param Start ワールド始点。有限値を要求する。
+	 * @param End ワールド終点。ゼロ長・表現不能な変位は拒否する。
+	 * @param ExcludedBody 任意の自己Body。指定済みの無効/別World/旧世代IDは拒否する。除外しない場合は空Optional。
+	 * @param Filter 対象にする問い合わせカテゴリ。
+	 */
+	Toolbox::TOptional<FWorldSegmentHit2D> RaycastClosest(Toolbox::FVector2 Start, Toolbox::FVector2 End,
+	                                                      Toolbox::TOptional<FBodyId2D> ExcludedBody,
+	                                                      const FWorldQueryFilter& Filter) const;
+	/**
+	 * Colliderの問い合わせカテゴリを変更する。問い合わせの候補だけに影響し、追加Stepなしで次の問い合わせへ反映する。
+	 * ID・世代・形状・姿勢・速度・力・接触キャッシュ・休止・StepIndexは変更しない。
+	 * 無効/別World/削除済み/旧世代のID、Step中/途中失敗後はFExceptionで拒否し、値を変更しない。
+	 * @param Id 対象Collider。
+	 * @param Categories 新しいカテゴリのビット集合。0は問い合わせ対象外。
+	 */
+	void SetColliderQueryCategory(FColliderId2D Id, Toolbox::uint32 Categories);
+	/**
+	 * Colliderの問い合わせカテゴリを返す。IDとStep状態の検査はSetColliderQueryCategoryと同じ。
+	 * @param Id 対象Collider。
+	 */
+	Toolbox::uint32 GetColliderQueryCategory(FColliderId2D Id) const;
 
 private:
 	/**

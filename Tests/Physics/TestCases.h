@@ -85,6 +85,11 @@ const FCase* GetWorldQueryCases(Toolbox::size_t& Count) noexcept;
  * @param Count 返す配列の要素数。
  */
 const FCase* GetWorldQuery2DCases(Toolbox::size_t& Count) noexcept;
+/**
+ * 2D／3Dの線分問い合わせ対象フィルター（カテゴリとマスク）の回帰を返す。
+ * @param Count 返す配列の要素数。
+ */
+const FCase* GetWorldQueryFilterCases(Toolbox::size_t& Count) noexcept;
 } // namespace PhysicsTest
 #define PHYSICS_REQUIRE(...) PhysicsTest::Require_Internal(static_cast<bool>((__VA_ARGS__)), #__VA_ARGS__)
 #endif

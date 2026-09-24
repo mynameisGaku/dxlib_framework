@@ -10,9 +10,10 @@
 | 結果 | `TOptional<FWorldSegmentHit2D>`（`Dxf/WorldSegmentHit2D.h`） | `TOptional<FWorldSegmentHit3D>`（`Dxf/WorldSegmentHit3D.h`） |
 | 対象形状 | 円・回転矩形（Body角度＋Colliderのローカル角度） | 球・OBB |
 | 座標 | 2D物理ワールド。メートル・Y上向き・角度はラジアン。ピクセルではない | 3D物理ワールド。メートル |
+| 対象の絞り込み | `RaycastClosest(Start, End, ExcludedBody, const FWorldQueryFilter& Filter) const`、`Set/GetColliderQueryCategory(FColliderId2D, ...)` | 同左（`FColliderId3D`） |
 | 形状交差 | `Toolbox::IntersectSegment(FVector2, FVector2, FCircle2D / FOrientedBox2D)`（`Toolbox/SegmentIntersection2D.h`） | `Toolbox::IntersectSegment(FVector3, FVector3, FSphere / FOBB)`（`Toolbox/SegmentIntersection.h`） |
 
-結果の型・失敗・Step状態・除外・順序の契約は2Dと3Dで共通です（下記）。法線、全件一覧、カテゴリ／マスク、空間索引はどちらにもありません。
+結果の型・失敗・Step状態・除外・順序・対象の絞り込みの契約は2Dと3Dで共通です（下記）。法線、全件一覧、空間索引はどちらにもありません。
 
 ## ゲームから使う（2D）
 
@@ -63,6 +64,49 @@ if (Segment && Segment.Value())
 
 返り値の正常な非交差は空Optionalです。不正入力・計算不能・利用できないWorld状態は既存Physics APIと同じ `Toolbox::FException` で通知するため、呼び出し境界で処理してください。
 
+## 問い合わせ対象の絞り込み（2D／3D共通）
+
+Colliderごとの**問い合わせカテゴリ**（`FColliderDescription2D/3D::QueryCategory`、`uint32`のビット集合、既定1）と、
+呼出しごとの**マスク**（`Dxf/WorldQueryFilter.h` の `FWorldQueryFilter::IncludeCategories`、既定は全ビット）で、線分問い合わせの候補を絞ります。
+`(QueryCategory & IncludeCategories) != 0` のColliderだけが候補です。カテゴリの意味（壁・キャラクターなど）はゲーム側で決め、フレームワークは固定の分類を持ちません。
+
+```cpp
+// ゲーム側のカテゴリ定義。
+constexpr Toolbox::uint32 ObstacleCategory = 1u << 0;
+constexpr Toolbox::uint32 CharacterCategory = 1u << 1;
+constexpr Toolbox::uint32 PickupCategory = 1u << 2;
+
+Dxf::FColliderDescription2D Wall;
+Wall.Shape = Toolbox::FOrientedBox2D{{0, 0}, {0.5f, 2}, 0};
+Wall.QueryCategory = ObstacleCategory;
+const auto WallId = World.AttachCollider(WallBody, Wall);
+
+// 障害物とキャラクターを対象にし、自分のBodyは除外する。拾得物は射線を遮らない。
+Dxf::FWorldQueryFilter Sight;
+Sight.IncludeCategories = ObstacleCategory | CharacterCategory;
+const auto Hit = World.RaycastClosest(Eye, Target, SelfBody, Sight);
+// 最短のColliderがプレイヤーかはゲーム側で判断する。手前に壁があれば壁が返る。
+const bool bCanSee = Hit && Hit->Collider.Body == PlayerBody;
+
+// 自己Bodyを除外しない場合は空Optionalを渡す。
+const auto Any = World.RaycastClosest(Eye, Target, {}, Sight);
+
+// 壁を一時的に射線の対象から外し、後で戻す。どちらも追加Stepなしで次の問い合わせへ反映する。
+World.SetColliderQueryCategory(WallId, 0u);
+World.SetColliderQueryCategory(WallId, ObstacleCategory);
+```
+
+3Dも同じ呼出しです（`FColliderDescription3D`、`FVector3`）。プレイヤーのカテゴリだけを指定すると壁の奥のプレイヤーも返るため、「壁越しには見えない」判定にはなりません。見えるかどうかは、遮るものも含めたマスクで最短を調べてください。
+
+- **問い合わせだけに効く**: 接触応答・重力・休止・CCD・Snapshot採取・描画は変わりません。カテゴリ0のColliderも衝突し、Snapshotに含まれます。既存の双方向の衝突フィルター（`Toolbox::FCollisionFilter`）とは別の、片方向の判定です。
+- **カテゴリ0**: そのColliderをこのWorldの線分問い合わせから外す明示指定です。従来の2／3引数の入口（全ビットのマスクと同じ）でも対象になりません。これまでのコードはQueryCategoryを設定していないため、既定の1で従来どおり対象です。
+- **マスク0**: 正常な「対象なし」で、結果は空です。ただし線分・World状態・除外IDの検証は省略しません（不正なら例外）。最上位ビット`0x80000000u`を含む全32ビットを使えます。
+- **最短候補の選定前に絞る**: 対象外のColliderは形状の変換・交差計算をしません（変換できない形状があっても対象外なら失敗しません）。対象のColliderの計算失敗は、先に割合0の候補があっても例外です。同じ割合の候補は、対象の中でColliderスロットの小さい順です。
+- **自己Body除外との併用**: 除外したBodyのColliderは、カテゴリが一致していても対象外です。
+- **変更**: `SetColliderQueryCategory` はカテゴリだけを変え、ID・世代・形状・姿勢・速度・力・接触キャッシュ・休止・StepIndexを変えません。Getterは保持値を返します。どちらも別World・無効・削除済み・旧世代のIDとStep中・途中失敗後を例外で拒否し、失敗時は値を変えません。最初のStep前から使えます。Colliderスロットの再利用時は新しいDescriptionの値を使い、以前のカテゴリは残りません。
+- **保存Snapshotとの違い**: Snapshotにはカテゴリを保存しません。問い合わせ設定を復元するデータではなく、Debugの履歴選択は従来どおり保存時の全Colliderを調べます。
+- **再ビルド**: Descriptionへのフィールド追加と新しい公開型のため、フレームワークと利用側を再ビルドしてください。旧バイナリとのABI互換は保証しません。
+
 ## 結果と失敗の契約（2D／3D共通）
 
 - `Collider` はBodyのWorld識別子・スロット・世代と、Colliderのスロット・世代を含む値です。削除・再登録後も同じ物体とは限りません。保存後に利用する場合は `World.IsColliderAlive(Hit->Collider)` で確認します。生存していても、保存した交点は問い合わせ時の位置です。結果に生ポインタや内部配列の参照は含みません。
@@ -85,6 +129,6 @@ Colliderスロットを直接走査するため、削除済みも含めた保持
 
 [Snapshot選択](../Rendering/PhysicsSnapshotPicking.md)は採取時の表示・履歴を調べます。本APIは現在のWorldを調べます。RenderDebugの履歴選択は引き続き保存Snapshotを使用し、現在の値へ置き換えません。
 
-対象は最短一件・自己Body一つの除外までです。全件一覧、カテゴリ、モデル三角形、法線、Sweepの公開World API、2D画面選択、形状の二重登録は追加していません。
+対象は最短一件・自己Body一つの除外・問い合わせカテゴリによる絞り込みまでです。衝突応答用のカテゴリ、全件一覧、任意コールバックの絞り込み、モデル三角形、法線、Sweepの公開World API、2D画面選択、形状の二重登録は追加していません。
 
-検証と実行範囲は[3Dの検証記録](../Development/WorldSegmentQuery-2026-09-24.md)と[2Dの検証記録](../Development/WorldSegmentQuery2D-2026-09-24.md)を参照してください。
+検証と実行範囲は[3Dの検証記録](../Development/WorldSegmentQuery-2026-09-24.md)、[2Dの検証記録](../Development/WorldSegmentQuery2D-2026-09-24.md)、[対象フィルターの検証記録](../Development/WorldQueryFilter-2026-09-24.md)を参照してください。

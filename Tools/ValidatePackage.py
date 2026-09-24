@@ -108,6 +108,40 @@ int main()
     if (!Other2D || Other2D->Collider != WallCollider || Toolbox::Abs(Other2D->Fraction-.45)>1e-12) { return 5; }
     World2D.DestroyBody(Wall);
     if (World2D.IsColliderAlive(WallCollider) || World2D.RaycastClosest({0,0},{10,0},Body2D)) { return 6; }
+    // 問い合わせカテゴリ: 手前の不一致を飛ばし、自己除外と併用し、Stepなしの変更と失効を確認する。
+    Dxf::FWorldQueryFilter Sight;
+    Sight.IncludeCategories = 2u;
+    Dxf::FBodyDescription2D Fixed2D;
+    Fixed2D.Type = Dxf::EBodyType::Static;
+    Dxf::FColliderDescription2D Pickup2D;
+    Pickup2D.Shape = Toolbox::FCircle2D{{3,0},0.5f};
+    Pickup2D.QueryCategory = 4u;
+    const auto PickupCollider2D = World2D.AttachCollider(World2D.CreateBody(Fixed2D), Pickup2D);
+    Dxf::FColliderDescription2D Target2D;
+    Target2D.Shape = Toolbox::FCircle2D{{6,0},0.5f};
+    Target2D.QueryCategory = 2u;
+    const auto TargetCollider2D = World2D.AttachCollider(World2D.CreateBody(Fixed2D), Target2D);
+    const auto Seen2D = World2D.RaycastClosest({0,0},{10,0},Body2D,Sight);
+    if (!Seen2D || Seen2D->Collider != TargetCollider2D || World2D.RaycastClosest({0,0},{10,0},Body2D)->Collider != PickupCollider2D) { return 7; }
+    World2D.SetColliderQueryCategory(TargetCollider2D, 0u);
+    if (World2D.GetColliderQueryCategory(TargetCollider2D) != 0u || World2D.RaycastClosest({0,0},{10,0},{},Sight)) { return 8; }
+    Dxf::FPhysicsWorld3D World3D;
+    const auto Self3D = World3D.CreateBody({});
+    Dxf::FColliderDescription3D Near3D;
+    Near3D.Shape = Toolbox::FSphere{{3,0,0},0.5f};
+    Near3D.QueryCategory = 4u;
+    World3D.AttachCollider(Self3D, Near3D);
+    Dxf::FColliderDescription3D Far3D;
+    Far3D.Shape = Toolbox::FSphere{{6,0,0},0.5f};
+    Far3D.QueryCategory = 2u;
+    const auto FarBody3D = World3D.CreateBody({});
+    const auto FarCollider3D = World3D.AttachCollider(FarBody3D, Far3D);
+    const auto Seen3D = World3D.RaycastClosest({0,0,0},{10,0,0},{},Sight);
+    if (!Seen3D || Seen3D->Collider != FarCollider3D || Toolbox::Abs(Seen3D->Fraction-.55)>1e-12) { return 9; }
+    if (World3D.RaycastClosest({0,0,0},{10,0,0},FarBody3D,Sight)) { return 10; }
+    World3D.SetColliderQueryCategory(FarCollider3D, 6u);
+    World3D.DestroyBody(FarBody3D);
+    if (World3D.IsColliderAlive(FarCollider3D) || World3D.RaycastClosest({0,0,0},{10,0,0},{},Sight)) { return 11; }
     return 0;
 }
 ''', encoding='utf-8')

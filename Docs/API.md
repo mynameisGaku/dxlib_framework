@@ -10,6 +10,10 @@ FBXモデルの読み込み・インスタンス・アニメーション再生�
 ```cpp
 // 2D: 自分のBodyを除いて、Eye→Target（物理ワールド座標、メートル・Y上向き）で最初に当たるCollider。
 const auto Hit = World2D.RaycastClosest(Eye, Target, SelfBody);
+// 対象カテゴリを絞る場合（2D／3D共通）。カテゴリはColliderDescriptionのQueryCategoryで登録する。
+Dxf::FWorldQueryFilter Sight;
+Sight.IncludeCategories = ObstacleCategory | CharacterCategory;
+const auto Seen = World2D.RaycastClosest(Eye, Target, SelfBody, Sight);
 ```
 
 ## GameObject／Componentの作成
