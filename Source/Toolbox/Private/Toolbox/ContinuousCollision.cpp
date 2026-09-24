@@ -21,13 +21,17 @@ FVector3 Normal_Internal(f64 X, f64 Y, f64 Z) noexcept
 	return {static_cast<f32>(X / Length), static_cast<f32>(Y / Length), static_cast<f32>(Z / Length)};
 }
 // 相対座標にある点が原点中心の球へ入る時刻。入力成分はf32の和差の範囲に収まる。
-FSweepHit3D PointBallEntry_Internal(const f64 (&P)[3], const f64 (&V)[3], f64 Radius)
+// Residualへ接触時の点の相対位置（初期接触では開始位置）をf64のまま返す。非接触では変更しない。
+FSweepHit3D PointBallEntry_Internal(const f64 (&P)[3], const f64 (&V)[3], f64 Radius, f64 (&Residual)[3])
 {
 	FSweepHit3D Result;
 	const f64 StartSquared = P[0] * P[0] + P[1] * P[1] + P[2] * P[2];
 	const f64 RadiusSquared = Radius * Radius;
 	if (StartSquared <= RadiusSquared)
 	{
+		Residual[0] = P[0];
+		Residual[1] = P[1];
+		Residual[2] = P[2];
 		Result.bHit = true;
 		Result.bInitialContact = true;
 		Result.Time = 0;
@@ -64,8 +68,17 @@ FSweepHit3D PointBallEntry_Internal(const f64 (&P)[3], const f64 (&V)[3], f64 Ra
 	const f64 X = (P[0] + V[0] * ClosestTime) - V[0] * OffsetTime;
 	const f64 Y = (P[1] + V[1] * ClosestTime) - V[1] * OffsetTime;
 	const f64 Z = (P[2] + V[2] * ClosestTime) - V[2] * OffsetTime;
+	Residual[0] = X;
+	Residual[1] = Y;
+	Residual[2] = Z;
 	Result.Normal = X == 0 && Y == 0 && Z == 0 ? Normal_Internal(-V[0], -V[1], -V[2]) : Normal_Internal(X, Y, Z);
 	return Result;
+}
+// 残差を使わない既存の連続衝突（Sweep）の呼出し。式と結果は上と同じ。
+FSweepHit3D PointBallEntry_Internal(const f64 (&P)[3], const f64 (&V)[3], f64 Radius)
+{
+	f64 Residual[3]{};
+	return PointBallEntry_Internal(P, V, Radius, Residual);
 }
 // 球と変位に対する共通の事前条件。
 void Validate_Internal(const FSphere& Sphere, FVector3 Move, f32 Tolerance)
@@ -216,12 +229,65 @@ void PrepareMove_Internal(const f64 (&Start)[3], const f64 (&End)[3], bool bVali
 		}
 	}
 }
+// 方向を採用する残差の下限の、残差の計算に使った値の規模に対する比（2^-30）。
+// f64の相対計算の丸め誤差（規模の数倍の2^-52程度）に対して、方向の誤差をおおむね1e-6以下に抑える。
+constexpr f64 NormalResidualRatio_Internal = 1.0 / 1073741824.0;
+// 3成分の絶対値の最大。
+f64 MaxAbs_Internal(const f64 (&Value)[3]) noexcept
+{
+	return Max(Abs(Value[0]), Max(Abs(Value[1]), Abs(Value[2])));
+}
+// 接触時の残差（対象の最近点から移動する中心への相対位置）を単位方向へ変える。
+// ErrorScaleは残差の計算に使った値の最大成分。残差がその丸めの規模から区別できなければfalse（代替方向を作らない）。
+bool UnitDirection_Internal(const f64 (&Residual)[3], f64 ErrorScale, f64 (&Unit)[3]) noexcept
+{
+	const f64 Scale = MaxAbs_Internal(Residual);
+	if (!IsFinite(Scale) || !(Scale > ErrorScale * NormalResidualRatio_Internal))
+	{
+		return false;
+	}
+	// 最大成分で割ってから長さを求め、平方の桁あふれ・小さな値の消失を避ける。
+	const f64 X = Residual[0] / Scale;
+	const f64 Y = Residual[1] / Scale;
+	const f64 Z = Residual[2] / Scale;
+	const f64 Length = Sqrt(X * X + Y * Y + Z * Z);
+	Unit[0] = X / Length;
+	Unit[1] = Y / Length;
+	Unit[2] = Z / Length;
+	return true;
+}
+// 2D／3Dに共通の形状スイープの結果。法線は次元別の公開型へ変える前のf64の単位方向。
+struct FShapeEntry_Internal
+{
+	// 移動区間全体を1とした最初の接触割合。
+	f64 Time = 0;
+	// 開始状態で接触または重なりがあったか。
+	bool bInitialContact = false;
+	// Normalが有効な方向か。
+	bool bNormal = false;
+	// 対象から移動する中心へ向く単位方向。
+	f64 Normal[3]{};
+};
+// 時刻・初期接触と、接触時の残差から結果を作る。初期接触・移動する形状の半径0では法線を求めない。
+FShapeEntry_Internal MakeEntry_Internal(f64 Time, bool bInitialContact, const f64 (&Residual)[3], f64 ErrorScale,
+                                        f32 MovingRadius)
+{
+	FShapeEntry_Internal Entry;
+	Entry.Time = Time;
+	Entry.bInitialContact = bInitialContact;
+	if (!bInitialContact && MovingRadius > 0)
+	{
+		Entry.bNormal = UnitDirection_Internal(Residual, ErrorScale, Entry.Normal);
+	}
+	return Entry;
+}
 // 実際の軸を持つ箱の面・辺・頂点（全軸が自由な内部以外の各状態）へ、点が半径以内に入る最初の割合。
 // Positionは箱中心からの開始位置、Moveは移動量、Axes[i]は軸i、Dimensionは使う軸の数（2または3）。
 // 各状態では、自由な軸が張る平面／直線への最短点の局所座標q(t)を求め、その有限範囲に収まる区間だけで判定する。
 // 箱の点との距離なので偽の接触は生じず、外からの最初の接触は必ずいずれかの状態で最短点が範囲内になる。
+// Residualへ、選んだ最初の接触での特徴上の最短点から中心への相対位置を返す（時刻と同じ計算から得る）。
 TOptional<f64> BoxFeatureEntry_Internal(const f64 (&Position)[3], const f64 (&Move)[3], const f64 (&Axes)[3][3],
-                                        const f64 (&Half)[3], int32 Dimension, f64 Radius)
+                                        const f64 (&Half)[3], int32 Dimension, f64 Radius, f64 (&Residual)[3])
 {
 	TOptional<f64> Best;
 	int32 States = 1;
@@ -332,7 +398,8 @@ TOptional<f64> BoxFeatureEntry_Internal(const f64 (&Position)[3], const f64 (&Mo
 		const f64 Start[3] = {Residual0[0] + Low * Residual1[0], Residual0[1] + Low * Residual1[1],
 		                      Residual0[2] + Low * Residual1[2]};
 		const f64 Change[3] = {Residual1[0] * Span, Residual1[1] * Span, Residual1[2] * Span};
-		const FSweepHit3D Hit = PointBallEntry_Internal(Start, Change, Radius);
+		f64 FeatureResidual[3]{};
+		const FSweepHit3D Hit = PointBallEntry_Internal(Start, Change, Radius, FeatureResidual);
 		if (!Hit.bHit)
 		{
 			continue;
@@ -341,22 +408,34 @@ TOptional<f64> BoxFeatureEntry_Internal(const f64 (&Position)[3], const f64 (&Mo
 		if (!Best || Time < *Best)
 		{
 			Best = Time;
+			Residual[0] = FeatureResidual[0];
+			Residual[1] = FeatureResidual[1];
+			Residual[2] = FeatureResidual[2];
 		}
 	}
 	return Best;
 }
-// 点と球の進入結果を公開用の結果へ変える。
-TOptional<FShapeSweepHit> ToShapeHit_Internal(const FSweepHit3D& Hit)
+// 円／球同士: 相対位置の点が半径の和の球へ入る時刻と、そのときの残差（中心差）から結果を作る。
+TOptional<FShapeEntry_Internal> BallEntry_Internal(const f64 (&Relative)[3], const f64 (&Move)[3], f64 Radius,
+                                                   f32 MovingRadius)
 {
+	f64 Residual[3]{};
+	const FSweepHit3D Hit = PointBallEntry_Internal(Relative, Move, Radius, Residual);
 	if (!Hit.bHit)
 	{
 		return {};
 	}
-	return FShapeSweepHit{Hit.Time, Hit.bInitialContact};
+	// 残差は開始の相対位置と、その規模以下の移動量の積・半径から求まる。
+	const f64 ErrorScale = Max(MaxAbs_Internal(Relative), Radius);
+	return MakeEntry_Internal(Hit.Time, Hit.bInitialContact, Residual, ErrorScale, MovingRadius);
 }
-// 箱の特徴からの結果を公開用の結果へ変える。開始時の包含は呼出し側で判定済み。
-TOptional<FShapeSweepHit> ToShapeHit_Internal(const TOptional<f64>& Time)
+// 箱: 開始時の接触は呼出し側で判定済み。特徴ごとの最初の接触と、その特徴での残差から結果を作る。
+TOptional<FShapeEntry_Internal> BoxEntry_Internal(const f64 (&Position)[3], const f64 (&Move)[3],
+                                                  const f64 (&Axes)[3][3], const f64 (&Half)[3], int32 Dimension,
+                                                  f32 MovingRadius)
 {
+	f64 Residual[3]{};
+	const TOptional<f64> Time = BoxFeatureEntry_Internal(Position, Move, Axes, Half, Dimension, MovingRadius, Residual);
 	if (!Time)
 	{
 		return {};
@@ -365,10 +444,53 @@ TOptional<FShapeSweepHit> ToShapeHit_Internal(const TOptional<f64>& Time)
 	{
 		throw FException("Invalid shape sweep time");
 	}
-	return FShapeSweepHit{*Time, false};
+	// 残差は箱中心からの開始位置・移動量・半幅（軸の射影を含む）と半径から求まる。
+	const f64 Extent = Max(MaxAbs_Internal(Position), Max(MaxAbs_Internal(Move), MaxAbs_Internal(Half)));
+	const f64 ErrorScale = Max(Extent, f64(MovingRadius));
+	return MakeEntry_Internal(*Time, false, Residual, ErrorScale, MovingRadius);
+}
+// 開始時の接触（法線なし）。
+FShapeEntry_Internal InitialEntry_Internal() noexcept
+{
+	FShapeEntry_Internal Entry;
+	Entry.bInitialContact = true;
+	return Entry;
+}
+// 共通の結果を2Dの公開結果へ変える。2Dの計算は第3成分が0なので、XYだけを使う。
+TOptional<FShapeSweepHit2D> To2D_Internal(const TOptional<FShapeEntry_Internal>& Entry)
+{
+	if (!Entry)
+	{
+		return {};
+	}
+	FShapeSweepHit2D Result;
+	Result.Time = Entry->Time;
+	Result.bInitialContact = Entry->bInitialContact;
+	if (Entry->bNormal)
+	{
+		Result.Normal = FVector2{static_cast<f32>(Entry->Normal[0]), static_cast<f32>(Entry->Normal[1])};
+	}
+	return Result;
+}
+// 共通の結果を3Dの公開結果へ変える。
+TOptional<FShapeSweepHit3D> To3D_Internal(const TOptional<FShapeEntry_Internal>& Entry)
+{
+	if (!Entry)
+	{
+		return {};
+	}
+	FShapeSweepHit3D Result;
+	Result.Time = Entry->Time;
+	Result.bInitialContact = Entry->bInitialContact;
+	if (Entry->bNormal)
+	{
+		Result.Normal = FVector3{static_cast<f32>(Entry->Normal[0]), static_cast<f32>(Entry->Normal[1]),
+		                         static_cast<f32>(Entry->Normal[2])};
+	}
+	return Result;
 }
 } // namespace
-TOptional<FShapeSweepHit> SweepToCenter(const FCircle2D& Moving, FVector2 EndCenter, const FCircle2D& Target)
+TOptional<FShapeSweepHit2D> SweepToCenter(const FCircle2D& Moving, FVector2 EndCenter, const FCircle2D& Target)
 {
 	const f64 Start[3] = {Moving.Center.X, Moving.Center.Y, 0};
 	const f64 End[3] = {EndCenter.X, EndCenter.Y, 0};
@@ -380,9 +502,9 @@ TOptional<FShapeSweepHit> SweepToCenter(const FCircle2D& Moving, FVector2 EndCen
 	}
 	// 相対位置の点が半径の和の円へ入る時刻（XY平面の点と球の計算、Zは0）。
 	const f64 Relative[3] = {Start[0] - Target.Center.X, Start[1] - Target.Center.Y, 0};
-	return ToShapeHit_Internal(PointBallEntry_Internal(Relative, Move, f64(Moving.Radius) + f64(Target.Radius)));
+	return To2D_Internal(BallEntry_Internal(Relative, Move, f64(Moving.Radius) + f64(Target.Radius), Moving.Radius));
 }
-TOptional<FShapeSweepHit> SweepToCenter(const FCircle2D& Moving, FVector2 EndCenter, const FOrientedBox2D& Target)
+TOptional<FShapeSweepHit2D> SweepToCenter(const FCircle2D& Moving, FVector2 EndCenter, const FOrientedBox2D& Target)
 {
 	const f64 Start[3] = {Moving.Center.X, Moving.Center.Y, 0};
 	const f64 End[3] = {EndCenter.X, EndCenter.Y, 0};
@@ -391,7 +513,7 @@ TOptional<FShapeSweepHit> SweepToCenter(const FCircle2D& Moving, FVector2 EndCen
 	// 開始時の接触は許容距離0の既存判定で決める（矩形の検証も兼ねる）。
 	if (Intersects(Moving, Target, 0.0f))
 	{
-		return FShapeSweepHit{0, true};
+		return To2D_Internal(InitialEntry_Internal());
 	}
 	// Contact2Dと同じ規約の軸（反時計回り）。f64で作るため直交単位軸になる。
 	const f64 Cosine = Cos(f64(Target.Angle));
@@ -399,9 +521,9 @@ TOptional<FShapeSweepHit> SweepToCenter(const FCircle2D& Moving, FVector2 EndCen
 	const f64 Axes[3][3] = {{Cosine, Sine, 0}, {-Sine, Cosine, 0}, {0, 0, 1}};
 	const f64 Half[3] = {Target.HalfExtents.X, Target.HalfExtents.Y, 0};
 	const f64 Position[3] = {Start[0] - Target.Center.X, Start[1] - Target.Center.Y, 0};
-	return ToShapeHit_Internal(BoxFeatureEntry_Internal(Position, Move, Axes, Half, 2, Moving.Radius));
+	return To2D_Internal(BoxEntry_Internal(Position, Move, Axes, Half, 2, Moving.Radius));
 }
-TOptional<FShapeSweepHit> SweepToCenter(const FSphere& Moving, FVector3 EndCenter, const FSphere& Target)
+TOptional<FShapeSweepHit3D> SweepToCenter(const FSphere& Moving, FVector3 EndCenter, const FSphere& Target)
 {
 	const f64 Start[3] = {Moving.Center.X, Moving.Center.Y, Moving.Center.Z};
 	const f64 End[3] = {EndCenter.X, EndCenter.Y, EndCenter.Z};
@@ -412,9 +534,9 @@ TOptional<FShapeSweepHit> SweepToCenter(const FSphere& Moving, FVector3 EndCente
 		throw FException("Invalid shape sweep target sphere");
 	}
 	const f64 Relative[3] = {Start[0] - Target.Center.X, Start[1] - Target.Center.Y, Start[2] - Target.Center.Z};
-	return ToShapeHit_Internal(PointBallEntry_Internal(Relative, Move, f64(Moving.Radius) + f64(Target.Radius)));
+	return To3D_Internal(BallEntry_Internal(Relative, Move, f64(Moving.Radius) + f64(Target.Radius), Moving.Radius));
 }
-TOptional<FShapeSweepHit> SweepToCenter(const FSphere& Moving, FVector3 EndCenter, const FOBB& Target)
+TOptional<FShapeSweepHit3D> SweepToCenter(const FSphere& Moving, FVector3 EndCenter, const FOBB& Target)
 {
 	const f64 Start[3] = {Moving.Center.X, Moving.Center.Y, Moving.Center.Z};
 	const f64 End[3] = {EndCenter.X, EndCenter.Y, EndCenter.Z};
@@ -423,7 +545,7 @@ TOptional<FShapeSweepHit> SweepToCenter(const FSphere& Moving, FVector3 EndCente
 	// 開始時の接触は、実際の平行六面体への既存の距離計算（許容距離0）で決める（OBBの検証も兼ねる）。
 	if (IntersectsSphere(Moving, Target, 0.0f))
 	{
-		return FShapeSweepHit{0, true};
+		return To3D_Internal(InitialEntry_Internal());
 	}
 	f64 Axes[3][3]{};
 	for (int32 Axis = 0; Axis < 3; ++Axis)
@@ -435,6 +557,6 @@ TOptional<FShapeSweepHit> SweepToCenter(const FSphere& Moving, FVector3 EndCente
 	}
 	const f64 Half[3] = {Target.HalfExtents.X, Target.HalfExtents.Y, Target.HalfExtents.Z};
 	const f64 Position[3] = {Start[0] - Target.Center.X, Start[1] - Target.Center.Y, Start[2] - Target.Center.Z};
-	return ToShapeHit_Internal(BoxFeatureEntry_Internal(Position, Move, Axes, Half, 3, Moving.Radius));
+	return To3D_Internal(BoxEntry_Internal(Position, Move, Axes, Half, 3, Moving.Radius));
 }
 } // namespace Toolbox

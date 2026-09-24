@@ -2882,6 +2882,8 @@ Toolbox::TOptional<FWorldSweepHit3D> FPhysicsWorld3D::SweepClosest(const Toolbox
 		Result.CenterAtHit = {static_cast<Toolbox::f32>(XAt), static_cast<Toolbox::f32>(YAt),
 		                      static_cast<Toolbox::f32>(ZAt)};
 		Result.bInitialContact = Hit->bInitialContact;
+		// 法線は形状計算がf64の相対値から求めた方向をそのまま使う（f32のCenterAtHitから引き直さない）。
+		Result.Normal = Hit->Normal;
 		Best = Result;
 	}
 	return Best;

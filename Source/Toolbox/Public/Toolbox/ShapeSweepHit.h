@@ -5,7 +5,8 @@
 namespace Toolbox
 {
 /**
- * 円／球を終点の中心まで直線移動させたときの最初の接触。法線・接触点は持たない。
+ * 円／球を終点の中心まで直線移動させたときの最初の接触のうち、2D／3D共通の割合と初期接触。
+ * 接触法線は次元別のFShapeSweepHit2D／FShapeSweepHit3Dが持つ。接触点・侵入量は持たない。
  */
 struct FShapeSweepHit
 {

@@ -3,6 +3,7 @@
 // 確認: 空結果は確保しない／最初と途中の確保失敗で部分結果を返さない／以前の結果とWorldを変えない／
 // 注入解除後に同じWorldで全件取得へ戻る／この区間の一時配列に由来する未解放が増えない。
 // あわせて、SweepClosestの通常経路（ヒット・非交差・静止・マスク0・半径0）が確保しないことを確認する。
+// 接触法線の有無（法線あり・初期接触・非交差・半径0）でも確保しないことを確認する。
 #include "Dxf/RigidBody2D.h"
 #include "Dxf/RigidBody3D.h"
 #include "../../Source/Toolbox/Private/Toolbox/Testing/AllocationFault.h"
@@ -194,6 +195,41 @@ void SweepWithoutAllocation_Internal(const char* Name, const TWorld& World, cons
 	                       }),
 	               Label);
 }
+
+// 接触法線を含む結果（法線あり・初期接触で法線なし・非交差・半径0で法線なし）も確保しない。
+template <typename TWorld, typename TProbe, typename TVector>
+void SweepNormalWithoutAllocation_Internal(const char* Name, const TWorld& World, const TProbe& Probe, TVector End,
+                                           TVector Away, const TProbe& Touching)
+{
+	char Label[256];
+	TProbe Point = Probe;
+	Point.Radius = 0;
+	snprintf(Label, sizeof(Label), "%s sweep normal results do not allocate", Name);
+	Check_Internal(WithoutAllocation_Internal(
+	                   [&]
+	                   {
+		                   const auto Hit = World.SweepClosest(Probe, End);
+		                   return Hit && !Hit->bInitialContact && static_cast<bool>(Hit->Normal);
+	                   }) &&
+	                   WithoutAllocation_Internal(
+	                       [&]
+	                       {
+		                       const auto Hit = World.SweepClosest(Touching, End);
+		                       return Hit && Hit->bInitialContact && !Hit->Normal;
+	                       }) &&
+	                   WithoutAllocation_Internal(
+	                       [&]
+	                       {
+		                       return !World.SweepClosest(Probe, Away);
+	                       }) &&
+	                   WithoutAllocation_Internal(
+	                       [&]
+	                       {
+		                       const auto Hit = World.SweepClosest(Point, End);
+		                       return Hit && !Hit->Normal;
+	                       }),
+	               Label);
+}
 } // namespace
 
 int main()
@@ -210,6 +246,8 @@ int main()
 		}
 		Run_Internal("2D", World, FCircle2D{{2, 0}, 10}, FCircle2D{{0, 100}, 1}, Probe);
 		SweepWithoutAllocation_Internal("2D", World, FCircle2D{{-5, 0}, 0.25f}, FVector2{10, 0}, FVector2{-5, 50});
+		SweepNormalWithoutAllocation_Internal("2D", World, FCircle2D{{-5, 0}, 0.25f}, FVector2{10, 0}, FVector2{-5, 50},
+		                                      FCircle2D{{-0.5f, 0}, 0.25f});
 	}
 	{
 		FPhysicsWorld3D World;
@@ -224,6 +262,8 @@ int main()
 		Run_Internal("3D", World, FSphere{{2, 0, 0}, 10}, FSphere{{0, 100, 0}, 1}, Probe);
 		SweepWithoutAllocation_Internal("3D", World, FSphere{{-5, 0, 0}, 0.25f}, FVector3{10, 0, 0},
 		                                FVector3{-5, 50, 0});
+		SweepNormalWithoutAllocation_Internal("3D", World, FSphere{{-5, 0, 0}, 0.25f}, FVector3{10, 0, 0},
+		                                      FVector3{-5, 50, 0}, FSphere{{-0.5f, 0, 0}, 0.25f});
 	}
 	printf("RESULT %s failures=%d\n", GFailures == 0 ? "PASS" : "FAIL", GFailures);
 	return GFailures == 0 ? 0 : 1;

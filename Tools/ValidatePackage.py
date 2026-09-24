@@ -79,6 +79,7 @@ int main()
         (consumer / 'Physics.cpp').write_text('''#include "Dxf/RigidBody2D.h"
 #include "Dxf/RigidBody3D.h"
 // 円スイープ: 中心線の射線は外れ、半径のある移動は当たる。除外・カテゴリ・静止・削除後の失効。
+// 接触法線: 壁の左下の角(4.5,0.4)から中心(4.2,0)へ向く(-0.6,-0.8)。初期接触・半径0では空。
 static int Sweep2D()
 {
     Dxf::FPhysicsWorld2D World;
@@ -107,16 +108,21 @@ static int Sweep2D()
     if (!Hit || Hit->Collider != WallId || Hit->bInitialContact || Toolbox::Abs(Hit->CenterAtHit.X - 4.2f) > 1e-4f || Hit->CenterAtHit.Y != 0) { return 102; }
     const auto Any = World.SweepClosest(Probe, {10,0});
     if (!Any || !Any->bInitialContact || Any->Fraction != 0 || Any->Collider.Body != Self) { return 103; }
+    if (!Hit->Normal || Toolbox::Abs(Hit->Normal->X + 0.6f) > 1e-5f || Toolbox::Abs(Hit->Normal->Y + 0.8f) > 1e-5f || Any->Normal) { return 107; }
+    const auto Ray = World.RaycastClosest({0,0.9f},{10,0.9f},Self,Obstacles);
+    const auto Thin = World.SweepClosest(Toolbox::FCircle2D{{0,0.9f},0}, {10,0.9f}, Self, Obstacles);
+    if (!Ray || !Thin || Thin->Fraction != Ray->Fraction || Thin->Normal) { return 108; }
     World.SetColliderQueryCategory(WallId, 0u);
     if (World.SweepClosest(Probe, {10,0}, Self, Obstacles)) { return 104; }
     World.SetColliderQueryCategory(WallId, 1u);
     const auto Still = World.SweepClosest(Toolbox::FCircle2D{{5,0.9f},0.1f}, {5,0.9f}, Self, Obstacles);
-    if (!Still || !Still->bInitialContact || Still->Fraction != 0 || Still->Collider != WallId) { return 105; }
+    if (!Still || !Still->bInitialContact || Still->Fraction != 0 || Still->Collider != WallId || Still->Normal) { return 105; }
     World.DestroyBody(WallBody);
     if (World.IsColliderAlive(Hit->Collider) || World.SweepClosest(Probe, {10,0}, Self, Obstacles)) { return 106; }
     return 0;
 }
 // 球スイープ（カメラ位置候補の近似）: 回転したOBBの壁で同じ流れを確認する。
+// 接触法線は有限の単位方向で、移動と逆向きの成分を持つ。初期接触では空。
 static int Sweep3D()
 {
     Dxf::FPhysicsWorld3D World;
@@ -139,11 +145,14 @@ static int Sweep3D()
     if (World.RaycastClosest({0,0,0},{10,0,0},Self,Obstacles)) { return 111; }
     const auto Hit = World.SweepClosest(Probe, {10,0,0}, Self, Obstacles);
     if (!Hit || Hit->Collider != WallId || Hit->bInitialContact || Hit->Fraction <= 0 || Hit->Fraction >= 1 || Hit->CenterAtHit.Y != 0 || Hit->CenterAtHit.Z != 0) { return 112; }
+    if (!Hit->Normal || !(Hit->Normal->X < 0)) { return 116; }
+    const Toolbox::f32 LengthSquared = Hit->Normal->X * Hit->Normal->X + Hit->Normal->Y * Hit->Normal->Y + Hit->Normal->Z * Hit->Normal->Z;
+    if (Toolbox::Abs(LengthSquared - 1.0f) > 1e-5f) { return 117; }
     World.SetColliderQueryCategory(WallId, 0u);
     if (World.SweepClosest(Probe, {10,0,0}, Self, Obstacles)) { return 113; }
     World.SetColliderQueryCategory(WallId, 1u);
     const auto Still = World.SweepClosest(Toolbox::FSphere{{5,0.9f,0},0.1f}, {5,0.9f,0}, Self, Obstacles);
-    if (!Still || !Still->bInitialContact || Still->Collider != WallId) { return 114; }
+    if (!Still || !Still->bInitialContact || Still->Collider != WallId || Still->Normal) { return 114; }
     World.DestroyBody(WallBody);
     if (World.IsColliderAlive(Hit->Collider) || World.SweepClosest(Probe, {10,0,0}, Self, Obstacles)) { return 115; }
     return 0;
