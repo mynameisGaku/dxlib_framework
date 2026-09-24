@@ -18,6 +18,8 @@ const auto Seen = World2D.RaycastClosest(Eye, Target, SelfBody, Sight);
 
 範囲（2Dの円／3Dの球）と重なる全Colliderの取得は[範囲問い合わせ](Physics/WorldOverlapQuery.md)を参照してください。
 
+円／球を終点まで動かしたときに最初に接触するColliderは[スイープ問い合わせ（SweepClosest）](Physics/WorldSweepQuery.md)を参照してください。
+
 ```cpp
 // 自分を除いて、半径8の範囲に接するキャラクターのCollider IDをすべて取得する（スロット昇順、値所有）。
 const auto Candidates = World2D.OverlapAll(Toolbox::FCircle2D{Eye, 8.0f}, SelfBody, Characters);

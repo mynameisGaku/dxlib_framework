@@ -4,6 +4,7 @@
 #include "Dxf/BodyType.h"
 #include "Dxf/WorldSegmentHit3D.h"
 #include "Dxf/WorldQueryFilter.h"
+#include "Dxf/WorldSweepHit3D.h"
 #include "Toolbox/Optional.h"
 #include "Dxf/PhysicsSnapshot.h"
 #include "Dxf/PhysicsExecution.h"
@@ -472,6 +473,22 @@ public:
 	 * @param ExcludedBody 任意の自己Body。除外しない場合は空Optional。
 	 * @param Filter 対象にする問い合わせカテゴリ。既定は全ビット。
 	 */
+	/**
+	 * 半径一定の球を、StartShape.CenterからEndCenterまで直線移動させたときに最初に接触する（許容距離0）Colliderを返す。
+	 * 対象は問い合わせ時点の姿勢で固定し、相手の速度で未来位置を予測しない。非交差は空、異常はFException。
+	 * 開始時の接触・重なりはFraction=0・bInitialContact=true。開始＝終点は静止した重なりの判定。
+	 * 半径0かつ移動ありは、同じ条件のRaycastClosestと同じ結果（割合0は初期接触）。半径0かつ移動なしは点の重なり。
+	 * 同じ割合はColliderスロット昇順。カテゴリ・自己除外・Step状態・対象外は計算しない規則はRaycastClosestと同じ。
+	 * 最短0でも後続の対象形状の計算失敗は隠さない。走査は削除済みを含むスロット数nに対しO(n)、追加領域O(1)。
+	 * 問い合わせでStep・起床・採取・力の消去を行わない。変更・Stepと外側で直列化する。
+	 * @param StartShape 開始時の球（中心と半径）。3D物理ワールド座標。
+	 * @param EndCenter 終点の中心。変位・速度ではない。
+	 * @param ExcludedBody 任意の自己Body。除外しない場合は空Optional。
+	 * @param Filter 対象にする問い合わせカテゴリ。既定は全ビット。
+	 */
+	Toolbox::TOptional<FWorldSweepHit3D> SweepClosest(const Toolbox::FSphere& StartShape, Toolbox::FVector3 EndCenter,
+	                                                  Toolbox::TOptional<FBodyId3D> ExcludedBody = {},
+	                                                  const FWorldQueryFilter& Filter = {}) const;
 	Toolbox::TVector<FColliderId3D> OverlapAll(const Toolbox::FSphere& Area,
 	                                           Toolbox::TOptional<FBodyId3D> ExcludedBody = {},
 	                                           const FWorldQueryFilter& Filter = {}) const;

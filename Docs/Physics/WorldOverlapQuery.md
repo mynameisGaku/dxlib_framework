@@ -2,7 +2,7 @@
 
 `FPhysicsWorld2D::OverlapAll`（`Dxf/RigidBody2D.h`、範囲は円）と`FPhysicsWorld3D::OverlapAll`（`Dxf/RigidBody3D.h`、範囲は球）は、範囲と重なる（接触を含む）現在の全ColliderのIDを返します。リンク先は `dxf::physics` だけです。Input・Camera・Support・Debug・Nativeは不要です。
 
-「近くに何があるか」から始める処理（近くの拾得物、爆発範囲に触れる対象、周囲のキャラクター候補）に使います。調べる方向と終点が決まっている処理は[線分問い合わせ（RaycastClosest）](WorldSegmentQuery.md)を使います。
+「近くに何があるか」から始める処理（近くの拾得物、爆発範囲に触れる対象、周囲のキャラクター候補）に使います。調べる方向と終点が決まっている処理は[線分問い合わせ（RaycastClosest）](WorldSegmentQuery.md)を使います。半径のある円／球を移動させる途中の最初の接触は[スイープ問い合わせ（SweepClosest）](WorldSweepQuery.md)を使います。
 
 ## 呼出し
 

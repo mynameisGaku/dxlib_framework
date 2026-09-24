@@ -4,6 +4,7 @@
 #include "ParallelPhysicsCore.h"
 #include "Toolbox/ContinuousCollision.h"
 #include "Toolbox/SegmentIntersection.h"
+#include "Toolbox/ShapeSweep3D.h"
 #include "Toolbox/Vector.h"
 namespace Dxf
 {
@@ -2777,6 +2778,110 @@ Toolbox::TOptional<FWorldSegmentHit3D> FPhysicsWorld3D::RaycastClosest(Toolbox::
 			Coordinates[Axis] = static_cast<Toolbox::f32>(Value);
 		}
 		Result.Position = {Coordinates[0], Coordinates[1], Coordinates[2]};
+		Best = Result;
+	}
+	return Best;
+}
+// 半径0かつ移動ありはRaycastClosestへ委譲し、それ以外は現在の登録配列を直接走査して最初の接触を返す。
+Toolbox::TOptional<FWorldSweepHit3D> FPhysicsWorld3D::SweepClosest(const Toolbox::FSphere& StartShape,
+                                                                   Toolbox::FVector3 EndCenter,
+                                                                   Toolbox::TOptional<FBodyId3D> ExcludedBody,
+                                                                   const FWorldQueryFilter& Filter) const
+{
+	// 空Worldやマスク0でも、形状・終点・f32で表現できる移動量を先に検査する。差はf64で求める。
+	if (!(StartShape.Center.IsValid() && Toolbox::IsFinite(StartShape.Radius) && StartShape.Radius >= 0) ||
+	    !EndCenter.IsValid())
+	{
+		throw Toolbox::FException("Invalid 3D world sweep shape or end center");
+	}
+	const Toolbox::f64 XStart = StartShape.Center.X;
+	const Toolbox::f64 XEnd = EndCenter.X;
+	const Toolbox::f64 YStart = StartShape.Center.Y;
+	const Toolbox::f64 YEnd = EndCenter.Y;
+	const Toolbox::f64 ZStart = StartShape.Center.Z;
+	const Toolbox::f64 ZEnd = EndCenter.Z;
+	if (Toolbox::Abs(XEnd - XStart) > Toolbox::f64(Toolbox::TNumericLimits<Toolbox::f32>::Max()) ||
+	    Toolbox::Abs(YEnd - YStart) > Toolbox::f64(Toolbox::TNumericLimits<Toolbox::f32>::Max()) ||
+	    Toolbox::Abs(ZEnd - ZStart) > Toolbox::f64(Toolbox::TNumericLimits<Toolbox::f32>::Max()))
+	{
+		throw Toolbox::FException("Unrepresentable 3D world sweep movement");
+	}
+	if (StartShape.Radius == 0 && !(StartShape.Center == EndCenter))
+	{
+		// 同じ条件の線分問い合わせと同じ結果にする。走査は一度だけで、結果型だけを変える。
+		const auto Ray = RaycastClosest(StartShape.Center, EndCenter, ExcludedBody, Filter);
+		if (!Ray)
+		{
+			return {};
+		}
+		FWorldSweepHit3D Result;
+		Result.Collider = Ray->Collider;
+		Result.Fraction = Ray->Fraction;
+		Result.CenterAtHit = Ray->Position;
+		Result.bInitialContact = Ray->Fraction == 0;
+		return Result;
+	}
+	// 読み取り専用の内部状態。
+	const FImpl& Impl = *m_pImpl;
+	Impl.RequireQueryState_Internal();
+	if (ExcludedBody)
+	{
+		(void)Impl.Resolve_Internal(*ExcludedBody);
+	}
+	// 昇順走査で同じ割合の順序を固定する。割合0の候補があっても後続の対象は計算する。
+	Toolbox::TOptional<FWorldSweepHit3D> Best;
+	for (Toolbox::size_t Index = 0; Index < Impl.Colliders.Size(); ++Index)
+	{
+		// 現在のColliderスロット。
+		const auto& Record = Impl.Colliders[Index];
+		if (!Record.bAlive)
+		{
+			continue;
+		}
+		// 対象外のカテゴリと自己Bodyは、所有Bodyの参照・形状の変換へ進まない。
+		if ((Record.QueryCategory & Filter.IncludeCategories) == 0)
+		{
+			continue;
+		}
+		if (ExcludedBody && Record.Body == *ExcludedBody)
+		{
+			continue;
+		}
+		// 既存の形状変換で現在の姿勢へ移し、許容距離0の移動判定を行う。
+		const auto& Body = Impl.Resolve_Internal(Record.Body);
+		const auto Hit = Record.Shape.Visit(
+		    [&](const auto& Local)
+		    {
+			    return Toolbox::SweepToCenter(StartShape, EndCenter, FImpl::ToWorld_Internal(Body, Local));
+		    });
+		if (!Hit)
+		{
+			continue;
+		}
+		if (!Toolbox::IsFinite(Hit->Time) || Hit->Time < 0 || Hit->Time > 1)
+		{
+			throw Toolbox::FException("Invalid 3D world sweep fraction");
+		}
+		if (Best && Best->Fraction <= Hit->Time)
+		{
+			continue;
+		}
+		// 接触時の中心を倍精度の凸結合から作る。
+		const Toolbox::f64 XAt = (1 - Hit->Time) * XStart + Hit->Time * XEnd;
+		const Toolbox::f64 YAt = (1 - Hit->Time) * YStart + Hit->Time * YEnd;
+		const Toolbox::f64 ZAt = (1 - Hit->Time) * ZStart + Hit->Time * ZEnd;
+		if (!Toolbox::IsFinite(XAt) || Toolbox::Abs(XAt) > Toolbox::f64(Toolbox::TNumericLimits<Toolbox::f32>::Max()) ||
+		    !Toolbox::IsFinite(YAt) || Toolbox::Abs(YAt) > Toolbox::f64(Toolbox::TNumericLimits<Toolbox::f32>::Max()) ||
+		    !Toolbox::IsFinite(ZAt) || Toolbox::Abs(ZAt) > Toolbox::f64(Toolbox::TNumericLimits<Toolbox::f32>::Max()))
+		{
+			throw Toolbox::FException("Unrepresentable 3D world sweep center");
+		}
+		FWorldSweepHit3D Result;
+		Result.Collider = {Record.Body, Index, Record.Generation};
+		Result.Fraction = Hit->Time;
+		Result.CenterAtHit = {static_cast<Toolbox::f32>(XAt), static_cast<Toolbox::f32>(YAt),
+		                      static_cast<Toolbox::f32>(ZAt)};
+		Result.bInitialContact = Hit->bInitialContact;
 		Best = Result;
 	}
 	return Best;

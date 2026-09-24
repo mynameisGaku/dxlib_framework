@@ -2,6 +2,7 @@
 // 範囲問い合わせの結果配列の確保失敗。故障注入はこの隔離した実行ファイルだけにリンクする。
 // 確認: 空結果は確保しない／最初と途中の確保失敗で部分結果を返さない／以前の結果とWorldを変えない／
 // 注入解除後に同じWorldで全件取得へ戻る／この区間の一時配列に由来する未解放が増えない。
+// あわせて、SweepClosestの通常経路（ヒット・非交差・静止・マスク0・半径0）が確保しないことを確認する。
 #include "Dxf/RigidBody2D.h"
 #include "Dxf/RigidBody3D.h"
 #include "../../Source/Toolbox/Private/Toolbox/Testing/AllocationFault.h"
@@ -137,6 +138,62 @@ void Run_Internal(const char* Name, TWorld& World, const TArea& Area, const TAre
 	                   Same_Internal(World.OverlapAll(Area), Expected),
 	               Label);
 }
+// 呼出し中に確保が起きないこと（次の確保を失敗させても注入されず、例外にならない）。
+template <typename F> bool WithoutAllocation_Internal(F&& Run)
+{
+	Testing::SetAllocationFailureCountdown(0);
+	bool bOk = true;
+	try
+	{
+		bOk = Run();
+	}
+	catch (const FException&)
+	{
+		bOk = false;
+	}
+	bOk = bOk && !Testing::WasAllocationFailureInjected();
+	Testing::SetAllocationFailureCountdown(-1);
+	return bOk;
+}
+
+// SweepClosestの通常経路（ヒット・非交差・静止・マスク0・半径0）は確保しない。
+template <typename TWorld, typename TProbe, typename TVector>
+void SweepWithoutAllocation_Internal(const char* Name, const TWorld& World, const TProbe& Probe, TVector End,
+                                     TVector Away)
+{
+	char Label[256];
+	FWorldQueryFilter None;
+	None.IncludeCategories = 0u;
+	TProbe Point = Probe;
+	Point.Radius = 0;
+	snprintf(Label, sizeof(Label), "%s sweep normal paths do not allocate", Name);
+	Check_Internal(WithoutAllocation_Internal(
+	                   [&]
+	                   {
+		                   return static_cast<bool>(World.SweepClosest(Probe, End));
+	                   }) &&
+	                   WithoutAllocation_Internal(
+	                       [&]
+	                       {
+		                       return !World.SweepClosest(Probe, Away);
+	                       }) &&
+	                   WithoutAllocation_Internal(
+	                       [&]
+	                       {
+		                       return !World.SweepClosest(Probe, Probe.Center);
+	                       }) &&
+	                   WithoutAllocation_Internal(
+	                       [&]
+	                       {
+		                       return !World.SweepClosest(Probe, End, {}, None);
+	                       }) &&
+	                   WithoutAllocation_Internal(
+	                       [&]
+	                       {
+		                       return static_cast<bool>(World.SweepClosest(Point, End));
+	                       }),
+	               Label);
+}
 } // namespace
 
 int main()
@@ -152,6 +209,7 @@ int main()
 			Probe = World.AttachCollider(Body, Description);
 		}
 		Run_Internal("2D", World, FCircle2D{{2, 0}, 10}, FCircle2D{{0, 100}, 1}, Probe);
+		SweepWithoutAllocation_Internal("2D", World, FCircle2D{{-5, 0}, 0.25f}, FVector2{10, 0}, FVector2{-5, 50});
 	}
 	{
 		FPhysicsWorld3D World;
@@ -164,6 +222,8 @@ int main()
 			Probe = World.AttachCollider(Body, Description);
 		}
 		Run_Internal("3D", World, FSphere{{2, 0, 0}, 10}, FSphere{{0, 100, 0}, 1}, Probe);
+		SweepWithoutAllocation_Internal("3D", World, FSphere{{-5, 0, 0}, 0.25f}, FVector3{10, 0, 0},
+		                                FVector3{-5, 50, 0});
 	}
 	printf("RESULT %s failures=%d\n", GFailures == 0 ? "PASS" : "FAIL", GFailures);
 	return GFailures == 0 ? 0 : 1;

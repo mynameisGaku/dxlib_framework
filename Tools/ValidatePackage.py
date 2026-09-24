@@ -78,6 +78,76 @@ int main()
 ''', encoding='utf-8')
         (consumer / 'Physics.cpp').write_text('''#include "Dxf/RigidBody2D.h"
 #include "Dxf/RigidBody3D.h"
+// 円スイープ: 中心線の射線は外れ、半径のある移動は当たる。除外・カテゴリ・静止・削除後の失効。
+static int Sweep2D()
+{
+    Dxf::FPhysicsWorld2D World;
+    Dxf::FBodyDescription2D Fixed;
+    Fixed.Type = Dxf::EBodyType::Static;
+    const auto Self = World.CreateBody(Fixed);
+    Dxf::FColliderDescription2D Mine;
+    Mine.Shape = Toolbox::FCircle2D{{0,0},0.5f};
+    World.AttachCollider(Self, Mine);
+    Fixed.Position = {5,0.9f};
+    const auto WallBody = World.CreateBody(Fixed);
+    Dxf::FColliderDescription2D Wall;
+    Wall.Shape = Toolbox::FOrientedBox2D{{0,0},{0.5f,0.5f},0};
+    Wall.QueryCategory = 1u;
+    const auto WallId = World.AttachCollider(WallBody, Wall);
+    Fixed.Position = {3,-0.3f};
+    Dxf::FColliderDescription2D Pickup;
+    Pickup.Shape = Toolbox::FCircle2D{{0,0},0.2f};
+    Pickup.QueryCategory = 4u;
+    World.AttachCollider(World.CreateBody(Fixed), Pickup);
+    Dxf::FWorldQueryFilter Obstacles;
+    Obstacles.IncludeCategories = 1u;
+    const Toolbox::FCircle2D Probe{{0,0},0.5f};
+    if (World.RaycastClosest({0,0},{10,0},Self,Obstacles)) { return 101; }
+    const auto Hit = World.SweepClosest(Probe, {10,0}, Self, Obstacles);
+    if (!Hit || Hit->Collider != WallId || Hit->bInitialContact || Toolbox::Abs(Hit->CenterAtHit.X - 4.2f) > 1e-4f || Hit->CenterAtHit.Y != 0) { return 102; }
+    const auto Any = World.SweepClosest(Probe, {10,0});
+    if (!Any || !Any->bInitialContact || Any->Fraction != 0 || Any->Collider.Body != Self) { return 103; }
+    World.SetColliderQueryCategory(WallId, 0u);
+    if (World.SweepClosest(Probe, {10,0}, Self, Obstacles)) { return 104; }
+    World.SetColliderQueryCategory(WallId, 1u);
+    const auto Still = World.SweepClosest(Toolbox::FCircle2D{{5,0.9f},0.1f}, {5,0.9f}, Self, Obstacles);
+    if (!Still || !Still->bInitialContact || Still->Fraction != 0 || Still->Collider != WallId) { return 105; }
+    World.DestroyBody(WallBody);
+    if (World.IsColliderAlive(Hit->Collider) || World.SweepClosest(Probe, {10,0}, Self, Obstacles)) { return 106; }
+    return 0;
+}
+// 球スイープ（カメラ位置候補の近似）: 回転したOBBの壁で同じ流れを確認する。
+static int Sweep3D()
+{
+    Dxf::FPhysicsWorld3D World;
+    Dxf::FBodyDescription3D Fixed;
+    Fixed.Type = Dxf::EBodyType::Static;
+    const auto Self = World.CreateBody(Fixed);
+    Dxf::FColliderDescription3D Mine;
+    Mine.Shape = Toolbox::FSphere{{0,0,0},0.5f};
+    World.AttachCollider(Self, Mine);
+    Fixed.Position = {5,0.9f,0};
+    Fixed.Orientation = Toolbox::FQuaternion::FromAxisAngle({1,0,0}, 0.4f);
+    const auto WallBody = World.CreateBody(Fixed);
+    Dxf::FColliderDescription3D Wall;
+    Wall.Shape = Toolbox::FOBB{{0,0,0},{0.5f,0.5f,0.5f}};
+    Wall.QueryCategory = 1u;
+    const auto WallId = World.AttachCollider(WallBody, Wall);
+    Dxf::FWorldQueryFilter Obstacles;
+    Obstacles.IncludeCategories = 1u;
+    const Toolbox::FSphere Probe{{0,0,0},0.5f};
+    if (World.RaycastClosest({0,0,0},{10,0,0},Self,Obstacles)) { return 111; }
+    const auto Hit = World.SweepClosest(Probe, {10,0,0}, Self, Obstacles);
+    if (!Hit || Hit->Collider != WallId || Hit->bInitialContact || Hit->Fraction <= 0 || Hit->Fraction >= 1 || Hit->CenterAtHit.Y != 0 || Hit->CenterAtHit.Z != 0) { return 112; }
+    World.SetColliderQueryCategory(WallId, 0u);
+    if (World.SweepClosest(Probe, {10,0,0}, Self, Obstacles)) { return 113; }
+    World.SetColliderQueryCategory(WallId, 1u);
+    const auto Still = World.SweepClosest(Toolbox::FSphere{{5,0.9f,0},0.1f}, {5,0.9f,0}, Self, Obstacles);
+    if (!Still || !Still->bInitialContact || Still->Collider != WallId) { return 114; }
+    World.DestroyBody(WallBody);
+    if (World.IsColliderAlive(Hit->Collider) || World.SweepClosest(Probe, {10,0,0}, Self, Obstacles)) { return 115; }
+    return 0;
+}
 int main()
 {
     Dxf::FPhysicsWorld3D World;
@@ -212,6 +282,10 @@ int main()
     if (!Open3D || Open3D->Collider != HiddenCollider3D) { return 19; }
     Area3D.DestroyBody(Hidden3D);
     if (Area3D.IsColliderAlive(HiddenCollider3D) || Area3D.OverlapAll(Toolbox::FSphere{{0,0,0},10}, Eye3D, Characters).Size() != 1) { return 20; }
+    const int Sweep2DCode = Sweep2D();
+    if (Sweep2DCode != 0) { return Sweep2DCode; }
+    const int Sweep3DCode = Sweep3D();
+    if (Sweep3DCode != 0) { return Sweep3DCode; }
     return 0;
 }
 ''', encoding='utf-8')

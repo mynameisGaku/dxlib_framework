@@ -95,6 +95,11 @@ const FCase* GetWorldQueryFilterCases(Toolbox::size_t& Count) noexcept;
  * @param Count 返す配列の要素数。
  */
 const FCase* GetWorldOverlapCases(Toolbox::size_t& Count) noexcept;
+/**
+ * 2D／3Dの円・球スイープ（SweepClosest）の幾何・World接続・ゲーム利用の回帰を返す。
+ * @param Count 返す配列の要素数。
+ */
+const FCase* GetWorldSweepCases(Toolbox::size_t& Count) noexcept;
 } // namespace PhysicsTest
 #define PHYSICS_REQUIRE(...) PhysicsTest::Require_Internal(static_cast<bool>((__VA_ARGS__)), #__VA_ARGS__)
 #endif
