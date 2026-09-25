@@ -5,10 +5,13 @@
 // あわせて、SweepClosestの通常経路（ヒット・非交差・静止・マスク0・半径0）が確保しないことを確認する。
 // 接触法線の有無（法線あり・初期接触・非交差・半径0）でも確保しないことを確認する。
 // 移動候補（ComputeSlideMove）の最初の接触から補正する経路・到達・初期接触も確保しないことを確認する。
+// キャラクター移動（接触の取得・反復滑り・1回の固定更新）も確保しないことを確認する（固定容量の結果・作業領域）。
 #include "Dxf/RigidBody2D.h"
 #include "Dxf/RigidBody3D.h"
 #include "Dxf/WorldSlideMove2D.h"
 #include "Dxf/WorldSlideMove3D.h"
+#include "Dxf/CharacterMovement2D.h"
+#include "Dxf/CharacterMovement3D.h"
 #include "../../Source/Toolbox/Private/Toolbox/Testing/AllocationFault.h"
 #include <stdio.h>
 using namespace Toolbox;
@@ -261,6 +264,35 @@ void SlideWithoutAllocation_Internal(const char* Name, const TWorld& World, cons
 	            }),
 	    Label);
 }
+
+// キャラクター移動の通常経路（重なりを含む接触の取得、当たって滑る移動、空中の1回の固定更新）は確保しない。
+template <typename TWorld, typename TShape, typename TVector, typename TSettings, typename TState, typename TInput>
+void CharacterWithoutAllocation_Internal(const char* Name, const TWorld& World, const TShape& Overlapping,
+                                         TVector Start, TVector Move, const TSettings& Settings, const TState& State,
+                                         const TInput& Input)
+{
+	char Label[256];
+	snprintf(Label, sizeof(Label), "%s character movement paths do not allocate", Name);
+	Check_Internal(WithoutAllocation_Internal(
+	                   [&]
+	                   {
+		                   const auto Contacts = World.QueryContacts(Overlapping, 0.02);
+		                   return Contacts.Count > 0 && Contacts.IsComplete();
+	                   }) &&
+	                   WithoutAllocation_Internal(
+	                       [&]
+	                       {
+		                       const auto Moved = MoveAndSlide(World, Start, Move, Settings);
+		                       return Moved.ContactCount > 0;
+	                       }) &&
+	                   WithoutAllocation_Internal(
+	                       [&]
+	                       {
+		                       const auto Step = StepCharacter(World, Settings, State, Input, 1.0 / 60.0);
+		                       return Step.Queries > 0;
+	                       }),
+	               Label);
+}
 } // namespace
 
 int main()
@@ -281,6 +313,12 @@ int main()
 		                                      FCircle2D{{-0.5f, 0}, 0.25f});
 		SlideWithoutAllocation_Internal("2D", World, FCircle2D{{-5, 0.3f}, 0.25f}, FVector2{10, 0.3f}, FVector2{-5, 50},
 		                                FCircle2D{{-0.5f, 0}, 0.25f});
+		FCharacterState2D Character;
+		Character.Center = {-5, 0.3f};
+		FCharacterMoveInput2D Walk;
+		Walk.Move = {1, 0};
+		CharacterWithoutAllocation_Internal("2D", World, FCircle2D{{-0.9f, 0}, 0.5f}, FVector2{-5, 0.3f},
+		                                    FVector2{10, 0}, FCharacterMoveSettings2D{}, Character, Walk);
 	}
 	{
 		FPhysicsWorld3D World;
@@ -299,6 +337,12 @@ int main()
 		                                      FVector3{-5, 50, 0}, FSphere{{-0.5f, 0, 0}, 0.25f});
 		SlideWithoutAllocation_Internal("3D", World, FSphere{{-5, 0.3f, 0}, 0.25f}, FVector3{10, 0.3f, 0},
 		                                FVector3{-5, 50, 0}, FSphere{{-0.5f, 0, 0}, 0.25f});
+		FCharacterState3D Character;
+		Character.Center = {-5, 0.3f, 0};
+		FCharacterMoveInput3D Walk;
+		Walk.Move = {1, 0, 0};
+		CharacterWithoutAllocation_Internal("3D", World, FSphere{{-0.9f, 0, 0}, 0.5f}, FVector3{-5, 0.3f, 0},
+		                                    FVector3{10, 0, 0}, FCharacterMoveSettings3D{}, Character, Walk);
 	}
 	printf("RESULT %s failures=%d\n", GFailures == 0 ? "PASS" : "FAIL", GFailures);
 	return GFailures == 0 ? 0 : 1;

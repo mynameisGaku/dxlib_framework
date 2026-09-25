@@ -4,6 +4,7 @@
 #include "Dxf/BodyType.h"
 #include "Dxf/WorldSegmentHit3D.h"
 #include "Dxf/WorldQueryFilter.h"
+#include "Dxf/WorldContactSet3D.h"
 #include "Dxf/WorldSweepHit3D.h"
 #include "Toolbox/Optional.h"
 #include "Dxf/PhysicsSnapshot.h"
@@ -462,18 +463,6 @@ public:
 	 */
 	Toolbox::uint32 GetColliderQueryCategory(FColliderId3D Id) const;
 	/**
-	 * 範囲（球）と重なる（接触を含む）現在の全ColliderのIDを返す。範囲の中に重心があるかではなく、形状との重なりで判定する。
-	 * 結果は値所有で、生存する対象Colliderのスロット昇順。同じBodyの複数ColliderはそれぞれのIDを返す（Body単位にはまとめない）。
-	 * 交点・割合・法線は返さない。非交差は空配列。許容距離は0（範囲を膨らませない）。半径0は点の問い合わせ。
-	 * 対象はQueryCategoryとFilterが重なるColliderで、自己Bodyの全Colliderは除外する。対象外の形状は変換・計算しない。
-	 * 範囲の不正、明示した除外IDの無効/別World/旧世代、Step中/途中失敗後、対象形状の計算不能、結果の確保失敗はFException。
-	 * 失敗時に途中までの結果は返さない。問い合わせでStep・起床・採取・力の消去を行わない。
-	 * 走査は削除済みを含むスロット数nに対しO(n)、追加領域は結果件数kに対しO(k)。変更・Stepと外側で直列化する。
-	 * @param Area 3D物理ワールド座標の範囲。
-	 * @param ExcludedBody 任意の自己Body。除外しない場合は空Optional。
-	 * @param Filter 対象にする問い合わせカテゴリ。既定は全ビット。
-	 */
-	/**
 	 * 半径一定の球を、StartShape.CenterからEndCenterまで直線移動させたときに最初に接触する（許容距離0）Colliderを返す。
 	 * 対象は問い合わせ時点の姿勢で固定し、相手の速度で未来位置を予測しない。非交差は空、異常はFException。
 	 * 開始時の接触・重なりはFraction=0・bInitialContact=true。開始＝終点は静止した重なりの判定。
@@ -490,11 +479,63 @@ public:
 	Toolbox::TOptional<FWorldSweepHit3D> SweepClosest(const Toolbox::FSphere& StartShape, Toolbox::FVector3 EndCenter,
 	                                                  Toolbox::TOptional<FBodyId3D> ExcludedBody = {},
 	                                                  const FWorldQueryFilter& Filter = {}) const;
+	/**
+	 * 範囲（球）と重なる（接触を含む）現在の全ColliderのIDを返す。範囲の中に重心があるかではなく、形状との重なりで判定する。
+	 * 結果は値所有で、生存する対象Colliderのスロット昇順。同じBodyの複数ColliderはそれぞれのIDを返す（Body単位にはまとめない）。
+	 * 交点・割合・法線は返さない。非交差は空配列。許容距離は0（範囲を膨らませない）。半径0は点の問い合わせ。
+	 * 対象はQueryCategoryとFilterが重なるColliderで、自己Bodyの全Colliderは除外する。対象外の形状は変換・計算しない。
+	 * 範囲の不正、明示した除外IDの無効/別World/旧世代、Step中/途中失敗後、対象形状の計算不能、結果の確保失敗はFException。
+	 * 失敗時に途中までの結果は返さない。問い合わせでStep・起床・採取・力の消去を行わない。
+	 * 走査は削除済みを含むスロット数nに対しO(n)、追加領域は結果件数kに対しO(k)。変更・Stepと外側で直列化する。
+	 * @param Area 3D物理ワールド座標の範囲。
+	 * @param ExcludedBody 任意の自己Body。除外しない場合は空Optional。
+	 * @param Filter 対象にする問い合わせカテゴリ。既定は全ビット。
+	 */
 	Toolbox::TVector<FColliderId3D> OverlapAll(const Toolbox::FSphere& Area,
 	                                           Toolbox::TOptional<FBodyId3D> ExcludedBody = {},
 	                                           const FWorldQueryFilter& Filter = {}) const;
+	/**
+	 * 問い合わせ球と現在の各Colliderの符号付き距離を求め、距離がMargin以下（接触・重なりを含む）のものを返す。
+	 * 分離方向はToolbox::FindShapeContactと同じ規則（OBBは格納した実際の軸）。結果は固定容量で配列を確保しない。
+	 * 保持はColliderスロット昇順の先頭Capacity件で、全件数はTotalFoundに入る（容量を超えた接触を黙って捨てない）。
+	 * 対象・自己除外・カテゴリ・Step状態・失敗の規則はOverlapAllと同じ。形状の不正、非有限・負のMarginはFException。
+	 * 問い合わせでStep・起床・採取・力の消去を行わない。変更・Stepと外側で直列化する。
+	 * @param Shape 調べる球（半径0は点）。物理ワールド座標。
+	 * @param Margin 結果に含める最大の符号付き距離（有限・非負。0で接触・重なりだけ）。
+	 * @param ExcludedBody 任意の自己Body。除外しない場合は空Optional。
+	 * @param Filter 対象にする問い合わせカテゴリ。既定は全ビット。
+	 */
+	FWorldContactSet3D QueryContacts(const Toolbox::FSphere& Shape, Toolbox::f64 Margin,
+	                                 Toolbox::TOptional<FBodyId3D> ExcludedBody = {},
+	                                 const FWorldQueryFilter& Filter = {}) const;
+	/**
+	 * SweepClosestと同じ移動の問い合わせだが、開始位置で既に接触・重なっている（初期接触になる）Colliderを候補から除く。
+	 * 結果にbInitialContact=trueは含まれない。開始時に離れていたColliderだけが対象で、その扱いはSweepClosestと同じ。
+	 * 除いたColliderへの貫通は検査しないため、それらは呼出し側が接触の法線などで扱う必要がある。
+	 * 半径は正（点の問い合わせは提供しない）。その他の入力・状態・失敗の規則はSweepClosestと同じ。
+	 * @param StartShape 開始時の球（中心と正の半径）。物理ワールド座標。
+	 * @param EndCenter 終点の中心。変位・速度ではない。
+	 * @param ExcludedBody 任意の自己Body。除外しない場合は空Optional。
+	 * @param Filter 対象にする問い合わせカテゴリ。既定は全ビット。
+	 */
+	Toolbox::TOptional<FWorldSweepHit3D> SweepClosestIgnoringInitialContacts(
+	    const Toolbox::FSphere& StartShape, Toolbox::FVector3 EndCenter,
+	    Toolbox::TOptional<FBodyId3D> ExcludedBody = {}, const FWorldQueryFilter& Filter = {}) const;
 
 private:
+	/**
+	 * SweepClosestの走査部分。bSkipInitialContactsなら開始時に接触しているColliderを候補から除く。
+	 * @param StartShape 開始時の形状（検査済み）。
+	 * @param EndCenter 終点の中心（検査済み）。
+	 * @param ExcludedBody 任意の自己Body。
+	 * @param Filter 対象にする問い合わせカテゴリ。
+	 * @param bSkipInitialContacts 初期接触になるColliderを候補から除くか。
+	 */
+	Toolbox::TOptional<FWorldSweepHit3D> SweepColliders_Internal(const Toolbox::FSphere& StartShape,
+	                                                             Toolbox::FVector3 EndCenter,
+	                                                             const Toolbox::TOptional<FBodyId3D>& ExcludedBody,
+	                                                             const FWorldQueryFilter& Filter,
+	                                                             bool bSkipInitialContacts) const;
 	/**
 	 * 実装と登録データの所有領域。
 	 */

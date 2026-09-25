@@ -2,6 +2,7 @@
 #ifndef DXF_GAMEPLAY_PHYSICS_SCENE_3D_H
 #define DXF_GAMEPLAY_PHYSICS_SCENE_3D_H
 #include "Dxf/GameScene.h"
+#include "Dxf/PrePhysicsStep.h"
 #include "Dxf/RigidBody3D.h"
 #include "Dxf/SceneNavigator.h"
 #include "Toolbox/FixedStepScheduler.h"
@@ -72,19 +73,24 @@ protected:
 		for (Toolbox::uint32 Step = 0; Step < Plan.StepCount; ++Step)
 		{
 			// 固定更新の実行環境。
-			FFixedTickContext Fixed{Context.Input,      m_PendingInputs, Plan.StepSeconds, Step, Step == 0,
-			                        false,              Plan.InterpolationAlpha, nullptr,  &m_World,
-			                        Context.Scenes,     Context.Game};
-			// 子階層への配布結果。
+			FFixedTickContext Fixed{
+			    Context.Input,           m_PendingInputs, Plan.StepSeconds, Step,           Step == 0,    false,
+			    Plan.InterpolationAlpha, nullptr,         &m_World,         Context.Scenes, Context.Game, &m_PreStep};
+			// 子階層への配布結果（生成・登録・移動要求など）。
+			m_PreStep.Clear_Internal();
 			auto Dispatch = FixedTickChildren_Internal(Fixed);
 			if (!Dispatch)
 			{
+				m_PreStep.Clear_Internal();
 				throw Toolbox::FException(Dispatch.Error().Message);
 			}
 			if (Context.Scenes != nullptr && Context.Scenes->WantsQuit())
 			{
+				m_PreStep.Clear_Internal();
 				break;
 			}
+			// 同じ固定更新の登録がすべて済んだ後、物理Stepの直前に予約された処理（キャラクター移動など）を行う。
+			m_PreStep.Run_Internal(Fixed);
 			m_World.Step(Plan.StepSeconds);
 		}
 		m_PendingInputs.Clear();
@@ -95,6 +101,10 @@ private:
 	 * 所有する3D物理ワールド。
 	 */
 	FPhysicsWorld3D m_World;
+	/**
+	 * 物理Stepの直前に行う処理の予約（固定更新1回分）。
+	 */
+	FPrePhysicsStepQueue m_PreStep;
 	/**
 	 * 固定更新の計画を作る時刻管理。
 	 */

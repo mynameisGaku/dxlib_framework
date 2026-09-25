@@ -110,6 +110,11 @@ const FCase* GetWorldSweepNormalCases(Toolbox::size_t& Count) noexcept;
  * @param Count 返す配列の要素数。
  */
 const FCase* GetWorldSlideCases(Toolbox::size_t& Count) noexcept;
+/**
+ * 2D／3Dのキャラクター移動のPhysics部品（接触・初期重なり・反復滑り・接地・段差・ジャンプ）の実World回帰を返す。
+ * @param Count 返す配列の要素数。
+ */
+const FCase* GetCharacterMovementCases(Toolbox::size_t& Count) noexcept;
 } // namespace PhysicsTest
 #define PHYSICS_REQUIRE(...) PhysicsTest::Require_Internal(static_cast<bool>((__VA_ARGS__)), #__VA_ARGS__)
 #endif

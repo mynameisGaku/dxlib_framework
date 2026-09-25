@@ -89,6 +89,7 @@ add_library(dxf_toolbox STATIC
     Source/Toolbox/Private/Toolbox/Contact3D.cpp
     Source/Toolbox/Private/Toolbox/SegmentIntersection.cpp
     Source/Toolbox/Private/Toolbox/ContinuousCollision.cpp
+    Source/Toolbox/Private/Toolbox/ShapeContact.cpp
     Source/Toolbox/Private/Toolbox/FixedStepScheduler.cpp
     Source/Toolbox/Private/Toolbox/Mesh.cpp
     Source/Toolbox/Private/Toolbox/CollisionWorld.cpp)
@@ -184,6 +185,7 @@ add_library(dxf_physics STATIC
     Source/Physics/Private/Dxf/PhysicsWorld2D.cpp
     Source/Physics/Private/Dxf/PhysicsWorld3D.cpp
     Source/Physics/Private/Dxf/WorldSlideMove.cpp
+    Source/Physics/Private/Dxf/CharacterMovement.cpp
     Source/Physics/Private/Dxf/ParallelPhysicsCore.cpp)
 add_library(dxf::physics ALIAS dxf_physics)
 set_target_properties(dxf_physics PROPERTIES EXPORT_NAME physics DEBUG_POSTFIX d)
@@ -221,7 +223,7 @@ if(DXF_BUILD_TESTS)
         set_tests_properties(NoStl PROPERTIES LABELS "source-policy" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
     endif()
     add_executable(dxf_tests Tests/TestMain.cpp Tests/Support/TestFs.cpp Tests/ToolboxTests.cpp Tests/MathCollisionTests.cpp Tests/FoundationTests.cpp Tests/SupportTests.cpp
-        Tests/GameplayTests.cpp Tests/ApplicationTests.cpp Tests/SandboxTests.cpp Tests/FixedTickTests.cpp Tests/PhysicsSceneTests.cpp Tests/ThreadingTests.cpp Tests/AssetRootTests.cpp
+        Tests/GameplayTests.cpp Tests/ApplicationTests.cpp Tests/SandboxTests.cpp Tests/FixedTickTests.cpp Tests/PhysicsSceneTests.cpp Tests/CharacterMovementComponentTests.cpp Tests/ThreadingTests.cpp Tests/AssetRootTests.cpp
         Tests/HardeningTests.cpp Tests/RenderFailureTests.cpp Tests/SceneContinuationTests.cpp Tests/ResourceShutdownTests.cpp Tests/UsabilityTests.cpp Tests/StressTests.cpp Tests/StarterTests.cpp Tests/TaskDispatcherTests.cpp Tests/LogTests.cpp Tests/AssetAsyncTests.cpp Tests/RenderBatchTests.cpp Examples/Starter/Source/BootScene.cpp Examples/Sandbox/SandboxGame.cpp Examples/Sandbox/SandboxMenuScene.cpp)
     target_link_libraries(dxf_tests PRIVATE dxf::framework)
     target_include_directories(dxf_tests PRIVATE Tests Examples/Sandbox Examples/Starter/Source)

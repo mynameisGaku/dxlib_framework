@@ -61,6 +61,8 @@ int32 main()
 	Failed += RunGroup_Internal(Cases, Count);
 	Cases = PhysicsTest::GetWorldSlideCases(Count);
 	Failed += RunGroup_Internal(Cases, Count);
+	Cases = PhysicsTest::GetCharacterMovementCases(Count);
+	Failed += RunGroup_Internal(Cases, Count);
 	Cases = PhysicsTest::GetParallelCases(Count);
 	Failed += RunGroup_Internal(Cases, Count);
 	return Failed == 0 ? 0 : 1;

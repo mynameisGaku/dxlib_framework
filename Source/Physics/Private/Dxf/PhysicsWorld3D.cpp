@@ -5,6 +5,7 @@
 #include "Toolbox/ContinuousCollision.h"
 #include "Toolbox/SegmentIntersection.h"
 #include "Toolbox/ShapeSweep3D.h"
+#include "Toolbox/ShapeContactQuery3D.h"
 #include "Toolbox/Vector.h"
 namespace Dxf
 {
@@ -2821,6 +2822,19 @@ Toolbox::TOptional<FWorldSweepHit3D> FPhysicsWorld3D::SweepClosest(const Toolbox
 		Result.bInitialContact = Ray->Fraction == 0;
 		return Result;
 	}
+	return SweepColliders_Internal(StartShape, EndCenter, ExcludedBody, Filter, false);
+}
+// SweepClosestの走査部分。bSkipInitialContactsなら開始時に接触しているColliderを候補から除く。
+Toolbox::TOptional<FWorldSweepHit3D> FPhysicsWorld3D::SweepColliders_Internal(
+    const Toolbox::FSphere& StartShape, Toolbox::FVector3 EndCenter, const Toolbox::TOptional<FBodyId3D>& ExcludedBody,
+    const FWorldQueryFilter& Filter, bool bSkipInitialContacts) const
+{
+	const Toolbox::f64 XStart = StartShape.Center.X;
+	const Toolbox::f64 XEnd = EndCenter.X;
+	const Toolbox::f64 YStart = StartShape.Center.Y;
+	const Toolbox::f64 YEnd = EndCenter.Y;
+	const Toolbox::f64 ZStart = StartShape.Center.Z;
+	const Toolbox::f64 ZEnd = EndCenter.Z;
 	// 読み取り専用の内部状態。
 	const FImpl& Impl = *m_pImpl;
 	Impl.RequireQueryState_Internal();
@@ -2858,6 +2872,11 @@ Toolbox::TOptional<FWorldSweepHit3D> FPhysicsWorld3D::SweepClosest(const Toolbox
 		{
 			continue;
 		}
+		// 開始時に接触しているColliderを除く問い合わせでは、初期接触を候補にしない。
+		if (bSkipInitialContacts && Hit->bInitialContact)
+		{
+			continue;
+		}
 		if (!Toolbox::IsFinite(Hit->Time) || Hit->Time < 0 || Hit->Time > 1)
 		{
 			throw Toolbox::FException("Invalid 3D world sweep fraction");
@@ -2887,6 +2906,91 @@ Toolbox::TOptional<FWorldSweepHit3D> FPhysicsWorld3D::SweepClosest(const Toolbox
 		Best = Result;
 	}
 	return Best;
+}
+// 開始時に接触しているColliderを除いて、移動中に最初に接触するColliderを返す。
+Toolbox::TOptional<FWorldSweepHit3D> FPhysicsWorld3D::SweepClosestIgnoringInitialContacts(
+    const Toolbox::FSphere& StartShape, Toolbox::FVector3 EndCenter, Toolbox::TOptional<FBodyId3D> ExcludedBody,
+    const FWorldQueryFilter& Filter) const
+{
+	// 半径は正（点の問い合わせはRaycastClosestの規則になるため提供しない）。その他の検査はSweepClosestと同じ。
+	if (!(StartShape.Center.IsValid() && Toolbox::IsFinite(StartShape.Radius) && StartShape.Radius > 0) ||
+	    !EndCenter.IsValid())
+	{
+		throw Toolbox::FException("Invalid 3D world sweep shape or end center");
+	}
+	Toolbox::f64 Start[3] = {StartShape.Center.X, StartShape.Center.Y, StartShape.Center.Z};
+	Toolbox::f64 End[3] = {EndCenter.X, EndCenter.Y, EndCenter.Z};
+	for (Toolbox::int32 Axis = 0; Axis < 3; ++Axis)
+	{
+		if (Toolbox::Abs(End[Axis] - Start[Axis]) > Toolbox::f64(Toolbox::TNumericLimits<Toolbox::f32>::Max()))
+		{
+			throw Toolbox::FException("Unrepresentable 3D world sweep movement");
+		}
+	}
+	return SweepColliders_Internal(StartShape, EndCenter, ExcludedBody, Filter, true);
+}
+// 現在の登録配列を直接走査し、Margin以下の符号付き距離のColliderを固定容量の結果へ集める。
+FWorldContactSet3D FPhysicsWorld3D::QueryContacts(const Toolbox::FSphere& Shape, Toolbox::f64 Margin,
+                                                  Toolbox::TOptional<FBodyId3D> ExcludedBody,
+                                                  const FWorldQueryFilter& Filter) const
+{
+	// マスクや空Worldでも入力・状態・除外IDの検査は省略しない。
+	if (!(Shape.Center.IsValid() && Toolbox::IsFinite(Shape.Radius) && Shape.Radius >= 0) ||
+	    !Toolbox::IsFinite(Margin) || Margin < 0)
+	{
+		throw Toolbox::FException("Invalid 3D world contact query");
+	}
+	const FImpl& Impl = *m_pImpl;
+	Impl.RequireQueryState_Internal();
+	if (ExcludedBody)
+	{
+		(void)Impl.Resolve_Internal(*ExcludedBody);
+	}
+	// 呼出しごとのローカルな結果。例外時は破棄され、部分結果は外へ出ない。
+	FWorldContactSet3D Result;
+	for (Toolbox::size_t Index = 0; Index < Impl.Colliders.Size(); ++Index)
+	{
+		// 現在のColliderスロット。
+		const auto& Record = Impl.Colliders[Index];
+		if (!Record.bAlive)
+		{
+			continue;
+		}
+		// 対象外のカテゴリと自己Bodyは、所有Bodyの参照・形状の変換へ進まない。
+		if ((Record.QueryCategory & Filter.IncludeCategories) == 0)
+		{
+			continue;
+		}
+		if (ExcludedBody && Record.Body == *ExcludedBody)
+		{
+			continue;
+		}
+		// 既存の形状変換で現在の姿勢へ移し、符号付き距離を求める。
+		const auto& Body = Impl.Resolve_Internal(Record.Body);
+		const auto Contact = Record.Shape.Visit(
+		    [&](const auto& Local)
+		    {
+			    return Toolbox::FindShapeContact(Shape, FImpl::ToWorld_Internal(Body, Local));
+		    });
+		if (!Toolbox::IsFinite(Contact.Separation))
+		{
+			throw Toolbox::FException("Invalid 3D world contact separation");
+		}
+		if (Contact.Separation > Margin)
+		{
+			continue;
+		}
+		++Result.TotalFound;
+		if (Result.Count < FWorldContactSet3D::Capacity)
+		{
+			FWorldContact3D& Item = Result.Items[Result.Count];
+			Item.Collider = {Record.Body, Index, Record.Generation};
+			Item.Separation = Contact.Separation;
+			Item.Normal = Contact.Normal;
+			++Result.Count;
+		}
+	}
+	return Result;
 }
 // 現在の登録配列を直接走査し、範囲と重なる対象Colliderの完全なIDをスロット昇順で集める。
 Toolbox::TVector<FColliderId3D> FPhysicsWorld3D::OverlapAll(const Toolbox::FSphere& Area,
