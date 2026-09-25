@@ -167,6 +167,63 @@ TResult<void> FDxLibRenderBackend::DrawGeometry3D(const FPreparedGeometry3D& Geo
 	}
 	return {};
 }
+// テクスチャを貼った四角形を描く。
+// @param Quad 四角形。
+TResult<void> FDxLibRenderBackend::DrawTexturedQuad3D(const FTexturedQuad3D& Quad)
+{
+	if (!m_bView3D)
+	{
+		return TResult<void>::Failure(EErrorCode::InvalidState, "No active 3D view");
+	}
+	if (!Quad.Texture.IsValid())
+	{
+		return TResult<void>::Failure(EErrorCode::InvalidState, "Invalid quad texture");
+	}
+	const auto& C = Quad.Corners;
+	// 表面（右×下）の向き。表面だけの指定で視点が裏側なら描かない。
+	const Toolbox::FVector3 Normal = Toolbox::Cross(C[1] - C[0], C[3] - C[0]);
+	if (!Quad.bDoubleSided && Toolbox::Dot(Normal, m_ModelView.Eye - C[0]) >= 0)
+	{
+		return {};
+	}
+	auto State = ShapeState_Internal(Quad.Tint, Quad.Depth);
+	if (!State)
+	{
+		return State;
+	}
+	if (DxLib::SetUseLighting(FALSE) < 0 || DxLib::SetUseBackCulling(FALSE) < 0)
+	{
+		return TResult<void>::Failure(EErrorCode::BackendFailure, "Quad state failed");
+	}
+	// 頂点（左上・右上・右下・左下）とテクスチャ座標。
+	const Toolbox::f32 U[4] = {0, 1, 1, 0};
+	const Toolbox::f32 V[4] = {0, 0, 1, 1};
+	const Toolbox::size_t Order[6] = {0, 1, 2, 0, 2, 3};
+	DxLib::VERTEX3D Vertices[6];
+	const Toolbox::f32 Length = Toolbox::Length(Normal);
+	const Toolbox::FVector3 Unit = Length > 0 ? Normal * (1.0f / Length) : Toolbox::FVector3{0, 0, -1};
+	for (Toolbox::size_t Index = 0; Index < 6; ++Index)
+	{
+		const Toolbox::size_t Corner = Order[Index];
+		auto& Vertex = Vertices[Index];
+		Vertex.pos = NativeVector_Internal(C[Corner]);
+		Vertex.norm = NativeVector_Internal(Unit);
+		Vertex.dif = DxLib::GetColorU8(Quad.Tint.R, Quad.Tint.G, Quad.Tint.B, Quad.Tint.A);
+		Vertex.spc = DxLib::GetColorU8(0, 0, 0, 0);
+		Vertex.u = U[Corner];
+		Vertex.v = V[Corner];
+		Vertex.su = U[Corner];
+		Vertex.sv = V[Corner];
+	}
+	auto Drawn = Detail::CheckNative_Internal(DxLib::DrawPolygon3D(Vertices, 2, Quad.Texture.GetNativeHandle_Internal(), TRUE),
+	                                          "DrawPolygon3D failed");
+	// 照明は他の形状の既定（有効）へ戻す。
+	if (DxLib::SetUseLighting(TRUE) < 0 && Drawn)
+	{
+		return TResult<void>::Failure(EErrorCode::BackendFailure, "Lighting restore failed");
+	}
+	return Drawn;
+}
 TResult<void> FDxLibRenderBackend::EndView3D()
 {
 	if (!m_bView3D)

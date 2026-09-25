@@ -55,6 +55,24 @@ public:
 		return false;
 	}
 	/**
+	 * 2D命令の矩形クリップに対応するか。対応しないBackendへクリップ付きの命令を送ると失敗する（範囲外へ描かない）。
+	 */
+	virtual bool SupportsClip2D() const noexcept
+	{
+		return false;
+	}
+	/**
+	 * 以後の2D命令のクリップを設定する（bEnabled=falseで描画先全体へ戻す）。空の矩形は渡さない。
+	 * @param bEnabled 切り抜くか。
+	 * @param Rect 描画先の画素の矩形（半開区間）。
+	 */
+	virtual TResult<void> SetClip2D(bool bEnabled, FIntRect Rect)
+	{
+		(void)bEnabled;
+		(void)Rect;
+		return Unsupported_Internal();
+	}
+	/**
 	 * 矩形ごとの投影と領域内深度初期化に対応するか。
 	 */
 	virtual bool SupportsViewports3D() const noexcept
@@ -116,6 +134,22 @@ public:
 	 * 深度を検査・書込みし、描画後に以降の形状が依存する状態を残さない。
 	 * @param Model 記録時点の変換と再生状態。
 	 */
+	/**
+	 * テクスチャを貼った四角形に対応するか。
+	 */
+	virtual bool SupportsTexturedQuads3D() const noexcept
+	{
+		return false;
+	}
+	/**
+	 * テクスチャを貼った四角形を描く（BeginView3DとEndView3Dの間）。
+	 * @param Quad 四角形。
+	 */
+	virtual TResult<void> DrawTexturedQuad3D(const FTexturedQuad3D& Quad)
+	{
+		(void)Quad;
+		return Unsupported_Internal();
+	}
 	virtual TResult<void> DrawModel3D(const FModelDraw3D&)
 	{
 		return Unsupported_Internal();

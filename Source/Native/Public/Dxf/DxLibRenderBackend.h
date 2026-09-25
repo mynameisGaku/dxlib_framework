@@ -69,6 +69,19 @@ public:
 		return true;
 	}
 	/**
+	 * SetDrawAreaで2D命令を切り抜く。
+	 */
+	bool SupportsClip2D() const noexcept override
+	{
+		return true;
+	}
+	/**
+	 * 2D命令のクリップを設定する（描画先の範囲との共通部分）。
+	 * @param bEnabled 切り抜くか。
+	 * @param Rect 描画先の画素の矩形。
+	 */
+	TResult<void> SetClip2D(bool bEnabled, FIntRect Rect) override;
+	/**
 	 * 矩形ごとの投影と領域内深度初期化に対応するか。
 	 */
 	bool SupportsViewports3D() const noexcept override
@@ -103,6 +116,18 @@ public:
 	 */
 	TResult<void> DrawGeometry3D(const FPreparedGeometry3D& Geometry) override;
 	/**
+	 * テクスチャを貼った四角形を描く。
+	 */
+	bool SupportsTexturedQuads3D() const noexcept override
+	{
+		return true;
+	}
+	/**
+	 * DrawPolygon3Dで二つの三角形として描く（照明なし。表面だけの指定なら、視点が裏側のときは描かない）。
+	 * @param Quad 四角形。
+	 */
+	TResult<void> DrawTexturedQuad3D(const FTexturedQuad3D& Quad) override;
+	/**
 	 * リンクしたDxLibでモデルを扱える構成か。
 	 */
 	bool SupportsModels3D() const noexcept override;
@@ -134,6 +159,14 @@ private:
 	 * 矩形ビュー開始時に取得した実描画先の高さ。
 	 */
 	Toolbox::int32 m_TargetHeight = 0;
+	/**
+	 * 2Dの描画先の幅（SetTarget・ResetStateで記録。クリップを戻す範囲）。
+	 */
+	Toolbox::int32 m_Width2D = 0;
+	/**
+	 * 2Dの描画先の高さ。
+	 */
+	Toolbox::int32 m_Height2D = 0;
 	/**
 	 * GPUモデル照明に使う、開始時点のビュー。
 	 */

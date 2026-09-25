@@ -201,6 +201,11 @@ public:
 	 */
 	DUiElement* GetFocused() const noexcept;
 	/**
+	 * ポインターのホバーとキャプチャを外す（表示先から外した・ポインターが別の表示先へ移った）。
+	 * キャプチャしていた要素にはCaptureLostを届ける。
+	 */
+	void ResetPointer() noexcept;
+	/**
 	 * ポインターを固定している要素。
 	 */
 	DUiElement* GetCaptured() const noexcept;

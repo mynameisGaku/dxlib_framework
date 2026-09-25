@@ -43,6 +43,20 @@ public:
 		return m_Draw3D;
 	}
 	/**
+	 * 現在の描画先の幅（画素）。フレームの開始前・描画先の設定前は0。
+	 */
+	FORCEINLINE Toolbox::int32 GetTargetWidth() const noexcept
+	{
+		return m_Access.m_TargetWidth;
+	}
+	/**
+	 * 現在の描画先の高さ（画素）。フレームの開始前・描画先の設定前は0。
+	 */
+	FORCEINLINE Toolbox::int32 GetTargetHeight() const noexcept
+	{
+		return m_Access.m_TargetHeight;
+	}
+	/**
 	 * @param Jobs Applicationが所有する共有実行器。停止前に全使用が完了していること。
 	 */
 	TResult<void> SetExecutionJobs_Internal(Toolbox::FJobSystem* Jobs)

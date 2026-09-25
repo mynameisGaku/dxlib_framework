@@ -103,6 +103,44 @@ inline Toolbox::int32 DrawLine3D(VECTOR, VECTOR, Toolbox::uint32)
 	ViewTrace.Order.PushBack(3);
 	return ViewCall_Internal();
 }
+/**
+ * 8ビットの色（DxLibのCOLOR_U8と同じ並び）。
+ */
+struct COLOR_U8
+{
+	Toolbox::uint8 b;
+	Toolbox::uint8 g;
+	Toolbox::uint8 r;
+	Toolbox::uint8 a;
+};
+/**
+ * 3Dの頂点（DxLibのVERTEX3Dと同じ項目）。
+ */
+struct VERTEX3D
+{
+	VECTOR pos;
+	VECTOR norm;
+	COLOR_U8 dif;
+	COLOR_U8 spc;
+	Toolbox::f32 u;
+	Toolbox::f32 v;
+	Toolbox::f32 su;
+	Toolbox::f32 sv;
+};
+inline COLOR_U8 GetColorU8(Toolbox::int32 R, Toolbox::int32 G, Toolbox::int32 B, Toolbox::int32 A)
+{
+	return {static_cast<Toolbox::uint8>(B), static_cast<Toolbox::uint8>(G), static_cast<Toolbox::uint8>(R), static_cast<Toolbox::uint8>(A)};
+}
+/**
+ * テクスチャ付きのポリゴンの記録（四角形の確認用）。
+ */
+inline Toolbox::int32 TestPolygons3D = 0;
+inline Toolbox::int32 DrawPolygon3D(const VERTEX3D*, Toolbox::int32 Count, Toolbox::int32, Toolbox::int32)
+{
+	TestPolygons3D += Count;
+	ViewTrace.Order.PushBack(4);
+	return ViewCall_Internal();
+}
 inline Toolbox::int32 DrawTriangle3D(VECTOR, VECTOR, VECTOR, Toolbox::uint32, Toolbox::int32 Fill)
 {
 	++ViewTrace.Triangles3D;

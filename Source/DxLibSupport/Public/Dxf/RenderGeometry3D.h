@@ -3,6 +3,8 @@
 #define DXF_RENDER_GEOMETRY_3D_H
 #include "Dxf/RenderView3D.h"
 #include "Dxf/Result.h"
+#include "Dxf/Texture.h"
+#include "Toolbox/Array.h"
 #include "Toolbox/CollisionShapes.h"
 namespace Dxf
 {
@@ -160,6 +162,32 @@ struct FPreparedGeometry3D
 /**
  * @param Geometry 有限値と件数を検証する形状。
  */
+/**
+ * テクスチャを貼った四角形（UIのパネル等）。頂点は左上・右上・右下・左下の順で、テクスチャの左上(0,0)〜右下(1,1)を対応させる。
+ */
+struct FTexturedQuad3D
+{
+	/**
+	 * 貼るテクスチャ（描画先テクスチャも可）。
+	 */
+	FTexture Texture;
+	/**
+	 * 四隅（左上・右上・右下・左下）。
+	 */
+	Toolbox::TArray<Toolbox::FVector3, 4> Corners{};
+	/**
+	 * 乗算色（Aは不透明度）。
+	 */
+	FColor Tint{255, 255, 255, 255};
+	/**
+	 * 深度の扱い。
+	 */
+	EDepthMode3D Depth = EDepthMode3D::TestAndWrite;
+	/**
+	 * 裏面も描くか（偽なら表面だけ）。
+	 */
+	bool bDoubleSided = true;
+};
 bool IsValidGeometry3D(const FGeometryCommand3D& Geometry) noexcept;
 /**
  * @param Box 描画する箱。Axesは直交する単位軸。

@@ -1,4 +1,5 @@
 #pragma once
+#include "Dxf/InputRouter.h"
 #include "Dxf/LifecycleObject.h"
 namespace Dxf
 {
@@ -53,6 +54,22 @@ public:
 	/**
 	 * 開始済みのシーンへ終了を通知する。
 	 */
+	/**
+	 * Sceneの入力の仲介を設定する（nullptrで外す）。仲介はSceneより長く生存するか、Sceneの終了前に外すこと。
+	 * 設定すると、Scene・子・固定更新は仲介が返した入力を受け取る。
+	 * @param Router 仲介。
+	 */
+	FORCEINLINE void SetInputRouter(IInputRouter* Router) noexcept
+	{
+		m_pInputRouter = Router;
+	}
+	/**
+	 * 入力の仲介。
+	 */
+	FORCEINLINE IInputRouter* GetInputRouter() const noexcept
+	{
+		return m_pInputRouter;
+	}
 	void Exit_Internal() noexcept
 	{
 		if (m_bEntered)
@@ -75,6 +92,14 @@ protected:
 	virtual void OnExit() noexcept
 	{
 	}
+	/**
+	 * 仲介があれば、その入力を自身と子へ渡す。
+	 * @param Context 更新の情報。
+	 */
+	const FInputSnapshot* RouteInput_Internal(const FTickContext& Context) override
+	{
+		return m_pInputRouter != nullptr ? &m_pInputRouter->RouteInput(Context) : nullptr;
+	}
 
 private:
 	/**
@@ -89,5 +114,9 @@ private:
 	 * シーンの開始通知を実行済みか。
 	 */
 	bool m_bEntered = false;
+	/**
+	 * 入力の仲介（所有しない）。
+	 */
+	IInputRouter* m_pInputRouter = nullptr;
 };
 } // namespace Dxf

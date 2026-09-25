@@ -196,6 +196,15 @@ protected:
 	{
 	}
 	/**
+	 * 基盤の呼出し: 自身と子へ渡す入力を選ぶ（既定は受け取った入力をそのまま渡す）。nullptrは受け取った入力を使う。
+	 * @param Context 更新の情報。
+	 */
+	virtual const FInputSnapshot* RouteInput_Internal(const FTickContext& Context)
+	{
+		(void)Context;
+		return nullptr;
+	}
+	/**
 	 * 子のライフサイクルグループを接続する。
 	 * @param Children 子のライフサイクルグループ。
 	 */

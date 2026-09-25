@@ -37,6 +37,11 @@ TResult<void> FRenderQueue2D::Validate_Internal(const FRenderCommand& Command) c
 		{
 			return TResult<void>::Failure(EErrorCode::InvalidArgument, "Invalid draw style");
 		}
+		if (Value.Options.bClip &&
+		    (Value.Options.ClipRect.Right < Value.Options.ClipRect.Left || Value.Options.ClipRect.Bottom < Value.Options.ClipRect.Top))
+		{
+			return TResult<void>::Failure(EErrorCode::InvalidArgument, "Invalid clip rectangle");
+		}
 		// 現在の描画命令の実体型。
 		using T = Toolbox::TDecay<decltype(Value)>;
 		if constexpr (Toolbox::IsSame<T, FSpriteCommand>)
@@ -157,6 +162,19 @@ TResult<void> FRenderQueue2D::Execute_Internal(IRenderBackend& Backend)
 		return Key(A) < Key(B);
 	}
 	);
+	// Backendに設定中のクリップ（命令ごとに値で持ち、変わるときだけ設定する）。
+	bool bClipActive = false;
+	FIntRect ActiveClip{};
+	// 途中の失敗でも、クリップを描画先全体へ戻す（最初の失敗を結果として保つ）。
+	auto RestoreClip = [&]() -> TResult<void>
+	{
+		if (!bClipActive)
+		{
+			return {};
+		}
+		bClipActive = false;
+		return Backend.SetClip2D(false, {});
+	};
 	// 実行する描画命令を順に処理する。
 	for (const auto& Command : Commands)
 	{
@@ -164,7 +182,44 @@ TResult<void> FRenderQueue2D::Execute_Internal(IRenderBackend& Backend)
 		auto Validation = Validate_Internal(Command);
 		if (!Validation)
 		{
+			(void)RestoreClip();
 			return Validation;
+		}
+		// 命令のクリップ。空の矩形は描かない。
+		const FDrawStyle& Style = Toolbox::Visit([](const auto& Value) -> const FDrawStyle& { return Value.Options; }, Command);
+		if (Style.bClip)
+		{
+			if (Style.ClipRect.Right <= Style.ClipRect.Left || Style.ClipRect.Bottom <= Style.ClipRect.Top)
+			{
+				continue;
+			}
+			if (!Backend.SupportsClip2D())
+			{
+				(void)RestoreClip();
+				return TResult<void>::Failure(EErrorCode::BackendFailure, "2D clip unsupported");
+			}
+			const FIntRect& Clip = Style.ClipRect;
+			if (!bClipActive || Clip.Left != ActiveClip.Left || Clip.Top != ActiveClip.Top || Clip.Right != ActiveClip.Right ||
+			    Clip.Bottom != ActiveClip.Bottom)
+			{
+				auto Set = Backend.SetClip2D(true, Clip);
+				if (!Set)
+				{
+					bClipActive = true;
+					(void)RestoreClip();
+					return Set;
+				}
+				bClipActive = true;
+				ActiveClip = Clip;
+			}
+		}
+		else if (bClipActive)
+		{
+			auto Restored = RestoreClip();
+			if (!Restored)
+			{
+				return Restored;
+			}
 		}
 		// 処理結果。
 		auto Result = Toolbox::Visit(
@@ -211,10 +266,11 @@ TResult<void> FRenderQueue2D::Execute_Internal(IRenderBackend& Backend)
 		Command);
 		if (!Result)
 		{
+			(void)RestoreClip();
 			return Result;
 		}
 	}
-	return {};
+	return RestoreClip();
 }
 }
 // namespace Dxf

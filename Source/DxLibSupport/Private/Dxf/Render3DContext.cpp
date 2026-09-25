@@ -152,12 +152,43 @@ TResult<void> FRender3DContext::DrawModel(const FModelInstance& Instance)
 	m_Models.PushBack(Toolbox::Move(Record));
 	return {};
 }
+// テクスチャを貼った四角形を記録する。
+// @param Quad 四角形。
+TResult<void> FRender3DContext::DrawTexturedQuad(const FTexturedQuad3D& Quad)
+{
+	if (!m_pAccess->IsAccepting())
+	{
+		return StateError_Internal();
+	}
+	if (!FitsTarget_Internal(m_View))
+	{
+		return InvalidGeometry_Internal();
+	}
+	if (!Quad.Texture.IsValid())
+	{
+		return TResult<void>::Failure(EErrorCode::InvalidArgument, "Quad texture is not valid");
+	}
+	for (const auto& Corner : Quad.Corners)
+	{
+		if (!Toolbox::IsFinite(Corner.X) || !Toolbox::IsFinite(Corner.Y) || !Toolbox::IsFinite(Corner.Z))
+		{
+			return InvalidGeometry_Internal();
+		}
+	}
+	if (m_Quads.Size() >= MaxFrameModels)
+	{
+		return LimitError_Internal();
+	}
+	m_Quads.PushBack({Quad, m_View, m_ViewSerial});
+	return {};
+}
 void FRender3DContext::Clear_Internal() noexcept
 {
 	if (m_pAccess->IsAllowed())
 	{
 		m_Commands.Clear();
 		m_Models.Clear();
+		m_Quads.Clear();
 		m_PrimitiveCount = 0;
 	}
 }
@@ -171,10 +202,16 @@ TResult<void> FRender3DContext::Execute_Internal(IRenderBackend& Backend)
 	auto Commands = Toolbox::Move(m_Commands);
 	// 実行または破棄まで、記録したインスタンスを生存させる。
 	auto Models = Toolbox::Move(m_Models);
+	// 実行または破棄まで、記録したテクスチャを生存させる。
+	auto Quads = Toolbox::Move(m_Quads);
 	m_PrimitiveCount = 0;
-	if (Commands.IsEmpty() && Models.IsEmpty())
+	if (Commands.IsEmpty() && Models.IsEmpty() && Quads.IsEmpty())
 	{
 		return {};
+	}
+	if (!Quads.IsEmpty() && !Backend.SupportsTexturedQuads3D())
+	{
+		return TResult<void>::Failure(EErrorCode::BackendFailure, "Backend has no textured quad capability");
 	}
 	if (!Commands.IsEmpty() && !Backend.SupportsGeometry3D())
 	{
@@ -204,15 +241,33 @@ TResult<void> FRender3DContext::Execute_Internal(IRenderBackend& Backend)
 		Toolbox::TVector<FPreparedGeometry3D> Packets;
 		Toolbox::size_t ModelBegin = 0;
 		Toolbox::size_t ModelEnd = 0;
+		Toolbox::size_t QuadBegin = 0;
+		Toolbox::size_t QuadEnd = 0;
 	};
 	Toolbox::TVector<FViewPass> Passes;
 	// 形状とモデルはどちらも区間番号の昇順に並ぶため、先頭どうしを比べて区間ごとにまとめる。
-	for (Toolbox::size_t Begin = 0, ModelBegin = 0; Begin < Commands.Size() || ModelBegin < Models.Size();)
+	for (Toolbox::size_t Begin = 0, ModelBegin = 0, QuadBegin = 0;
+	     Begin < Commands.Size() || ModelBegin < Models.Size() || QuadBegin < Quads.Size();)
 	{
-		const bool bGeometryFirst = ModelBegin >= Models.Size() ||
-		                            (Begin < Commands.Size() && Commands[Begin].Serial <= Models[ModelBegin].Serial);
-		const Toolbox::uint64 Serial = bGeometryFirst ? Commands[Begin].Serial : Models[ModelBegin].Serial;
-		const FRenderView3D& View = bGeometryFirst ? Commands[Begin].View : Models[ModelBegin].View;
+		// 三つの列の先頭のうち、最も小さい区間番号の区間をまとめる。
+		Toolbox::uint64 Serial = Toolbox::TNumericLimits<Toolbox::uint64>::Max();
+		const FRenderView3D* pView = nullptr;
+		if (Begin < Commands.Size() && Commands[Begin].Serial <= Serial)
+		{
+			Serial = Commands[Begin].Serial;
+			pView = &Commands[Begin].View;
+		}
+		if (ModelBegin < Models.Size() && Models[ModelBegin].Serial < Serial)
+		{
+			Serial = Models[ModelBegin].Serial;
+			pView = &Models[ModelBegin].View;
+		}
+		if (QuadBegin < Quads.Size() && Quads[QuadBegin].Serial < Serial)
+		{
+			Serial = Quads[QuadBegin].Serial;
+			pView = &Quads[QuadBegin].View;
+		}
+		const FRenderView3D& View = *pView;
 		Toolbox::size_t End = Begin;
 		while (End < Commands.Size() && Commands[End].Serial == Serial)
 		{
@@ -223,7 +278,12 @@ TResult<void> FRender3DContext::Execute_Internal(IRenderBackend& Backend)
 		{
 			++ModelEnd;
 		}
-		FViewPass Pass{View, {}, ModelBegin, ModelEnd};
+		Toolbox::size_t QuadEnd = QuadBegin;
+		while (QuadEnd < Quads.Size() && Quads[QuadEnd].Serial == Serial)
+		{
+			++QuadEnd;
+		}
+		FViewPass Pass{View, {}, ModelBegin, ModelEnd, QuadBegin, QuadEnd};
 		if (End > Begin)
 		{
 			auto Plan = Detail::BuildRenderPasses3D_Internal(Prepared, Begin, End, View);
@@ -233,12 +293,13 @@ TResult<void> FRender3DContext::Execute_Internal(IRenderBackend& Backend)
 			}
 			Pass.Packets = Toolbox::Move(Plan).Value();
 		}
-		if (!Pass.Packets.IsEmpty() || ModelEnd > ModelBegin)
+		if (!Pass.Packets.IsEmpty() || ModelEnd > ModelBegin || QuadEnd > QuadBegin)
 		{
 			Passes.PushBack(Toolbox::Move(Pass));
 		}
 		Begin = End;
 		ModelBegin = ModelEnd;
+		QuadBegin = QuadEnd;
 	}
 	for (const auto& Pass : Passes)
 	{
@@ -283,6 +344,19 @@ TResult<void> FRender3DContext::Execute_Internal(IRenderBackend& Backend)
 			for (const auto& Packet : Pass.Packets)
 			{
 				Result = Backend.DrawGeometry3D(Packet);
+				if (!Result)
+				{
+					break;
+				}
+			}
+			if (!Result)
+			{
+				break;
+			}
+			// テクスチャを貼った四角形は同じ区間の形状の後に描く（半透明のパネルを想定）。
+			for (Toolbox::size_t Index = Pass.QuadBegin; Index < Pass.QuadEnd; ++Index)
+			{
+				Result = Backend.DrawTexturedQuad3D(Quads[Index].Quad);
 				if (!Result)
 				{
 					break;

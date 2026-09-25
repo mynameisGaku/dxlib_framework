@@ -21,13 +21,33 @@ TResult<void> FDxLibRenderBackend::SetTarget(Toolbox::int32 Handle, Toolbox::int
 	{
 		return Target;
 	}
+	m_Width2D = Width;
+	m_Height2D = Height;
 	return Detail::CheckNative_Internal(DxLib::SetDrawArea(0, 0, Width, Height), "SetDrawArea failed");
+}
+// 2D命令のクリップを設定する。
+// @param bEnabled 切り抜くか。
+// @param Rect 描画先の画素の矩形。
+TResult<void> FDxLibRenderBackend::SetClip2D(bool bEnabled, FIntRect Rect)
+{
+	if (!bEnabled)
+	{
+		return Detail::CheckNative_Internal(DxLib::SetDrawArea(0, 0, m_Width2D, m_Height2D), "SetDrawArea failed");
+	}
+	// 描画先の範囲との共通部分（SetDrawAreaは右・下を含まない範囲）。
+	const Toolbox::int32 Left = Toolbox::Clamp(Rect.Left, 0, m_Width2D);
+	const Toolbox::int32 Top = Toolbox::Clamp(Rect.Top, 0, m_Height2D);
+	const Toolbox::int32 Right = Toolbox::Clamp(Rect.Right, Left, m_Width2D);
+	const Toolbox::int32 Bottom = Toolbox::Clamp(Rect.Bottom, Top, m_Height2D);
+	return Detail::CheckNative_Internal(DxLib::SetDrawArea(Left, Top, Right, Bottom), "SetDrawArea failed");
 }
 // 2D描画に必要な状態へ戻す。
 // @param Width 幅。
 // @param Height 高さ。
 TResult<void> FDxLibRenderBackend::ResetState(Toolbox::int32 Width, Toolbox::int32 Height)
 {
+	m_Width2D = Width;
+	m_Height2D = Height;
 	if (DxLib::SetDrawArea(0, 0, Width, Height) < 0 || DxLib::SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 255) < 0 ||
 	DxLib::SetDrawBright(255, 255, 255) < 0 || DxLib::SetDrawMode(DX_DRAWMODE_BILINEAR) < 0 ||
 	DxLib::SetUseZBufferFlag(FALSE) < 0 || DxLib::SetWriteZBufferFlag(FALSE) < 0 ||

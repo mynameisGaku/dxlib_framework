@@ -16,7 +16,9 @@ set(DXF_UI_SOURCES
     Source/Ui/Private/Dxf/UiElement.cpp
     Source/Ui/Private/Dxf/UiRoot.cpp
     Source/Ui/Private/Dxf/UiLabel.cpp
-    Source/Ui/Private/Dxf/UiAssetTextService.cpp)
+    Source/Ui/Private/Dxf/UiAssetTextService.cpp
+    Source/Ui/Private/Dxf/UiRenderer.cpp
+    Source/Ui/Private/Dxf/UiWorldPanel.cpp)
 add_library(dxf_ui STATIC ${DXF_UI_SOURCES})
 add_library(dxf::ui ALIAS dxf_ui)
 set_target_properties(dxf_ui PROPERTIES EXPORT_NAME ui DEBUG_POSTFIX d)
@@ -25,6 +27,17 @@ target_include_directories(dxf_ui PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Source/Ui
 dxf_public_headers(dxf_ui Ui PUBLIC)
 dxf_warnings(dxf_ui)
 list(APPEND DXF_EXPORT_TARGETS dxf_ui)
+
+# Sceneへの接続（入力の仲介・描画・ワールドのパネル）。Runtimeの汎用の入力の仲介の窓口だけを使う。
+add_library(dxf_ui_runtime STATIC
+    Source/UiRuntime/Private/Dxf/UiNavigationBindings.cpp
+    Source/UiRuntime/Private/Dxf/UiSceneHost.cpp)
+add_library(dxf::ui_runtime ALIAS dxf_ui_runtime)
+set_target_properties(dxf_ui_runtime PROPERTIES EXPORT_NAME ui_runtime DEBUG_POSTFIX d)
+target_link_libraries(dxf_ui_runtime PUBLIC dxf::ui dxf::runtime)
+dxf_public_headers(dxf_ui_runtime UiRuntime PUBLIC)
+dxf_warnings(dxf_ui_runtime)
+list(APPEND DXF_EXPORT_TARGETS dxf_ui_runtime)
 
 if(DXF_BUILD_TESTS)
     add_executable(dxf_ui_tests Tests/TestMain.cpp

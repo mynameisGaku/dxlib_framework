@@ -472,7 +472,7 @@ if(DXF_INSTALL)
     include(CMakePackageConfigHelpers)
     install(TARGETS ${DXF_EXPORT_TARGETS} EXPORT dxlib_frameworkTargets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-    foreach(Layer Toolbox Foundation DxLibSupport Runtime Gameplay Physics Native Ui)
+    foreach(Layer Toolbox Foundation DxLibSupport Runtime Gameplay Physics Native Ui UiRuntime)
         install(DIRECTORY "Source/${Layer}/Public/" DESTINATION include FILES_MATCHING PATTERN "*.h")
     endforeach()
     set(DXF_CONFIG_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/dxlib_framework")

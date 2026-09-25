@@ -61,13 +61,17 @@ TResult<void> DLifecycleObject::Tick_Internal(const FTickContext& Context)
 	{
 		// 処理終了時に状態を戻すガード。
 		TGuardValue Guard(m_bBusy, true);
-		if (!Context.Time.bPaused || m_bTickWhenPaused)
+		// 仲介が入力を選んだ場合は、自身と子へその入力を渡す（そのフレームで一度だけ）。
+		const FInputSnapshot* Routed = RouteInput_Internal(Context);
+		const FTickContext Local{Routed != nullptr ? *Routed : Context.Input, Context.Time, Context.Scenes, Context.Game,
+		                         Context.Audio, Context.AudioScope, Context.Tasks, Context.TaskScope};
+		if (!Local.Time.bPaused || m_bTickWhenPaused)
 		{
-			OnTick(Context);
+			OnTick(Local);
 		}
 		if (m_pChildren && !m_bDestroyRequested)
 		{
-			return m_pChildren->Tick_Internal(Context);
+			return m_pChildren->Tick_Internal(Local);
 		}
 		return {};
 	}

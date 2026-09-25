@@ -310,6 +310,12 @@ DUiElement* FUiRoot::GetFocused() const noexcept
 {
 	return m_pState->Focus.GetFocused();
 }
+// ホバーとキャプチャを外す。
+void FUiRoot::ResetPointer() noexcept
+{
+	m_pState->Input.Reset(*m_pState);
+	m_pState->Tree.FlushDestroyed(*m_pState);
+}
 // キャプチャ中の要素。
 DUiElement* FUiRoot::GetCaptured() const noexcept
 {

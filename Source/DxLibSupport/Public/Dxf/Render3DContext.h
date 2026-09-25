@@ -68,6 +68,11 @@ public:
 	 */
 	TResult<void> DrawModel(const FModelInstance& Instance);
 	/**
+	 * テクスチャを貼った四角形を現在のViewで描く（同じViewの形状の後に描く）。
+	 * @param Quad 四角形（有限の四隅・有効なテクスチャ）。
+	 */
+	TResult<void> DrawTexturedQuad(const FTexturedQuad3D& Quad);
+	/**
 	 * 設定済みの共有JobSystemで生成し、入力順に一括確定する。
 	 * @param Count 入力件数。 @param Generate 専用FGeometryCommand3Dへの生成処理。 @param MinimumBatch 最小分割数。
 	 */
@@ -135,7 +140,7 @@ public:
 	 */
 	FORCEINLINE bool HasCommands_Internal() const noexcept
 	{
-		return !m_Commands.IsEmpty() || !m_Models.IsEmpty();
+		return !m_Commands.IsEmpty() || !m_Models.IsEmpty() || !m_Quads.IsEmpty();
 	}
 private:
 	/**
@@ -211,6 +216,28 @@ private:
 	 * 未実行のモデル描画命令。
 	 */
 	Toolbox::TVector<FRecordedModel> m_Models;
+	/**
+	 * 記録した四角形とView。
+	 */
+	struct FRecordedQuad
+	{
+		/**
+		 * 四角形。
+		 */
+		FTexturedQuad3D Quad;
+		/**
+		 * View。
+		 */
+		FRenderView3D View;
+		/**
+		 * Viewの区間番号。
+		 */
+		Toolbox::uint64 Serial = 0;
+	};
+	/**
+	 * 記録した四角形。
+	 */
+	Toolbox::TVector<FRecordedQuad> m_Quads;
 };
 }
 #endif

@@ -92,6 +92,13 @@ public:
 		return m_Items;
 	}
 	/**
+	 * 描く順の一覧（クリップを後から狭める表示先の処理が使う）。
+	 */
+	FORCEINLINE Toolbox::TVector<FUiDrawItem>& EditItems() noexcept
+	{
+		return m_Items;
+	}
+	/**
 	 * 空にする（確保済みの領域は保つ）。
 	 */
 	FORCEINLINE void Clear() noexcept

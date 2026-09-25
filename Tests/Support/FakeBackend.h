@@ -38,6 +38,14 @@ struct FBackendTrace
 	 */
 	Toolbox::int32 Resets = 0;
 	/**
+	 * 2Dクリップを設定した回数（有効化）。
+	 */
+	Toolbox::int32 ClipSets = 0;
+	/**
+	 * 2Dクリップを描画先全体へ戻した回数。
+	 */
+	Toolbox::int32 ClipResets = 0;
+	/**
 	 * 画像読み込みへ渡されたパスの記録。
 	 */
 	Toolbox::TVector<Toolbox::FString> TexturePaths;
@@ -402,6 +410,28 @@ public:
 	 */
 	TResult<void> DrawRectangle(const FRectangleCommand&) override
 	{
+		return {};
+	}
+	/**
+	 * 2Dクリップに対応する。
+	 */
+	bool SupportsClip2D() const noexcept override
+	{
+		return true;
+	}
+	/**
+	 * 2Dクリップの設定を記録する。
+	 */
+	TResult<void> SetClip2D(bool bEnabled, FIntRect) override
+	{
+		if (bEnabled)
+		{
+			++m_Trace.ClipSets;
+		}
+		else
+		{
+			++m_Trace.ClipResets;
+		}
 		return {};
 	}
 	/**
