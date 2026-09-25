@@ -212,6 +212,14 @@ set(DXF_NATIVE_SOURCES
     Source/Native/Private/Dxf/DxLibFontBackend.cpp
     Source/Native/Private/Dxf/DxLibRenderBackend.cpp)
 
+# キャラクター移動のサンプル（2D／3D）のソース。サンプルと実Appの固定入力の確認が共有する。
+set(DXF_GAMEPLAY_SAMPLE_SOURCES
+    Examples/GameplaySample/SampleLevel.cpp
+    Examples/GameplaySample/SampleCharacters.cpp
+    Examples/GameplaySample/SampleHud.cpp
+    Examples/GameplaySample/CharacterSample2DScene.cpp
+    Examples/GameplaySample/CharacterSample3DScene.cpp)
+
 if(DXF_BUILD_TESTS)
     enable_testing()
     include(CMake/PhysicsTests.cmake)
@@ -334,7 +342,13 @@ if(DXF_BUILD_NATIVE_SMOKE)
         VS_DEBUGGER_WORKING_DIRECTORY
             "$<TARGET_FILE_DIR:NativeModelSmoke>")
     # キャラクター移動のサンプル（2D／3D）を入力だけ固定して実Applicationで確認する。通常のソリューションには含めない。
-    add_executable(NativeGameplaySmoke Tests/GameplaySampleSmoke/Main.cpp Examples/GameplaySample/CharacterSample.cpp)
+    add_executable(NativeGameplaySmoke
+        Tests/GameplaySampleSmoke/Main.cpp
+        Tests/GameplaySampleSmoke/SmokeSupport.cpp
+        Tests/GameplaySampleSmoke/SmokeAcceptance.cpp
+        Tests/GameplaySampleSmoke/SmokeTraces.cpp
+        ${DXF_GAMEPLAY_SAMPLE_SOURCES})
+    dxf_ide_headers(NativeGameplaySmoke Tests/GameplaySampleSmoke)
     target_include_directories(NativeGameplaySmoke PRIVATE Examples/GameplaySample)
     target_link_libraries(NativeGameplaySmoke PRIVATE dxf::native)
     target_compile_definitions(NativeGameplaySmoke PRIVATE DX_NON_USING_NAMESPACE_DXLIB NOMINMAX)
@@ -396,7 +410,7 @@ if(DXF_BUILD_GAMEPLAY_SAMPLE)
         message(FATAL_ERROR "DXF_BUILD_GAMEPLAY_SAMPLE requires DXF_BUILD_NATIVE=ON")
     endif()
     # 公開の移動Componentだけで作った、2D／3Dを切り替えて操作できる開発用の例。通常のソリューションには含めない。
-    add_executable(GameplaySample WIN32 Examples/GameplaySample/WindowsMain.cpp Examples/GameplaySample/CharacterSample.cpp)
+    add_executable(GameplaySample WIN32 Examples/GameplaySample/WindowsMain.cpp ${DXF_GAMEPLAY_SAMPLE_SOURCES})
     dxf_ide_headers(GameplaySample Examples/GameplaySample)
     target_link_libraries(GameplaySample PRIVATE dxf::native)
     dxf_warnings(GameplaySample)
