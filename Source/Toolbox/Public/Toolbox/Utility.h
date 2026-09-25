@@ -287,6 +287,39 @@ FORCEINLINE int64 RoundToLong(f64 Value)
 	return static_cast<int64>(llround(Value));
 }
 /**
+ * 値以下の最大の整数値（負の無限大方向への丸め）。
+ * @param Value 処理または保持する値。
+ */
+FORCEINLINE f64 Floor(f64 Value)
+{
+	return floor(Value);
+}
+/**
+ * 値以上の最小の整数値（正の無限大方向への丸め）。
+ * @param Value 処理または保持する値。
+ */
+FORCEINLINE f64 Ceil(f64 Value)
+{
+	return ceil(Value);
+}
+/**
+ * 浮動小数点の剰余（被除数と同じ符号）。
+ * @param Value 被除数。
+ * @param Divisor 除数。
+ */
+FORCEINLINE f64 Fmod(f64 Value, f64 Divisor)
+{
+	return fmod(Value, Divisor);
+}
+/**
+ * eの冪（指数関数）。
+ * @param Value 指数。
+ */
+FORCEINLINE f64 Exp(f64 Value)
+{
+	return exp(Value);
+}
+/**
  * 数値型で表現できる上限を提供する。
  */
 template <typename T> struct TNumericLimits

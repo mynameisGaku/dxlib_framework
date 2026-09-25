@@ -294,6 +294,8 @@ if(DXF_BUILD_TESTS)
 endif()
 
 set(DXF_EXPORT_TARGETS dxlib_framework dxf_toolbox dxf_foundation dxf_ufbx dxf_support dxf_runtime dxf_gameplay dxf_physics)
+# 任意のUI基盤（dxf::ui・dxf::ui_runtime）。
+include(CMake/UiModule.cmake)
 if(DXF_BUILD_NATIVE)
     if(NOT WIN32 OR NOT MSVC)
         message(FATAL_ERROR "DXF_BUILD_NATIVE requires Windows/MSVC x64. Portable tests do not need the SDK.")
@@ -470,7 +472,7 @@ if(DXF_INSTALL)
     include(CMakePackageConfigHelpers)
     install(TARGETS ${DXF_EXPORT_TARGETS} EXPORT dxlib_frameworkTargets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-    foreach(Layer Toolbox Foundation DxLibSupport Runtime Gameplay Physics Native)
+    foreach(Layer Toolbox Foundation DxLibSupport Runtime Gameplay Physics Native Ui)
         install(DIRECTORY "Source/${Layer}/Public/" DESTINATION include FILES_MATCHING PATTERN "*.h")
     endforeach()
     set(DXF_CONFIG_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/dxlib_framework")
