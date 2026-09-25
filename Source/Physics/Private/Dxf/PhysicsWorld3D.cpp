@@ -2,6 +2,9 @@
 #include "Dxf/RigidBody3D.h"
 #include "PhysicsSnapshotBuilder.h"
 #include "ParallelPhysicsCore.h"
+#include "QueryCandidates.h"
+#include "QueryResultOrder.h"
+#include "WorldQueryShapes3D.h"
 #include "Toolbox/ContinuousCollision.h"
 #include "Toolbox/SegmentIntersection.h"
 #include "Toolbox/ShapeSweep3D.h"
@@ -690,6 +693,16 @@ static void FindBoxBoxContacts_Internal(const Toolbox::FOBB& A, const Toolbox::F
 	}
 }
 // 立体剛体の登録スロットと接触解決をまとめた実装。
+// 問い合わせ索引へ最後に反映したBodyの姿勢。Stepの完了時に、姿勢が変わったBodyのColliderだけを合わせ直す。
+struct FIndexedPose3D
+{
+	// 記録があるか。
+	// 索引へ最後に反映した重心位置。
+	Toolbox::FVector3 Position;
+	// 索引へ最後に反映した姿勢。
+	Toolbox::FQuaternion Orientation;
+	bool bValid = false;
+};
 struct FPhysicsWorld3D::FImpl
 {
 	// 別ワールドのID混入を検出する識別子。
@@ -720,6 +733,20 @@ struct FPhysicsWorld3D::FImpl
 	PhysicsPrivate::FSnapshotStepState SnapshotState;
 	// 休止の条件。
 	FSleepSettings3D Sleep;
+	// World問い合わせの索引（Colliderの検索用の派生情報。形状・Bodyの所有者はこのWorld）。
+	PhysicsPrivate::TQueryIndex<3> QueryIndex;
+	// 生存しているColliderの数。
+	Toolbox::size_t AliveColliders = 0;
+	// Bodyスロットごとの、索引へ最後に反映した姿勢。
+	Toolbox::TVector<FIndexedPose3D> IndexedPoses;
+	// Colliderスロットごとの、索引へ最後に反映した姿勢でのWorld形状（索引の経路の問い合わせが使う）。
+	Toolbox::TVector<decltype(FColliderRecord3D::Shape)> QueryWorldShapes;
+	// 問い合わせで索引を使うか（検証用に総当たりの参照経路へ切り替えられる）。
+	bool bQueryIndexEnabled = true;
+	// 問い合わせの集計を加算するか。
+	bool bQueryDiagnostics = false;
+	// 問い合わせの集計（診断が有効な間だけconstの問い合わせから加算する）。
+	mutable FWorldQueryDiagnostics QueryTotals;
 	// 新しいワールドへ重ならない識別子を発行する。
 	static Toolbox::uint64 NextWorld_Internal()
 	{
@@ -858,6 +885,76 @@ struct FPhysicsWorld3D::FImpl
 			World.Axes[Axis] = Body.Orientation.Rotate(Local.Axes[Axis]);
 		}
 		return World;
+	}
+	// Colliderの現在の姿勢での索引用の境界。
+	static PhysicsPrivate::TQueryShapeBounds<3> ColliderQueryBounds_Internal(
+	    const FBodyRecord3D& Body, const FColliderRecord3D& Record,
+	    decltype(FColliderRecord3D::Shape)& OutWorld) noexcept
+	{
+		return Record.Shape.Visit(
+		    [&](const auto& Local)
+		    {
+			    const auto World = ToWorld_Internal(Body, Local);
+			    OutWorld = World;
+			    return PhysicsPrivate::QueryShapeBounds_Internal(World);
+		    });
+	}
+	// 問い合わせで使うColliderのWorld形状。索引の経路は索引へ反映した姿勢で保存した形状、総当たりは現在の姿勢から変換する。
+	decltype(FColliderRecord3D::Shape) QueryWorldShape_Internal(Toolbox::size_t Slot, bool bIndexed) const
+	{
+		if (bIndexed)
+		{
+			return QueryWorldShapes[Slot];
+		}
+		const FColliderRecord3D& Record = Colliders[Slot];
+		const FBodyRecord3D& Body = Resolve_Internal(Record.Body);
+		return Record.Shape.Visit(
+		    [&](const auto& Local)
+		    {
+			    return decltype(FColliderRecord3D::Shape){ToWorld_Internal(Body, Local)};
+		    });
+	}
+	// Bodyに付くすべてのColliderの索引を、現在の姿勢へ合わせる。
+	void RefreshBodyColliders_Internal(Toolbox::size_t BodySlot) noexcept
+	{
+		const FBodyRecord3D& Body = Slots[BodySlot];
+		IndexedPoses[BodySlot].Position = Body.Position;
+		IndexedPoses[BodySlot].Orientation = Body.Orientation;
+		IndexedPoses[BodySlot].bValid = true;
+		Toolbox::int32 Current = QueryIndex.GetFirstCollider(BodySlot);
+		while (Current != PhysicsPrivate::TQueryIndex<3>::None)
+		{
+			const Toolbox::size_t Slot = static_cast<Toolbox::size_t>(Current);
+			QueryIndex.Refresh(Slot, ColliderQueryBounds_Internal(Body, Colliders[Slot], QueryWorldShapes[Slot]));
+			Current = QueryIndex.GetNextCollider(Slot);
+		}
+	}
+	// Bodyの現在の姿勢が、索引へ最後に反映した姿勢と同じか（ビット単位の一致）。
+	bool IsIndexedPose_Internal(Toolbox::size_t BodySlot) const noexcept
+	{
+		const FIndexedPose3D& Pose = IndexedPoses[BodySlot];
+		const FBodyRecord3D& Body = Slots[BodySlot];
+		return Pose.bValid && Pose.Position == Body.Position && Pose.Orientation.X == Body.Orientation.X &&
+		       Pose.Orientation.Y == Body.Orientation.Y && Pose.Orientation.Z == Body.Orientation.Z &&
+		       Pose.Orientation.W == Body.Orientation.W;
+	}
+	// Stepで動き得るBody（Static以外）のうち、姿勢が変わったBodyのColliderの索引を、現在の姿勢へ合わせる。
+	void RefreshMovingColliders_Internal() noexcept
+	{
+		for (Toolbox::size_t Index = 0; Index < Slots.Size(); ++Index)
+		{
+			const FBodyRecord3D& Body = Slots[Index];
+			if (!Body.bAlive || Body.Type == EBodyType::Static || IsIndexedPose_Internal(Index))
+			{
+				continue;
+			}
+			RefreshBodyColliders_Internal(Index);
+		}
+	}
+	// 問い合わせの候補の走査に使う状態。
+	PhysicsPrivate::TQuerySource<3, FColliderRecord3D> QuerySource_Internal() const noexcept
+	{
+		return {QueryIndex, Colliders, bQueryIndexEnabled, bQueryDiagnostics, QueryTotals};
 	}
 	// ワールド逆慣性でベクトルを変換する。
 	static FVector3D WorldInverseInertia_Internal(const FBodyRecord3D& Record, FVector3D Value) noexcept
@@ -2232,6 +2329,13 @@ FBodyId3D FPhysicsWorld3D::CreateBody(const FBodyDescription3D& Description)
 		Record.InverseDiagonalInertia = {0, 0, 0};
 		Record.DiagonalInertia = {0, 0, 0};
 	}
+	// 問い合わせ索引のBody一覧を先に予約する（失敗しても状態は変わらない）。
+	m_pImpl->QueryIndex.ReserveBodies(m_pImpl->Slots.Size() + 1);
+	if (m_pImpl->IndexedPoses.Size() < m_pImpl->Slots.Size() + 1)
+	{
+		m_pImpl->IndexedPoses.Resize(
+		    Toolbox::Max<Toolbox::size_t>(m_pImpl->Slots.Size() + 1, m_pImpl->IndexedPoses.Size() * 2));
+	}
 	// 空きスロットの再使用または末尾への追加。
 	Toolbox::size_t Index = 0;
 	if (!m_pImpl->Free.IsEmpty())
@@ -2252,6 +2356,8 @@ FBodyId3D FPhysicsWorld3D::CreateBody(const FBodyDescription3D& Description)
 		Record.bAlive = true;
 		m_pImpl->Slots.PushBack(Record);
 	}
+	m_pImpl->QueryIndex.ResetBody(Index);
+	m_pImpl->IndexedPoses[Index] = {};
 	return {m_pImpl->World, Index, m_pImpl->Slots[Index].Generation};
 }
 bool FPhysicsWorld3D::DestroyBody(FBodyId3D Id) noexcept
@@ -2266,16 +2372,18 @@ bool FPhysicsWorld3D::DestroyBody(FBodyId3D Id) noexcept
 	Record->Force = {};
 	Record->Torque = {};
 	m_pImpl->Free.PushBack(Id.Index);
-	// 取り付け済みのコライダーも失効させる。
-	for (Toolbox::size_t Index = 0; Index < m_pImpl->Colliders.Size(); ++Index)
+	// 取り付け済みのコライダーも、スロット昇順で失効させて索引から外す（Bodyごとの一覧をたどる）。
+	Toolbox::int32 Current = m_pImpl->QueryIndex.GetFirstCollider(Id.Index);
+	while (Current != PhysicsPrivate::TQueryIndex<3>::None)
 	{
+		const Toolbox::size_t Index = static_cast<Toolbox::size_t>(Current);
+		Current = m_pImpl->QueryIndex.GetNextCollider(Index);
 		FColliderRecord3D& Collider = m_pImpl->Colliders[Index];
-		if (Collider.bAlive && Collider.Body == Id)
-		{
-			Collider.bAlive = false;
-			Collider.Generation += 1;
-			m_pImpl->ColliderFree.PushBack(Index);
-		}
+		Collider.bAlive = false;
+		Collider.Generation += 1;
+		m_pImpl->ColliderFree.PushBack(Index);
+		m_pImpl->QueryIndex.Detach(Index);
+		--m_pImpl->AliveColliders;
 	}
 	// 古い接触記録を使い回さない。
 	m_pImpl->Cache.Clear();
@@ -2470,7 +2578,6 @@ Toolbox::FVector3 FPhysicsWorld3D::GetGravity() const noexcept
 FColliderId3D FPhysicsWorld3D::AttachCollider(FBodyId3D Body, const FColliderDescription3D& Description)
 {
 	FBodyRecord3D& Target = m_pImpl->Resolve_Internal(Body);
-	(void)Target;
 	if (Description.Shape.Index() == 0)
 	{
 		const Toolbox::FSphere& Local = Description.Shape.Get<0>();
@@ -2506,6 +2613,15 @@ FColliderId3D FPhysicsWorld3D::AttachCollider(FBodyId3D Body, const FColliderDes
 	Record.Friction = Description.Friction;
 	Record.Restitution = Description.Restitution;
 	Record.QueryCategory = Description.QueryCategory;
+	// 現在の姿勢での索引用の境界と、索引の領域を先に用意する（失敗しても状態は変わらない）。
+	decltype(FColliderRecord3D::Shape) QueryWorld;
+	const auto QueryBounds = FImpl::ColliderQueryBounds_Internal(Target, Record, QueryWorld);
+	m_pImpl->QueryIndex.ReserveColliders(m_pImpl->Colliders.Size() + 1, m_pImpl->AliveColliders + 1);
+	if (m_pImpl->QueryWorldShapes.Size() < m_pImpl->Colliders.Size() + 1)
+	{
+		m_pImpl->QueryWorldShapes.Resize(
+		    Toolbox::Max<Toolbox::size_t>(m_pImpl->Colliders.Size() + 1, m_pImpl->QueryWorldShapes.Size() * 2));
+	}
 	// 空きスロットの再使用または末尾への追加。
 	Toolbox::size_t Index = 0;
 	if (!m_pImpl->ColliderFree.IsEmpty())
@@ -2526,6 +2642,9 @@ FColliderId3D FPhysicsWorld3D::AttachCollider(FBodyId3D Body, const FColliderDes
 		Record.bAlive = true;
 		m_pImpl->Colliders.PushBack(Record);
 	}
+	m_pImpl->QueryWorldShapes[Index] = QueryWorld;
+	m_pImpl->QueryIndex.Attach(Index, Body.Index, QueryBounds);
+	++m_pImpl->AliveColliders;
 	return {Body, Index, m_pImpl->Colliders[Index].Generation};
 }
 bool FPhysicsWorld3D::DetachCollider(FColliderId3D Id) noexcept
@@ -2538,6 +2657,8 @@ bool FPhysicsWorld3D::DetachCollider(FColliderId3D Id) noexcept
 	Record->bAlive = false;
 	Record->Generation += 1;
 	m_pImpl->ColliderFree.PushBack(Id.Index);
+	m_pImpl->QueryIndex.Detach(Id.Index);
+	--m_pImpl->AliveColliders;
 	// 古い接触記録を使い回さない。
 	m_pImpl->Cache.Clear();
 	return true;
@@ -2693,6 +2814,8 @@ void FPhysicsWorld3D::SetBodyTransform(FBodyId3D Id, Toolbox::FVector3 Position,
 	Record.SleepTimer = 0;
 	Record.Position = Position;
 	Record.Orientation = Normalized;
+	// Stepを待たず、次の問い合わせへ新しい姿勢を反映する。
+	m_pImpl->RefreshBodyColliders_Internal(Id.Index);
 }
 void FPhysicsWorld3D::ClearContactCache() noexcept
 {
@@ -2707,7 +2830,7 @@ Toolbox::TOptional<FWorldSegmentHit3D> FPhysicsWorld3D::RaycastClosest(Toolbox::
 {
 	return RaycastClosest(Start, End, ExcludedBody, FWorldQueryFilter{});
 }
-// 現在の登録配列を直接走査し、状態を変更せず、対象カテゴリの中で最短の交差を返す。
+// 索引（または総当たり）で候補を絞り、状態を変更せず、対象カテゴリの中で最短の交差を返す。
 Toolbox::TOptional<FWorldSegmentHit3D> FPhysicsWorld3D::RaycastClosest(Toolbox::FVector3 Start, Toolbox::FVector3 End,
                                                                        Toolbox::TOptional<FBodyId3D> ExcludedBody,
                                                                        const FWorldQueryFilter& Filter) const
@@ -2724,43 +2847,49 @@ Toolbox::TOptional<FWorldSegmentHit3D> FPhysicsWorld3D::RaycastClosest(Toolbox::
 	{
 		(void)Impl.Resolve_Internal(*ExcludedBody);
 	}
-	// 昇順走査で同距離の順序を固定する。候補0でも後続形状の計算は省略しない。
-	Toolbox::TOptional<FWorldSegmentHit3D> Best;
-	for (Toolbox::size_t Index = 0; Index < Impl.Colliders.Size(); ++Index)
+	// 候補を絞る線分（f64）と、問い合わせの座標の規模。
+	PhysicsPrivate::TQuerySegment<3> Segment;
+	Toolbox::f64 QueryMaxAbs = 0;
+	for (Toolbox::int32 Axis = 0; Axis < 3; ++Axis)
 	{
-		// 現在のColliderスロット。
+		Segment.Start[Axis] = Start.Component(Axis);
+		Segment.Delta[Axis] = Toolbox::f64(End.Component(Axis)) - Start.Component(Axis);
+		QueryMaxAbs = Toolbox::Max(QueryMaxAbs, Toolbox::Max(Toolbox::Abs(Toolbox::f64(Start.Component(Axis))),
+		                                                     Toolbox::Abs(Toolbox::f64(End.Component(Axis)))));
+	}
+	Segment.Radius = PhysicsPrivate::QueryInflation_Internal(Impl.QueryIndex, QueryMaxAbs);
+	for (Toolbox::int32 Axis = 0; Axis < 3; ++Axis)
+	{
+		const Toolbox::f64 A = Start.Component(Axis);
+		const Toolbox::f64 B = End.Component(Axis);
+		Segment.Bounds.Min[Axis] = Toolbox::Min(A, B) - Segment.Radius;
+		Segment.Bounds.Max[Axis] = Toolbox::Max(A, B) + Segment.Radius;
+	}
+	// 最短候補。候補0でも後続形状の計算は省略しない。
+	Toolbox::TOptional<FWorldSegmentHit3D> Best;
+	auto Consider = [&](Toolbox::size_t Index, bool bIndexed)
+	{
+		// 現在のColliderスロットと所有Bodyの位置・姿勢。
 		const auto& Record = Impl.Colliders[Index];
-		if (!Record.bAlive)
-		{
-			continue;
-		}
-		// 対象外のカテゴリは形状の変換・交差計算へ進まない（最短候補の選定前に絞る）。
-		if ((Record.QueryCategory & Filter.IncludeCategories) == 0)
-		{
-			continue;
-		}
-		// 現在の所有Bodyの位置と姿勢。
-		const auto& Body = Impl.Resolve_Internal(Record.Body);
-		if (ExcludedBody && Record.Body == *ExcludedBody)
-		{
-			continue;
-		}
 		// 共通の形状変換と既存の有限線分交差による割合。
-		const auto Hit = Record.Shape.Visit([&](const auto& Local)
-		                                    {
-			                                    return Toolbox::IntersectSegment(Start, End, FImpl::ToWorld_Internal(Body, Local));
-		                                    });
+		const auto Hit = Impl.QueryWorldShape_Internal(Index, bIndexed)
+		                     .Visit(
+		                         [&](const auto& WorldShape)
+		                         {
+			                         return Toolbox::IntersectSegment(Start, End, WorldShape);
+		                         });
 		if (!Hit)
 		{
-			continue;
+			return;
 		}
 		if (!Toolbox::IsFinite(*Hit) || *Hit < 0 || *Hit > 1)
 		{
 			throw Toolbox::FException("Invalid world query fraction");
 		}
-		if (Best && Best->Fraction <= *Hit)
+		if (!PhysicsPrivate::IsCloserHit_Internal(Best.HasValue(), Best ? Best->Fraction : 0,
+		                                          Best ? Best->Collider.Index : 0, *Hit, Index))
 		{
-			continue;
+			return;
 		}
 		// 最短候補として保持する非所有の値。
 		FWorldSegmentHit3D Result;
@@ -2780,10 +2909,21 @@ Toolbox::TOptional<FWorldSegmentHit3D> FPhysicsWorld3D::RaycastClosest(Toolbox::
 		}
 		Result.Position = {Coordinates[0], Coordinates[1], Coordinates[2]};
 		Best = Result;
-	}
+	};
+	PhysicsPrivate::FQueryVisitCounters Visit;
+	Toolbox::uint64 NarrowTests = 0;
+	const bool bFallback = PhysicsPrivate::VisitQueryCandidates_Internal(
+	    Impl.QuerySource_Internal(), QueryMaxAbs, Filter, ExcludedBody,
+	    [&](const PhysicsPrivate::TQueryBounds<3>& Bounds)
+	    {
+		    return PhysicsPrivate::SegmentOverlaps_Internal(Bounds, Segment);
+	    },
+	    Consider, Visit, NarrowTests);
+	PhysicsPrivate::CommitQueryCounters_Internal(Impl.bQueryDiagnostics, Impl.QueryTotals.Raycast, Visit, NarrowTests,
+	                                             bFallback);
 	return Best;
 }
-// 半径0かつ移動ありはRaycastClosestへ委譲し、それ以外は現在の登録配列を直接走査して最初の接触を返す。
+// 半径0かつ移動ありはRaycastClosestへ委譲し、それ以外は索引（または総当たり）で候補を絞って最初の接触を返す。
 Toolbox::TOptional<FWorldSweepHit3D> FPhysicsWorld3D::SweepClosest(const Toolbox::FSphere& StartShape,
                                                                    Toolbox::FVector3 EndCenter,
                                                                    Toolbox::TOptional<FBodyId3D> ExcludedBody,
@@ -2842,48 +2982,56 @@ Toolbox::TOptional<FWorldSweepHit3D> FPhysicsWorld3D::SweepColliders_Internal(
 	{
 		(void)Impl.Resolve_Internal(*ExcludedBody);
 	}
-	// 昇順走査で同じ割合の順序を固定する。割合0の候補があっても後続の対象は計算する。
-	Toolbox::TOptional<FWorldSweepHit3D> Best;
-	for (Toolbox::size_t Index = 0; Index < Impl.Colliders.Size(); ++Index)
+	// 候補を絞る、半径で広げた線分（f64）と、問い合わせの座標の規模。
+	PhysicsPrivate::TQuerySegment<3> Segment;
+	Toolbox::f64 QueryMaxAbs = 0;
+	for (Toolbox::int32 Axis = 0; Axis < 3; ++Axis)
 	{
-		// 現在のColliderスロット。
-		const auto& Record = Impl.Colliders[Index];
-		if (!Record.bAlive)
-		{
-			continue;
-		}
-		// 対象外のカテゴリと自己Bodyは、所有Bodyの参照・形状の変換へ進まない。
-		if ((Record.QueryCategory & Filter.IncludeCategories) == 0)
-		{
-			continue;
-		}
-		if (ExcludedBody && Record.Body == *ExcludedBody)
-		{
-			continue;
-		}
+		Segment.Start[Axis] = StartShape.Center.Component(Axis);
+		Segment.Delta[Axis] = Toolbox::f64(EndCenter.Component(Axis)) - StartShape.Center.Component(Axis);
+		QueryMaxAbs =
+		    Toolbox::Max(QueryMaxAbs, Toolbox::Max(Toolbox::Abs(Toolbox::f64(StartShape.Center.Component(Axis))),
+		                                           Toolbox::Abs(Toolbox::f64(EndCenter.Component(Axis)))));
+	}
+	QueryMaxAbs += StartShape.Radius;
+	Segment.Radius =
+	    Toolbox::f64(StartShape.Radius) + PhysicsPrivate::QueryInflation_Internal(Impl.QueryIndex, QueryMaxAbs);
+	for (Toolbox::int32 Axis = 0; Axis < 3; ++Axis)
+	{
+		const Toolbox::f64 A = StartShape.Center.Component(Axis);
+		const Toolbox::f64 B = EndCenter.Component(Axis);
+		Segment.Bounds.Min[Axis] = Toolbox::Min(A, B) - Segment.Radius;
+		Segment.Bounds.Max[Axis] = Toolbox::Max(A, B) + Segment.Radius;
+	}
+	// 最短候補。割合0の候補があっても後続の対象は計算する。
+	Toolbox::TOptional<FWorldSweepHit3D> Best;
+	auto Consider = [&](Toolbox::size_t Index, bool bIndexed)
+	{
 		// 既存の形状変換で現在の姿勢へ移し、許容距離0の移動判定を行う。
-		const auto& Body = Impl.Resolve_Internal(Record.Body);
-		const auto Hit = Record.Shape.Visit(
-		    [&](const auto& Local)
-		    {
-			    return Toolbox::SweepToCenter(StartShape, EndCenter, FImpl::ToWorld_Internal(Body, Local));
-		    });
+		const auto& Record = Impl.Colliders[Index];
+		const auto Hit = Impl.QueryWorldShape_Internal(Index, bIndexed)
+		                     .Visit(
+		                         [&](const auto& WorldShape)
+		                         {
+			                         return Toolbox::SweepToCenter(StartShape, EndCenter, WorldShape);
+		                         });
 		if (!Hit)
 		{
-			continue;
+			return;
 		}
 		// 開始時に接触しているColliderを除く問い合わせでは、初期接触を候補にしない。
 		if (bSkipInitialContacts && Hit->bInitialContact)
 		{
-			continue;
+			return;
 		}
 		if (!Toolbox::IsFinite(Hit->Time) || Hit->Time < 0 || Hit->Time > 1)
 		{
 			throw Toolbox::FException("Invalid 3D world sweep fraction");
 		}
-		if (Best && Best->Fraction <= Hit->Time)
+		if (!PhysicsPrivate::IsCloserHit_Internal(Best.HasValue(), Best ? Best->Fraction : 0,
+		                                          Best ? Best->Collider.Index : 0, Hit->Time, Index))
 		{
-			continue;
+			return;
 		}
 		// 接触時の中心を倍精度の凸結合から作る。
 		const Toolbox::f64 XAt = (1 - Hit->Time) * XStart + Hit->Time * XEnd;
@@ -2904,7 +3052,18 @@ Toolbox::TOptional<FWorldSweepHit3D> FPhysicsWorld3D::SweepColliders_Internal(
 		// 法線は形状計算がf64の相対値から求めた方向をそのまま使う（f32のCenterAtHitから引き直さない）。
 		Result.Normal = Hit->Normal;
 		Best = Result;
-	}
+	};
+	PhysicsPrivate::FQueryVisitCounters Visit;
+	Toolbox::uint64 NarrowTests = 0;
+	const bool bFallback = PhysicsPrivate::VisitQueryCandidates_Internal(
+	    Impl.QuerySource_Internal(), QueryMaxAbs, Filter, ExcludedBody,
+	    [&](const PhysicsPrivate::TQueryBounds<3>& Bounds)
+	    {
+		    return PhysicsPrivate::SegmentOverlaps_Internal(Bounds, Segment);
+	    },
+	    Consider, Visit, NarrowTests);
+	PhysicsPrivate::CommitQueryCounters_Internal(Impl.bQueryDiagnostics, Impl.QueryTotals.Sweep, Visit, NarrowTests,
+	                                             bFallback);
 	return Best;
 }
 // 開始時に接触しているColliderを除いて、移動中に最初に接触するColliderを返す。
@@ -2929,7 +3088,7 @@ Toolbox::TOptional<FWorldSweepHit3D> FPhysicsWorld3D::SweepClosestIgnoringInitia
 	}
 	return SweepColliders_Internal(StartShape, EndCenter, ExcludedBody, Filter, true);
 }
-// 現在の登録配列を直接走査し、Margin以下の符号付き距離のColliderを固定容量の結果へ集める。
+// 索引（または総当たり）で候補を絞り、Margin以下の符号付き距離のColliderを固定容量の結果へ集める。
 FWorldContactSet3D FPhysicsWorld3D::QueryContacts(const Toolbox::FSphere& Shape, Toolbox::f64 Margin,
                                                   Toolbox::TOptional<FBodyId3D> ExcludedBody,
                                                   const FWorldQueryFilter& Filter) const
@@ -2946,53 +3105,61 @@ FWorldContactSet3D FPhysicsWorld3D::QueryContacts(const Toolbox::FSphere& Shape,
 	{
 		(void)Impl.Resolve_Internal(*ExcludedBody);
 	}
+	// 候補を絞る範囲（中心から半径＋Marginまで）と、問い合わせの座標の規模。
+	Toolbox::f64 QueryMaxAbs = 0;
+	for (Toolbox::int32 Axis = 0; Axis < 3; ++Axis)
+	{
+		QueryMaxAbs = Toolbox::Max(QueryMaxAbs, Toolbox::Abs(Toolbox::f64(Shape.Center.Component(Axis))));
+	}
+	QueryMaxAbs += Toolbox::f64(Shape.Radius) + Margin;
+	const Toolbox::f64 Reach =
+	    Toolbox::f64(Shape.Radius) + Margin + PhysicsPrivate::QueryInflation_Internal(Impl.QueryIndex, QueryMaxAbs);
+	PhysicsPrivate::TQueryBounds<3> Area;
+	for (Toolbox::int32 Axis = 0; Axis < 3; ++Axis)
+	{
+		Area.Min[Axis] = Toolbox::f64(Shape.Center.Component(Axis)) - Reach;
+		Area.Max[Axis] = Toolbox::f64(Shape.Center.Component(Axis)) + Reach;
+	}
 	// 呼出しごとのローカルな結果。例外時は破棄され、部分結果は外へ出ない。
 	FWorldContactSet3D Result;
-	for (Toolbox::size_t Index = 0; Index < Impl.Colliders.Size(); ++Index)
+	auto Consider = [&](Toolbox::size_t Index, bool bIndexed)
 	{
-		// 現在のColliderスロット。
-		const auto& Record = Impl.Colliders[Index];
-		if (!Record.bAlive)
-		{
-			continue;
-		}
-		// 対象外のカテゴリと自己Bodyは、所有Bodyの参照・形状の変換へ進まない。
-		if ((Record.QueryCategory & Filter.IncludeCategories) == 0)
-		{
-			continue;
-		}
-		if (ExcludedBody && Record.Body == *ExcludedBody)
-		{
-			continue;
-		}
 		// 既存の形状変換で現在の姿勢へ移し、符号付き距離を求める。
-		const auto& Body = Impl.Resolve_Internal(Record.Body);
-		const auto Contact = Record.Shape.Visit(
-		    [&](const auto& Local)
-		    {
-			    return Toolbox::FindShapeContact(Shape, FImpl::ToWorld_Internal(Body, Local));
-		    });
+		const auto& Record = Impl.Colliders[Index];
+		const auto Contact = Impl.QueryWorldShape_Internal(Index, bIndexed)
+		                         .Visit(
+		                             [&](const auto& WorldShape)
+		                             {
+			                             return Toolbox::FindShapeContact(Shape, WorldShape);
+		                             });
 		if (!Toolbox::IsFinite(Contact.Separation))
 		{
 			throw Toolbox::FException("Invalid 3D world contact separation");
 		}
 		if (Contact.Separation > Margin)
 		{
-			continue;
+			return;
 		}
-		++Result.TotalFound;
-		if (Result.Count < FWorldContactSet3D::Capacity)
-		{
-			FWorldContact3D& Item = Result.Items[Result.Count];
-			Item.Collider = {Record.Body, Index, Record.Generation};
-			Item.Separation = Contact.Separation;
-			Item.Normal = Contact.Normal;
-			++Result.Count;
-		}
-	}
+		FWorldContact3D Item;
+		Item.Collider = {Record.Body, Index, Record.Generation};
+		Item.Separation = Contact.Separation;
+		Item.Normal = Contact.Normal;
+		PhysicsPrivate::InsertContactBySlot_Internal(Result, Item);
+	};
+	PhysicsPrivate::FQueryVisitCounters Visit;
+	Toolbox::uint64 NarrowTests = 0;
+	const bool bFallback = PhysicsPrivate::VisitQueryCandidates_Internal(
+	    Impl.QuerySource_Internal(), QueryMaxAbs, Filter, ExcludedBody,
+	    [&](const PhysicsPrivate::TQueryBounds<3>& Bounds)
+	    {
+		    return PhysicsPrivate::Overlaps_Internal(Bounds, Area);
+	    },
+	    Consider, Visit, NarrowTests);
+	PhysicsPrivate::CommitQueryCounters_Internal(Impl.bQueryDiagnostics, Impl.QueryTotals.Contacts, Visit, NarrowTests,
+	                                             bFallback);
 	return Result;
 }
-// 現在の登録配列を直接走査し、範囲と重なる対象Colliderの完全なIDをスロット昇順で集める。
+// 索引（または総当たり）で候補を絞り、範囲と重なる対象Colliderの完全なIDをスロット昇順で集める。
 Toolbox::TVector<FColliderId3D> FPhysicsWorld3D::OverlapAll(const Toolbox::FSphere& Area,
                                                             Toolbox::TOptional<FBodyId3D> ExcludedBody,
                                                             const FWorldQueryFilter& Filter) const
@@ -3008,37 +3175,58 @@ Toolbox::TVector<FColliderId3D> FPhysicsWorld3D::OverlapAll(const Toolbox::FSphe
 	{
 		(void)Impl.Resolve_Internal(*ExcludedBody);
 	}
+	// 候補を絞る範囲と、問い合わせの座標の規模。
+	Toolbox::f64 QueryMaxAbs = 0;
+	for (Toolbox::int32 Axis = 0; Axis < 3; ++Axis)
+	{
+		QueryMaxAbs = Toolbox::Max(QueryMaxAbs, Toolbox::Abs(Toolbox::f64(Area.Center.Component(Axis))));
+	}
+	QueryMaxAbs += Area.Radius;
+	const Toolbox::f64 Reach =
+	    Toolbox::f64(Area.Radius) + PhysicsPrivate::QueryInflation_Internal(Impl.QueryIndex, QueryMaxAbs);
+	PhysicsPrivate::TQueryBounds<3> Bounds;
+	for (Toolbox::int32 Axis = 0; Axis < 3; ++Axis)
+	{
+		Bounds.Min[Axis] = Toolbox::f64(Area.Center.Component(Axis)) - Reach;
+		Bounds.Max[Axis] = Toolbox::f64(Area.Center.Component(Axis)) + Reach;
+	}
 	// 呼出しごとのローカルな結果。一致しなければ確保しない。例外時は破棄され、部分結果は外へ出ない。
 	Toolbox::TVector<FColliderId3D> Result;
-	for (Toolbox::size_t Index = 0; Index < Impl.Colliders.Size(); ++Index)
+	auto Consider = [&](Toolbox::size_t Index, bool bIndexed)
 	{
-		// 現在のColliderスロット。
-		const auto& Record = Impl.Colliders[Index];
-		if (!Record.bAlive)
-		{
-			continue;
-		}
-		// 対象外のカテゴリと自己Bodyは、所有Bodyの参照・形状の変換へ進まない。
-		if ((Record.QueryCategory & Filter.IncludeCategories) == 0)
-		{
-			continue;
-		}
-		if (ExcludedBody && Record.Body == *ExcludedBody)
-		{
-			continue;
-		}
 		// 既存の形状変換で現在の姿勢へ移し、許容距離0で重なりを判定する。
-		const auto& Body = Impl.Resolve_Internal(Record.Body);
-		const bool bOverlaps = Record.Shape.Visit(
-		    [&](const auto& Local)
-		    {
-			    return Toolbox::IntersectsSphere(Area, FImpl::ToWorld_Internal(Body, Local), 0.0f);
-		    });
+		const auto& Record = Impl.Colliders[Index];
+		const bool bOverlaps = Impl.QueryWorldShape_Internal(Index, bIndexed)
+		                           .Visit(
+		                               [&](const auto& WorldShape)
+		                               {
+			                               return Toolbox::IntersectsSphere(Area, WorldShape, 0.0f);
+		                               });
 		if (bOverlaps)
 		{
 			Result.PushBack({Record.Body, Index, Record.Generation});
 		}
+	};
+	PhysicsPrivate::FQueryVisitCounters Visit;
+	Toolbox::uint64 NarrowTests = 0;
+	const bool bFallback = PhysicsPrivate::VisitQueryCandidates_Internal(
+	    Impl.QuerySource_Internal(), QueryMaxAbs, Filter, ExcludedBody,
+	    [&](const PhysicsPrivate::TQueryBounds<3>& Node)
+	    {
+		    return PhysicsPrivate::Overlaps_Internal(Node, Bounds);
+	    },
+	    Consider, Visit, NarrowTests);
+	if (!bFallback)
+	{
+		// 索引の訪問順をスロット昇順へ並べ替える（確保しない）。
+		PhysicsPrivate::HeapSort_Internal(Result.Data(), Result.Size(),
+		                                  [](const FColliderId3D& A, const FColliderId3D& B)
+		                                  {
+			                                  return A.Index < B.Index;
+		                                  });
 	}
+	PhysicsPrivate::CommitQueryCounters_Internal(Impl.bQueryDiagnostics, Impl.QueryTotals.Overlap, Visit, NarrowTests,
+	                                             bFallback);
 	return Result;
 }
 // Colliderの問い合わせカテゴリを変更する。問い合わせの候補だけに影響し、他の状態は変えない。
@@ -3052,6 +3240,29 @@ void FPhysicsWorld3D::SetColliderQueryCategory(FColliderId3D Id, Toolbox::uint32
 Toolbox::uint32 FPhysicsWorld3D::GetColliderQueryCategory(FColliderId3D Id) const
 {
 	return m_pImpl->ResolveQueryCollider_Internal(Id).QueryCategory;
+}
+// 問い合わせの集計を有効／無効にする。
+void FPhysicsWorld3D::SetQueryDiagnosticsEnabled(bool bEnabled) noexcept
+{
+	m_pImpl->bQueryDiagnostics = bEnabled;
+}
+// 索引の状態と累計を返す。
+FWorldQueryDiagnostics FPhysicsWorld3D::GetQueryDiagnostics() const noexcept
+{
+	FWorldQueryDiagnostics Result = m_pImpl->QueryTotals;
+	m_pImpl->QueryIndex.Describe(Result, m_pImpl->Colliders.Size(), m_pImpl->AliveColliders);
+	return Result;
+}
+// 累計を0へ戻す。
+void FPhysicsWorld3D::ResetQueryDiagnostics() noexcept
+{
+	m_pImpl->QueryTotals = {};
+	m_pImpl->QueryIndex.ResetCounters();
+}
+// 検証用に、問い合わせを総当たりの参照経路へ切り替える。
+void FPhysicsWorld3D::SetQueryIndexEnabled_Internal(bool bEnabled) noexcept
+{
+	m_pImpl->bQueryIndexEnabled = bEnabled;
 }
 // 登録配列から直接採取する。外部の観察登録一覧は使用しない。
 FPhysicsSnapshot3D FPhysicsWorld3D::CaptureSnapshot(const FPhysicsSnapshotLimits& Limits) const
@@ -3205,6 +3416,9 @@ void FPhysicsWorld3D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 		Record.Force = {};
 		Record.Torque = {};
 	}
+	// 積分・接触補正・連続衝突を含む最終姿勢へ問い合わせの索引を合わせてから、問い合わせを受け付ける状態へ戻す。
+	// 途中で失敗したStepでは合わせないが、問い合わせは拒否され、次の正常なStepの完了時に全員を合わせ直す。
+	m_pImpl->RefreshMovingColliders_Internal();
 	SnapshotStep.Complete();
 }
 } // namespace Dxf

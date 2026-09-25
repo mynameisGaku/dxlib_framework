@@ -63,6 +63,12 @@ int32 main()
 	Failed += RunGroup_Internal(Cases, Count);
 	Cases = PhysicsTest::GetCharacterMovementCases(Count);
 	Failed += RunGroup_Internal(Cases, Count);
+	Cases = PhysicsTest::GetQueryTreeCases(Count);
+	Failed += RunGroup_Internal(Cases, Count);
+	Cases = PhysicsTest::GetQueryIndexEquivalenceCases(Count);
+	Failed += RunGroup_Internal(Cases, Count);
+	Cases = PhysicsTest::GetQueryIndexContractCases(Count);
+	Failed += RunGroup_Internal(Cases, Count);
 	Cases = PhysicsTest::GetParallelCases(Count);
 	Failed += RunGroup_Internal(Cases, Count);
 	return Failed == 0 ? 0 : 1;

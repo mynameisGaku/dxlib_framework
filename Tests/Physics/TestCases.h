@@ -115,6 +115,9 @@ const FCase* GetWorldSlideCases(Toolbox::size_t& Count) noexcept;
  * @param Count 返す配列の要素数。
  */
 const FCase* GetCharacterMovementCases(Toolbox::size_t& Count) noexcept;
+const FCase* GetQueryTreeCases(Toolbox::size_t& Count) noexcept;
+const FCase* GetQueryIndexEquivalenceCases(Toolbox::size_t& Count) noexcept;
+const FCase* GetQueryIndexContractCases(Toolbox::size_t& Count) noexcept;
 } // namespace PhysicsTest
 #define PHYSICS_REQUIRE(...) PhysicsTest::Require_Internal(static_cast<bool>((__VA_ARGS__)), #__VA_ARGS__)
 #endif

@@ -13,6 +13,7 @@
 #include "Dxf/CharacterMovement2D.h"
 #include "Dxf/CharacterMovement3D.h"
 #include "../../Source/Toolbox/Private/Toolbox/Testing/AllocationFault.h"
+#include "QueryIndexAllocationFaultTests.h"
 #include <stdio.h>
 using namespace Toolbox;
 using namespace Dxf;
@@ -344,6 +345,7 @@ int main()
 		CharacterWithoutAllocation_Internal("3D", World, FSphere{{-0.9f, 0, 0}, 0.5f}, FVector3{-5, 0.3f, 0},
 		                                    FVector3{10, 0, 0}, FCharacterMoveSettings3D{}, Character, Walk);
 	}
+	GFailures += PhysicsTest::RunQueryIndexAllocationChecks();
 	printf("RESULT %s failures=%d\n", GFailures == 0 ? "PASS" : "FAIL", GFailures);
 	return GFailures == 0 ? 0 : 1;
 }

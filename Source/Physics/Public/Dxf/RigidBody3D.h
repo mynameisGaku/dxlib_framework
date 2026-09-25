@@ -4,6 +4,7 @@
 #include "Dxf/BodyType.h"
 #include "Dxf/WorldSegmentHit3D.h"
 #include "Dxf/WorldQueryFilter.h"
+#include "Dxf/WorldQueryDiagnostics.h"
 #include "Dxf/WorldContactSet3D.h"
 #include "Dxf/WorldSweepHit3D.h"
 #include "Toolbox/Optional.h"
@@ -429,7 +430,10 @@ public:
 	FPhysicsSnapshot3D CaptureSnapshot(const FPhysicsSnapshotLimits& Limits = {}) const;
 	/**
 	 * 現在の球/OBBと有限線分の最短交点を返す。非交差は空、異常はFException。
-	 * 同距離はColliderスロット昇順。通常経路は配列確保なし、削除済みを含むスロット数に対しO(n)。
+	 * 同距離はColliderスロット昇順。通常経路は配列確保なし。候補はWorldが自動で保つ索引（更新可能なAABB木）で絞る。
+	 * 詳細判定の数は線分の近くのColliderの数に比例し、全件数に比例しない（密集・大きな形状では候補が増える）。
+	 * 座標の絶対値が2^100を超える場合と、現在の姿勢で形状が無効なColliderが対象に含まれる場合は、全Colliderを
+	 * スロット昇順に調べる（結果・失敗は索引の有無で同じ）。
 	 * 全ビットのFWorldQueryFilterを指定した4引数版と同じ。QueryCategoryを0にしたColliderは対象にならない。
 	 * Step中/途中失敗後は拒否。変更・Stepと外側で直列化する。問い合わせで起床や採取を行わない。
 	 * @param Start ワールド始点。有限値を要求する。
@@ -468,7 +472,8 @@ public:
 	 * 開始時の接触・重なりはFraction=0・bInitialContact=true。開始＝終点は静止した重なりの判定。
 	 * 半径0かつ移動ありは、同じ条件のRaycastClosestと同じ結果（割合0は初期接触）。半径0かつ移動なしは点の重なり。
 	 * 同じ割合はColliderスロット昇順。カテゴリ・自己除外・Step状態・対象外は計算しない規則はRaycastClosestと同じ。
-	 * 最短0でも後続の対象形状の計算失敗は隠さない。走査は削除済みを含むスロット数nに対しO(n)、追加領域O(1)。
+	 * 最短0でも後続の対象形状の計算失敗は隠さない（索引で候補を絞っても、計算不能な対象は総当たりで調べる）。
+	 * 候補の絞り込みと総当たりの条件はRaycastClosestと同じ。追加領域O(1)。
 	 * 結果のNormalは接触対象から問い合わせ球の中心へ向く単位方向。初期接触・半径0・丸めで方向を区別できない場合は空（ヒットは成立）。
 	 * 問い合わせでStep・起床・採取・力の消去を行わない。変更・Stepと外側で直列化する。
 	 * @param StartShape 開始時の球（中心と半径）。3D物理ワールド座標。
@@ -486,7 +491,7 @@ public:
 	 * 対象はQueryCategoryとFilterが重なるColliderで、自己Bodyの全Colliderは除外する。対象外の形状は変換・計算しない。
 	 * 範囲の不正、明示した除外IDの無効/別World/旧世代、Step中/途中失敗後、対象形状の計算不能、結果の確保失敗はFException。
 	 * 失敗時に途中までの結果は返さない。問い合わせでStep・起床・採取・力の消去を行わない。
-	 * 走査は削除済みを含むスロット数nに対しO(n)、追加領域は結果件数kに対しO(k)。変更・Stepと外側で直列化する。
+	 * 候補の絞り込みと総当たりの条件はRaycastClosestと同じ。追加領域は結果件数kに対しO(k)。変更・Stepと外側で直列化する。
 	 * @param Area 3D物理ワールド座標の範囲。
 	 * @param ExcludedBody 任意の自己Body。除外しない場合は空Optional。
 	 * @param Filter 対象にする問い合わせカテゴリ。既定は全ビット。
@@ -521,6 +526,26 @@ public:
 	Toolbox::TOptional<FWorldSweepHit3D> SweepClosestIgnoringInitialContacts(
 	    const Toolbox::FSphere& StartShape, Toolbox::FVector3 EndCenter,
 	    Toolbox::TOptional<FBodyId3D> ExcludedBody = {}, const FWorldQueryFilter& Filter = {}) const;
+	/**
+	 * 問い合わせの集計（診断）を有効／無効にする。既定は無効。集計は物理の状態・問い合わせの結果に影響しない。
+	 * 有効な間はconstの問い合わせが集計を更新するため、同じWorldへの問い合わせを複数のスレッドで同時に行わない。
+	 * @param bEnabled 集計するか。
+	 */
+	void SetQueryDiagnosticsEnabled(bool bEnabled) noexcept;
+	/**
+	 * 問い合わせの索引の現在の状態（Collider数・ノード数・高さ・保持領域）と、索引の更新・問い合わせの累計を返す。
+	 */
+	FWorldQueryDiagnostics GetQueryDiagnostics() const noexcept;
+	/**
+	 * 索引の更新と問い合わせの累計を0へ戻す（索引の状態は変えない）。
+	 */
+	void ResetQueryDiagnostics() noexcept;
+	/**
+	 * 検証用。falseにすると、問い合わせを索引を使わない総当たり（全Colliderをスロット昇順に調べる参照経路）で処理する。
+	 * 索引の更新は続けるため、trueへ戻せばそのまま索引を使う。結果・失敗の契約はどちらでも同じ。
+	 * @param bEnabled 索引を使うか（既定true）。
+	 */
+	void SetQueryIndexEnabled_Internal(bool bEnabled) noexcept;
 
 private:
 	/**

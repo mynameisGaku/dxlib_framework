@@ -20,6 +20,10 @@ function(dxf_add_physics_tests Target CoreTarget)
         "${_root}/Tests/Physics/WorldSweepNormalTests.cpp"
         "${_root}/Tests/Physics/WorldSlideTests.cpp"
         "${_root}/Tests/Physics/CharacterMovementTests.cpp"
+        "${_root}/Tests/Physics/QueryTreeTests.cpp"
+        "${_root}/Tests/Physics/QueryIndexEquivalenceTests.cpp"
+        "${_root}/Tests/Physics/QueryIndexContractTests.cpp"
+        "${_root}/Tests/Physics/QueryIndexTestSupport.h"
         "${_root}/Tests/Physics/TestCases.h")
     target_include_directories(${Target} PRIVATE "${_root}/Tests/Physics" "${_root}/Source/Physics/Private")
     target_include_directories(${Target} PRIVATE "${_root}/Tests/Physics" "${_root}/Source/Physics/Private")
@@ -37,6 +41,7 @@ function(dxf_add_physics_tests Target CoreTarget)
     # 範囲問い合わせの結果確保の故障注入。確保置換はこの隔離した実行ファイルだけにリンクする。
     add_executable(${Target}_overlap_fault
         "${_root}/Tests/Physics/OverlapAllocationFaultTests.cpp"
+        "${_root}/Tests/Physics/QueryIndexAllocationFaultTests.cpp"
         "${_root}/Source/Toolbox/Private/Toolbox/Testing/AllocationFault.cpp")
     target_compile_definitions(${Target}_overlap_fault PRIVATE DXF_ALLOCATION_FAULT_TEST_EXECUTABLE=1)
     target_link_libraries(${Target}_overlap_fault PRIVATE ${CoreTarget})

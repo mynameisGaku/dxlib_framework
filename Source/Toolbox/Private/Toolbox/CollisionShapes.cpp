@@ -477,6 +477,11 @@ bool ConvexIntersects(const FCollisionShape& A, const FCollisionShape& B, f32 To
 	return Length(Closest) <= Tolerance;
 }
 } // namespace
+bool IsValid(const FOBB& Box) noexcept
+{
+	return Box.Center.IsValid() && Box.HalfExtents.IsValid() && Box.HalfExtents.X >= 0 && Box.HalfExtents.Y >= 0 &&
+	       Box.HalfExtents.Z >= 0 && ValidAxes(Box.Axes);
+}
 bool IsValid(const FCollisionShape& Shape) noexcept
 {
 	return Visit(
@@ -493,8 +498,7 @@ bool IsValid(const FCollisionShape& Shape) noexcept
 		    }
 		    else if constexpr (IsSame<T, FOBB>)
 		    {
-			    return Value.Center.IsValid() && Value.HalfExtents.IsValid() && Value.HalfExtents.X >= 0 &&
-			           Value.HalfExtents.Y >= 0 && Value.HalfExtents.Z >= 0 && ValidAxes(Value.Axes);
+			    return IsValid(Value);
 		    }
 		    else if constexpr (IsSame<T, FCube>)
 		    {

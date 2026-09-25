@@ -169,6 +169,12 @@ using FCollisionShape = TVariant<FAABB, FOBB, FSphere, FCube, FConvex, FMesh>;
  */
 bool IsValid(const FCollisionShape& Shape) noexcept;
 /**
+ * OBBが有限な中心・非負の半幅・有効な軸（単位長と互いの直交を1e-4以内で満たす）を持つかを返す。
+ * IsValid(FCollisionShape)のOBBと同じ条件で、形状を包まずに判定する。
+ * @param Box 調べるOBB。
+ */
+bool IsValid(const FOBB& Box) noexcept;
+/**
  * 形状全体を囲む境界箱を求める。不正な形状は例外で通知する。
  * @param Shape 対象の衝突形状。
  */
