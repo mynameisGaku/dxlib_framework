@@ -1,6 +1,32 @@
 // SPDX-License-Identifier: NOASSERTION
 # Physics 進捗記録
 
+## ゲームプレイ基盤の進捗表
+
+恒久の表です。機能を追加・変更したら、この表の行を更新してください（下の「最新状態」以降は段階A〜Eの当時の記録で、更新しません）。
+「済」は実装・試験・使い方の3点がそろったものだけです。証拠の試験名は `Tests/Physics/CharacterMovementTests.cpp`（PhysicsContinuation群）、
+`Tests/CharacterMovementComponentTests.cpp`（Framework群）、`Tests/GameplaySampleSmoke/Main.cpp`（NativeGameplayDeviceSmoke群）、
+`Tools/ValidatePackage.py`（配布の利用者）です。
+
+| 機能 | 2D | 3D | 使い方 | 証拠 | 残り |
+|---|---|---|---|---|---|
+| 形状の接触（符号付き距離と法線） | 済 | 済 | `FindShapeContact`（Toolbox）、`QueryContacts`（World、最大32件と総数） | shape contacts analytic、world contacts and initial-contact sweep | 同心・同距離の面は法線なし（仕様） |
+| 初期接触を無視するスイープ | 済 | 済 | `SweepClosestIgnoringInitialContacts` | world contacts and initial-contact sweep | なし（SweepClosestの契約は不変） |
+| A. 初期重なりの解消 | 済 | 済 | `ResolveCharacterOverlap`、StepCharacter・Componentでは自動 | character overlap recovery、recovery determinism validation、実Appの床へのめり込みからの復帰（2D） | 解消不能（Ambiguous・TooDeep・Blocked・上限）は移動せず理由を返すだけ |
+| B. 反復滑り（平面・角・稜線・上限） | 済 | 済 | `MoveAndSlide` | character move and slide、3D character crease and three planes、実Appの二つの壁の角での停止（3D） | 接触の保持は8件まで（超えるとContactLimit） |
+| C. 接地・坂・吸い付き | 済 | 済 | `ProbeCharacterGround`、StepCharacter | character ground、slopes steps cliff、実Appの30度の坂を上り60度の急坂の手前で停止（2D） | 動く床の上の接地・追従は未対応 |
+| D. 段差上り・重力・ジャンプ・着地 | 済 | 済 | `StepCharacter`（上→前→下） | walk jump ceiling、slopes steps cliff、実Appの段差上り（2D／3D）とジャンプ・着地（2D） | 低い天井の下の段差は上らない（仕様） |
+| E. 移動Component（固定更新・入力・補間・寿命・Body一つ・剛体併用の拒否・登録順） | 済 | 済 | `DCharacterMovement2DComponent` / `3DComponent` | Framework群の14ケース（2D／3D各7） | 剛体との押し合い、動く床、カプセル形状は未対応 |
+| F. 操作できるサンプルと実Appの固定入力確認 | 済 | 済 | 開発用ソリューションの `GameplaySample`（[Tab]で2D／3D切替） | NativeGameplayDeviceSmoke（リセット・一時停止・再開・再入場・終了、画素照合、1画面／2画面で固定更新の回数が同じ） | 実機の目視操作は手動（自動確認は固定入力のみ） |
+| G. 配布の利用者 | 済 | 済 | `dxf::physics`だけ／`dxf::framework` | ValidatePackage（PhysicsOnlyでMoveAndSlide・ProbeCharacterGround・StepCharacter、ConsumerでComponentの生成・更新・破棄） | Native ON・Releaseの配布検証は未実施 |
+| 性能測定 | 測定済 | 測定済 | `dxf_character_benchmark`（CTest外） | [検証記録](../Development/Gameplay-2026-09-25.md#性能測定) | BroadPhaseがなく問い合わせはCollider数に比例。3Dの1問い合わせあたりの費用が2Dより大きい |
+
+今後の大きな単位（未着手）: BroadPhase（問い合わせの候補絞り込み）、動く床への追従、キャラクターと剛体の押し合い、カプセル形状、
+接触イベント（Begin／Stay／End）とTrigger、Island管理、Joint、Mesh Collider、経路探索、アニメーションとの接続。
+
+使い方は[キャラクター移動](CharacterMovement.md)、検証は[ゲームプレイ基盤の検証記録](../Development/Gameplay-2026-09-25.md)を参照してください。
+
+
 ## 最新状態
 
 - 作業ブランチ: `physics/continuation-89ec1f0`

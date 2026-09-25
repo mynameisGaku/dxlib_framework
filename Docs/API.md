@@ -20,6 +20,8 @@ const auto Seen = World2D.RaycastClosest(Eye, Target, SelfBody, Sight);
 
 円／球を終点まで動かしたときに最初に接触するColliderと、取得できた場合の接触法線は[スイープ問い合わせ（SweepClosest）](Physics/WorldSweepQuery.md)を参照してください。接触の手前で止めて1回だけ滑らせる移動候補は[ComputeSlideMove](Physics/WorldSlideMove.md)です。
 
+初期重なりの解消・反復滑り・接地・坂・段差・重力・ジャンプを行うキャラクター移動は[キャラクター移動（2D円・3D球）](Physics/CharacterMovement.md)です。Scene内では `DCharacterMovement2DComponent` / `DCharacterMovement3DComponent` を追加して入力を渡すだけで使えます。Physicsだけで使う場合は `StepCharacter` です。機能ごとの2D／3Dの状態は[進捗表](Physics/Progress.md#ゲームプレイ基盤の進捗表)を参照してください。
+
 ```cpp
 // 自分を除いて、半径8の範囲に接するキャラクターのCollider IDをすべて取得する（スロット昇順、値所有）。
 const auto Candidates = World2D.OverlapAll(Toolbox::FCircle2D{Eye, 8.0f}, SelfBody, Characters);
