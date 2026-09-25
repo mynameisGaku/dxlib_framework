@@ -135,6 +135,27 @@ public:
 	 * @param Handle ハンドル。
 	 */
 	virtual void DeleteFont(Toolbox::int32 Handle) noexcept = 0;
+	/**
+	 * 一行の文字列の描画幅（画素）を計測する。描画と同じフォント・同じ文字コードで測る。
+	 * 計測に対応しないBackendは失敗を返す（既定）。
+	 * @param Handle フォントのハンドル。
+	 * @param Text UTF-8の文字列（改行を含まない）。
+	 */
+	virtual TResult<Toolbox::int32> MeasureTextWidth(Toolbox::int32 Handle, const Toolbox::FString& Text)
+	{
+		(void)Handle;
+		(void)Text;
+		return TResult<Toolbox::int32>::Failure(EErrorCode::BackendFailure, "Text measurement is not supported");
+	}
+	/**
+	 * 複数行を並べるときの行の送り（画素）。計測に対応しないBackendは失敗を返す（既定）。
+	 * @param Handle フォントのハンドル。
+	 */
+	virtual TResult<Toolbox::int32> GetFontLineHeight(Toolbox::int32 Handle)
+	{
+		(void)Handle;
+		return TResult<Toolbox::int32>::Failure(EErrorCode::BackendFailure, "Text measurement is not supported");
+	}
 };
 /**
  * 音声のネイティブ処理を管理する型。

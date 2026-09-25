@@ -110,7 +110,8 @@ void DUiLabel::OnArrange(FUiLayoutContext& Context, const FUiRect& Content)
 void DUiLabel::OnDraw(FUiDrawContext& Context) const
 {
 	DUiElement::OnDraw(Context);
-	if (m_Layout.Lines.IsEmpty() || !m_Font.IsValid())
+	// フォントの有効性は描画の実行側で確かめる（無効なフォントの文字は描かない）。
+	if (m_Layout.Lines.IsEmpty())
 	{
 		return;
 	}

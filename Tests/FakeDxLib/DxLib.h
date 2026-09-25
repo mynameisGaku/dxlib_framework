@@ -396,6 +396,20 @@ FORCEINLINE Toolbox::int32 DeleteFontToHandle(Toolbox::int32)
 	return 0;
 }
 /**
+ * 文字列の描画幅の計測APIを再現する（1バイトを8画素とする）。
+ */
+FORCEINLINE Toolbox::int32 GetDrawStringWidthToHandle(const char*, Toolbox::int32 Length, Toolbox::int32, Toolbox::int32)
+{
+	return Length * 8;
+}
+/**
+ * フォントの行の送りの取得APIを再現する。
+ */
+FORCEINLINE Toolbox::int32 GetFontLineSpaceToHandle(Toolbox::int32)
+{
+	return 16;
+}
+/**
  * 描画先設定の引数を記録する。
  */
 FORCEINLINE Toolbox::int32 SetDrawScreen(Toolbox::int32 Handle)

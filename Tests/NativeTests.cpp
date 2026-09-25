@@ -116,6 +116,29 @@ TEST("Native render applies per-command color and opacity without leaking sprite
 	REQUIRE(Renderer.EndFrame());
 	REQUIRE(DxLib::Trace.Brightness[0] == 255 && DxLib::Trace.Text == "日本語");
 }
+TEST("Native text measurement uses the drawing font handle and rejects multi-line or invalid input")
+{
+	DxLib::Trace = {};
+	// 複数の機能を提供する検証用バックエンド群。
+	FDxLibBackends Backends;
+	// 各機能の依存先を束ねた参照。
+	auto Services = Backends.GetServices();
+	// 検証に使用する資源管理。
+	FAssetService Assets(Services.Textures, Services.Sounds, Services.Fonts);
+	// 計測に使うフォント。
+	auto Font = Assets.LoadFont().Value();
+	// 代替のDxLibは1バイト8画素、行の送り16画素を返す（UTF-8のバイト数を渡すことの確認）。
+	auto Width = Assets.MeasureTextWidth(Font, "日本語");
+	REQUIRE(Width && Width.Value() == 9 * 8);
+	auto Height = Assets.GetFontLineHeight(Font);
+	REQUIRE(Height && Height.Value() == 16);
+	REQUIRE(Assets.MeasureTextWidth(Font, "").Value() == 0);
+	REQUIRE(!Assets.MeasureTextWidth(Font, "a\nb"));
+	REQUIRE(!Assets.MeasureTextWidth(Font, "\xFF"));
+	REQUIRE(!Assets.MeasureTextWidth(FFont{}, "a"));
+	Assets.Shutdown();
+	REQUIRE(!Assets.MeasureTextWidth(Font, "a"));
+}
 TEST("Native sprite geometry supports pivot scale and both flip directions")
 {
 	DxLib::Trace = {};

@@ -9,7 +9,7 @@ namespace
 DUiElement* HitElement_Internal(DUiElement& Element, FVector2 Position)
 {
 	if (!FUiRootState::IsLive(&Element) || Element.GetVisibility() != EUiVisibility::Visible ||
-	    Element.GetHitTest() == EUiHitTest::None)
+	    Element.GetHitTest() == EUiHitTest::None || Element.HasLayoutError())
 	{
 		return nullptr;
 	}

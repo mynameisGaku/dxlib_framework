@@ -127,6 +127,17 @@ public:
 	 */
 	TResult<FFont> LoadFont(const FFontOptions& Options = {});
 	/**
+	 * 一行の文字列の描画幅（画素）を、描画と同じフォントで計測する。
+	 * @param Font 描画に使うフォント。
+	 * @param Text UTF-8の文字列（改行を含まない）。
+	 */
+	TResult<Toolbox::int32> MeasureTextWidth(const FFont& Font, const Toolbox::FString& Text) const;
+	/**
+	 * 複数行を並べるときの行の送り（画素）。
+	 * @param Font 描画に使うフォント。
+	 */
+	TResult<Toolbox::int32> GetFontLineHeight(const FFont& Font) const;
+	/**
 	 * 描画先として使うテクスチャを生成する。
 	 * @param Width 幅。
 	 * @param Height 高さ。

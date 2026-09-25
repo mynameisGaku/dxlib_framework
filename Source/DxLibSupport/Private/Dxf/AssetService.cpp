@@ -207,6 +207,16 @@ TResult<FFont> FAssetService::LoadFont(const FFontOptions& Options)
 	}
 	return Result;
 }
+// 一行の文字列の描画幅を計測する。
+TResult<Toolbox::int32> FAssetService::MeasureTextWidth(const FFont& Font, const Toolbox::FString& Text) const
+{
+	return m_FontLoader.MeasureTextWidth(Font, Text);
+}
+// 行の送り。
+TResult<Toolbox::int32> FAssetService::GetFontLineHeight(const FFont& Font) const
+{
+	return m_FontLoader.GetLineHeight(Font);
+}
 // 描画先として使うテクスチャを生成する。
 // @param Width 幅。
 // @param Height 高さ。

@@ -296,6 +296,13 @@ public:
 		return m_ClipRect;
 	}
 	/**
+	 * 最後の寸法の計算で不正な値（NaN・無限大・負・下限>上限・計算の例外）があったか。描画・入力の対象外。
+	 */
+	FORCEINLINE bool HasLayoutError() const noexcept
+	{
+		return m_bLayoutInvalid;
+	}
+	/**
 	 * 子を自身の矩形でクリップするか。
 	 */
 	FORCEINLINE bool IsClippingChildren() const noexcept

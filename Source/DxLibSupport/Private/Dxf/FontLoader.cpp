@@ -3,6 +3,57 @@
 
 namespace Dxf
 {
+// 一行の文字列の描画幅を計測する。
+TResult<Toolbox::int32> FFontLoader::MeasureTextWidth(const FFont& Font, const Toolbox::FString& Text) const
+{
+	if (m_pRegistry->IsShutdown())
+	{
+		return TResult<Toolbox::int32>::Failure(EErrorCode::InvalidState, "Assets stopped");
+	}
+	if (!Font.IsValid())
+	{
+		return TResult<Toolbox::int32>::Failure(EErrorCode::InvalidState, "Invalid font");
+	}
+	if (!IsValidUtf8(Text))
+	{
+		return TResult<Toolbox::int32>::Failure(EErrorCode::InvalidArgument, "Text is not valid UTF-8");
+	}
+	for (Toolbox::size_t Index = 0; Index < Text.Size(); ++Index)
+	{
+		if (Text[Index] == '\n' || Text[Index] == '\r')
+		{
+			return TResult<Toolbox::int32>::Failure(EErrorCode::InvalidArgument, "Measured text must be a single line");
+		}
+	}
+	if (Text.IsEmpty())
+	{
+		return TResult<Toolbox::int32>::Success(0);
+	}
+	auto Width = m_pBackend->MeasureTextWidth(Font.GetNativeHandle_Internal(), Text);
+	if (Width && Width.Value() < 0)
+	{
+		return TResult<Toolbox::int32>::Failure(EErrorCode::BackendFailure, "Negative text width");
+	}
+	return Width;
+}
+// 行の送り。
+TResult<Toolbox::int32> FFontLoader::GetLineHeight(const FFont& Font) const
+{
+	if (m_pRegistry->IsShutdown())
+	{
+		return TResult<Toolbox::int32>::Failure(EErrorCode::InvalidState, "Assets stopped");
+	}
+	if (!Font.IsValid())
+	{
+		return TResult<Toolbox::int32>::Failure(EErrorCode::InvalidState, "Invalid font");
+	}
+	auto Height = m_pBackend->GetFontLineHeight(Font.GetNativeHandle_Internal());
+	if (Height && Height.Value() < 0)
+	{
+		return TResult<Toolbox::int32>::Failure(EErrorCode::BackendFailure, "Negative line height");
+	}
+	return Height;
+}
 // 対象のリソースを読み込む。
 // @param Options 処理に適用する設定。
 TResult<FFont> FFontLoader::Load(const FFontOptions& Options)

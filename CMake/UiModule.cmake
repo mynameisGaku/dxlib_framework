@@ -15,7 +15,8 @@ set(DXF_UI_SOURCES
     Source/Ui/Private/Dxf/UiDrawBuilder.cpp
     Source/Ui/Private/Dxf/UiElement.cpp
     Source/Ui/Private/Dxf/UiRoot.cpp
-    Source/Ui/Private/Dxf/UiLabel.cpp)
+    Source/Ui/Private/Dxf/UiLabel.cpp
+    Source/Ui/Private/Dxf/UiAssetTextService.cpp)
 add_library(dxf_ui STATIC ${DXF_UI_SOURCES})
 add_library(dxf::ui ALIAS dxf_ui)
 set_target_properties(dxf_ui PROPERTIES EXPORT_NAME ui DEBUG_POSTFIX d)
@@ -27,7 +28,9 @@ list(APPEND DXF_EXPORT_TARGETS dxf_ui)
 
 if(DXF_BUILD_TESTS)
     add_executable(dxf_ui_tests Tests/TestMain.cpp
-        Tests/Ui/UiLifetimeTests.cpp)
+        Tests/Ui/UiLifetimeTests.cpp
+        Tests/Ui/UiLayoutTests.cpp
+        Tests/Ui/UiTextStyleTests.cpp)
     target_link_libraries(dxf_ui_tests PRIVATE dxf::ui)
     target_include_directories(dxf_ui_tests PRIVATE Tests)
     dxf_ide_headers(dxf_ui_tests Tests/Ui)
