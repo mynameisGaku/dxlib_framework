@@ -10,6 +10,8 @@ namespace
 thread_local Toolbox::int64 Countdown = -1;
 thread_local bool bInjected = false;
 Toolbox::FAtomicCounter Outstanding;
+// 確保の累計件数（解放しても減らない）。
+Toolbox::FAtomicCounter Total;
 // 一回だけ失敗し、エラー結果の構築は通常の確保に戻す。
 void BeforeAllocate_Internal()
 {
@@ -33,6 +35,7 @@ void* Allocate_Internal(Toolbox::size_t Size)
 		throw Toolbox::FException("test allocator exhausted");
 	}
 	Outstanding.FetchAdd(1);
+	Total.FetchAdd(1);
 	return Memory;
 }
 void* AllocateAligned_Internal(Toolbox::size_t Size, Toolbox::size_t Alignment)
@@ -54,6 +57,7 @@ void* AllocateAligned_Internal(Toolbox::size_t Size, Toolbox::size_t Alignment)
 		throw Toolbox::FException("test aligned allocator exhausted");
 	}
 	Outstanding.FetchAdd(1);
+	Total.FetchAdd(1);
 	return Memory;
 }
 void Free_Internal(void* Memory) noexcept
@@ -139,5 +143,9 @@ bool WasAllocationFailureInjected() noexcept
 uint64 GetOutstandingTestAllocations() noexcept
 {
 	return Outstanding.Load();
+}
+uint64 GetTotalTestAllocations() noexcept
+{
+	return Total.Load();
 }
 }

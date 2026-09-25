@@ -218,7 +218,17 @@ if(DXF_BUILD_TESTS)
     dxf_add_physics_tests(dxf_physics_tests dxf::physics)
     dxf_warnings(dxf_physics_tests)
     # キャラクター移動の負荷測定（Releaseで手動実行する。CTestには登録しない）。確保の確認のため確保置換を隔離してリンクする。
-    add_executable(dxf_character_benchmark Tools/CharacterBenchmark/Main.cpp Source/Toolbox/Private/Toolbox/Testing/AllocationFault.cpp)
+    add_executable(dxf_character_benchmark
+        Tools/CharacterBenchmark/Main.cpp
+        Tools/CharacterBenchmark/BenchmarkSupport.cpp
+        Tools/CharacterBenchmark/ScenarioRunner.cpp
+        Tools/CharacterBenchmark/LegacyScenarios.cpp
+        Tools/CharacterBenchmark/ScalingScenarios.cpp
+        Tools/CharacterBenchmark/QueryCosts.cpp
+        Tools/CharacterBenchmark/KernelCosts.cpp
+        Tools/CharacterBenchmark/Report.cpp
+        Source/Toolbox/Private/Toolbox/Testing/AllocationFault.cpp)
+    dxf_ide_headers(dxf_character_benchmark Tools/CharacterBenchmark)
     target_compile_definitions(dxf_character_benchmark PRIVATE DXF_ALLOCATION_FAULT_TEST_EXECUTABLE=1)
     target_link_libraries(dxf_character_benchmark PRIVATE dxf::physics)
     dxf_warnings(dxf_character_benchmark)

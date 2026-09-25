@@ -20,5 +20,9 @@ bool WasAllocationFailureInjected() noexcept;
  * この実行ファイルで追跡する未解放の確保件数。
  */
 uint64 GetOutstandingTestAllocations() noexcept;
+/**
+ * この実行ファイルで追跡した確保の累計件数（解放しても減らない。計測の区間の差分に使う）。
+ */
+uint64 GetTotalTestAllocations() noexcept;
 }
 #endif
