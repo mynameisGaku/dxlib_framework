@@ -65,6 +65,7 @@ try {
         '-DCMAKE_CONFIGURATION_TYPES=Debug;Release', ('-DDXF_BUILD_TESTS=' + $Tests),
         ('-DDXF_BUILD_NATIVE=' + $Native), ('-DDXF_BUILD_EXAMPLE=' + $Native), ('-DDXF_BUILD_STARTER=' + $Native),
         ('-DDXF_BUILD_MODEL_VIEWER=' + $(if ($Development -and -not $Portable) { 'ON' } else { 'OFF' })),
+        ('-DDXF_BUILD_GAMEPLAY_SAMPLE=' + $(if ($Development -and -not $Portable) { 'ON' } else { 'OFF' })),
         ('-DDXF_BUILD_NATIVE_SMOKE=' + $(if ($Development -and -not $Portable) { 'ON' } else { 'OFF' })), '-DDXF_RUN_DEVICE_TESTS=OFF')
     if (-not $Portable) { $Arguments += '-DDXLIB_ROOT=' + $SdkRoot }
     & $CMake @Arguments

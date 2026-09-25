@@ -40,10 +40,105 @@ def main() -> int:
         consumer = work / 'Consumer'
         consumer.mkdir()
         (consumer / 'Main.cpp').write_text('''#include "Dxf/GameScene.h"
+#include "Dxf/AssetService.h"
+#include "Dxf/CharacterMovementComponent2D.h"
+#include "Dxf/CharacterMovementComponent3D.h"
+#include "Dxf/InputStateTracker.h"
 #include "Dxf/PhysicsDebugPicking3D.h"
+#include "Dxf/PhysicsScene2D.h"
+#include "Dxf/PhysicsScene3D.h"
 #include "Dxf/RenderQueue2D.h"
+#include "Dxf/RigidBodyComponent2D.h"
+#include "Dxf/RigidBodyComponent3D.h"
+// 資源を読まない利用者のための空の実装（呼ばれたら失敗を返す）。
+class FNoAssets final : public Dxf::ITextureBackend, public Dxf::ISoundBackend, public Dxf::IFontBackend
+{
+public:
+    Dxf::TResult<Dxf::FTextureAllocation> LoadTexture(const Toolbox::FString&, const Dxf::FTextureLoadOptions&) override { return Dxf::TResult<Dxf::FTextureAllocation>::Failure(Dxf::EErrorCode::NotFound, "none"); }
+    Dxf::TResult<Dxf::FTextureAllocation> LoadTextureMemory(const void*, Toolbox::size_t, const Dxf::FTextureLoadOptions&) override { return Dxf::TResult<Dxf::FTextureAllocation>::Failure(Dxf::EErrorCode::NotFound, "none"); }
+    Dxf::TResult<Dxf::FTextureAllocation> CreateRenderTarget(Toolbox::int32, Toolbox::int32, bool) override { return Dxf::TResult<Dxf::FTextureAllocation>::Failure(Dxf::EErrorCode::NotFound, "none"); }
+    void DeleteTexture(Toolbox::int32) noexcept override {}
+    Dxf::TResult<Toolbox::int32> CreateFont(const Dxf::FFontOptions&) override { return Dxf::TResult<Toolbox::int32>::Failure(Dxf::EErrorCode::NotFound, "none"); }
+    void DeleteFont(Toolbox::int32) noexcept override {}
+    Dxf::TResult<Toolbox::int32> LoadSound(const Toolbox::FString&, const Dxf::FSoundLoadOptions&) override { return Dxf::TResult<Toolbox::int32>::Failure(Dxf::EErrorCode::NotFound, "none"); }
+    Dxf::TResult<Toolbox::int32> LoadSoundMemory(const void*, Toolbox::size_t, const Dxf::FSoundLoadOptions&) override { return Dxf::TResult<Toolbox::int32>::Failure(Dxf::EErrorCode::NotFound, "none"); }
+    Dxf::TResult<Toolbox::int32> DuplicateSound(Toolbox::int32) override { return Dxf::TResult<Toolbox::int32>::Failure(Dxf::EErrorCode::NotFound, "none"); }
+    Dxf::TResult<void> StartSound(Toolbox::int32, bool) override { return Dxf::TResult<void>::Failure(Dxf::EErrorCode::NotFound, "none"); }
+    void StopSound(Toolbox::int32) noexcept override {}
+    void DeleteSound(Toolbox::int32) noexcept override {}
+    Dxf::TResult<void> SetSoundVolume(Toolbox::int32, Toolbox::f32) override { return Dxf::TResult<void>::Failure(Dxf::EErrorCode::NotFound, "none"); }
+    Dxf::TResult<bool> IsSoundPlaying(Toolbox::int32) override { return Dxf::TResult<bool>::Failure(Dxf::EErrorCode::NotFound, "none"); }
+};
+// 上面y=0の床。
+template <typename TRigid, typename TCollider, typename TBody, typename TDescription> class DFloor final : public Dxf::DGameObject
+{
+public:
+    explicit DFloor(TDescription Shape) : Shape(Shape) {}
+    TDescription Shape;
+protected:
+    Dxf::TResult<void> OnInitialize(const Dxf::FInitContext&) override
+    {
+        TBody Body;
+        Body.Type = Dxf::EBodyType::Static;
+        if (!AddComponent<TRigid>(Body) || !AddComponent<TCollider>(Shape)) { return Dxf::TResult<void>::Failure(Dxf::EErrorCode::InvalidState, "floor"); }
+        return {};
+    }
+};
+// 移動Componentだけを持つキャラクター。
+template <typename TComponent, typename TDescription> class DWalker final : public Dxf::DGameObject
+{
+public:
+    using FDescriptionType = TDescription;
+    explicit DWalker(TDescription Description) : Description(Description) {}
+    TDescription Description;
+protected:
+    Dxf::TResult<void> OnInitialize(const Dxf::FInitContext&) override
+    {
+        if (!AddComponent<TComponent>(Description)) { return Dxf::TResult<void>::Failure(Dxf::EErrorCode::InvalidState, "walker"); }
+        return {};
+    }
+};
+// 生成・60回の固定更新で右へ歩いて接地を保つ・破棄。
+template <typename TScene, typename TComponent, typename TFloor, typename TWalker, typename TCenter, typename TFloorShape>
+int Walk(FNoAssets& Backend, TCenter Start, TCenter Move, TFloorShape Floor, int Code)
+{
+    Dxf::FAssetService Assets(Backend, Backend, Backend);
+    Dxf::FInputStateTracker Tracker;
+    TScene Scene;
+    typename TWalker::FDescriptionType Description;
+    Description.Center = Start;
+    auto Walker = Scene.template Spawn<TWalker>(Description);
+    if (!Walker || !Scene.template Spawn<TFloor>(Floor) || !Scene.Initialize_Internal({Assets})) { return Code; }
+    auto Component = Walker.Value().Get()->template FindComponent<TComponent>();
+    if (!Component.Get()) { return Code + 1; }
+    Component.Get()->SetMoveInput(Move);
+    Dxf::FFrameTime Time;
+    Time.DeltaSeconds = 1.0 / 60.0;
+    Time.UnscaledDeltaSeconds = 1.0 / 60.0;
+    for (int Frame = 0; Frame < 60; ++Frame)
+    {
+        if (!Scene.Tick_Internal({Tracker.GetSnapshot(), Time})) { return Code + 2; }
+    }
+    if (Component.Get()->GetStepCount() != 60 || !Component.Get()->IsGrounded() || !(Component.Get()->GetCenter().X > 4.7f) || !Component.Get()->GetBodyId()) { return Code + 3; }
+    // 破棄を要求すると、ハンドルからは参照できなくなり、以降の更新も失敗しない。
+    Walker.Value().Get()->Destroy();
+    if (Component || !Scene.Tick_Internal({Tracker.GetSnapshot(), Time})) { return Code + 4; }
+    Scene.Shutdown_Internal();
+    return 0;
+}
 int main()
 {
+    FNoAssets Backend;
+    const int Walk2D = Walk<Dxf::DPhysicsScene2D, Dxf::DCharacterMovement2DComponent,
+        DFloor<Dxf::DRigidBody2DComponent, Dxf::DCollider2DComponent, Dxf::FBodyDescription2D, Dxf::FColliderDescription2D>,
+        DWalker<Dxf::DCharacterMovement2DComponent, Dxf::FCharacterMovementDescription2D>>(
+        Backend, Toolbox::FVector2{0,0.52f}, Toolbox::FVector2{1,0}, Dxf::FColliderDescription2D{Toolbox::FOrientedBox2D{{0,-1},{50,1},0}}, 201);
+    if (Walk2D != 0) { return Walk2D; }
+    const int Walk3D = Walk<Dxf::DPhysicsScene3D, Dxf::DCharacterMovement3DComponent,
+        DFloor<Dxf::DRigidBody3DComponent, Dxf::DCollider3DComponent, Dxf::FBodyDescription3D, Dxf::FColliderDescription3D>,
+        DWalker<Dxf::DCharacterMovement3DComponent, Dxf::FCharacterMovementDescription3D>>(
+        Backend, Toolbox::FVector3{0,0.52f,0}, Toolbox::FVector3{1,0,0}, Dxf::FColliderDescription3D{Toolbox::FOBB{{0,-1,0},{50,1,50}}}, 211);
+    if (Walk3D != 0) { return Walk3D; }
     Dxf::FPhysicsWorld3D World;
     const auto Body=World.CreateBody({});
     Dxf::FColliderDescription3D Collider;
@@ -80,6 +175,8 @@ int main()
 #include "Dxf/RigidBody3D.h"
 #include "Dxf/WorldSlideMove2D.h"
 #include "Dxf/WorldSlideMove3D.h"
+#include "Dxf/CharacterMovement2D.h"
+#include "Dxf/CharacterMovement3D.h"
 // 円スイープ: 中心線の射線は外れ、半径のある移動は当たる。除外・カテゴリ・静止・削除後の失効。
 // 接触法線: 壁の左下の角(4.5,0.4)から中心(4.2,0)へ向く(-0.6,-0.8)。初期接触・半径0では空。
 static int Sweep2D()
@@ -204,6 +301,58 @@ static int Slide3D()
     const auto Touching = Dxf::ComputeSlideMove(World, Toolbox::FSphere{{4.8f,0,0},0.5f}, {10,4,0}, 0.01);
     if (Touching.Stop != Dxf::EWorldSlideStop::InitialContact || Touching.EndCenter.X != 4.8f) { return 134; }
     return 0;
+}
+// キャラクター移動: 上面y=0の床とx∈[5,7]の壁。床の上で接地、壁の手前で止まる（接触余裕0.02）。
+// 240回の固定更新で右へ歩いて壁で止まり、最初の固定更新だけ跳ぶ。3Dは同じ配置をZ方向に厚みを持たせて置く。
+template <typename TWorld, typename TSettings, typename TState, typename TInput, typename TVector, typename TShape>
+int MoveCharacter(TWorld& World, TVector Start, TVector Right, TShape Probe, int Code)
+{
+    const TSettings Settings;
+    const auto Ground = Dxf::ProbeCharacterGround(World, Start, Settings);
+    if (Ground.State != Dxf::ECharacterGroundState::Walkable || !Ground.Collider) { return Code; }
+    const auto Move = Dxf::MoveAndSlide(World, Start, Right * 10.0f, Settings);
+    if (Move.Stop == Dxf::ECharacterMoveStop::Completed || Toolbox::Abs(Move.EndCenter.X - 4.48f) > 1e-4f || Toolbox::Abs(Move.EndCenter.Y - 0.52f) > 1e-4f) { return Code + 1; }
+    TState State;
+    State.Center = Start;
+    State.Ground = Ground;
+    TInput Input;
+    Input.Move = Right;
+    Input.bJump = true;
+    int Jumps = 0;
+    for (int Step = 0; Step < 240; ++Step)
+    {
+        const auto Result = Dxf::StepCharacter(World, Settings, State, Input, 1.0 / 60.0);
+        Jumps += Result.bJumped ? 1 : 0;
+        Input.bJump = false;
+        State = Result.State;
+    }
+    if (Jumps != 1 || State.Ground.State != Dxf::ECharacterGroundState::Walkable || Toolbox::Abs(State.Center.X - 4.48f) > 1e-3f) { return Code + 2; }
+    if (!World.QueryContacts(Probe, 0.1f).Count) { return Code + 3; }
+    return 0;
+}
+static int CharacterMove2D()
+{
+    Dxf::FPhysicsWorld2D World;
+    const auto Level = World.CreateBody({});
+    Dxf::FColliderDescription2D Box;
+    Box.Shape = Toolbox::FOrientedBox2D{{0,-1},{50,1},0};
+    World.AttachCollider(Level, Box);
+    Box.Shape = Toolbox::FOrientedBox2D{{6,5},{1,5},0};
+    World.AttachCollider(Level, Box);
+    return MoveCharacter<Dxf::FPhysicsWorld2D, Dxf::FCharacterMoveSettings2D, Dxf::FCharacterState2D, Dxf::FCharacterMoveInput2D>(
+        World, Toolbox::FVector2{0,0.52f}, Toolbox::FVector2{1,0}, Toolbox::FCircle2D{{0,0.52f},0.5f}, 141);
+}
+static int CharacterMove3D()
+{
+    Dxf::FPhysicsWorld3D World;
+    const auto Level = World.CreateBody({});
+    Dxf::FColliderDescription3D Box;
+    Box.Shape = Toolbox::FOBB{{0,-1,0},{50,1,50}};
+    World.AttachCollider(Level, Box);
+    Box.Shape = Toolbox::FOBB{{6,5,0},{1,5,50}};
+    World.AttachCollider(Level, Box);
+    return MoveCharacter<Dxf::FPhysicsWorld3D, Dxf::FCharacterMoveSettings3D, Dxf::FCharacterState3D, Dxf::FCharacterMoveInput3D>(
+        World, Toolbox::FVector3{0,0.52f,0}, Toolbox::FVector3{1,0,0}, Toolbox::FSphere{{0,0.52f,0},0.5f}, 151);
 }
 int main()
 {
@@ -347,6 +496,10 @@ int main()
     if (Slide2DCode != 0) { return Slide2DCode; }
     const int Slide3DCode = Slide3D();
     if (Slide3DCode != 0) { return Slide3DCode; }
+    const int Character2DCode = CharacterMove2D();
+    if (Character2DCode != 0) { return Character2DCode; }
+    const int Character3DCode = CharacterMove3D();
+    if (Character3DCode != 0) { return Character3DCode; }
     return 0;
 }
 ''', encoding='utf-8')
@@ -371,7 +524,8 @@ endif()
         run('support-only-run', [str(work / 'ConsumerBuild' / ('SupportOnly' + suffix))])
         run('physics-only-run', [str(work / 'ConsumerBuild' / ('PhysicsOnly' + suffix))])
         summary.update(install=True, relocation=True, external_consumer=True,
-                       support_without_runtime=True, physics_without_debug_or_support=True)
+                       support_without_runtime=True, physics_without_debug_or_support=True,
+                       character_physics_only=True, character_gameplay_components=True)
     return 0
 
 
