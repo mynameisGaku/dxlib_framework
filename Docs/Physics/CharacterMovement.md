@@ -134,11 +134,13 @@ World.SetBodyTransform(SelfBody, State.Center, Toolbox::FQuaternion{});   // 自
 - 段差上りは「接地中に歩けない面で止められた」ときだけ、上→前→下の順に試します。上方向で天井に当たる場合、実際に上がらない場合、進みが増えない場合は採用しません（低い天井の下の段差は上りません）。
 - 急坂（MaxSlopeAngleを超える面）は水平移動では壁として扱い、上りません。
 - ジャンプは歩ける床に接地しているときだけです。
-- World問い合わせは現在、全Colliderを順に調べます（BroadPhaseなし）。1回の固定更新あたり約7回問い合わせるため、費用はCollider数に比例します（下の測定を参照）。
+- World問い合わせは、Worldが自動で保つ索引（[World問い合わせの索引](QueryAcceleration.md)）で近くのColliderだけを判定します（1回の固定更新あたり約7回の問い合わせ）。費用はColliderの総数ではなく、キャラクターの近くの候補数でおおむね決まります。密集・大きな床・索引を使えない条件では増えます。結果は総当たりと同じです。
 - 同じWorldを複数のスレッドから同時に変更・Stepしながら呼ばないでください。
 
 ## 性能測定
 
-`dxf_character_benchmark`（`Tools/CharacterBenchmark`、CTest外、Releaseで手動実行）。結果と条件は[検証記録](../Development/Gameplay-2026-09-25.md#性能測定)を参照してください。
+`dxf_character_benchmark`（`Tools/CharacterBenchmark`、CTest外、Releaseで手動実行）。索引の導入後の結果と条件（索引なしの基準との比較、系列ごとの内訳）は[問い合わせの大規模化の検証記録](../Development/QueryScale-2026-09-25.md#性能測定)、導入前の結果は[ゲームプレイ基盤の検証記録](../Development/Gameplay-2026-09-25.md#性能測定)を参照してください。
+
+目安（Release、1キャラクター・1固定更新あたりの移動と反映、静的な地形）: 3Dで障害物512個のとき、索引なしの基準は約2.3ms、索引ありは約2.7µs。多数のColliderがあるWorldでは、`Step`（Solver）の費用が次の支配項になります。
 
 検証の範囲と未解決事項は[ゲームプレイ基盤の検証記録](../Development/Gameplay-2026-09-25.md)、機能ごとの状態は[進捗表](Progress.md#ゲームプレイ基盤の進捗表)を参照してください。

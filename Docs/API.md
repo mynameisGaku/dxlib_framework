@@ -27,6 +27,8 @@ const auto Seen = World2D.RaycastClosest(Eye, Target, SelfBody, Sight);
 const auto Candidates = World2D.OverlapAll(Toolbox::FCircle2D{Eye, 8.0f}, SelfBody, Characters);
 ```
 
+これらのWorld問い合わせは、Worldが自動で保つ索引で候補を絞ります。登録・同期の呼出しは不要で、結果・順序・失敗は索引がない場合と同じです。回数・木の訪問数・詳細判定の数・総当たりへの切り替えの回数などの任意の診断（`SetQueryDiagnosticsEnabled`／`GetQueryDiagnostics`／`ResetQueryDiagnostics`、型は`Dxf/WorldQueryDiagnostics.h`の`FWorldQueryDiagnostics`）は[World問い合わせの索引](Physics/QueryAcceleration.md#診断任意)を参照してください。
+
 ## GameObject／Componentの作成
 
 `DGameScene::Spawn<T>(引数...)` と `DGameObject::AddComponent<T>(引数...)` は、コンストラクタ引数を転送してインスタンスを登録し、`TResult<TObjectHandle<T>>` を返します。型は対応する基底を継承してください。

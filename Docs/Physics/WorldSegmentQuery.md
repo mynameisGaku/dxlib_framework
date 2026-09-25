@@ -15,7 +15,7 @@
 | 対象の絞り込み | `RaycastClosest(Start, End, ExcludedBody, const FWorldQueryFilter& Filter) const`、`Set/GetColliderQueryCategory(FColliderId2D, ...)` | 同左（`FColliderId3D`） |
 | 形状交差 | `Toolbox::IntersectSegment(FVector2, FVector2, FCircle2D / FOrientedBox2D)`（`Toolbox/SegmentIntersection2D.h`） | `Toolbox::IntersectSegment(FVector3, FVector3, FSphere / FOBB)`（`Toolbox/SegmentIntersection.h`） |
 
-結果の型・失敗・Step状態・除外・順序・対象の絞り込みの契約は2Dと3Dで共通です（下記）。法線、全件一覧、空間索引はどちらにもありません。
+結果の型・失敗・Step状態・除外・順序・対象の絞り込みの契約は2Dと3Dで共通です（下記）。法線と全件一覧はどちらにもありません。候補の絞り込みには、Worldが自動で保つ索引（[World問い合わせの索引](QueryAcceleration.md)）を使います。
 
 ## ゲームから使う（2D）
 
@@ -125,7 +125,7 @@ Static / Kinematic / Dynamic / 休止中のBodyを区別せず、全生存Collid
 
 `const` は同時実行の安全性を保証しません。呼び出し側でStepや登録変更等と直列化してください。
 
-Colliderスロットを直接走査するため、削除済みも含めた保持スロット数nに対しO(n)、追加領域O(1)です。通常経路で候補配列やSnapshotを確保しません。Debug表示の件数上限はありません。これは実装上の確保の有無であり、性能測定の結果ではありません。空間索引や高速化の性能保証は範囲外です。
+索引の木を線分の範囲でたどり、範囲に重なるColliderだけを判定します（木の訪問はおおむね対数。長い線分・密集では候補が増え、索引を使えない条件では保持スロット数nに対しO(n)の総当たり）。最短の結果・同じ割合の順序・失敗は総当たりと同じです。追加領域O(1)で、通常経路で候補配列やSnapshotを確保しません。Debug表示の件数上限はありません。測定は[検証記録](../Development/QueryScale-2026-09-25.md#性能測定)を参照してください（性能の保証ではありません）。
 
 ## 保存Snapshotとの違い
 

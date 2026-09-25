@@ -4,27 +4,33 @@
 ## ゲームプレイ基盤の進捗表
 
 恒久の表です。機能を追加・変更したら、この表の行を更新してください（下の「最新状態」以降は段階A〜Eの当時の記録で、更新しません）。
-「済」は実装・試験・使い方の3点がそろったものだけです。証拠の試験名は `Tests/Physics/CharacterMovementTests.cpp`（PhysicsContinuation群）、
-`Tests/CharacterMovementComponentTests.cpp`（Framework群）、`Tests/GameplaySampleSmoke/Main.cpp`（NativeGameplayDeviceSmoke群）、
-`Tools/ValidatePackage.py`（配布の利用者）です。
+各欄は「2D／3D」の順です。「済」は、その段階の試験と使い方がそろったものだけです。「—」はその段階に当たらないもの、「未」は未確認です。
 
-| 機能 | 2D | 3D | 使い方 | 証拠 | 残り |
-|---|---|---|---|---|---|
-| 形状の接触（符号付き距離と法線） | 済 | 済 | `FindShapeContact`（Toolbox）、`QueryContacts`（World、最大32件と総数） | shape contacts analytic、world contacts and initial-contact sweep | 同心・同距離の面は法線なし（仕様） |
-| 初期接触を無視するスイープ | 済 | 済 | `SweepClosestIgnoringInitialContacts` | world contacts and initial-contact sweep | なし（SweepClosestの契約は不変） |
-| A. 初期重なりの解消 | 済 | 済 | `ResolveCharacterOverlap`、StepCharacter・Componentでは自動 | character overlap recovery、recovery determinism validation、実Appの床へのめり込みからの復帰（2D） | 解消不能（Ambiguous・TooDeep・Blocked・上限）は移動せず理由を返すだけ |
-| B. 反復滑り（平面・角・稜線・上限） | 済 | 済 | `MoveAndSlide` | character move and slide、3D character crease and three planes、実Appの二つの壁の角での停止（3D） | 接触の保持は8件まで（超えるとContactLimit） |
-| C. 接地・坂・吸い付き | 済 | 済 | `ProbeCharacterGround`、StepCharacter | character ground、slopes steps cliff、実Appの30度の坂を上り60度の急坂の手前で停止（2D） | 動く床の上の接地・追従は未対応 |
-| D. 段差上り・重力・ジャンプ・着地 | 済 | 済 | `StepCharacter`（上→前→下） | walk jump ceiling、slopes steps cliff、実Appの段差上り（2D／3D）とジャンプ・着地（2D） | 低い天井の下の段差は上らない（仕様） |
-| E. 移動Component（固定更新・入力・補間・寿命・Body一つ・剛体併用の拒否・登録順） | 済 | 済 | `DCharacterMovement2DComponent` / `3DComponent` | Framework群の14ケース（2D／3D各7） | 剛体との押し合い、動く床、カプセル形状は未対応 |
-| F. 操作できるサンプルと実Appの固定入力確認 | 済 | 済 | 開発用ソリューションの `GameplaySample`（[Tab]で2D／3D切替） | NativeGameplayDeviceSmoke（リセット・一時停止・再開・再入場・終了、画素照合、1画面／2画面で固定更新の回数が同じ） | 実機の目視操作は手動（自動確認は固定入力のみ） |
-| G. 配布の利用者 | 済 | 済 | `dxf::physics`だけ／`dxf::framework` | ValidatePackage（PhysicsOnlyでMoveAndSlide・ProbeCharacterGround・StepCharacter、ConsumerでComponentの生成・更新・破棄） | Native ON・Releaseの配布検証は未実施 |
-| 性能測定 | 測定済 | 測定済 | `dxf_character_benchmark`（CTest外） | [検証記録](../Development/Gameplay-2026-09-25.md#性能測定) | BroadPhaseがなく問い合わせはCollider数に比例。3Dの1問い合わせあたりの費用が2Dより大きい |
+- 実装・単体: Toolbox・Physicsの関数を単体で試す（`Tests/Physics/*`、PhysicsContinuation群）
+- 実World: `FPhysicsWorld2D/3D` に登録したColliderで試す（同上、索引と総当たりの一致を含む）
+- Component: Scene・GameObjectの移動Componentで試す（`Tests/CharacterMovementComponentTests.cpp`、Framework群）
+- 実App: 実Application・実DxLibで固定入力により操作する（`Tests/GameplaySampleSmoke`、NativeGameplayDeviceSmoke群）
+- 外部利用: 再配置したパッケージを `find_package` で使う（`Tools/PackageConsumer`、`Tools/ValidatePackage.py`）
+- 測定: `dxf_character_benchmark`（CTest外）
 
-今後の大きな単位（未着手）: BroadPhase（問い合わせの候補絞り込み）、動く床への追従、キャラクターと剛体の押し合い、カプセル形状、
+| 機能 | 実装・単体 | 実World | Component | 実App | 外部利用 | 測定 | 使い方 | 残り |
+|---|---|---|---|---|---|---|---|---|
+| 形状の接触（符号付き距離と法線） | 済／済 | 済／済 | 済／済 | 済／済 | 済／済 | 済／済（kernels） | `FindShapeContact`（Toolbox）、`QueryContacts`（World、最大32件と総数） | 同心・同距離の面は法線なし（仕様） |
+| 初期接触を無視するスイープ | 済／済 | 済／済 | 済／済 | 済／済 | 済／済 | 済／済（costs） | `SweepClosestIgnoringInitialContacts` | なし（SweepClosestの契約は不変） |
+| A. 初期重なりの解消 | 済／済 | 済／済 | 済／済 | 済／済（床へのめり込みから復帰） | 済／済 | 済／済 | `ResolveCharacterOverlap`、StepCharacter・Componentでは自動 | 解消不能（Ambiguous・TooDeep・Blocked・上限）は移動せず理由を返すだけ |
+| B. 反復滑り（平面・角・稜線・上限） | 済／済 | 済／済 | 済／済 | 済／済（2Dは壁と床の角、3Dは二つの壁の稜線） | 済／済 | 済／済 | `MoveAndSlide` | 接触の保持は8件まで（超えるとContactLimit） |
+| C. 接地・坂・吸い付き | 済／済 | 済／済 | 済／済 | 済／済（30度の坂を上り60度の急坂の手前で停止） | 済／済 | 済／済 | `ProbeCharacterGround`、StepCharacter | 動く床の上の接地・追従は未対応 |
+| D. 段差上り・重力・ジャンプ・着地・天井 | 済／済 | 済／済 | 済／済 | 済／済（段差・ジャンプと着地・低い天井） | 済／済 | 済／済 | `StepCharacter`（上→前→下） | 低い天井の下の段差は上らない（仕様） |
+| E. 移動Component（固定更新・入力・補間・寿命・Body一つ・剛体併用の拒否・登録順） | — | — | 済／済（各7ケース） | 済／済（途中の生成と破棄、一時停止と再開） | 済／済（Consumer、Nativeの外部Application） | — | `DCharacterMovement2DComponent` / `3DComponent` | 剛体との押し合い、動く床、カプセル形状は未対応 |
+| F. 操作できるサンプル | — | — | — | 済／済（1画面／2画面・索引／総当たりで軌跡がビット単位で一致、再入場・終了後の再起動） | — | — | 開発用ソリューションの `GameplaySample`（[Tab]で2D／3D切替、[N]／[M]で歩行キャラクターの生成／破棄、[V]で2画面） | 実機の目視操作は手動（自動確認は固定入力のみ） |
+| G. World問い合わせの索引（自動更新のAABB木） | 済／済（木7ケース） | 済／済（一致6・契約20ケース、故障注入6件、変異12件） | 済／済（Componentは索引経由） | 済／済（索引／総当たりの軌跡の一致） | 済／済（PhysicsOnlyで診断を確認） | 済／済 | 自動（[World問い合わせの索引](QueryAcceleration.md)、任意の診断 `GetQueryDiagnostics`） | Solver・連続衝突の組の生成は索引を使わない。多数のColliderではStepが次の支配項 |
+| H. 配布の利用者 | — | — | — | — | 済／済（Native OFF／ON × Debug／Release、Nativeは移動後の実行ファイルを起動） | — | `dxf::physics`だけ／`dxf::framework`／`dxf::native` | SDKのないPCでNative構成は検証できない（未確認として扱う） |
+| 性能測定 | — | — | — | — | — | 済／済 | `dxf_character_benchmark`（CTest外） | [問い合わせの大規模化の検証記録](../Development/QueryScale-2026-09-25.md#性能測定)。3Dの詳細判定は2Dより高い |
+
+今後の大きな単位（未着手）: 動く床への追従、キャラクターと剛体の押し合い、カプセル形状、Solverの接触の組の生成への索引の利用、
 接触イベント（Begin／Stay／End）とTrigger、Island管理、Joint、Mesh Collider、経路探索、アニメーションとの接続。
 
-使い方は[キャラクター移動](CharacterMovement.md)、検証は[ゲームプレイ基盤の検証記録](../Development/Gameplay-2026-09-25.md)を参照してください。
+使い方は[キャラクター移動](CharacterMovement.md)・[World問い合わせの索引](QueryAcceleration.md)、検証は[ゲームプレイ基盤の検証記録](../Development/Gameplay-2026-09-25.md)・[問い合わせの大規模化の検証記録](../Development/QueryScale-2026-09-25.md)を参照してください。
 
 
 ## 最新状態

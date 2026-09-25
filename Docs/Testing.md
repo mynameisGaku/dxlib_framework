@@ -113,7 +113,7 @@ ctest --test-dir Build/DebugValidation-local -C Release -j 1 --no-tests=error --
 
 再発確認は `python Tools/ValidateDebug.py --logs Build/DebugValidationLogs` です。毎回新しい作業ディレクトリを作り、Debug/Releaseの全ビルド、必要群の登録、Native等のOFF、JUnitの実行結果を照合します。欠落・重複・スキップ・失敗を成功にしません。Windowsでは既定Visual Studio/x64、その他は既定Generatorを使います。Python単体試験は検証器の制御だけを確認し、C++コンパイラーやSDKを要求しません。
 
-旧13群（DebugTools / DebugPhysicsCapture / RenderContinuation / JobFault 5群 / RenderViews / NativeViewsTranslation / Transparency 3群）を保持し、現行では正規のportable登録を含む22群です（範囲問い合わせの確保故障注入 `PhysicsOverlapFault` を含む）。DebugPhysicsCaptureはSnapshot選択と実RenderDebugの11ケース、PhysicsContinuationはWorld問い合わせ（3D 7ケース、2Dの線分交差とWorld問い合わせ9ケース、2D／3Dの対象フィルター20ケース、2D／3Dの範囲問い合わせ20ケース、2D／3Dのスイープ問い合わせ20ケース、スイープの接触法線9ケース、円・球の移動候補（1回の滑り）15ケース、2D／3Dのキャラクター移動（接触・初期重なり・反復滑り・接地・段差・ジャンプ）16ケース）を含みます。範囲問い合わせの結果確保の故障注入と、スイープ問い合わせ（接触法線の有無を含む）・移動候補・キャラクター移動（接触の取得・MoveAndSlide・StepCharacter）の通常経路で確保しないことの確認は隔離した `PhysicsOverlapFault` 群です。キャラクター移動Component（2D／3D）の14ケースは `Framework`（dxf_tests）群です。`debug_tests` / `debug_physics_tests` の実行ファイル名は正規の `dxf_debug_tools_tests` / `dxf_debug_physics_tests` に統一しました。通常は名前を直接実行せずCTestを使います。
+旧13群（DebugTools / DebugPhysicsCapture / RenderContinuation / JobFault 5群 / RenderViews / NativeViewsTranslation / Transparency 3群）を保持し、現行では正規のportable登録を含む22群です（範囲問い合わせの確保故障注入 `PhysicsOverlapFault` を含む）。DebugPhysicsCaptureはSnapshot選択と実RenderDebugの11ケース、PhysicsContinuationはWorld問い合わせ（3D 7ケース、2Dの線分交差とWorld問い合わせ9ケース、2D／3Dの対象フィルター20ケース、2D／3Dの範囲問い合わせ20ケース、2D／3Dのスイープ問い合わせ20ケース、スイープの接触法線9ケース、円・球の移動候補（1回の滑り）15ケース、2D／3Dのキャラクター移動（接触・初期重なり・反復滑り・接地・段差・ジャンプ）16ケース、World問い合わせの索引（木の構造7ケース、同じWorldで索引と総当たりの結果・例外を比べる一致6ケース、自動同期・失敗・世代・順序・切り替え条件・診断の契約20ケース））を含みます。範囲問い合わせの結果確保の故障注入と、スイープ問い合わせ（接触法線の有無を含む）・移動候補・キャラクター移動（接触の取得・MoveAndSlide・StepCharacter）の通常経路で確保しないことの確認、索引の登録途中の確保失敗で索引に何も残らないことと、登録・移動の直後の問い合わせで確保しないことの確認（6件）は隔離した `PhysicsOverlapFault` 群です。キャラクター移動Component（2D／3D）の14ケースは `Framework`（dxf_tests）群です。`debug_tests` / `debug_physics_tests` の実行ファイル名は正規の `dxf_debug_tools_tests` / `dxf_debug_physics_tests` に統一しました。通常は名前を直接実行せずCTestを使います。
 
 警告はrootの設定を利用します。旧入口で `/WX` だったContinuation / JobFault / RenderViews / NativeViewsTranslationの4ターゲットでは厳格条件を保持します。MSVCのC4324のみ、既存FVector3/FQuaternionの `alignas(16)` による意図したパディングとしてPRIVATEで除外し、他の警告をエラーにします。型・ABIは変えません。非MSVCでは同じ4ターゲットに加え、旧coreを構成した正規層と旧Debug/Transparency試験にも `-Werror` を保持します。
 
@@ -124,9 +124,22 @@ ctest --test-dir Build/DebugValidation-local -C Release -j 1 --no-tests=error --
 
 ## キャラクター移動のサンプルを固定入力で確認する（NativeGameplayDeviceSmoke）
 
-`DXF_RUN_DEVICE_TESTS=ON` のrootでは、`NativeGameplayDeviceSmoke` が `Examples/GameplaySample` のSceneを実Application・実DxLibで、入力だけを固定して操作します（出力先 `gameplay-smoke-<構成>`）。2Dの段差・坂・急坂の手前での停止・ジャンプと着地・リセット・初期重なりからの復帰・一時停止と再開、3Dの段差と二つの壁の角での停止、1画面と2画面で固定更新の回数が同じこと、シーンの再入場と終了を確認し、プレイヤーの描画位置の画素を照合します。上限は120秒です。他のデバイス試験と同じデバイスを使うため、並列に実行しないでください（`-j 1`）。
+`DXF_RUN_DEVICE_TESTS=ON` のrootでは、`NativeGameplayDeviceSmoke` が `Examples/GameplaySample` のSceneを実Application・実DxLibで、入力だけを固定して操作します（出力先 `gameplay-smoke-<構成>`）。2D／3Dの両方で同じ手順（`SmokeAcceptance`）を実行します: 歩行・低い段差・30度の坂・60度の急坂の手前での停止、停止と接地、リセット、ジャンプと着地、低い天井で頭を打って着地、初期重なりからの復帰、壁と床の角（3Dは二つの壁の稜線）での停止、一時停止と再開（アニメーション時間を含む）、途中での歩行キャラクターの生成と破棄（Colliderの数が増減する）、毎フレーム地形と重ならないこと、プレイヤーの描画位置の画素。さらに `SmokeTraces` で、同じ固定入力（生成・歩行・ジャンプ・反転）を1画面・2画面・総当たりの参照経路（`SetQueryIndexEnabled_Internal(false)`）で、それぞれ新しいApplicationで実行し、フレームごとの位置・速度・固定更新の数・ジャンプと着地・歩行キャラクターの位置・アニメーション時間がビット単位で一致することを確かめます。シーンの切替・再入場・2画面の表示の保存・終了と、終了後の新しいApplicationでの再起動も確認します。上限は120秒です（Debugで約13秒）。他のデバイス試験と同じデバイスを使うため、並列に実行しないでください（`-j 1`）。
 
-サンプルは開発用ソリューション（`GenerateProjectFiles.bat -Development`）の `GameplaySample` です。キャラクター移動の負荷測定 `dxf_character_benchmark` はCTestに登録していません（[キャラクター移動](Physics/CharacterMovement.md#性能測定)）。
+サンプルは開発用ソリューション（`GenerateProjectFiles.bat -Development`）の `GameplaySample` です。キャラクター移動の負荷測定 `dxf_character_benchmark` はCTestに登録していません（[キャラクター移動](Physics/CharacterMovement.md#性能測定)）。系列は `legacy`（従来の18条件、地形がDynamic）・`legacy-static`（同じ条件で地形をStaticにした比較の主系列）・`heavy`（1024／64）・`scaling`（移動・局所・動く物体・密集・生成と破棄・大きな床）・`costs`（問い合わせの種類ごとの費用）・`kernels`（詳細判定の単体費用）で、`--reference` で総当たりの参照経路を測ります。
+
+## 再配置したパッケージを使う（ValidatePackage）
+
+`python Tools/ValidatePackage.py` は、ビルド・install・インストール先の移動・`find_package` による外部の利用（`Tools/PackageConsumer`）を、ネットワークなしで確認します。既定はNative OFF・Debugで、SDKは不要です（ログは `Docs/Validation/Package`）。
+
+| 引数 | 内容 |
+|---|---|
+| `--config Debug` / `Release` | 構成。既定以外の構成のログは `Docs/Validation/Package/<構成>-Native` または `-Portable` |
+| `--native --sdk-root <SDK>` | `dxf::native` もビルドし、外部のApplication（2D／3Dのキャラクター移動を実DxLibで動かす）を作る。SDKは公式VCパッケージか `Tools/DxLibFbx` のビルド（`DxLibFbx.json`）を明示する。取得・ビルドはしない |
+| `--run-device` | 実行ファイルだけを別のディレクトリへ置いて起動する（窓とデバイスを使う。他のデバイス試験と重ねない） |
+| `--work` / `--logs` | 作業・ログの出力先。構成ごとに分ける |
+
+確認: 移動後のCMakeファイルに元のソースツリー・元のBuildの絶対パスが残らないこと、`dxf::physics` の依存にNative・Debug・Support・Runtime・Gameplayが含まれないこと、Physicsだけ・Supportだけ・全体の利用者の実行。SDKがない環境では `--native` を実行できず、その構成は未確認として扱います（成功とはみなしません）。
 
 ## Visual StudioからNativeModelSmokeを起動する（F5）
 
