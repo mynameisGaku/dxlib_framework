@@ -83,5 +83,53 @@ class ValidationFailureTests(unittest.TestCase):
         self.assert_failed_current_run(self.logs)
 
 
+class PackageOptionTests(unittest.TestCase):
+    """The package validator selects configurations explicitly and never starts SDK or device work by default."""
+
+    def setUp(self):
+        self.module = load_script('ValidatePackage')
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+
+    def parse(self, *arguments):
+        with patch.object(self.module, 'ROOT', self.root), patch.object(sys, 'argv', ['ValidatePackage.py', *arguments]):
+            return self.module.parse_arguments()
+
+    def test_default_is_portable_debug_in_the_historical_log_directory(self):
+        args = self.parse()
+        self.assertEqual((args.config, args.native, args.run_device), ('Debug', False, False))
+        self.assertEqual(args.logs, self.root / 'Docs' / 'Validation' / 'Package')
+
+    def test_other_configurations_use_their_own_log_directory(self):
+        self.assertEqual(self.parse('--config', 'Release').logs,
+                         self.root / 'Docs' / 'Validation' / 'Package' / 'Release-Portable')
+        if sys.platform == 'win32':
+            args = self.parse('--native', '--sdk-root', str(self.root))
+            self.assertEqual(args.logs, self.root / 'Docs' / 'Validation' / 'Package' / 'Debug-Native')
+
+    def test_native_needs_an_explicit_sdk_and_device_runs_need_native(self):
+        for arguments in (['--native'], ['--run-device'], ['--sdk-root', str(self.root)]):
+            with self.assertRaises(SystemExit), patch.object(sys, 'stderr'):
+                self.parse(*arguments)
+
+    def test_sdk_kind_follows_the_named_directory(self):
+        official = self.module.sdk_arguments(self.root)
+        self.assertTrue(official[0].startswith('-DDXLIB_ROOT='))
+        (self.root / 'DxLibFbx.json').write_text('{}', encoding='utf-8')
+        custom = self.module.sdk_arguments(self.root)
+        self.assertTrue(custom[0].startswith('-DDXF_DXLIB_CUSTOM_ROOT='))
+        self.assertIn('-DDXF_DXLIB_AUTO_SOURCE_BUILD=OFF', custom)
+
+    def test_export_check_reports_build_time_paths(self):
+        package = self.root / 'package'
+        (package / 'lib' / 'cmake').mkdir(parents=True)
+        (package / 'lib' / 'cmake' / 'Clean.cmake').write_text('set(A "${_IMPORT_PREFIX}/lib")\n', encoding='utf-8')
+        self.assertEqual(self.module.absolute_paths_in_exports(package, [self.root / 'source']), [])
+        (package / 'lib' / 'cmake' / 'Leaked.cmake').write_text(
+            'set(B "' + (self.root / 'source').as_posix() + '/include")\n', encoding='utf-8')
+        self.assertEqual(len(self.module.absolute_paths_in_exports(package, [self.root / 'source'])), 1)
+
+
 if __name__ == '__main__':
     unittest.main()
