@@ -1,10 +1,8 @@
-# UI継続点（2026-09-26）
+# UI継続点（2026-09-27）
 
-- 起点は添付の`17445ee`。GitHubへのcommit／pushは行っていない。このパッケージは途中のUIを引き継いだ更新コード。
-- U1〜U8をゼロから作り直さない。作成済みの主要部品・入力Host・スタイル・検査・UISampleを保持する。
-- 現時点のUI CPUケース57件、GCC両構成とClang ASan／UBSanで成功。Native OFF配布はDebug／Releaseで成功。
-- RootのLinux全群は24/26。更新前からのAssetRootTestsのWindowsパス期待が2群で失敗。単独ValidateDebugは旧Platform.cppのOut shadow警告エラーで停止。
-- Windows実行は未確認。まずこの更新を基準のmainへ差分適用し、`GenerateProjectFiles.bat -Development`のUIサンプルと追加NativeUiSmokeをビルドする。最初のコンパイルエラーから解消し、未検証ソースを「動作済み」と扱わない。
-- `NativeUiSmoke`は固定入力と実画素の実行入口を用意済み。ただしこの環境でそのSDKによるリンク・実行は一度もしていない。既存のモデル／Physics／Viewportの実描画も再実行する。
-- Native ONのUI外部Consumer、3Dパネルの画素単位透明合成、詳細なClipFit要素ID、広い変異試験等は残る。優先順位は[検証記録](UiResume-2026-09-26.md)と[UI進捗](../UI/Progress.md)を確認する。
-- 今回触っていないSolver、問い合わせの索引、キャラクター、空Starter、Sandbox、Assets、過去検証記録を旧配布物で上書きしない。
+- 状態：UIのWindows仕上げ（W0〜W7）を実施し、最終回帰は`eb0dc18`で実行済み。詳細は[検証記録](UiWindowsCompletion-2026-09-26.md)、機能の状態は[UI進捗](../UI/Progress.md)。
+- 最後に実行した確認（`eb0dc18`、直列）：root CTest Debug／Release 32/32（終了0）、`Tools/ValidateDebug.py` 26/26×2、配布4構成（`--run-device`でNativeApp・NativeUiApp成功）、No-STL違反0、Python 47件（実生成物の検査を含めskip 0）、W5測定。ログは`Build/UiCompletion-Logs/final2`（コミット対象外）。
+- 未解決のエラーはなし。`NativeModelDeviceSmoke`の`ProcessMessage=-1`は今回再発していないが原因未特定。
+- W5の改善前の基準（`161f6af`のソースとビルド、測定結果）はリポジトリ外の`C:\Users\g0190\ui-w5-baseline`に保存。現行ツリーへ戻さない。
+- 次に行う場合の候補：Visual Studioでの実F5操作・物理入力・聴感の人による確認、SDK未導入PCでの配布の起動、Backendが乗算済みの合成に対応するかを問い合わせる窓口、実字体・実描画を含む性能測定。
+- `68e145d`のコミットメッセージの「奥行641/639」は「幅641/639」の誤記（履歴は書き換えない）。
