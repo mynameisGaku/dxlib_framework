@@ -181,3 +181,160 @@ TEST("UI host submits every rectangle with the clip of its clipping ancestor in 
 	}
 	REQUIRE(bFound);
 }
+
+namespace
+{
+// 画面(100,50)〜(260,130)に映る2Dのパネル（1単位20画素、Y下向き）。
+FUiWorldPanel2D OffscreenPanel(EUiPanelComposition Composition)
+{
+	FUiWorldPanel2D Panel;
+	Panel.WorldTopLeft = {5, 2.5f};
+	Panel.WorldSize = {8, 4};
+	Panel.Transform.Origin = {0, 0};
+	Panel.Transform.PixelsPerUnit = 20;
+	Panel.Transform.bYUp = false;
+	Panel.bOffscreen = true;
+	Panel.Composition = Composition;
+	return Panel;
+}
+} // namespace
+
+TEST("UI 2D panel can draw through an offscreen texture and blit it with its layer clip and composition")
+{
+	for (bool bTransparent : {false, true})
+	{
+		FRecordingRenderer Backend;
+		// 2Dの透明な合成は、3Dの四角形の能力を要求しない。
+		Backend.Declared.bPremultipliedBlend2D = true;
+		Backend.Declared.bAlphaTargetClear = true;
+		FAssetService Assets(Backend.Assets, Backend.Assets, Backend.Assets);
+		FUiRoot Root;
+		auto Button = FullButton(Root);
+		FUiStylePatch Style;
+		Style.Background = FColor{200, 20, 20, 128};
+		Style.BorderWidth = 0.0f;
+		Button.Get()->SetStyleOverride(Style);
+		Toolbox::int32 Clicks = 0;
+		FUiScope Scope;
+		Scope.Add(Button.Get()->OnClicked().Subscribe(
+		    [&Clicks]()
+		    {
+			    ++Clicks;
+		    }));
+		FUiSceneHost Host;
+		FUiWorldPanel2D Panel =
+		    OffscreenPanel(bTransparent ? EUiPanelComposition::Transparent : EUiPanelComposition::Opaque);
+		Panel.ScreenClip = {0, 0, 200, 720};
+		FUiDisplayOptions Options = PixelOptions();
+		Options.Layer = 700;
+		const auto Id = Host.AddWorldPanel2D(Root, Panel, Assets, Options);
+		FRenderSystem Renderer(Backend);
+		REQUIRE(Renderer.BeginFrame(800, 600, {}));
+		REQUIRE(Host.Draw(Renderer.GetContext()));
+		// 呼出し前の描画先（画面）へ戻っている。
+		REQUIRE(Backend.CurrentTarget < 0);
+		REQUIRE(Renderer.EndFrame());
+		// 中間画像の内容は表示面の合成で描き、画面へは一枚の画像として等倍で貼る。
+		REQUIRE(!Backend.Rectangles.IsEmpty());
+		for (const auto& Rectangle : Backend.Rectangles)
+		{
+			REQUIRE((Rectangle.Options.Blend == EBlendMode2D::PremultipliedAlpha) == bTransparent);
+			REQUIRE(Rectangle.Rectangle.Left >= 0 && Rectangle.Rectangle.Right <= 160);
+		}
+		REQUIRE(Backend.Sprites.Size() == 1);
+		const auto& Sprite = Backend.Sprites[0];
+		REQUIRE(Sprite.Position.X == 100 && Sprite.Position.Y == 50 && Sprite.Options.Scale.X == 1);
+		REQUIRE(Sprite.Options.Layer == 700 && Sprite.Options.bClip);
+		REQUIRE(Sprite.Options.ClipRect.Left == 100 && Sprite.Options.ClipRect.Right == 200 &&
+		        Sprite.Options.ClipRect.Top == 50 && Sprite.Options.ClipRect.Bottom == 130);
+		REQUIRE((Sprite.Options.Blend == EBlendMode2D::PremultipliedAlpha) == bTransparent);
+		REQUIRE(Sprite.Texture.GetWidth() == 160 && Sprite.Texture.GetHeight() == 80);
+		REQUIRE(Host.GetSurface(Id).GetPixelRect().Left == 0 &&
+		        Host.GetSurface(Id).IsPremultipliedAlpha() == bTransparent);
+		// 画面の点は中間画像の原点へ移して選ぶ。切り抜きの外は選ばない。
+		FHostInput Input;
+		Input.Raw.MouseX = 150;
+		Input.Raw.MouseY = 90;
+		(void)Input.Send(Host);
+		Input.Raw.MouseButtons[0] = true;
+		(void)Input.Send(Host);
+		Input.Raw.MouseButtons[0] = false;
+		(void)Input.Send(Host);
+		REQUIRE(Clicks == 1);
+		Input.Raw.MouseX = 230;
+		(void)Input.Send(Host);
+		Input.Raw.MouseButtons[0] = true;
+		(void)Input.Send(Host);
+		Input.Raw.MouseButtons[0] = false;
+		(void)Input.Send(Host);
+		REQUIRE(Clicks == 1);
+	}
+}
+
+TEST("UI offscreen 2D panel checks its own requirements and skips empty rectangles")
+{
+	FRecordingRenderer Backend;
+	FAssetService Assets(Backend.Assets, Backend.Assets, Backend.Assets);
+	FUiRoot Root;
+	FullButton(Root);
+	FUiSceneHost Host;
+	const auto Id =
+	    Host.AddWorldPanel2D(Root, OffscreenPanel(EUiPanelComposition::Transparent), Assets, PixelOptions());
+	FRenderSystem Renderer(Backend);
+	// 2Dの合成の能力だけが不足として書かれる。
+	REQUIRE(Renderer.BeginFrame(800, 600, {}));
+	const auto Missing = Host.Draw(Renderer.GetContext());
+	REQUIRE(!Missing);
+	REQUIRE(Missing.Error().Message ==
+	        Toolbox::FString("UI display ") + Toolbox::ToString(Id) +
+	            " requests transparent composition; backend lacks: premultiplied-2d-blend alpha-target-clear");
+	REQUIRE(Renderer.EndFrame());
+	REQUIRE(Backend.Sprites.IsEmpty() && Backend.Assets.GetTrace().Textures.IsEmpty());
+	// 不透明な中間画像の背景は不透明に限る。
+	FUiWorldPanel2D Opaque = OffscreenPanel(EUiPanelComposition::Opaque);
+	Opaque.Background = {0, 0, 0, 10};
+	REQUIRE(Host.SetWorldPanel2D(Id, Opaque));
+	REQUIRE(Renderer.BeginFrame(800, 600, {}));
+	REQUIRE(!Host.Draw(Renderer.GetContext()));
+	REQUIRE(Renderer.EndFrame());
+	// 画面の範囲が空なら、0x0の中間画像を作らず何も描かない。
+	FUiWorldPanel2D Empty = OffscreenPanel(EUiPanelComposition::Opaque);
+	Empty.WorldSize = {0, 0};
+	REQUIRE(Host.SetWorldPanel2D(Id, Empty));
+	REQUIRE(Renderer.BeginFrame(800, 600, {}));
+	REQUIRE(Host.Draw(Renderer.GetContext()));
+	REQUIRE(Renderer.EndFrame());
+	REQUIRE(Backend.Sprites.IsEmpty() && Backend.Assets.GetTrace().Textures.IsEmpty());
+}
+
+TEST("UI same root drawn as 2D offscreen and 3D transparent panels keeps separate textures and one input pass")
+{
+	FRecordingRenderer Backend;
+	Backend.Declared = TransparentCapabilities();
+	FAssetService Assets(Backend.Assets, Backend.Assets, Backend.Assets);
+	FUiRoot Root;
+	AddFill(Root, {10, 200, 30, 128});
+	FUiSceneHost Host;
+	const auto Id2D =
+	    Host.AddWorldPanel2D(Root, OffscreenPanel(EUiPanelComposition::Transparent), Assets, PixelOptions());
+	const auto Id3D =
+	    Host.AddWorldPanel3D(Root, PanelAt(0, 0, EUiPanelComposition::Transparent), Assets, PixelOptions());
+	FRenderSystem Renderer(Backend);
+	REQUIRE(Renderer.BeginFrame(800, 600, {}));
+	REQUIRE(Host.RenderWorldPanelTextures(Renderer.GetContext()));
+	FRenderView3D View;
+	View.Eye = {0, 0, -10};
+	REQUIRE(Renderer.GetContext().Get3D().SetView(View));
+	REQUIRE(Host.DrawWorldPanels3D(Renderer.GetContext(), View));
+	REQUIRE(Host.Draw(Renderer.GetContext()));
+	REQUIRE(Renderer.EndFrame());
+	// 表示先ごとの寸法の中間画像（2Dは画面の範囲160x80、3Dは指定の32x32）。
+	REQUIRE(Host.GetWorldPanelTexture(Id3D).GetWidth() == 32);
+	REQUIRE(Backend.Sprites.Size() == 1 && Backend.Sprites[0].Texture.GetWidth() == 160);
+	REQUIRE(Backend.Quads.Size() == 1 && Backend.Quads[0].bPremultipliedAlpha);
+	REQUIRE(Host.GetSurface(Id2D).IsPremultipliedAlpha() && Host.GetSurface(Id3D).IsPremultipliedAlpha());
+	// 二つの表示先でも、同じルートの入力と時間は1回だけ進む。
+	FHostInput Input;
+	(void)Input.Send(Host);
+	REQUIRE(Host.GetLastRouting().ProcessedRoots == 1);
+}

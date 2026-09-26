@@ -83,6 +83,22 @@ FUiWorldPanel3D DDisplayScene::MakeNearPanel() noexcept
 	return Panel;
 }
 
+FUiWorldPanel2D DDisplayScene::MakeOffscreenPanel2D() noexcept
+{
+	FUiWorldPanel2D Panel;
+	Panel.Transform.Origin = {0, 0};
+	Panel.Transform.PixelsPerUnit = 20;
+	Panel.Transform.bYUp = false;
+	Panel.WorldTopLeft = {static_cast<Toolbox::f32>(Offscreen2DRect.Left) / 20,
+	                      static_cast<Toolbox::f32>(Offscreen2DRect.Top) / 20};
+	Panel.WorldSize = {static_cast<Toolbox::f32>(Offscreen2DRect.Width()) / 20,
+	                   static_cast<Toolbox::f32>(Offscreen2DRect.Height()) / 20};
+	Panel.ScreenClip = {0, 0, 1280, 720};
+	Panel.bOffscreen = true;
+	Panel.Composition = EUiPanelComposition::Transparent;
+	return Panel;
+}
+
 Toolbox::FOBB DDisplayScene::MakeFrontBox() noexcept
 {
 	return Toolbox::FOBB{{-5, 0.5f, -2}, {0.6f, 0.6f, 0.6f}};
@@ -103,9 +119,13 @@ TResult<void> DDisplayScene::OnInitialize(const FInitContext& Context)
 	m_pOpaque = MakeRoot_Internal();
 	m_pFar = MakeRoot_Internal();
 	m_pNear = MakeRoot_Internal();
+	m_pOffscreen2D = MakeRoot_Internal();
 	// 全画面：右上・Viewportの境界をまたぐ位置・3Dのパネルの上に目印を置く（入力は受けない）。
-	const Toolbox::TArray<FUiRect, 3> Marks{FUiRect{1180, 20, 80, 40}, FUiRect{600, 680, 100, 30},
-	                                        FUiRect{200, 250, 40, 40}};
+	const Toolbox::TArray<FUiRect, 4> Marks{
+	    FUiRect{1180, 20, 80, 40}, FUiRect{600, 680, 100, 30}, FUiRect{200, 250, 40, 40},
+	    FUiRect{static_cast<Toolbox::f32>(OverlayMarkRect.Left), static_cast<Toolbox::f32>(OverlayMarkRect.Top),
+	            static_cast<Toolbox::f32>(OverlayMarkRect.Width()),
+	            static_cast<Toolbox::f32>(OverlayMarkRect.Height())}};
 	for (const FUiRect& Rect : Marks)
 	{
 		if (auto Added = AddPatch_Internal(*m_pOverlay, Rect, OverlayColor); !Added)
@@ -145,6 +165,26 @@ TResult<void> DDisplayScene::OnInitialize(const FInitContext& Context)
 		{
 			return Added;
 		}
+	}
+	// 中間画像を使う透明な2Dのパネル：透明な全面のボタン、上半分の半透明、その下の不透明の帯。
+	if (auto Added = AddButton_Internal(*m_pOffscreen2D, FColor{0, 0, 0, 0}, EDisplayButton::Offscreen2D); !Added)
+	{
+		return Added;
+	}
+	const Toolbox::f32 OffscreenWidth = static_cast<Toolbox::f32>(Offscreen2DRect.Width());
+	const Toolbox::f32 OffscreenHeight = static_cast<Toolbox::f32>(Offscreen2DRect.Height());
+	if (auto Added =
+	        AddPatch_Internal(*m_pOffscreen2D, {0, 0, OffscreenWidth, OffscreenHeight * 0.5f}, Offscreen2DSemiColor);
+	    !Added)
+	{
+		return Added;
+	}
+	if (auto Added =
+	        AddPatch_Internal(*m_pOffscreen2D, {0, OffscreenHeight * 0.5f, OffscreenWidth, OffscreenHeight * 0.25f},
+	                          Offscreen2DOpaqueColor);
+	    !Added)
+	{
+		return Added;
 	}
 	if (auto Added = AddButton_Internal(*m_pPanel2D, Panel2DColor, EDisplayButton::Panel2D); !Added)
 	{
@@ -188,7 +228,9 @@ TResult<void> DDisplayScene::OnInitialize(const FInitContext& Context)
 	m_Host.AddWorldPanel3D(*m_pOpaque, MakeOpaquePanel(), Context.Assets, PixelOptions_Internal(1, 0));
 	m_Host.AddWorldPanel3D(*m_pNear, MakeNearPanel(), Context.Assets, PixelOptions_Internal(1, 0));
 	m_Host.AddWorldPanel3D(*m_pFar, MakeFarPanel(), Context.Assets, PixelOptions_Internal(1, 0));
-	if (m_Host.GetDisplayCount() != 7)
+	// 全画面（5000）より前面に置き、全画面の目印の上へ合成する。
+	m_Host.AddWorldPanel2D(*m_pOffscreen2D, MakeOffscreenPanel2D(), Context.Assets, PixelOptions_Internal(1, 6000));
+	if (m_Host.GetDisplayCount() != 8)
 	{
 		return TResult<void>::Failure(EErrorCode::InvalidState, "display scene registration");
 	}

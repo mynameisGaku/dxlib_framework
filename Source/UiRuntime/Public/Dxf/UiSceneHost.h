@@ -56,6 +56,15 @@ public:
 	 */
 	FUiDisplayId AddWorldPanel2D(FUiRoot& Root, const FUiWorldPanel2D& Panel, const FUiDisplayOptions& Options = {});
 	/**
+	 * 2D世界の矩形のパネルの表示先を、中間画像を作る資源管理と共に加える（Panel.bOffscreenの中間画像に使う）。
+	 * @param Root ルート。
+	 * @param Panel パネル。
+	 * @param Assets 中間画像を作る資源管理（表示先より長く生存させる）。
+	 * @param Options 設定。
+	 */
+	FUiDisplayId AddWorldPanel2D(FUiRoot& Root, const FUiWorldPanel2D& Panel, FAssetService& Assets,
+	                             const FUiDisplayOptions& Options = {});
+	/**
 	 * 3D世界の平面のパネルの表示先を加える（描画先テクスチャは初回の描画で作る）。
 	 * @param Root ルート。
 	 * @param Panel パネル（四隅・テクスチャの大きさ・遮蔽の判定）。

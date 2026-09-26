@@ -30,6 +30,10 @@ enum class EDisplayButton : Toolbox::uint8
 	 */
 	Panel3D,
 	/**
+	 * 中間画像を使う透明な2Dのパネル。
+	 */
+	Offscreen2D,
+	/**
 	 * 欄の数。
 	 */
 	Count
@@ -88,6 +92,14 @@ public:
 	 */
 	static constexpr FColor NearColor{0, 64, 255, 96};
 	/**
+	 * 中間画像を使う透明な2Dのパネルの画面の範囲と、上半分の半透明・その下の不透明の帯の色（乗算前の値）。
+	 * 下の四分の一は透明。右半分の下には全画面の目印（OverlayMarkRect）があり、背景が二色になる。
+	 */
+	static constexpr FUiPixelRect Offscreen2DRect{700, 420, 900, 520};
+	static constexpr FColor Offscreen2DSemiColor{40, 200, 255, 128};
+	static constexpr FColor Offscreen2DOpaqueColor{250, 250, 250, 255};
+	static constexpr FUiPixelRect OverlayMarkRect{800, 430, 920, 540};
+	/**
 	 * 3DのView（画面全体、1280x720）。
 	 */
 	static FRenderView3D MakeView() noexcept;
@@ -108,6 +120,10 @@ public:
 	 * 手前の透明な3Dのパネル（x=4〜7、y=-1.5〜1、z=-2、全面が半透明）。
 	 */
 	static FUiWorldPanel3D MakeNearPanel() noexcept;
+	/**
+	 * 中間画像を使う透明な2Dのパネル（1単位20画素、Y下向き）。
+	 */
+	static FUiWorldPanel2D MakeOffscreenPanel2D() noexcept;
 	/**
 	 * 手前の不透明な箱（不透明なパネルの一部を隠す）。
 	 */
@@ -172,6 +188,7 @@ private:
 	Toolbox::TUniquePtr<FUiRoot> m_pOpaque;
 	Toolbox::TUniquePtr<FUiRoot> m_pFar;
 	Toolbox::TUniquePtr<FUiRoot> m_pNear;
+	Toolbox::TUniquePtr<FUiRoot> m_pOffscreen2D;
 	/**
 	 * 仲介（ルートより後に宣言し、先に破棄する）。
 	 */

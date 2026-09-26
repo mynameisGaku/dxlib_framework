@@ -52,6 +52,13 @@ FUiDisplayId FUiSceneHost::AddWorldPanel2D(FUiRoot& Root, const FUiWorldPanel2D&
 	const auto State = m_pState;
 	return State->AddWorldPanel2D(Root, Panel, Options);
 }
+// 独立した状態を保持して委譲する。
+FUiDisplayId FUiSceneHost::AddWorldPanel2D(FUiRoot& Root, const FUiWorldPanel2D& Panel, FAssetService& Assets,
+                                           const FUiDisplayOptions& Options)
+{
+	const auto State = m_pState;
+	return State->AddWorldPanel2D(Root, Panel, Assets, Options);
+}
 // 独立した状態を保持して委譲する。通知中にHostが破棄されてもthisへ戻らない。
 FUiDisplayId FUiSceneHost::AddWorldPanel3D(FUiRoot& Root, const FUiWorldPanel3D& Panel, FAssetService& Assets,
                                            const FUiDisplayOptions& Options)

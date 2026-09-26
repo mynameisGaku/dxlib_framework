@@ -80,6 +80,19 @@ FUiDisplayId FUiHostState::AddWorldPanel2D(FUiRoot& Root, const FUiWorldPanel2D&
 	Display.Panel2D = Panel;
 	return Add_Internal(Toolbox::Move(Display));
 }
+// 中間画像を作る資源管理と共に2Dのパネルを加える。
+FUiDisplayId FUiHostState::AddWorldPanel2D(FUiRoot& Root, const FUiWorldPanel2D& Panel, FAssetService& Assets,
+                                           const FUiDisplayOptions& Options)
+{
+	FDisplay Display;
+	Display.Kind = EUiDisplayKind::WorldPanel2D;
+	Display.Root = Root.GetHandle();
+	Display.RootIdentity = &Root;
+	Display.Options = Options;
+	Display.Panel2D = Panel;
+	Display.pAssets = &Assets;
+	return Add_Internal(Toolbox::Move(Display));
+}
 // 3Dのパネルを加える。
 FUiDisplayId FUiHostState::AddWorldPanel3D(FUiRoot& Root, const FUiWorldPanel3D& Panel, FAssetService& Assets,
                                            const FUiDisplayOptions& Options)
@@ -228,7 +241,17 @@ FUiSurface FUiHostState::MakeSurface_Internal(const FDisplay& Display) const noe
 	case EUiDisplayKind::Viewport:
 		return FUiSurface(Display.Rect, Display.Options.Scale);
 	case EUiDisplayKind::WorldPanel2D:
-		return FUiSurface(Display.Panel2D.GetPixelRect(), Display.Options.Scale);
+	{
+		if (!Display.Panel2D.bOffscreen)
+		{
+			return FUiSurface(Display.Panel2D.GetPixelRect(), Display.Options.Scale);
+		}
+		// 中間画像は画面の範囲と同じ画素数で、原点は中間画像の左上。
+		const FUiPixelRect Rect = Display.Panel2D.GetPixelRect();
+		FUiSurface Surface({0, 0, Rect.Width(), Rect.Height()}, Display.Options.Scale);
+		Surface.SetPremultipliedAlpha(Display.Panel2D.Composition == EUiPanelComposition::Transparent);
+		return Surface;
+	}
 	default:
 	{
 		FUiSurface Surface({0, 0, Display.Panel3D.TextureWidth, Display.Panel3D.TextureHeight}, Display.Options.Scale);
@@ -264,12 +287,23 @@ bool FUiHostState::MapPointer_Internal(const FDisplay& Display, FVector2 Screen,
 	}
 	if (Display.Kind != EUiDisplayKind::WorldPanel3D)
 	{
-		FUiPixelRect Area = Surface.GetPixelRect();
+		const bool bOffscreen2D = Display.Kind == EUiDisplayKind::WorldPanel2D && Display.Panel2D.bOffscreen;
+		// 中間画像を使う2Dのパネルは、画面の範囲の左上を中間画像の原点へ移してから論理座標へ変える。
+		FUiPixelRect Area = bOffscreen2D ? Display.Panel2D.GetPixelRect() : Surface.GetPixelRect();
 		if (Display.Kind == EUiDisplayKind::WorldPanel2D && !Display.Panel2D.ScreenClip.IsEmpty())
 		{
 			Area = Area.Intersect(Display.Panel2D.ScreenClip);
 		}
-		Out = Surface.ToLogical(Screen);
+		if (bOffscreen2D)
+		{
+			const FUiPixelRect Rect = Display.Panel2D.GetPixelRect();
+			Out = Surface.ToLogical(FVector2{Screen.X - static_cast<Toolbox::f32>(Rect.Left),
+			                                 Screen.Y - static_cast<Toolbox::f32>(Rect.Top)});
+		}
+		else
+		{
+			Out = Surface.ToLogical(Screen);
+		}
 		return Contains_Internal(Area, Screen);
 	}
 	// 3Dのパネル: Viewからの有限線分と平面の交点を、平面のUIの論理座標へ戻す（描画のUVと同じ対応）。

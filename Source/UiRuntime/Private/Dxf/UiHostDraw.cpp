@@ -7,8 +7,40 @@ namespace Dxf::Detail
 {
 namespace
 {
+// 中間画像を使う表示先の条件。
+struct FPanelTexture
+{
+	Toolbox::int32 Width = 0;
+	Toolbox::int32 Height = 0;
+	bool bTransparent = false;
+	FColor Background;
+	bool b3D = false;
+};
+
+FPanelTexture DescribeTexture_Internal(EUiDisplayKind Kind, const FUiWorldPanel2D& Panel2D,
+                                       const FUiWorldPanel3D& Panel3D)
+{
+	FPanelTexture Texture;
+	if (Kind == EUiDisplayKind::WorldPanel3D)
+	{
+		Texture.Width = Panel3D.TextureWidth;
+		Texture.Height = Panel3D.TextureHeight;
+		Texture.bTransparent = Panel3D.Composition == EUiPanelComposition::Transparent;
+		Texture.Background = Panel3D.Background;
+		Texture.b3D = true;
+		return Texture;
+	}
+	const FUiPixelRect Rect = Panel2D.GetPixelRect();
+	Texture.Width = Rect.Width();
+	Texture.Height = Rect.Height();
+	Texture.bTransparent = Panel2D.Composition == EUiPanelComposition::Transparent;
+	Texture.Background = Panel2D.Background;
+	return Texture;
+}
+
 // 透明な合成に必要な能力を確かめ、不足する能力と表示先を失敗に書く（描画を始める前）。
-TResult<void> CheckTransparentComposition_Internal(FUiDisplayId Id, const FRenderCapabilities& Capabilities)
+// 2Dのパネルは中間画像を2Dで貼るため、3Dの四角形の能力は要求しない。
+TResult<void> CheckTransparentComposition_Internal(FUiDisplayId Id, const FRenderCapabilities& Capabilities, bool b3D)
 {
 	Toolbox::FString Missing;
 	if (!Capabilities.bPremultipliedBlend2D)
@@ -19,11 +51,11 @@ TResult<void> CheckTransparentComposition_Internal(FUiDisplayId Id, const FRende
 	{
 		Missing += " alpha-target-clear";
 	}
-	if (!Capabilities.bTexturedQuads3D)
+	if (b3D && !Capabilities.bTexturedQuads3D)
 	{
 		Missing += " textured-quads-3d";
 	}
-	if (!Capabilities.bPremultipliedQuads3D)
+	if (b3D && !Capabilities.bPremultipliedQuads3D)
 	{
 		Missing += " premultiplied-quads-3d";
 	}
@@ -37,7 +69,114 @@ TResult<void> CheckTransparentComposition_Internal(FUiDisplayId Id, const FRende
 }
 } // namespace
 
-// それぞれの表示面へ描画する。借用Rootはコールバック後に必ず再解決する。
+// 表示先の中間画像を描く。借用Rootはコールバック後に必ず再解決する。
+TResult<bool> FUiHostState::RenderDisplayTexture_Internal(FRenderContext& Render, FDisplay& Display)
+{
+	const FPanelTexture Texture = DescribeTexture_Internal(Display.Kind, Display.Panel2D, Display.Panel3D);
+	if (Display.Kind == EUiDisplayKind::WorldPanel3D && (Texture.Width <= 0 || Texture.Height <= 0))
+	{
+		return TResult<bool>::Failure(EErrorCode::InvalidArgument, "Invalid UI panel texture size");
+	}
+	if (Texture.Width <= 0 || Texture.Height <= 0)
+	{
+		// 画面の範囲が空の2Dのパネルは描かない（0x0の中間画像を作らない）。
+		return TResult<bool>::Success(false);
+	}
+	if (!Texture.bTransparent && Texture.Background.A != 255)
+	{
+		return TResult<bool>::Failure(EErrorCode::InvalidArgument, "UI world panel background must be opaque");
+	}
+	if (Texture.bTransparent)
+	{
+		if (auto Capable = CheckTransparentComposition_Internal(Display.Id, Render.GetCapabilities(), Texture.b3D);
+		    !Capable)
+		{
+			return TResult<bool>::Failure(Capable.Error());
+		}
+	}
+	const FUiSurface Surface = MakeSurface_Internal(Display);
+	Display.Root.Get()->SetSurface(Surface);
+	auto Laid = Display.Root.Get()->Layout();
+	if (!Laid)
+	{
+		return TResult<bool>::Failure(Laid.Error());
+	}
+	if (m_bStopped || Display.Root.Get() == nullptr || Find_Internal(Display.Id) == nullptr)
+	{
+		return TResult<bool>::Success(false);
+	}
+	if (!Display.Texture.IsValid() || Display.Texture.GetWidth() != Texture.Width ||
+	    Display.Texture.GetHeight() != Texture.Height || Display.bTextureAlpha != Texture.bTransparent)
+	{
+		// 透明な合成ではアルファ付きの中間画像を使う。寸法・合成が変わったときだけ作り直す。
+		auto Created = Display.pAssets->CreateRenderTarget(Texture.Width, Texture.Height, Texture.bTransparent);
+		if (!Created)
+		{
+			return TResult<bool>::Failure(Created.Error());
+		}
+		Display.Texture = Created.Value();
+		Display.bTextureAlpha = Texture.bTransparent;
+		if (FDisplay* Live = Find_Internal(Display.Id))
+		{
+			Live->Texture = Display.Texture;
+			Live->bTextureAlpha = Texture.bTransparent;
+		}
+	}
+	m_DrawList.Clear();
+	auto Built = Display.Root.Get()->BuildDrawList(m_DrawList);
+	if (!Built)
+	{
+		return TResult<bool>::Failure(Built.Error());
+	}
+	if (m_bStopped || Display.Root.Get() == nullptr || Find_Internal(Display.Id) == nullptr)
+	{
+		return TResult<bool>::Success(false);
+	}
+	auto Previous = Render.GetRenderTarget();
+	if (!Previous)
+	{
+		return TResult<bool>::Failure(Previous.Error());
+	}
+	auto Switched = Render.SetRenderTarget(Display.Texture);
+	if (!Switched)
+	{
+		return TResult<bool>::Failure(Switched.Error());
+	}
+	TResult<void> Result;
+	try
+	{
+		// 透明な合成は(0,0,0,0)で消去し、乗算済みアルファの内容を蓄積する。
+		Result = Render.ClearTarget(Texture.bTransparent ? FColor{0, 0, 0, 0} : Texture.Background);
+		if (Result)
+		{
+			auto Submitted = SubmitUiDrawList(Render.Get2D(), m_DrawList, Surface, {0, 0});
+			if (!Submitted)
+			{
+				Result = TResult<void>::Failure(Submitted.Error());
+			}
+		}
+	}
+	catch (const Toolbox::FException& Error)
+	{
+		Result = TResult<void>::Failure(EErrorCode::UserException, Error.What());
+	}
+	catch (...)
+	{
+		Result = TResult<void>::Failure(EErrorCode::UserException, "UI texture drawing threw");
+	}
+	// 最初の失敗を保ったまま、呼出し前の描画先へ戻す。
+	const auto Back = Render.RestoreRenderTarget(Previous.Value());
+	if (!Result)
+	{
+		return TResult<bool>::Failure(Result.Error());
+	}
+	if (!Back)
+	{
+		return TResult<bool>::Failure(Back.Error());
+	}
+	return TResult<bool>::Success(true);
+}
+// 3Dのパネルの中間画像を描く。
 TResult<void> FUiHostState::RenderWorldPanelTextures(FRenderContext& Render)
 {
 	if (m_bStopped || m_bDrawing)
@@ -53,101 +192,10 @@ TResult<void> FUiHostState::RenderWorldPanelTextures(FRenderContext& Render)
 		{
 			continue;
 		}
-		if (Display.Panel3D.TextureWidth <= 0 || Display.Panel3D.TextureHeight <= 0)
+		auto Drawn = RenderDisplayTexture_Internal(Render, Display);
+		if (!Drawn)
 		{
-			return TResult<void>::Failure(EErrorCode::InvalidArgument, "Invalid UI panel texture size");
-		}
-		const bool bTransparent = Display.Panel3D.Composition == EUiPanelComposition::Transparent;
-		if (!bTransparent && Display.Panel3D.Background.A != 255)
-		{
-			return TResult<void>::Failure(EErrorCode::InvalidArgument, "UI world panel background must be opaque");
-		}
-		if (bTransparent)
-		{
-			if (auto Capable = CheckTransparentComposition_Internal(Display.Id, Render.GetCapabilities()); !Capable)
-			{
-				return Capable;
-			}
-		}
-		const FUiSurface Surface = MakeSurface_Internal(Display);
-		Display.Root.Get()->SetSurface(Surface);
-		auto Laid = Display.Root.Get()->Layout();
-		if (!Laid)
-		{
-			return Laid;
-		}
-		if (m_bStopped || Display.Root.Get() == nullptr || Find_Internal(Display.Id) == nullptr)
-		{
-			continue;
-		}
-		if (!Display.Texture.IsValid() || Display.Texture.GetWidth() != Display.Panel3D.TextureWidth ||
-		    Display.Texture.GetHeight() != Display.Panel3D.TextureHeight || Display.bTextureAlpha != bTransparent)
-		{
-			// 透明な合成ではアルファ付きの中間画像を使う。
-			auto Created = Display.pAssets->CreateRenderTarget(Display.Panel3D.TextureWidth,
-			                                                   Display.Panel3D.TextureHeight, bTransparent);
-			if (!Created)
-			{
-				return TResult<void>::Failure(Created.Error());
-			}
-			Display.Texture = Created.Value();
-			Display.bTextureAlpha = bTransparent;
-			if (FDisplay* Live = Find_Internal(Display.Id))
-			{
-				Live->Texture = Display.Texture;
-				Live->bTextureAlpha = bTransparent;
-			}
-		}
-		m_DrawList.Clear();
-		auto Built = Display.Root.Get()->BuildDrawList(m_DrawList);
-		if (!Built)
-		{
-			return Built;
-		}
-		if (m_bStopped || Display.Root.Get() == nullptr || Find_Internal(Display.Id) == nullptr)
-		{
-			continue;
-		}
-		auto Previous = Render.GetRenderTarget();
-		if (!Previous)
-		{
-			return TResult<void>::Failure(Previous.Error());
-		}
-		auto Switched = Render.SetRenderTarget(Display.Texture);
-		if (!Switched)
-		{
-			return Switched;
-		}
-		TResult<void> Result;
-		try
-		{
-			// 透明な合成は(0,0,0,0)で消去し、乗算済みアルファの内容を蓄積する。
-			Result = Render.ClearTarget(bTransparent ? FColor{0, 0, 0, 0} : Display.Panel3D.Background);
-			if (Result)
-			{
-				auto Submitted = SubmitUiDrawList(Render.Get2D(), m_DrawList, Surface, {0, 0});
-				if (!Submitted)
-				{
-					Result = TResult<void>::Failure(Submitted.Error());
-				}
-			}
-		}
-		catch (const Toolbox::FException& Error)
-		{
-			Result = TResult<void>::Failure(EErrorCode::UserException, Error.What());
-		}
-		catch (...)
-		{
-			Result = TResult<void>::Failure(EErrorCode::UserException, "UI texture drawing threw");
-		}
-		const auto Back = Render.RestoreRenderTarget(Previous.Value());
-		if (!Result)
-		{
-			return Result;
-		}
-		if (!Back)
-		{
-			return Back;
+			return TResult<void>::Failure(Drawn.Error());
 		}
 	}
 	return {};
@@ -239,9 +287,48 @@ TResult<void> FUiHostState::Draw(FRenderContext& Render)
 		{
 			continue;
 		}
-		if (Display.Kind == EUiDisplayKind::WorldPanel3D && Display.Panel3D.Background.A != 255)
+		if (Display.Kind == EUiDisplayKind::WorldPanel2D && Display.Panel2D.bOffscreen)
 		{
-			return TResult<void>::Failure(EErrorCode::InvalidArgument, "UI world panel background must be opaque");
+			// 中間画像へ描いてから、画面の範囲へ等倍で貼る（前後は他の2DのUIと同じLayer・受付順）。
+			if (Display.pAssets == nullptr)
+			{
+				return TResult<void>::Failure(EErrorCode::InvalidState, "Offscreen UI panel requires an asset service");
+			}
+			FDisplay Copy = Display;
+			auto Drawn = RenderDisplayTexture_Internal(Render, Copy);
+			if (!Drawn)
+			{
+				return TResult<void>::Failure(Drawn.Error());
+			}
+			if (!Drawn.Value())
+			{
+				continue;
+			}
+			const FUiPixelRect Rect = Copy.Panel2D.GetPixelRect();
+			FUiPixelRect Clip{0, 0, Render.GetTargetWidth(), Render.GetTargetHeight()};
+			Clip = Clip.Intersect(Rect);
+			if (!Copy.Panel2D.ScreenClip.IsEmpty())
+			{
+				Clip = Clip.Intersect(Copy.Panel2D.ScreenClip);
+			}
+			if (Clip.IsEmpty())
+			{
+				continue;
+			}
+			FSpriteDrawOptions Sprite;
+			Sprite.Layer = Copy.Options.Layer;
+			Sprite.Order = NextOrder++;
+			Sprite.bClip = true;
+			Sprite.ClipRect = {Clip.Left, Clip.Top, Clip.Right, Clip.Bottom};
+			Sprite.Blend = Copy.bTextureAlpha ? EBlendMode2D::PremultipliedAlpha : EBlendMode2D::Alpha;
+			auto Blitted = Render.Get2D().DrawSprite(
+			    Copy.Texture.AsTexture(), {static_cast<Toolbox::f32>(Rect.Left), static_cast<Toolbox::f32>(Rect.Top)},
+			    Sprite);
+			if (!Blitted)
+			{
+				return Blitted;
+			}
+			continue;
 		}
 		const FUiSurface Surface = MakeSurface_Internal(Display);
 		Display.Root.Get()->SetSurface(Surface);

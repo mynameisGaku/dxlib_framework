@@ -213,6 +213,28 @@ void VerifyImage_Internal(const FScreenCapture& Actual, const char* ProjectRoot)
 	Require_Internal(Checked >= 20 && Distinct >= 3, "real image samples cover several colors");
 }
 
+// 中間画像を使う透明な2Dのパネルの画素。背景は既知の二色（消去色・全面の目印）で、期待値は定数から求める。
+void VerifyOffscreen2D_Internal(const FScreenCapture& Actual)
+{
+	using S = DDisplayScene;
+	const Toolbox::int32 Left = S::Offscreen2DRect.Left;
+	const Toolbox::int32 Top = S::Offscreen2DRect.Top;
+	const FLinearColor OverClear = Over_Internal(S::Offscreen2DSemiColor, Linear_Internal(S::ClearColor));
+	const FLinearColor OverMark = Over_Internal(S::Offscreen2DSemiColor, Linear_Internal(S::OverlayColor));
+	RequireColor_Internal(Actual.Pixel(Left + 20, Top + 20), OverClear.R, OverClear.G, OverClear.B, BlendTolerance,
+	                      "2D offscreen semi-transparent over clear");
+	RequireColor_Internal(Actual.Pixel(Left + 150, Top + 30), OverMark.R, OverMark.G, OverMark.B, BlendTolerance,
+	                      "2D offscreen semi-transparent over overlay");
+	RequireColor_Internal(Actual.Pixel(Left + 50, Top + 62), S::Offscreen2DOpaqueColor, SampledTolerance,
+	                      "2D offscreen opaque strip");
+	RequireColor_Internal(Actual.Pixel(Left + 20, Top + 90), S::ClearColor, ExactTolerance,
+	                      "2D offscreen transparent pixel over clear");
+	RequireColor_Internal(Actual.Pixel(Left + 150, Top + 90), S::OverlayColor, ExactTolerance,
+	                      "2D offscreen transparent pixel over overlay");
+	RequireColor_Internal(Actual.Pixel(S::Offscreen2DRect.Right + 5, Top + 30), S::OverlayColor, ExactTolerance,
+	                      "2D offscreen right outside");
+}
+
 // 3Dのパネルの画素。Referenceはパネルを描かないフレーム。
 void VerifyPanels3D_Internal(const FScreenCapture& Actual, const FScreenCapture& Reference)
 {
@@ -344,6 +366,7 @@ void RunDisplayScenario(const char* ProjectRoot, const Toolbox::FPath& Out)
 	Actual.Save(Out / "ui-display-actual.png");
 	VerifyScreenDisplays_Internal(Actual);
 	VerifyImage_Internal(Actual, ProjectRoot);
+	VerifyOffscreen2D_Internal(Actual);
 	VerifyPanels3D_Internal(Actual, Reference);
 	// 既知の画素のクリックは、その表示先のルートだけへ届く。
 	struct FClickCase
@@ -351,9 +374,13 @@ void RunDisplayScenario(const char* ProjectRoot, const Toolbox::FPath& Out)
 		FPixel Pixel;
 		EDisplayButton Button;
 	};
-	const Toolbox::TArray<FClickCase, 5> Clicks{
-	    FClickCase{{320, 640}, EDisplayButton::Left}, FClickCase{{960, 640}, EDisplayButton::Right},
-	    FClickCase{{640, 600}, EDisplayButton::Left}, FClickCase{{820, 50}, EDisplayButton::Panel2D},
+	const Toolbox::TArray<FClickCase, 6> Clicks{
+	    FClickCase{{DDisplayScene::Offscreen2DRect.Left + 20, DDisplayScene::Offscreen2DRect.Top + 90},
+	               EDisplayButton::Offscreen2D},
+	    FClickCase{{320, 640}, EDisplayButton::Left},
+	    FClickCase{{960, 640}, EDisplayButton::Right},
+	    FClickCase{{640, 600}, EDisplayButton::Left},
+	    FClickCase{{820, 50}, EDisplayButton::Panel2D},
 	    FClickCase{Project_Internal({-7.5f, 0.5f, 0}), EDisplayButton::Panel3D}};
 	Toolbox::int32 Expected[static_cast<Toolbox::size_t>(EDisplayButton::Count)] = {};
 	for (const FClickCase& Case : Clicks)

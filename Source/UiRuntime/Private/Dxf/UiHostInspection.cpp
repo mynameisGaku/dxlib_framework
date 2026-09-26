@@ -7,7 +7,9 @@ namespace Dxf::Detail
 {
 FUiRect FUiHostState::MakeDisplayClip_Internal(const FDisplay& Display, const FUiSurface& Surface) const noexcept
 {
-	if (Display.Kind != EUiDisplayKind::WorldPanel2D || Display.Panel2D.ScreenClip.IsEmpty())
+	// 中間画像を使う2Dのパネルは、画面の切り抜きを貼るときに掛ける（中間画像の中には掛けない）。
+	if (Display.Kind != EUiDisplayKind::WorldPanel2D || Display.Panel2D.ScreenClip.IsEmpty() ||
+	    Display.Panel2D.bOffscreen)
 	{
 		return {};
 	}

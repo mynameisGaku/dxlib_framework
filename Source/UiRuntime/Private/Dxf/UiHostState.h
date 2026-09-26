@@ -48,6 +48,15 @@ public:
 	 */
 	FUiDisplayId AddWorldPanel2D(FUiRoot& Root, const FUiWorldPanel2D& Panel, const FUiDisplayOptions& Options = {});
 	/**
+	 * 2D世界の矩形のパネルの表示先を、中間画像を作る資源管理と共に加える（Panel.bOffscreenの中間画像に使う）。
+	 * @param Root ルート。
+	 * @param Panel パネル。
+	 * @param Assets 中間画像を作る資源管理（表示先より長く生存させる）。
+	 * @param Options 設定。
+	 */
+	FUiDisplayId AddWorldPanel2D(FUiRoot& Root, const FUiWorldPanel2D& Panel, FAssetService& Assets,
+	                             const FUiDisplayOptions& Options = {});
+	/**
 	 * 3D世界の平面のパネルの表示先を加える（描画先テクスチャは初回の描画で作る）。
 	 * @param Root ルート。
 	 * @param Panel パネル（四隅・テクスチャの大きさ・遮蔽の判定）。
@@ -216,6 +225,13 @@ private:
 	 * @param Surface 表示先の表示面。
 	 */
 	FUiRect MakeDisplayClip_Internal(const FDisplay& Display, const FUiSurface& Surface) const noexcept;
+	/**
+	 * 表示先（3Dのパネル、または中間画像を使う2Dのパネル）のUIを中間画像へ描き、呼出し前の描画先へ戻す。
+	 * 通知で表示先が外れた場合はfalse（描かずに続ける）。
+	 * @param Render 描画の窓口。
+	 * @param Display 表示先の値の写し（作り直した中間画像を書き戻す）。
+	 */
+	TResult<bool> RenderDisplayTexture_Internal(FRenderContext& Render, FDisplay& Display);
 	/**
 	 * 画面の点を表示先の論理座標へ変える（範囲外・背面・遮蔽ならfalse）。
 	 * @param Display 表示先。

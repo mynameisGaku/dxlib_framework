@@ -21,6 +21,7 @@ public:
 	Toolbox::TVector<FRenderView3D> Views;
 	Toolbox::TVector<FTexturedQuad3D> Quads;
 	Toolbox::TVector<Toolbox::FString> Texts;
+	Toolbox::TVector<FSpriteCommand> Sprites;
 	FRenderCapabilities Declared;
 	bool Clip = false;
 	bool ThrowSet = false;
@@ -121,8 +122,9 @@ public:
 		return {};
 	}
 
-	TResult<void> DrawSprite(const FSpriteCommand&) override
+	TResult<void> DrawSprite(const FSpriteCommand& Command) override
 	{
+		Sprites.PushBack(Command);
 		return {};
 	}
 

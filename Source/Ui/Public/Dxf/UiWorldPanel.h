@@ -9,6 +9,25 @@
 namespace Dxf
 {
 /**
+ * パネルの中間画像の合成（2Dは中間画像を使う場合、3Dは常に）。
+ */
+enum class EUiPanelComposition : Toolbox::uint8
+{
+	/**
+	 * 不透明な背景（Background）へ描き、平面全体を不透明に貼る（従来の既定）。
+	 */
+	Opaque,
+	/**
+	 * 透明な中間画像へ乗算済みアルファで描き、画素ごとの透明度で背後と合成する。
+	 * α=0の画素は深度を書かず背後の物体を隠さない。半透明の画素は、同じViewの先に描いた物体とだけ合成する
+	 * （パネルは同じViewの物体の後に描き、透明なパネル同士は奥から順に描く。交差する透明な形状の厳密な合成は対象外）。
+	 * 文字は乗算済みのフォント、画像は乗算済みで読んだ画像（FTextureLoadOptions::bPremultipliedAlpha）に限る。
+	 * 入力は描画の透明度に依らず、平面の範囲で受ける（透明な画素のクリック透過はしない）。
+	 */
+	Transparent
+};
+
+/**
  * 2D世界から画面への変換（拡大と平行移動。Y上向きの世界にも対応する）。
  */
 struct FUiWorldToScreen2D
@@ -57,28 +76,21 @@ struct FUiWorldPanel2D
 	 */
 	FUiPixelRect ScreenClip;
 	/**
+	 * 中間画像へ描いてから画面へ貼るか（既定は画面へ直接描く）。中間画像は画面の範囲と同じ画素数。
+	 */
+	bool bOffscreen = false;
+	/**
+	 * 中間画像の合成（bOffscreenのときだけ。Opaqueは下のBackground、Transparentは乗算済みアルファ）。
+	 */
+	EUiPanelComposition Composition = EUiPanelComposition::Opaque;
+	/**
+	 * Opaqueの中間画像の背景（A=255が必要）。
+	 */
+	FColor Background{0, 0, 0, 255};
+	/**
 	 * パネルが映る画面の画素の矩形。
 	 */
 	FUiPixelRect GetPixelRect() const noexcept;
-};
-
-/**
- * 3Dのパネルの中間画像の合成。
- */
-enum class EUiPanelComposition : Toolbox::uint8
-{
-	/**
-	 * 不透明な背景（Background）へ描き、平面全体を不透明に貼る（従来の既定）。
-	 */
-	Opaque,
-	/**
-	 * 透明な中間画像へ乗算済みアルファで描き、画素ごとの透明度で背後と合成する。
-	 * α=0の画素は深度を書かず背後の物体を隠さない。半透明の画素は、同じViewの先に描いた物体とだけ合成する
-	 * （パネルは同じViewの物体の後に描き、透明なパネル同士は奥から順に描く。交差する透明な形状の厳密な合成は対象外）。
-	 * 文字は乗算済みのフォント、画像は乗算済みで読んだ画像（FTextureLoadOptions::bPremultipliedAlpha）に限る。
-	 * 入力は描画の透明度に依らず、平面の範囲で受ける（透明な画素のクリック透過はしない）。
-	 */
-	Transparent
 };
 
 /**
