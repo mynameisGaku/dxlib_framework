@@ -55,6 +55,7 @@ private:
 	FUiScope m_Scope;
 	TUiRef<DUiPopup> m_Pause;
 	TUiRef<DUiPopup> m_Settings;
+	TUiRef<DUiPopup> m_Confirm;
 	Toolbox::TArray<TUiRef<DUiLabel>, 2> m_Markers;
 	Toolbox::TVector<FUiDisplayId> m_ChangingDisplays;
 	FUiDisplayId m_Screen = 0;

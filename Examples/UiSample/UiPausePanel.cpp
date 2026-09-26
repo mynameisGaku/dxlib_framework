@@ -40,7 +40,8 @@ void DUiPausePanel::OnAttach()
 	GetAttachScope().Add(m_Title.Get()->OnClicked().Subscribe(
 	    [State]()
 	    {
-		    State->Action = EUiSampleAction::Title;
+		    // タイトルへ戻る前に確認する。
+		    State->Action = EUiSampleAction::ConfirmTitle;
 	    }));
 }
 } // namespace Dxf::UiSample

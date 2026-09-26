@@ -3,6 +3,7 @@
 #include "UiTitleScreen.h"
 #include "UiPausePanel.h"
 #include "UiSettingsPanel.h"
+#include "UiConfirmPanel.h"
 #include "UiPlayerHud.h"
 #include "UiItemBrowser.h"
 #include "UiWorldControls.h"
@@ -52,6 +53,9 @@ TResult<void> FUiSampleShell::Initialize(DScene& Scene, FAssetService& Assets, b
 	m_Settings = m_pRoot->Create<DUiPopup>();
 	m_Settings.Get()->SetName("SettingsPopup");
 	m_Settings.Get()->SetContent(m_pRoot->Create<DUiSettingsPanel>(m_pState).Cast<DUiElement>());
+	m_Confirm = m_pRoot->Create<DUiPopup>();
+	m_Confirm.Get()->SetName("ConfirmPopup");
+	m_Confirm.Get()->SetContent(m_pRoot->Create<DUiConfirmPanel>(m_pState).Cast<DUiElement>());
 	m_Scope.Add(m_Pause.Get()->OnClosed().Subscribe(
 	    [this]()
 	    {
@@ -197,6 +201,13 @@ void FUiSampleShell::ExecuteAction(const FTickContext& Context)
 		break;
 	case EUiSampleAction::CloseSettings:
 		m_Settings.Get()->Close();
+		break;
+	case EUiSampleAction::ConfirmTitle:
+		// 一時停止の上に重ねて開く（いいえで一時停止へ戻る）。
+		Require_Internal(m_Confirm.Get()->Open());
+		break;
+	case EUiSampleAction::CancelConfirm:
+		m_Confirm.Get()->Close();
 		break;
 	case EUiSampleAction::PlaySound:
 		if (Context.Audio != nullptr)

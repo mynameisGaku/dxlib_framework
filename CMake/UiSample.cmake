@@ -2,6 +2,7 @@
 option(DXF_BUILD_UI_SAMPLE "Build the optional 2D/3D UI development sample" OFF)
 if(DXF_BUILD_TESTS OR DXF_BUILD_UI_SAMPLE OR DXF_BUILD_NATIVE_SMOKE)
     add_library(dxf_ui_sample STATIC
+        Examples/UiSample/UiConfirmPanel.cpp
         Examples/UiSample/UiItemBrowser.cpp
         Examples/UiSample/UiPausePanel.cpp
         Examples/UiSample/UiPlay2DScene.cpp

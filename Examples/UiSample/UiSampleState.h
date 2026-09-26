@@ -19,7 +19,9 @@ enum class EUiSampleAction : Toolbox::uint8
 	Settings,
 	CloseSettings,
 	PlaySound,
-	ReloadStyle
+	ReloadStyle,
+	ConfirmTitle,
+	CancelConfirm
 };
 /**
  * Scene間で共有するゲームの表示用状態。フレームワーク共通の設定管理ではない。

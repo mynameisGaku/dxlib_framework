@@ -10,6 +10,7 @@
 #include "UiPlay3DScene.h"
 #include "Dxf/Application.h"
 #include "Dxf/NativeBackends.h"
+#include "Dxf/UiSlider.h"
 #include "Toolbox/Platform.h"
 namespace
 {
@@ -101,6 +102,29 @@ void Click(FApplication& App, FFixedInput& Input, Toolbox::uint64& Frame, const 
 	Input.Raw.MouseButtons[0] = false;
 	Step(App, Frame);
 }
+// スライダーのつまみを、範囲の割合の位置まで実際のポインター操作で動かす。
+void DragSlider(FApplication& App, FFixedInput& Input, Toolbox::uint64& Frame, const char* Name, Toolbox::f64 Fraction)
+{
+	auto& Root = Shell(App).GetRoot();
+	auto* Slider = Root.GetTopModal() != nullptr ? dynamic_cast<DUiSlider*>(Find(*Root.GetTopModal(), Name)) : nullptr;
+	Check(Slider != nullptr, "UI slider unavailable");
+	const auto Thumb = Slider->GetThumbRect();
+	const auto Content = Slider->GetContentRect();
+	const Toolbox::f32 Span = Content.Width - Thumb.Width;
+	const auto From = Root.GetSurface().ToPixel(FVector2{Thumb.X + Thumb.Width * 0.5f, Thumb.Y + Thumb.Height * 0.5f});
+	const auto To = Root.GetSurface().ToPixel(FVector2{
+	    Content.X + Thumb.Width * 0.5f + static_cast<Toolbox::f32>(Fraction) * Span, Thumb.Y + Thumb.Height * 0.5f});
+	Input.Raw.MouseX = static_cast<Toolbox::int32>(From.X);
+	Input.Raw.MouseY = static_cast<Toolbox::int32>(From.Y);
+	Step(App, Frame);
+	Input.Raw.MouseButtons[0] = true;
+	Step(App, Frame);
+	Input.Raw.MouseX = static_cast<Toolbox::int32>(To.X);
+	Input.Raw.MouseY = static_cast<Toolbox::int32>(To.Y);
+	Step(App, Frame);
+	Input.Raw.MouseButtons[0] = false;
+	Step(App, Frame);
+}
 } // namespace
 
 int main(int Count, char** Args)
@@ -153,13 +177,23 @@ int main(int Count, char** Args)
 			Click(App, Input, Frame, "Pause");
 			Check(App.GetScenes().GetCurrent()->GetClock().IsPaused(), "pause");
 			Click(App, Input, Frame, "Settings");
-			State->Volume.Set(0.25);
-			Step(App, Frame);
+			// 状態を直接変えず、実際のスライダーとトグルを固定入力で操作する。
+			DragSlider(App, Input, Frame, "Volume", 0.25);
+			Check(State->Volume.Get() == 0.25, "volume slider drag");
+			Click(App, Input, Frame, "Split");
+			Check(!State->Split.Get(), "split toggle off");
+			Click(App, Input, Frame, "Split");
+			Check(State->Split.Get(), "split toggle on");
 			Click(App, Input, Frame, "CloseSettings");
 			Click(App, Input, Frame, "Resume");
 			Check(!App.GetScenes().GetCurrent()->GetClock().IsPaused(), "resume");
 			Click(App, Input, Frame, "Pause");
+			// タイトルへ戻る前の確認：いいえで一時停止へ戻り、はいでタイトルへ戻る。
 			Click(App, Input, Frame, "Title");
+			Click(App, Input, Frame, "ConfirmNo");
+			Check(App.GetScenes().GetCurrent()->GetClock().IsPaused(), "confirm cancel keeps pause");
+			Click(App, Input, Frame, "Title");
+			Click(App, Input, Frame, "ConfirmYes");
 			Step(App, Frame);
 			Check(dynamic_cast<DUiTitleScene*>(App.GetScenes().GetCurrent()) != nullptr, "return to title");
 			App.Shutdown();
