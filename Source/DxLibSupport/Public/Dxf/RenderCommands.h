@@ -6,6 +6,22 @@
 namespace Dxf
 {
 /**
+ * 2D命令の合成の方法。
+ */
+enum class EBlendMode2D : Toolbox::uint8
+{
+	/**
+	 * 通常の半透明合成（描画元はストレートアルファ）。
+	 */
+	Alpha,
+	/**
+	 * 乗算済みアルファの合成（描画元の色はアルファを掛け済み。結果 = 描画元 + 描画先×(1−α)）。
+	 * 文字は乗算済みのフォント、画像は乗算済みで読んだ画像か描画先テクスチャに限る。
+	 * アルファ付きの描画先へこの方法で描くと、描画先も乗算済みアルファの正しい内容になる。
+	 */
+	PremultipliedAlpha
+};
+/**
  * 描画色・不透明度・描画順序を管理する型。
  */
 struct FDrawStyle
@@ -35,6 +51,10 @@ struct FDrawStyle
 	 * ClipRectで切り抜くか。空の矩形は何も描かない（描画先全体とは扱わない）。
 	 */
 	bool bClip = false;
+	/**
+	 * 合成の方法。
+	 */
+	EBlendMode2D Blend = EBlendMode2D::Alpha;
 };
 /**
  * スプライトの変換と描画設定を管理する型。

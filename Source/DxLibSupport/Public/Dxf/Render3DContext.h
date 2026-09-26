@@ -28,6 +28,13 @@ public:
 	 */
 	TResult<void> SetView(const FRenderView3D& View);
 	/**
+	 * 現在のView（次の命令が属する区間のカメラ・表示設定）。
+	 */
+	FORCEINLINE const FRenderView3D& GetView() const noexcept
+	{
+		return m_View;
+	}
+	/**
 	 * @param Command CPU上の独立した形状と設定。
 	 */
 	TResult<void> Submit(FGeometryCommand3D Command);

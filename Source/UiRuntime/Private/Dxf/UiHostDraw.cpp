@@ -25,7 +25,8 @@ TResult<void> FUiHostState::RenderWorldPanelTextures(FRenderContext& Render)
 		{
 			return TResult<void>::Failure(EErrorCode::InvalidArgument, "Invalid UI panel texture size");
 		}
-		if (Display.Kind == EUiDisplayKind::WorldPanel3D && Display.Panel3D.Background.A != 255)
+		const bool bTransparent = Display.Panel3D.Composition == EUiPanelComposition::Transparent;
+		if (!bTransparent && Display.Panel3D.Background.A != 255)
 		{
 			return TResult<void>::Failure(EErrorCode::InvalidArgument, "UI world panel background must be opaque");
 		}
@@ -41,18 +42,21 @@ TResult<void> FUiHostState::RenderWorldPanelTextures(FRenderContext& Render)
 			continue;
 		}
 		if (!Display.Texture.IsValid() || Display.Texture.GetWidth() != Display.Panel3D.TextureWidth ||
-		    Display.Texture.GetHeight() != Display.Panel3D.TextureHeight)
+		    Display.Texture.GetHeight() != Display.Panel3D.TextureHeight || Display.bTextureAlpha != bTransparent)
 		{
-			auto Created =
-			    Display.pAssets->CreateRenderTarget(Display.Panel3D.TextureWidth, Display.Panel3D.TextureHeight, false);
+			// 透明な合成ではアルファ付きの中間画像を使う。
+			auto Created = Display.pAssets->CreateRenderTarget(Display.Panel3D.TextureWidth,
+			                                                   Display.Panel3D.TextureHeight, bTransparent);
 			if (!Created)
 			{
 				return TResult<void>::Failure(Created.Error());
 			}
 			Display.Texture = Created.Value();
+			Display.bTextureAlpha = bTransparent;
 			if (FDisplay* Live = Find_Internal(Display.Id))
 			{
 				Live->Texture = Display.Texture;
+				Live->bTextureAlpha = bTransparent;
 			}
 		}
 		m_DrawList.Clear();
@@ -78,7 +82,8 @@ TResult<void> FUiHostState::RenderWorldPanelTextures(FRenderContext& Render)
 		TResult<void> Result;
 		try
 		{
-			Result = Render.ClearTarget(Display.Panel3D.Background);
+			// 透明な合成は(0,0,0,0)で消去し、乗算済みアルファの内容を蓄積する。
+			Result = Render.ClearTarget(bTransparent ? FColor{0, 0, 0, 0} : Display.Panel3D.Background);
 			if (Result)
 			{
 				auto Submitted = SubmitUiDrawList(Render.Get2D(), m_DrawList, Surface, {0, 0});
@@ -117,23 +122,53 @@ TResult<void> FUiHostState::DrawWorldPanels3D(FRenderContext& Render, const FRen
 	}
 
 	TGuardValue Busy(m_bDrawing, true);
-	auto Applied = Render.Get3D().SetView(View);
-	if (!Applied)
+	// パネルは利用者のViewの区間へ加える（同じ区間の深度で手前の物体に隠れ、その区間の形状の後に描く）。
+	// ここでSetViewを呼ぶと別の区間になり、深度が消去されて手前の物体に隠れなくなる。
+	const FRenderView3D& Current = Render.Get3D().GetView();
+	if (Current.Id != View.Id || Current.Eye.X != View.Eye.X || Current.Eye.Y != View.Eye.Y ||
+	    Current.Eye.Z != View.Eye.Z || Current.Target.X != View.Target.X || Current.Target.Y != View.Target.Y ||
+	    Current.Target.Z != View.Target.Z)
 	{
-		return Applied;
+		return TResult<void>::Failure(EErrorCode::InvalidArgument,
+		                              "Set the same view with Get3D().SetView before drawing UI world panels");
 	}
+	// 不透明なパネルを登録順に描き、透明なパネルは視点から遠い順に描く（交差しない平面の前後を正しく合成する）。
+	Toolbox::TVector<const FDisplay*> Order;
 	for (const auto& Display : m_Displays)
 	{
-		if (Display.Kind != EUiDisplayKind::WorldPanel3D || Display.Root.Get() == nullptr || !Display.Texture.IsValid())
+		if (Display.Kind == EUiDisplayKind::WorldPanel3D && Display.Root.Get() != nullptr && Display.Texture.IsValid())
 		{
-			continue;
+			Order.PushBack(&Display);
 		}
+	}
+	auto Distance = [&View](const FDisplay* Display) -> Toolbox::f64
+	{
+		const FUiWorldPanel3D& Panel = Display->Panel3D;
+		const Toolbox::FVector3 Center = (Panel.TopRight + Panel.BottomLeft) * 0.5f;
+		const Toolbox::FVector3 Offset = Center - View.Eye;
+		return Toolbox::Dot(Offset, Offset);
+	};
+	Toolbox::StableSort(Order.Begin(), Order.End(),
+	                    [&](const FDisplay* A, const FDisplay* B)
+	                    {
+		                    const bool TransparentA = A->Panel3D.Composition == EUiPanelComposition::Transparent;
+		                    const bool TransparentB = B->Panel3D.Composition == EUiPanelComposition::Transparent;
+		                    if (TransparentA != TransparentB)
+		                    {
+			                    return !TransparentA;
+		                    }
+		                    return TransparentA && Distance(A) > Distance(B);
+	                    });
+	for (const FDisplay* Entry : Order)
+	{
+		const FDisplay& Display = *Entry;
 		FTexturedQuad3D Quad;
 		Quad.Texture = Display.Texture.AsTexture();
 		Quad.Corners = {Display.Panel3D.TopLeft, Display.Panel3D.TopRight, Display.Panel3D.BottomRight(),
 		                Display.Panel3D.BottomLeft};
 		Quad.Depth = Display.Panel3D.Depth;
 		Quad.bDoubleSided = Display.Panel3D.bDoubleSided;
+		Quad.bPremultipliedAlpha = Display.bTextureAlpha;
 		auto Drawn = Render.Get3D().DrawTexturedQuad(Quad);
 		if (!Drawn)
 		{

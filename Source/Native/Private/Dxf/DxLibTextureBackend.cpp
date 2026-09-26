@@ -8,8 +8,12 @@ namespace Dxf
 TResult<FTextureAllocation> FDxLibTextureBackend::LoadTexture(const Toolbox::FString& Path,
                                                               const FTextureLoadOptions& Options)
 {
+	// 乗算済みアルファへの変換は、この読込の間だけ有効にする。
+	const Toolbox::int32 PreviousPremultiplied = DxLib::GetUsePremulAlphaConvertLoad();
+	(void)DxLib::SetUsePremulAlphaConvertLoad(Options.bPremultipliedAlpha ? TRUE : FALSE);
 	// ハンドル。
 	const Toolbox::int32 Handle = DxLib::LoadGraph(Path.CStr(), Options.bUse3D ? FALSE : TRUE);
+	(void)DxLib::SetUsePremulAlphaConvertLoad(PreviousPremultiplied);
 	if (Handle < 0)
 	{
 		return TResult<FTextureAllocation>::Failure(EErrorCode::NotFound, "LoadGraph failed: " + Path);
@@ -38,8 +42,11 @@ TResult<FTextureAllocation> FDxLibTextureBackend::LoadTextureMemory(const void* 
 		return TResult<FTextureAllocation>::Failure(EErrorCode::InvalidArgument, "Invalid image memory range");
 	}
 	// LoadGraphのNotUse3DFlagとは逆向きの指定。どちらも既定で3D利用の形式になる。
+	const Toolbox::int32 PreviousPremultiplied = DxLib::GetUsePremulAlphaConvertLoad();
+	(void)DxLib::SetUsePremulAlphaConvertLoad(Options.bPremultipliedAlpha ? TRUE : FALSE);
 	const Toolbox::int32 Handle = DxLib::CreateGraphFromMem(Data, static_cast<Toolbox::int32>(Size), nullptr, 0,
 	                                                        Options.bUse3D ? TRUE : FALSE, FALSE);
+	(void)DxLib::SetUsePremulAlphaConvertLoad(PreviousPremultiplied);
 	if (Handle < 0)
 	{
 		return TResult<FTextureAllocation>::Failure(EErrorCode::BackendFailure, "CreateGraphFromMem failed");

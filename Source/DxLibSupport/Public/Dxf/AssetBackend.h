@@ -11,6 +11,10 @@ struct FTextureLoadOptions
 	 * 3D描画に使える形式で読み込むか。
 	 */
 	bool bUse3D = true;
+	/**
+	 * 読込時に乗算済みアルファ（色へアルファを掛けた形式）へ変換するか。乗算済みの合成（UIの透明なパネル等）で使う。
+	 */
+	bool bPremultipliedAlpha = false;
 };
 /**
  * テクスチャの確保結果と寸法を管理する型。
@@ -75,6 +79,10 @@ struct FFontOptions
 	 * 文字の縁を滑らかにするか。
 	 */
 	bool bAntialias = true;
+	/**
+	 * 文字の画像を乗算済みアルファで作るか。乗算済みの合成（UIの透明なパネル等）で使う。寸法は変わらない。
+	 */
+	bool bPremultipliedAlpha = false;
 };
 /**
  * テクスチャのネイティブ処理を管理する型。

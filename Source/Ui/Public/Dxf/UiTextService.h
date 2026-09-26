@@ -20,11 +20,16 @@ struct FUiFontKey
 	 */
 	Toolbox::int32 PixelSize = 20;
 	/**
+	 * 乗算済みアルファの文字の画像か（透明な中間画像へ描く表示面）。寸法は同じ。
+	 */
+	bool bPremultipliedAlpha = false;
+	/**
 	 * 値が同じか。
 	 */
 	bool operator==(const FUiFontKey& Other) const noexcept
 	{
-		return PixelSize == Other.PixelSize && Family == Other.Family;
+		return PixelSize == Other.PixelSize && bPremultipliedAlpha == Other.bPremultipliedAlpha &&
+		       Family == Other.Family;
 	}
 };
 

@@ -126,6 +126,10 @@ private:
 	 */
 	Toolbox::f32 m_LayoutScale = 0;
 	/**
+	 * 配置のフォントを乗算済みアルファで解決したか。
+	 */
+	bool m_bLayoutPremultiplied = false;
+	/**
 	 * 配置に使ったフォント。
 	 */
 	FFont m_Font;

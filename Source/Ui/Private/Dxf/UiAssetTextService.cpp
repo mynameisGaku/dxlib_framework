@@ -27,6 +27,7 @@ TResult<FFont> FUiAssetTextService::ResolveFont(const FUiFontKey& Key)
 	Options.Size = Key.PixelSize;
 	Options.Thickness = m_Thickness;
 	Options.bAntialias = m_bAntialias;
+	Options.bPremultipliedAlpha = Key.bPremultipliedAlpha;
 	auto Loaded = m_pAssets->LoadFont(Options);
 	if (!Loaded)
 	{

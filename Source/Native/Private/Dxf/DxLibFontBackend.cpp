@@ -6,10 +6,17 @@ namespace Dxf
 // @param Options 処理に適用する設定。
 TResult<Toolbox::int32> FDxLibFontBackend::CreateFont(const FFontOptions& Options)
 {
+	// 乗算済みの文字の画像は、このフォントの作成の間だけ有効にする（他のフォントの形式を変えない）。
+	const Toolbox::int32 PreviousPremultiplied = DxLib::GetFontCacheUsePremulAlphaFlag();
+	if (DxLib::SetFontCacheUsePremulAlphaFlag(Options.bPremultipliedAlpha ? TRUE : FALSE) < 0)
+	{
+		return TResult<Toolbox::int32>::Failure(EErrorCode::BackendFailure, "SetFontCacheUsePremulAlphaFlag failed");
+	}
 	// ハンドル。
 	const Toolbox::int32 Handle =
 	    DxLib::CreateFontToHandle(Options.Family.CStr(), Options.Size, Options.Thickness,
 	                              Options.bAntialias ? DX_FONTTYPE_ANTIALIASING_4X4 : DX_FONTTYPE_NORMAL);
+	(void)DxLib::SetFontCacheUsePremulAlphaFlag(PreviousPremultiplied);
 	return Handle < 0 ? TResult<Toolbox::int32>::Failure(EErrorCode::BackendFailure, "CreateFontToHandle failed")
 	                  : TResult<Toolbox::int32>::Success(Handle);
 }

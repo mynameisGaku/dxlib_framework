@@ -178,6 +178,21 @@ public:
 	 */
 	Toolbox::int32 ToFontPixelSize(Toolbox::f32 LogicalSize) const noexcept;
 	/**
+	 * 乗算済みアルファで描く表示面か（透明な中間画像）。文字は乗算済みのフォント、画像は乗算済みの画像で描く。
+	 */
+	FORCEINLINE bool IsPremultipliedAlpha() const noexcept
+	{
+		return m_bPremultipliedAlpha;
+	}
+	/**
+	 * 乗算済みアルファで描くかを設定する。
+	 * @param bPremultiplied 乗算済みで描くか。
+	 */
+	FORCEINLINE void SetPremultipliedAlpha(bool bPremultiplied) noexcept
+	{
+		m_bPremultipliedAlpha = bPremultiplied;
+	}
+	/**
 	 * 値が同じか。
 	 */
 	bool operator==(const FUiSurface&) const = default;
@@ -199,6 +214,10 @@ private:
 	 * 表示できるか。
 	 */
 	bool m_bDisplayable = false;
+	/**
+	 * 乗算済みアルファで描くか。
+	 */
+	bool m_bPremultipliedAlpha = false;
 };
 } // namespace Dxf
 #endif

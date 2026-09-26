@@ -51,13 +51,16 @@ void DUiLabel::OnStyleResolved()
 void DUiLabel::LayoutText_Internal(FUiLayoutContext& Context, Toolbox::int32 MaxWidth)
 {
 	const Toolbox::f32 Scale = Context.GetSurface().GetScale();
-	if (!m_bTextDirty && MaxWidth == m_LayoutMaxWidth && Scale == m_LayoutScale)
+	const bool bPremultiplied = Context.GetSurface().IsPremultipliedAlpha();
+	if (!m_bTextDirty && MaxWidth == m_LayoutMaxWidth && Scale == m_LayoutScale &&
+	    bPremultiplied == m_bLayoutPremultiplied)
 	{
 		return;
 	}
 	m_Layout = {};
 	m_LayoutMaxWidth = MaxWidth;
 	m_LayoutScale = Scale;
+	m_bLayoutPremultiplied = bPremultiplied;
 	m_FontFamily = GetStyle().FontFamily;
 	m_FontSize = GetStyle().FontSize;
 	if (m_Text.IsEmpty() || !Context.HasTextService())

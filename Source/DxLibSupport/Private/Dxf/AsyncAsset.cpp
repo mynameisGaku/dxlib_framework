@@ -156,7 +156,8 @@ TResult<FAsyncTexture> FAssetService::LoadTextureAsync(FTaskDispatcher& Dispatch
 		    Toolbox::FString("Texture path cannot resolve against root ") + m_Resolver.GetRoot().ToUtf8() + ": " + Path);
 	}
 	// 検索または入力のキー。
-	const Toolbox::FString Key = Resolved + (Options.bUse3D ? "|3d" : "|2d");
+	const Toolbox::FString Key =
+	    Resolved + (Options.bUse3D ? "|3d" : "|2d") + (Options.bPremultipliedAlpha ? "|pma" : "");
 	// 再利用可能なキャッシュを取得して有効性を確認する。
 	if (auto Cached = m_TextureCache.Find(Key))
 	{

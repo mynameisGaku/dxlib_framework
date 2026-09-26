@@ -192,6 +192,10 @@ private:
 		 */
 		FRenderTarget Texture;
 		/**
+		 * 描画先テクスチャがアルファ付き（透明な合成）か。
+		 */
+		bool bTextureAlpha = false;
+		/**
 		 * 3Dのパネルの描画先を作る資源管理。
 		 */
 		FAssetService* pAssets = nullptr;

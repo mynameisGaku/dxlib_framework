@@ -7,7 +7,8 @@ namespace Dxf
 // @param Allocation ネイティブリソースの確保結果。
 // @param bRenderTarget 描画先として確保したリソースか。
 TResult<Toolbox::TSharedPtr<FTextureResource>> FTextureLoader::Adopt_Internal(FTextureAllocation Allocation,
-                                                                              bool bRenderTarget)
+                                                                              bool bRenderTarget,
+                                                                              bool bPremultipliedAlpha)
 {
 	// ネイティブハンドルの解放を保証する所有者。
 	// @param Context 処理に必要な実行環境。
@@ -24,7 +25,8 @@ TResult<Toolbox::TSharedPtr<FTextureResource>> FTextureLoader::Adopt_Internal(FT
 	}
 	// 共有するリソース。
 	auto Resource = Toolbox::MakeShared<FTextureResource>(
-	    Toolbox::Move(Handle), FTextureMetadata{Allocation.Width, Allocation.Height, bRenderTarget});
+	    Toolbox::Move(Handle),
+	    FTextureMetadata{Allocation.Width, Allocation.Height, bRenderTarget, bPremultipliedAlpha});
 	if (!m_pRegistry->Register(Resource))
 	{
 		return TResult<Toolbox::TSharedPtr<FTextureResource>>::Failure(EErrorCode::InvalidState,
@@ -52,7 +54,7 @@ TResult<FTexture> FTextureLoader::Load(const Toolbox::FString& Path, const FText
 		return TResult<FTexture>::Failure(Allocation.Error());
 	}
 	// 共有するリソース。
-	auto Resource = Adopt_Internal(Allocation.Value(), false);
+	auto Resource = Adopt_Internal(Allocation.Value(), false, Options.bPremultipliedAlpha);
 	return Resource ? TResult<FTexture>::Success(FTexture(Toolbox::Move(Resource).Value()))
 	                : TResult<FTexture>::Failure(Resource.Error());
 }
@@ -78,7 +80,7 @@ TResult<FTexture> FTextureLoader::LoadMemory(const void* Data, Toolbox::size_t S
 		return TResult<FTexture>::Failure(Allocation.Error());
 	}
 	// 共有するリソース。
-	auto Resource = Adopt_Internal(Allocation.Value(), false);
+	auto Resource = Adopt_Internal(Allocation.Value(), false, Options.bPremultipliedAlpha);
 	return Resource ? TResult<FTexture>::Success(FTexture(Toolbox::Move(Resource).Value()))
 	                : TResult<FTexture>::Failure(Resource.Error());
 }

@@ -84,7 +84,8 @@ TResult<FTexture> FAssetService::LoadTexture(const Toolbox::FString& Path, const
 	// 正規化したパス。
 	const Toolbox::FString Normalized = Resolved;
 	// 検索または入力のキー。
-	const Toolbox::FString Key = Normalized + (Options.bUse3D ? "|3d" : "|2d");
+	const Toolbox::FString Key =
+	    Normalized + (Options.bUse3D ? "|3d" : "|2d") + (Options.bPremultipliedAlpha ? "|pma" : "");
 	// 再利用可能なキャッシュを取得して有効性を確認する。
 	if (auto Cached = m_TextureCache.Find(Key))
 	{
@@ -193,7 +194,7 @@ TResult<FFont> FAssetService::LoadFont(const FFontOptions& Options)
 	// 検索または入力のキー。
 	const Toolbox::FString Key = Toolbox::ToString(Options.Family.Size()) + ":" + Options.Family + "|" +
 	                             Toolbox::ToString(Options.Size) + "|" + Toolbox::ToString(Options.Thickness) +
-	                             (Options.bAntialias ? "|aa" : "|plain");
+	                             (Options.bAntialias ? "|aa" : "|plain") + (Options.bPremultipliedAlpha ? "|pma" : "");
 	// 再利用可能なキャッシュを取得して有効性を確認する。
 	if (auto Cached = m_FontCache.Find(Key))
 	{

@@ -44,7 +44,8 @@ private:
 	 * @param Allocation ネイティブリソースの確保結果。
 	 * @param bRenderTarget 描画先として確保したリソースか。
 	 */
-	TResult<Toolbox::TSharedPtr<FTextureResource>> Adopt_Internal(FTextureAllocation Allocation, bool bRenderTarget);
+	TResult<Toolbox::TSharedPtr<FTextureResource>> Adopt_Internal(FTextureAllocation Allocation, bool bRenderTarget,
+	                                                              bool bPremultipliedAlpha = false);
 	/**
 	 * ネイティブ処理の呼び出し先。
 	 */

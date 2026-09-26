@@ -72,7 +72,8 @@ if(DXF_BUILD_TESTS)
 endif()
 
 if(DXF_BUILD_TESTS)
-    add_executable(dxf_ui_runtime_tests Tests/TestMain.cpp Tests/Ui/UiHostTests.cpp)
+    add_executable(dxf_ui_runtime_tests Tests/TestMain.cpp Tests/Ui/UiHostTests.cpp Tests/Ui/UiHostOwnershipTests.cpp
+        Tests/Ui/UiHostCompositionTests.cpp)
     target_link_libraries(dxf_ui_runtime_tests PRIVATE dxf::ui_runtime)
     target_include_directories(dxf_ui_runtime_tests PRIVATE Tests)
     dxf_ide_headers(dxf_ui_runtime_tests Tests/Ui)

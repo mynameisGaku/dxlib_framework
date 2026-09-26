@@ -21,6 +21,7 @@ TResult<void> FDxLibRenderBackend::SetTarget(Toolbox::int32 Handle, Toolbox::int
 	{
 		return Target;
 	}
+	m_CurrentTarget = Handle;
 	m_Width2D = Width;
 	m_Height2D = Height;
 	return Detail::CheckNative_Internal(DxLib::SetDrawArea(0, 0, Width, Height), "SetDrawArea failed");
@@ -61,13 +62,15 @@ TResult<void> FDxLibRenderBackend::ResetState(Toolbox::int32 Width, Toolbox::int
 // @param Color 描画色。
 TResult<void> FDxLibRenderBackend::Clear(FColor Color)
 {
-	if (Color.A != 255)
+	// 画面（バックバッファ）はRGBだけ。透明な消去はアルファ付きの描画先テクスチャ（UIのパネル等）に限る。
+	if (Color.A != 255 && m_CurrentTarget < 0)
 	{
-		return TResult<void>::Failure(EErrorCode::InvalidArgument, "Native Clear accepts RGB only (A must be 255)");
+		return TResult<void>::Failure(EErrorCode::InvalidArgument,
+		                              "Native Clear accepts RGB only on the back buffer (A must be 255)");
 	}
 	// 背景の描画設定または設定結果。
-	auto Background =
-	Detail::CheckNative_Internal(DxLib::SetBackgroundColor(Color.R, Color.G, Color.B), "SetBackgroundColor failed");
+	auto Background = Detail::CheckNative_Internal(DxLib::SetBackgroundColor(Color.R, Color.G, Color.B, Color.A),
+	                                               "SetBackgroundColor failed");
 	if (!Background)
 	{
 		return Background;
@@ -86,9 +89,12 @@ TResult<void> FDxLibRenderBackend::ApplyStyle_Internal(const FDrawStyle& Style, 
 	// アルファ値または透過の使用設定。
 	const Toolbox::int32 Alpha =
 	static_cast<Toolbox::int32>(Toolbox::RoundToLong(static_cast<Toolbox::f32>(Style.Color.A) * Style.Opacity));
-	if (DxLib::SetDrawBlendMode(DX_BLENDMODE_ALPHA, Alpha) < 0 ||
-	DxLib::SetDrawBright(bSprite ? Style.Color.R : 255, bSprite ? Style.Color.G : 255,
-	bSprite ? Style.Color.B : 255) < 0)
+	// 乗算済みの合成は、描画元の色が乗算済み（文字・画像）または定数の色へαを掛ける（矩形等）ことで正しくなる。
+	const Toolbox::int32 Mode =
+	    Style.Blend == EBlendMode2D::PremultipliedAlpha ? DX_BLENDMODE_PMA_ALPHA : DX_BLENDMODE_ALPHA;
+	if (DxLib::SetDrawBlendMode(Mode, Alpha) < 0 ||
+	    DxLib::SetDrawBright(bSprite ? Style.Color.R : 255, bSprite ? Style.Color.G : 255,
+	                         bSprite ? Style.Color.B : 255) < 0)
 	{
 		return TResult<void>::Failure(EErrorCode::BackendFailure, "Draw style application failed");
 	}

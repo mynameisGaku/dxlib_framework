@@ -63,6 +63,25 @@ struct FUiWorldPanel2D
 };
 
 /**
+ * 3Dのパネルの中間画像の合成。
+ */
+enum class EUiPanelComposition : Toolbox::uint8
+{
+	/**
+	 * 不透明な背景（Background）へ描き、平面全体を不透明に貼る（従来の既定）。
+	 */
+	Opaque,
+	/**
+	 * 透明な中間画像へ乗算済みアルファで描き、画素ごとの透明度で背後と合成する。
+	 * α=0の画素は深度を書かず背後の物体を隠さない。半透明の画素は、同じViewの先に描いた物体とだけ合成する
+	 * （パネルは同じViewの物体の後に描き、透明なパネル同士は奥から順に描く。交差する透明な形状の厳密な合成は対象外）。
+	 * 文字は乗算済みのフォント、画像は乗算済みで読んだ画像（FTextureLoadOptions::bPremultipliedAlpha）に限る。
+	 * 入力は描画の透明度に依らず、平面の範囲で受ける（透明な画素のクリック透過はしない）。
+	 */
+	Transparent
+};
+
+/**
  * 3D世界の平面のパネル（平行四辺形）。同じルートをテクスチャへ描き、その画像を平面へ貼る。
  * 表面は右（左上→右上）と下（左上→左下）の外積の向き。既定では表面からの入力だけを受ける。
  */
@@ -106,6 +125,10 @@ struct FUiWorldPanel3D
 	 * 透明なRenderTargetの合成規約を既存Rendererへ暗黙に追加しない。
 	 */
 	FColor Background{0, 0, 0, 255};
+	/**
+	 * 中間画像の合成（Opaqueは上のBackground、Transparentは透明な中間画像）。
+	 */
+	EUiPanelComposition Composition = EUiPanelComposition::Opaque;
 	/**
 	 * 右下の角。
 	 */

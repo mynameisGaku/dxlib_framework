@@ -187,6 +187,10 @@ struct FTexturedQuad3D
 	 * 裏面も描くか（偽なら表面だけ）。
 	 */
 	bool bDoubleSided = true;
+	/**
+	 * テクスチャが乗算済みアルファか（透明なUIのパネル）。真なら乗算済みの合成で描き、α=0の画素は深度も書かない。
+	 */
+	bool bPremultipliedAlpha = false;
 };
 bool IsValidGeometry3D(const FGeometryCommand3D& Geometry) noexcept;
 /**

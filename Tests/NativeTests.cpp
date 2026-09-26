@@ -183,6 +183,52 @@ TEST("Native clear does not silently claim arbitrary alpha clear support")
 	FDxLibRenderBackend Backend;
 	REQUIRE(!Backend.Clear({1, 2, 3, 64}));
 	REQUIRE(Backend.Clear({1, 2, 3, 255}));
+	// 描画先の画像（アルファ付き）では透明な消去を受ける。画面へ戻すと再び拒否する。
+	REQUIRE(Backend.SetTarget(5, 64, 64));
+	REQUIRE(Backend.Clear({0, 0, 0, 0}));
+	REQUIRE(Backend.SetTarget(-1, 640, 480));
+	REQUIRE(!Backend.Clear({0, 0, 0, 0}));
+}
+TEST("Native premultiplied alpha draws only premultiplied resources and restores load flags")
+{
+	DxLib::Trace = {};
+	DxLib::TestLoadPremultiplied = 0;
+	DxLib::TestFontPremultiplied = 0;
+	// 検証用のバックエンド群と資源管理。
+	FDxLibBackends Backends;
+	auto Services = Backends.GetServices();
+	FAssetService Assets(Services.Textures, Services.Sounds, Services.Fonts);
+	FTextureLoadOptions Premultiplied;
+	Premultiplied.bPremultipliedAlpha = true;
+	auto Straight = Assets.LoadTexture("sprite.bmp").Value();
+	auto Converted = Assets.LoadTexture("sprite.bmp", Premultiplied).Value();
+	// 読込の設定は読込の間だけ変え、元へ戻す。同じパスでも別の資源になる。
+	REQUIRE(DxLib::TestLoadPremultiplied == 0);
+	REQUIRE(Converted.IsPremultipliedAlpha() && !Straight.IsPremultipliedAlpha());
+	REQUIRE(Converted.GetNativeHandle_Internal() != Straight.GetNativeHandle_Internal());
+	FFontOptions FontOptions;
+	FontOptions.bPremultipliedAlpha = true;
+	auto PremultipliedFont = Assets.LoadFont(FontOptions).Value();
+	auto StraightFont = Assets.LoadFont().Value();
+	REQUIRE(DxLib::TestFontPremultiplied == 0);
+	FRenderSystem Renderer(Services.Renderer);
+	REQUIRE(Renderer.BeginFrame(640, 480));
+	FSpriteDrawOptions Style;
+	Style.Blend = EBlendMode2D::PremultipliedAlpha;
+	// 乗算前の画像・文字を乗算済みの合成で描くと二重に不透明度が掛かるため拒否する。
+	REQUIRE(!Renderer.GetContext().Get2D().DrawSprite(Straight, {0, 0}, Style));
+	REQUIRE(!Renderer.GetContext().Get2D().DrawText(StraightFont, "文字", {0, 0}, Style));
+	REQUIRE(Renderer.GetContext().Get2D().DrawSprite(Converted, {0, 0}, Style));
+	REQUIRE(Renderer.Flush());
+	REQUIRE(DxLib::TestBlendMode == DX_BLENDMODE_PMA_ALPHA);
+	REQUIRE(Renderer.GetContext().Get2D().DrawText(PremultipliedFont, "文字", {0, 0}, Style));
+	REQUIRE(Renderer.Flush());
+	REQUIRE(DxLib::TestBlendMode == DX_BLENDMODE_PMA_ALPHA);
+	// 既定の合成へ戻る。
+	REQUIRE(Renderer.GetContext().Get2D().DrawSprite(Straight, {0, 0}));
+	REQUIRE(Renderer.Flush());
+	REQUIRE(DxLib::TestBlendMode == DX_BLENDMODE_ALPHA);
+	REQUIRE(Renderer.EndFrame());
 }
 namespace
 {

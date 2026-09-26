@@ -457,7 +457,7 @@ TResult<FFont> FUiLayoutContext::ResolveFont(const Toolbox::FString& Family, Too
 	{
 		return TResult<FFont>::Failure(EErrorCode::InvalidState, "UI text service is not set");
 	}
-	return m_pText->ResolveFont({Family, m_pSurface->ToFontPixelSize(LogicalSize)});
+	return m_pText->ResolveFont({Family, m_pSurface->ToFontPixelSize(LogicalSize), m_pSurface->IsPremultipliedAlpha()});
 }
 // 文字を配置する。
 TResult<FUiTextLayoutResult> FUiLayoutContext::LayoutText(const FFont& Font, const Toolbox::FString& Text,

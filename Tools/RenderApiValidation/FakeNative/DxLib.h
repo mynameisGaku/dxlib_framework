@@ -6,6 +6,7 @@
 #define DX_SCREEN_BACK -2
 #define DX_BLENDMODE_NOBLEND 0
 #define DX_BLENDMODE_ALPHA 1
+#define DX_BLENDMODE_PMA_ALPHA 17
 #define DX_DRAWMODE_BILINEAR 1
 namespace DxLib
 {
@@ -39,7 +40,10 @@ inline Toolbox::int32 SetUseZBufferFlag(Toolbox::int32) { return 0; }
 inline Toolbox::int32 SetWriteZBufferFlag(Toolbox::int32) { return 0; }
 inline Toolbox::int32 SetUseVertexShader(Toolbox::int32) { return 0; }
 inline Toolbox::int32 SetUsePixelShader(Toolbox::int32) { return 0; }
-inline Toolbox::int32 SetBackgroundColor(Toolbox::int32, Toolbox::int32, Toolbox::int32) { return 0; }
+inline Toolbox::int32 SetBackgroundColor(Toolbox::int32, Toolbox::int32, Toolbox::int32, Toolbox::int32 = 0)
+{
+	return 0;
+}
 inline Toolbox::int32 ClearDrawScreen() { return 0; }
 inline Toolbox::uint32 GetColor(Toolbox::int32 R, Toolbox::int32 G, Toolbox::int32 B)
 { return (static_cast<Toolbox::uint32>(R) << 16) | (static_cast<Toolbox::uint32>(G) << 8) | static_cast<Toolbox::uint32>(B); }

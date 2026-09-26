@@ -195,6 +195,13 @@ TResult<void> FDxLibRenderBackend::DrawTexturedQuad3D(const FTexturedQuad3D& Qua
 	{
 		return TResult<void>::Failure(EErrorCode::BackendFailure, "Quad state failed");
 	}
+	// 乗算済みのテクスチャは乗算済みの合成で描き、α=0の画素は捨てる（透明な部分で背後の深度を書かない）。
+	if (Quad.bPremultipliedAlpha && (DxLib::SetDrawBlendMode(DX_BLENDMODE_PMA_ALPHA, Quad.Tint.A) < 0 ||
+	                                 DxLib::SetDrawAlphaTest(DX_CMP_GREATER, 0) < 0))
+	{
+		(void)DxLib::SetDrawAlphaTest(-1, 0);
+		return TResult<void>::Failure(EErrorCode::BackendFailure, "Premultiplied quad state failed");
+	}
 	// 頂点（左上・右上・右下・左下）とテクスチャ座標。
 	const Toolbox::f32 U[4] = {0, 1, 1, 0};
 	const Toolbox::f32 V[4] = {0, 0, 1, 1};
@@ -218,6 +225,11 @@ TResult<void> FDxLibRenderBackend::DrawTexturedQuad3D(const FTexturedQuad3D& Qua
 	}
 	auto Drawn = Detail::CheckNative_Internal(DxLib::DrawPolygon3D(Vertices, 2, Quad.Texture.GetNativeHandle_Internal(), TRUE),
 	                                          "DrawPolygon3D failed");
+	// アルファテストは既定へ戻す（最初の失敗を保つ）。
+	if (Quad.bPremultipliedAlpha && DxLib::SetDrawAlphaTest(-1, 0) < 0 && Drawn)
+	{
+		return TResult<void>::Failure(EErrorCode::BackendFailure, "Alpha test restore failed");
+	}
 	// 同じビューの基本形状はCPU側で照明済みなので、照明無効を維持する。
 	if (DxLib::SetUseLighting(FALSE) < 0 && Drawn)
 	{

@@ -37,6 +37,10 @@ TResult<void> FRenderQueue2D::Validate_Internal(const FRenderCommand& Command) c
 		{
 			return TResult<void>::Failure(EErrorCode::InvalidArgument, "Invalid draw style");
 		}
+		if (Value.Options.Blend != EBlendMode2D::Alpha && Value.Options.Blend != EBlendMode2D::PremultipliedAlpha)
+		{
+			return TResult<void>::Failure(EErrorCode::InvalidArgument, "Invalid blend mode");
+		}
 		if (Value.Options.bClip &&
 		    (Value.Options.ClipRect.Right < Value.Options.ClipRect.Left || Value.Options.ClipRect.Bottom < Value.Options.ClipRect.Top))
 		{
@@ -54,6 +58,14 @@ TResult<void> FRenderQueue2D::Validate_Internal(const FRenderCommand& Command) c
 			{
 				return TResult<void>::Failure(EErrorCode::InvalidArgument, "Render target feedback is forbidden");
 			}
+			// 乗算済みの合成は、乗算済みで読んだ画像か描画先テクスチャに限る（ストレートの画像を黙って誤合成しない）。
+			const FTextureMetadata& Texture = Value.Texture.GetResource_Internal()->GetMetadata();
+			if (Value.Options.Blend == EBlendMode2D::PremultipliedAlpha && !Texture.bPremultipliedAlpha &&
+			    !Texture.bRenderTarget)
+			{
+				return TResult<void>::Failure(EErrorCode::InvalidArgument,
+				                              "Premultiplied blend requires a premultiplied texture");
+			}
 			if (!Finite_Internal(Value.Position) || !Finite_Internal(Value.Options.Scale) ||
 			!Finite_Internal(Value.Options.Pivot) || !Toolbox::IsFinite(Value.Options.RotationRadians))
 			{
@@ -65,6 +77,12 @@ TResult<void> FRenderQueue2D::Validate_Internal(const FRenderCommand& Command) c
 			if (!Value.Font.IsValid())
 			{
 				return TResult<void>::Failure(EErrorCode::InvalidState, "Font was invalidated");
+			}
+			if (Value.Options.Blend == EBlendMode2D::PremultipliedAlpha &&
+			    !Value.Font.GetResource_Internal()->GetMetadata().bPremultipliedAlpha)
+			{
+				return TResult<void>::Failure(EErrorCode::InvalidArgument,
+				                              "Premultiplied blend requires a premultiplied font");
 			}
 			if (!Detail::IsValidNativeString_Internal(Value.Text, true))
 			{

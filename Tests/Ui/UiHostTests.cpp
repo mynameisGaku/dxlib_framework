@@ -231,6 +231,11 @@ TEST("UI world texture returns to caller target and quad uses explicit view")
 	REQUIRE(Renderer.GetContext().GetTargetWidth() == 700);
 	FRenderView3D View;
 	View.Eye = {0, 1, -7};
+	// パネルは利用者が設定したViewの区間へ描く（別のViewを渡すと拒否する）。
+	FRenderView3D Other = View;
+	Other.Eye.Z = -9;
+	REQUIRE(Renderer.GetContext().Get3D().SetView(View));
+	REQUIRE(!Host.DrawWorldPanels3D(Renderer.GetContext(), Other));
 	REQUIRE(Host.DrawWorldPanels3D(Renderer.GetContext(), View));
 	REQUIRE(Renderer.EndFrame());
 	REQUIRE(Backend.Views.Size() == 1 && Backend.Views[0].Eye.Z == -7);

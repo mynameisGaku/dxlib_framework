@@ -5,6 +5,7 @@
 #include "Toolbox/Utility.h"
 #include "Toolbox/Vector.h"
 #define DX_CMP_LESSEQUAL 4
+#define DX_CMP_GREATER 5
 #define DX_CMP_ALWAYS 8
 #define DX_BLENDMODE_DESTCOLOR 8
 #define DX_DIRECT3D_11 3
@@ -136,6 +137,15 @@ inline COLOR_U8 GetColorU8(Toolbox::int32 R, Toolbox::int32 G, Toolbox::int32 B,
  */
 inline Toolbox::int32 TestPolygons3D = 0;
 inline VERTEX3D TestQuadVertices[6]{};
+/**
+ * アルファテストの設定を記録する（-1は既定へ戻す）。
+ */
+inline Toolbox::int32 TestAlphaTest = -1;
+inline Toolbox::int32 SetDrawAlphaTest(Toolbox::int32 Mode, Toolbox::int32)
+{
+	TestAlphaTest = Mode;
+	return ViewCall_Internal();
+}
 inline Toolbox::int32 DrawPolygon3D(const VERTEX3D* Vertices, Toolbox::int32 Count, Toolbox::int32, Toolbox::int32)
 {
 	TestPolygons3D += Count;

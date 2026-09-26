@@ -56,7 +56,8 @@ endif()
 
 if(DXF_BUILD_NATIVE_SMOKE)
     add_executable(NativeUiSmoke Tests/UiNativeSmoke/Main.cpp
-        Tests/UiNativeSmoke/ForwardRenderer.cpp Tests/UiNativeSmoke/NativePixels.cpp)
+        Tests/UiNativeSmoke/ForwardRenderer.cpp Tests/UiNativeSmoke/NativePixels.cpp
+        Tests/UiNativeSmoke/DisplayScene.cpp Tests/UiNativeSmoke/DisplayScenario.cpp Tests/UiNativeSmoke/ScreenCapture.cpp)
     target_link_libraries(NativeUiSmoke PRIVATE dxf_ui_sample dxf::native)
     target_compile_definitions(NativeUiSmoke PRIVATE DX_NON_USING_NAMESPACE_DXLIB NOMINMAX)
     if(MSVC)

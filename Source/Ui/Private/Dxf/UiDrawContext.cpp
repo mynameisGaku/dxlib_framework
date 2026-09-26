@@ -78,6 +78,6 @@ TResult<FFont> FUiDrawContext::ResolveFont(const Toolbox::FString& Family, Toolb
 	{
 		return TResult<FFont>::Failure(EErrorCode::InvalidState, "UI text service is not set");
 	}
-	return m_pText->ResolveFont({Family, m_pSurface->ToFontPixelSize(LogicalSize)});
+	return m_pText->ResolveFont({Family, m_pSurface->ToFontPixelSize(LogicalSize), m_pSurface->IsPremultipliedAlpha()});
 }
 } // namespace Dxf

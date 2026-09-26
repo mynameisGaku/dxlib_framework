@@ -168,6 +168,10 @@ private:
 	 */
 	Toolbox::int32 m_Height2D = 0;
 	/**
+	 * 現在の描画先のハンドル（負は画面）。
+	 */
+	Toolbox::int32 m_CurrentTarget = -1;
+	/**
 	 * GPUモデル照明に使う、開始時点のビュー。
 	 */
 	FRenderView3D m_ModelView;

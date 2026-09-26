@@ -13,6 +13,7 @@
 #define DX_DRAWMODE_BILINEAR 1007
 #define DX_BLENDMODE_NOBLEND 1008
 #define DX_BLENDMODE_ALPHA 1009
+#define DX_BLENDMODE_PMA_ALPHA 1017
 #define KEY_INPUT_A 0
 #define KEY_INPUT_B 1
 #define KEY_INPUT_C 2
@@ -425,12 +426,43 @@ FORCEINLINE Toolbox::int32 SetDrawArea(Toolbox::int32, Toolbox::int32, Toolbox::
 	return 0;
 }
 /**
+ * 最後に設定した合成の方法（乗算済みの合成の確認用）。
+ */
+inline Toolbox::int32 TestBlendMode = 0;
+/**
  * 透過合成設定の引数を記録する。
  */
-FORCEINLINE Toolbox::int32 SetDrawBlendMode(Toolbox::int32, Toolbox::int32 Alpha)
+FORCEINLINE Toolbox::int32 SetDrawBlendMode(Toolbox::int32 Mode, Toolbox::int32 Alpha)
 {
 	Trace.Alpha = Alpha;
+	TestBlendMode = Mode;
 	return 0;
+}
+/**
+ * 乗算済みの文字の画像の設定を再現する。
+ */
+inline Toolbox::int32 TestFontPremultiplied = 0;
+FORCEINLINE Toolbox::int32 SetFontCacheUsePremulAlphaFlag(Toolbox::int32 Flag)
+{
+	TestFontPremultiplied = Flag;
+	return 0;
+}
+FORCEINLINE Toolbox::int32 GetFontCacheUsePremulAlphaFlag()
+{
+	return TestFontPremultiplied;
+}
+/**
+ * 乗算済みアルファの読込の設定を再現する。
+ */
+inline Toolbox::int32 TestLoadPremultiplied = 0;
+FORCEINLINE Toolbox::int32 SetUsePremulAlphaConvertLoad(Toolbox::int32 Flag)
+{
+	TestLoadPremultiplied = Flag;
+	return 0;
+}
+FORCEINLINE Toolbox::int32 GetUsePremulAlphaConvertLoad()
+{
+	return TestLoadPremultiplied;
 }
 /**
  * 描画色設定の引数を記録する。
@@ -478,7 +510,7 @@ FORCEINLINE Toolbox::int32 SetUsePixelShader(Toolbox::int32)
 /**
  * 背景色設定を再現する。
  */
-FORCEINLINE Toolbox::int32 SetBackgroundColor(Toolbox::int32, Toolbox::int32, Toolbox::int32)
+FORCEINLINE Toolbox::int32 SetBackgroundColor(Toolbox::int32, Toolbox::int32, Toolbox::int32, Toolbox::int32 = 0)
 {
 	return 0;
 }

@@ -19,6 +19,10 @@ struct FTextureMetadata
 	 * 描画先として使用できるテクスチャか。
 	 */
 	bool bRenderTarget = false;
+	/**
+	 * 乗算済みアルファの画像か（読込の設定による）。描画先テクスチャは描いた方法に従うため偽。
+	 */
+	bool bPremultipliedAlpha = false;
 };
 /**
  * ネイティブテクスチャと寸法を保持するレコード。
@@ -60,6 +64,13 @@ public:
 	Toolbox::int32 GetHeight() const noexcept
 	{
 		return m_pResource ? m_pResource->GetMetadata().Height : 0;
+	}
+	/**
+	 * 乗算済みアルファの画像か（FTextureLoadOptions::bPremultipliedAlphaで読んだ画像）。
+	 */
+	bool IsPremultipliedAlpha() const noexcept
+	{
+		return m_pResource && m_pResource->GetMetadata().bPremultipliedAlpha;
 	}
 	/**
 	 * ネイティブAPIのリソース識別値を取得する。

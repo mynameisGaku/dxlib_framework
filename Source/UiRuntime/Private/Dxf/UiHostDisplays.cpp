@@ -230,7 +230,11 @@ FUiSurface FUiHostState::MakeSurface_Internal(const FDisplay& Display) const noe
 	case EUiDisplayKind::WorldPanel2D:
 		return FUiSurface(Display.Panel2D.GetPixelRect(), Display.Options.Scale);
 	default:
-		return FUiSurface({0, 0, Display.Panel3D.TextureWidth, Display.Panel3D.TextureHeight}, Display.Options.Scale);
+	{
+		FUiSurface Surface({0, 0, Display.Panel3D.TextureWidth, Display.Panel3D.TextureHeight}, Display.Options.Scale);
+		Surface.SetPremultipliedAlpha(Display.Panel3D.Composition == EUiPanelComposition::Transparent);
+		return Surface;
+	}
 	}
 }
 // 表示先の表示面（公開）。

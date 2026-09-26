@@ -44,6 +44,8 @@ TResult<FUiRenderStats> SubmitUiDrawList(FRender2DContext& Render, const FUiDraw
 		Style.Order = Stats.NextOrder;
 		Style.ClipRect = {Clip.Left, Clip.Top, Clip.Right, Clip.Bottom};
 		Style.bClip = true;
+		// 乗算済みの表示面（透明な中間画像）では、全命令を乗算済みの合成で描く（文字・画像も乗算済みであること）。
+		Style.Blend = Surface.IsPremultipliedAlpha() ? EBlendMode2D::PremultipliedAlpha : EBlendMode2D::Alpha;
 		TResult<void> Result;
 		switch (Item.Kind)
 		{
