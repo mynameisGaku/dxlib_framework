@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: NOASSERTION
 // W2: UIが受けた入力の所有と、押下中の非表示・破棄・切断・プレイヤーの割当の組合せ。
 #include "Ui/UiRuntimeTestSupport.h"
+#include "Dxf/UiPanel.h"
+#include "Dxf/UiScrollView.h"
 using namespace UiTest;
 
 namespace
@@ -211,4 +213,32 @@ TEST("UI routes once per frame even when the scene asks twice")
 	const auto Second = Host.RouteInput({Input.Tracker.GetSnapshot(), Time});
 	REQUIRE(Counter.Clicks == 1);
 	REQUIRE(First.IsDown(EKey::Enter) == Second.IsDown(EKey::Enter) && !First.IsDown(EKey::Enter));
+}
+
+TEST("UI host maps Shift wheel to horizontal scroll and keeps unconsumed game wheel filtered over UI")
+{
+	FUiRoot Root;
+	auto Scroll = Root.Create<DUiScrollView>();
+	Scroll.Get()->SetWidth(FUiLength::Fixed(200));
+	Scroll.Get()->SetHeight(FUiLength::Fixed(100));
+	Scroll.Get()->SetAlign(EUiAlign::Start, EUiAlign::Start);
+	Scroll.Get()->SetScrollAxes(EUiScrollAxes::Horizontal);
+	REQUIRE(Root.AddToLayer(EUiLayer::Normal, Scroll.Cast<DUiElement>()));
+	auto Content = Root.Create<DUiPanel>();
+	Content.Get()->SetWidth(FUiLength::Fixed(1000));
+	Content.Get()->SetHeight(FUiLength::Fixed(40));
+	Scroll.Get()->SetContent(Content.Cast<DUiElement>());
+	FUiSceneHost Host;
+	Host.AddScreen(Root, PixelOptions());
+	FHostInput Input;
+	Input.Raw.MouseX = 20;
+	Input.Raw.MouseY = 20;
+	(void)Input.Send(Host);
+	// DxLibの奥への回転は負。Shiftなしの縦は横だけのスクロールを動かさないが、UIの上なのでゲームへ流さない。
+	Input.Raw.Wheel = -1;
+	REQUIRE(Input.Send(Host).GetRaw().Wheel == 0);
+	REQUIRE(Scroll.Get()->GetScrollOffsetX() == 0);
+	Input.Raw.Keys[static_cast<Toolbox::size_t>(EKey::LeftShift)] = true;
+	(void)Input.Send(Host);
+	REQUIRE(Scroll.Get()->GetScrollOffsetX() == 50);
 }

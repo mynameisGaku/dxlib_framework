@@ -34,6 +34,10 @@ struct FUiPointerFrame
 	 * ホイールの回転（ノッチ数。正は手前＝下方向へのスクロール）。
 	 */
 	Toolbox::f32 WheelNotches = 0;
+	/**
+	 * 横のホイールの回転（ノッチ数。正は右へのスクロール）。
+	 */
+	Toolbox::f32 WheelNotchesX = 0;
 };
 
 /**

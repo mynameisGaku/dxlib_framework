@@ -161,5 +161,11 @@ FUiSurface FUiSceneHost::GetSurface(FUiDisplayId Id) const noexcept
 	const auto State = m_pState;
 	return State->GetSurface(Id);
 }
+// 独立した状態を保持して委譲する。
+TResult<FUiInspectionResult> FUiSceneHost::InspectDisplay(FUiDisplayId Id, Toolbox::size_t MaxIssues)
+{
+	const auto State = m_pState;
+	return State->InspectDisplay(Id, MaxIssues);
+}
 }
 // namespace Dxf

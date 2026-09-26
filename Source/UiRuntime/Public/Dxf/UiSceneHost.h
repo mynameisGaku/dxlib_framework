@@ -2,6 +2,7 @@
 #ifndef DXF_UI_SCENE_HOST_H
 #define DXF_UI_SCENE_HOST_H
 #include "Dxf/UiHostSettings.h"
+#include "Dxf/UiInspectionResult.h"
 namespace Dxf
 {
 namespace Detail
@@ -153,6 +154,14 @@ public:
 	 * @param Display 表示先。
 	 */
 	FUiSurface GetSurface(FUiDisplayId Display) const noexcept;
+	/**
+	 * 表示先を、その表示面で配置して描画命令を作り（描画はしない）、表示先の番号・表示面・追加のクリップ付きで検査する。
+	 * 同じルートを複数の表示先へ出す場合も、表示先ごとの表示面で検査する。
+	 * @param Display 表示先。
+	 * @param MaxIssues 問題数の上限（超過は失敗）。
+	 */
+	TResult<FUiInspectionResult> InspectDisplay(FUiDisplayId Display, Toolbox::size_t MaxIssues = 4096);
+
 private:
 	/**
 	 * コールバックから窓口が破棄されても、進行中処理の状態だけを保つ。

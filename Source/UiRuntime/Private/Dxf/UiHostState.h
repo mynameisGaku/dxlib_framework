@@ -2,6 +2,7 @@
 #ifndef DXF_UI_HOST_STATE_H
 #define DXF_UI_HOST_STATE_H
 #include "Dxf/UiHostSettings.h"
+#include "Dxf/UiInspectionResult.h"
 #include "Dxf/UiRootHandle.h"
 namespace Dxf::Detail
 {
@@ -151,6 +152,10 @@ public:
 	 * @param Display 表示先。
 	 */
 	FUiSurface GetSurface(FUiDisplayId Display) const noexcept;
+	/**
+	 * 表示先を検査する（FUiSceneHost::InspectDisplay）。
+	 */
+	TResult<FUiInspectionResult> InspectDisplay(FUiDisplayId Display, Toolbox::size_t MaxIssues);
 
 private:
 	/**
@@ -205,6 +210,12 @@ private:
 	 * @param Display 表示先。
 	 */
 	FUiSurface MakeSurface_Internal(const FDisplay& Display) const noexcept;
+	/**
+	 * 表示先が命令へ追加で掛けるクリップ（論理単位。なければ空）。
+	 * @param Display 表示先。
+	 * @param Surface 表示先の表示面。
+	 */
+	FUiRect MakeDisplayClip_Internal(const FDisplay& Display, const FUiSurface& Surface) const noexcept;
 	/**
 	 * 画面の点を表示先の論理座標へ変える（範囲外・背面・遮蔽ならfalse）。
 	 * @param Display 表示先。

@@ -86,6 +86,10 @@ struct FUiPointerEvent
 	 */
 	Toolbox::f32 WheelDelta = 0;
 	/**
+	 * 残りの横のホイールのノッチ数（正は右へのスクロール）。処理した分を減らして外側へ渡す。
+	 */
+	Toolbox::f32 WheelDeltaX = 0;
+	/**
 	 * ポインターが最前面の要素（またはその子孫）の上にあるか。Upでの決定に使う。
 	 */
 	bool bOverTarget = false;

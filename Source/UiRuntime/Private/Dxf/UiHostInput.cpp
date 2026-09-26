@@ -210,7 +210,16 @@ FInputSnapshot FUiHostState::RouteInput(const FTickContext& Context)
 			Pointer.Released[Button] = Input.WasMouseReleased(Mouse);
 		}
 		// DxLibは奥へ回すと正。UIは手前（下方向へのスクロール）を正とする。
-		Pointer.WheelNotches = -static_cast<Toolbox::f32>(Raw.Wheel);
+		// Shiftを押している間のホイールは横のスクロール（奥へ回すと左）。
+		const Toolbox::f32 Notches = -static_cast<Toolbox::f32>(Raw.Wheel);
+		if (Input.IsDown(EKey::LeftShift) || Input.IsDown(EKey::RightShift))
+		{
+			Pointer.WheelNotchesX = Notches;
+		}
+		else
+		{
+			Pointer.WheelNotches = Notches;
+		}
 	}
 	// 入力プレイヤーごとの操作と、それを受ける表示先。
 	Toolbox::TArray<Toolbox::TArray<bool, CommandCount>, PlayerCount> NavigationDown{};

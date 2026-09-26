@@ -47,7 +47,8 @@ add_library(dxf_ui_runtime STATIC
     Source/UiRuntime/Private/Dxf/UiSceneHost.cpp
     Source/UiRuntime/Private/Dxf/UiHostDisplays.cpp
     Source/UiRuntime/Private/Dxf/UiHostInput.cpp
-    Source/UiRuntime/Private/Dxf/UiHostDraw.cpp)
+    Source/UiRuntime/Private/Dxf/UiHostDraw.cpp
+    Source/UiRuntime/Private/Dxf/UiHostInspection.cpp)
 add_library(dxf::ui_runtime ALIAS dxf_ui_runtime)
 set_target_properties(dxf_ui_runtime PROPERTIES EXPORT_NAME ui_runtime DEBUG_POSTFIX d)
 target_link_libraries(dxf_ui_runtime PUBLIC dxf::ui dxf::runtime)
@@ -62,6 +63,8 @@ if(DXF_BUILD_TESTS)
         Tests/Ui/UiTextStyleTests.cpp
         Tests/Ui/UiContinuationTests.cpp
         Tests/Ui/UiControlTests.cpp
+        Tests/Ui/UiScrollAxesTests.cpp
+        Tests/Ui/UiInspectionSourceTests.cpp
         Tests/Ui/UiResourceInspectionTests.cpp)
     target_link_libraries(dxf_ui_tests PRIVATE dxf::ui)
     target_include_directories(dxf_ui_tests PRIVATE Tests)
@@ -73,7 +76,7 @@ endif()
 
 if(DXF_BUILD_TESTS)
     add_executable(dxf_ui_runtime_tests Tests/TestMain.cpp Tests/Ui/UiHostTests.cpp Tests/Ui/UiHostOwnershipTests.cpp
-        Tests/Ui/UiHostCompositionTests.cpp)
+        Tests/Ui/UiHostCompositionTests.cpp Tests/Ui/UiHostInspectionTests.cpp)
     target_link_libraries(dxf_ui_runtime_tests PRIVATE dxf::ui_runtime)
     target_include_directories(dxf_ui_runtime_tests PRIVATE Tests)
     dxf_ide_headers(dxf_ui_runtime_tests Tests/Ui)

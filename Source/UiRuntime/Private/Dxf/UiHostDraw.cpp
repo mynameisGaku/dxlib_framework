@@ -225,17 +225,12 @@ TResult<void> FUiHostState::Draw(FRenderContext& Render)
 		{
 			continue;
 		}
-		if (Display.Kind == EUiDisplayKind::WorldPanel2D && !Display.Panel2D.ScreenClip.IsEmpty())
+		const FUiRect DisplayClip = MakeDisplayClip_Internal(Display, Surface);
+		if (!DisplayClip.IsEmpty())
 		{
-			const FUiPixelRect Area = Surface.GetPixelRect().Intersect(Display.Panel2D.ScreenClip);
-			const FVector2 TopLeft =
-			    Surface.ToLogical({static_cast<Toolbox::f32>(Area.Left), static_cast<Toolbox::f32>(Area.Top)});
-			const FVector2 BottomRight =
-			    Surface.ToLogical({static_cast<Toolbox::f32>(Area.Right), static_cast<Toolbox::f32>(Area.Bottom)});
 			for (auto& Item : m_DrawList.EditItems())
 			{
-				Item.Clip =
-				    Item.Clip.Intersect({TopLeft.X, TopLeft.Y, BottomRight.X - TopLeft.X, BottomRight.Y - TopLeft.Y});
+				Item.Clip = Item.Clip.Intersect(DisplayClip);
 			}
 		}
 		auto Submitted = SubmitUiDrawList(Render.Get2D(), m_DrawList, Surface, {Display.Options.Layer, NextOrder});

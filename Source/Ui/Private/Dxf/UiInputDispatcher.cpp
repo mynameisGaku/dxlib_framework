@@ -385,7 +385,7 @@ void FUiInputDispatcher::Process(FUiRootState& State, const FUiPointerFrame& Fra
 			Bubble_Internal(State, Hit, Up);
 		}
 	}
-	if (Frame.WheelNotches != 0 && Frame.bPresent)
+	if ((Frame.WheelNotches != 0 || Frame.WheelNotchesX != 0) && Frame.bPresent)
 	{
 		Hit = HitTest(State, Frame.Position);
 		if (Hit != nullptr)
@@ -394,6 +394,7 @@ void FUiInputDispatcher::Process(FUiRootState& State, const FUiPointerFrame& Fra
 			Wheel.Type = EUiPointerEventType::Wheel;
 			Wheel.Position = Frame.Position;
 			Wheel.WheelDelta = Frame.WheelNotches;
+			Wheel.WheelDeltaX = Frame.WheelNotchesX;
 			Wheel.bOverTarget = true;
 			Bubble_Internal(State, Hit, Wheel);
 			// UIの上のホイールはゲームへ流さない（スクロールしなかった分も含む）。
