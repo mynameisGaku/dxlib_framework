@@ -146,6 +146,10 @@ struct FNativeTrace
  * 操作順序と引数の観測記録。
  */
 inline FNativeTrace Trace;
+}
+#include "WindowApi.h"
+namespace DxLib
+{
 /**
  * 文字コード設定のAPI呼び出しを再現する。
  */
@@ -171,8 +175,15 @@ FORCEINLINE Toolbox::int32 ChangeWindowMode(Toolbox::int32)
 /**
  * 画面サイズ設定を再現する。
  */
-FORCEINLINE Toolbox::int32 SetGraphMode(Toolbox::int32, Toolbox::int32, Toolbox::int32)
+FORCEINLINE Toolbox::int32 SetGraphMode(Toolbox::int32 Width, Toolbox::int32 Height, Toolbox::int32)
 {
+	++TestWindow.GraphModeCalls;
+	if (TestWindow.bFailGraphMode)
+	{
+		return -1;
+	}
+	TestWindow.DrawWidth = Width;
+	TestWindow.DrawHeight = Height;
 	return 0;
 }
 /**

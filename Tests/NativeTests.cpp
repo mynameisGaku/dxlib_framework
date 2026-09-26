@@ -283,3 +283,60 @@ TEST("Native smoke reports a missing asset directory without starting DxLib")
 	REQUIRE(!Dxf::Testing::RunNativeSmoke("no-such-dxf-smoke-assets", false));
 	REQUIRE(DxLib::Trace.Ends == 0);
 }
+TEST("Native window sync resizes the render target only in resizable mode and keeps the state on failure")
+{
+	for (EWindowResizeMode Mode : {EWindowResizeMode::Fixed, EWindowResizeMode::Stretch, EWindowResizeMode::Resizable})
+	{
+		DxLib::Trace = {};
+		DxLib::TestWindow = {};
+		FDxLibPlatform Platform;
+		FWindowSettings Settings;
+		Settings.Width = 640;
+		Settings.Height = 480;
+		Settings.Resize = Mode;
+		REQUIRE(Platform.Initialize(Settings));
+		// 拡縮を許す場合だけウィンドウの拡縮を有効にし、寸法を変える場合は資源を失わない設定にする。
+		REQUIRE(DxLib::TestWindow.bSizeChangeEnabled == (Mode != EWindowResizeMode::Fixed));
+		REQUIRE(DxLib::TestWindow.bResetGraphics == (Mode != EWindowResizeMode::Resizable));
+		auto First = Platform.SyncWindow();
+		REQUIRE(First && First.Value().bKnown && First.Value().RenderWidth == 640 && First.Value().Dpi == 96);
+		const Toolbox::int32 CallsBefore = DxLib::TestWindow.GraphModeCalls;
+		// 利用者がクライアント領域を広げた。
+		DxLib::TestWindow.ClientWidth = 1001;
+		DxLib::TestWindow.ClientHeight = 501;
+		auto Resized = Platform.SyncWindow();
+		REQUIRE(Resized && Resized.Value().ClientWidth == 1001);
+		REQUIRE(Resized.Value().Revision == First.Value().Revision + 1);
+		if (Mode == EWindowResizeMode::Resizable)
+		{
+			REQUIRE(Resized.Value().RenderWidth == 1001 && Resized.Value().RenderHeight == 501);
+			REQUIRE(DxLib::TestWindow.GraphModeCalls == CallsBefore + 1);
+		}
+		else
+		{
+			// 固定・引き伸ばしでは描画先は起動時の寸法のまま（引き伸ばしはDxLibが表示で行う）。
+			REQUIRE(Resized.Value().RenderWidth == 640 && DxLib::TestWindow.GraphModeCalls == CallsBefore);
+		}
+		// 変わらなければ番号も同じで、画面モードも変えない。
+		auto Same = Platform.SyncWindow();
+		REQUIRE(Same && Same.Value().Revision == Resized.Value().Revision);
+		REQUIRE(DxLib::TestWindow.GraphModeCalls == CallsBefore + (Mode == EWindowResizeMode::Resizable ? 1 : 0));
+		// 最小化の間は表示できず、短く待つ。
+		DxLib::TestWindow.bMinimized = true;
+		auto Hidden = Platform.SyncWindow();
+		REQUIRE(Hidden && Hidden.Value().bMinimized && !Hidden.Value().CanRender() && DxLib::TestWindow.Waits == 1);
+		DxLib::TestWindow.bMinimized = false;
+		if (Mode == EWindowResizeMode::Resizable)
+		{
+			// 描画先の変更に失敗したら、以前の状態を保って失敗を返し、次の成功で反映する。
+			DxLib::TestWindow.ClientWidth = 800;
+			DxLib::TestWindow.bFailGraphMode = true;
+			auto Failed = Platform.SyncWindow();
+			REQUIRE(!Failed && DxLib::TestWindow.DrawWidth == 1001);
+			DxLib::TestWindow.bFailGraphMode = false;
+			auto Recovered = Platform.SyncWindow();
+			REQUIRE(Recovered && Recovered.Value().RenderWidth == 800);
+		}
+		Platform.Shutdown();
+	}
+}

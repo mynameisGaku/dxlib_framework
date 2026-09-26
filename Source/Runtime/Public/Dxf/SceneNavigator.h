@@ -5,6 +5,7 @@
 #include "Toolbox/Optional.h"
 #include "Toolbox/Utility.h"
 #include "Dxf/TaskDispatcher.h"
+#include "Dxf/WindowState.h"
 namespace Dxf
 {
 class FAssetService;
@@ -80,6 +81,21 @@ public:
 	 * @param Input フレームの入力情報。
 	 */
 	TResult<void> Tick(FFrameTime Time, const FInputSnapshot& Input);
+	/**
+	 * このフレームのウィンドウの状態を設定する（Applicationがフレームの最初に設定し、更新の文脈へ渡す）。
+	 * @param Window フレームの境界で確定した状態。
+	 */
+	FORCEINLINE void SetWindowState_Internal(const FWindowState& Window) noexcept
+	{
+		m_Window = Window;
+	}
+	/**
+	 * このフレームのウィンドウの状態。
+	 */
+	FORCEINLINE const FWindowState& GetWindowState() const noexcept
+	{
+		return m_Window;
+	}
 	/**
 	 * 対象の描画を要求する。
 	 * @param Render 現在の描画コンテキスト。
@@ -163,6 +179,10 @@ private:
 	 * 音声再生のサービス。
 	 */
 	FAudioPlayer* m_pAudio;
+	/**
+	 * このフレームのウィンドウの状態。
+	 */
+	FWindowState m_Window;
 	/**
 	 * シーン間で共有するゲーム状態。
 	 */

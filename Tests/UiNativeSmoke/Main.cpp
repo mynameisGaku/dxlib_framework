@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: NOASSERTION
 // 実UIサンプルを実DxLibで操作する。入力だけを固定し、Present前に文字・クリップの画素を読む。
 #include "DisplayScenario.h"
+#include "WindowScenario.h"
 #include "FixedInput.h"
 #include "ForwardRenderer.h"
 #include "NativePixels.h"
@@ -200,6 +201,8 @@ int main(int Count, char** Args)
 		}
 		// 表示先ごとの実画素とクリックの届け先。
 		RunDisplayScenario(Args[1], Out);
+		// ウィンドウの拡縮・最小化（自アプリのウィンドウだけを操作する）。
+		RunWindowScenario(Args[1], Out);
 		Toolbox::Out << "REAL_SDK_UI_SMOKE_PASSED\n";
 		return 0;
 	}

@@ -4,6 +4,7 @@
 // 手書きの追加テストダブル。実SDKのABI・実画面は検証しない。
 #include "Toolbox/Utility.h"
 #include "Toolbox/Vector.h"
+#include "WindowApi.h"
 #define DX_CMP_LESSEQUAL 4
 #define DX_CMP_GREATER 5
 #define DX_CMP_ALWAYS 8
@@ -28,8 +29,8 @@ inline Toolbox::int32 GetUseDirect3DVersion()
 }
 inline Toolbox::int32 GetDrawScreenSize(Toolbox::int32* W, Toolbox::int32* H)
 {
-	*W = 640;
-	*H = 480;
+	*W = TestWindow.DrawWidth;
+	*H = TestWindow.DrawHeight;
 	return 0;
 }
 inline MATRIX GetCameraProjectionMatrix()

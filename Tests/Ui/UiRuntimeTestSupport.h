@@ -221,6 +221,7 @@ public:
 	FInputStateTracker Tracker;
 	FRawInput Raw;
 	Toolbox::uint64 Frame = 0;
+	FWindowState Window;
 	FInputSnapshot Send(FUiSceneHost& Host)
 	{
 		Tracker.Advance(Raw);
@@ -228,7 +229,9 @@ public:
 		Time.FrameIndex = ++Frame;
 		Time.UnscaledDeltaSeconds = 1.0 / 60.0;
 		Time.DeltaSeconds = 1.0 / 60.0;
-		return Host.RouteInput({Tracker.GetSnapshot(), Time});
+		FTickContext Context{Tracker.GetSnapshot(), Time};
+		Context.Window = Window;
+		return Host.RouteInput(Context);
 	}
 };
 inline FUiDisplayOptions PixelOptions()

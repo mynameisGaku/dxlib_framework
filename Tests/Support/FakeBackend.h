@@ -106,6 +106,13 @@ struct FBackendTrace
 	 */
 	bool bQuit = false;
 	/**
+	 * フレームの境界で返すウィンドウの状態（既定は取得できない実装）と、画面の寸法の記録。
+	 */
+	FWindowState Window;
+	Toolbox::int32 SyncWindows = 0;
+	Toolbox::int32 TargetWidth = 0;
+	Toolbox::int32 TargetHeight = 0;
+	/**
 	 * 入力取得失敗を発生させるか。
 	 */
 	bool bFailInput = false;
@@ -360,8 +367,13 @@ public:
 	/**
 	 * 指定された描画先を記録する。
 	 */
-	TResult<void> SetTarget(Toolbox::int32 Handle, Toolbox::int32, Toolbox::int32) override
+	TResult<void> SetTarget(Toolbox::int32 Handle, Toolbox::int32 Width, Toolbox::int32 Height) override
 	{
+		if (Handle < 0)
+		{
+			m_Trace.TargetWidth = Width;
+			m_Trace.TargetHeight = Height;
+		}
 		m_Trace.CurrentTarget = Handle;
 		if (m_Trace.bFailTarget)
 		{
@@ -465,6 +477,14 @@ public:
 	TResult<bool> PumpEvents() override
 	{
 		return TResult<bool>::Success(!m_Trace.bQuit);
+	}
+	/**
+	 * 試験で設定したウィンドウの状態を返す。
+	 */
+	TResult<FWindowState> SyncWindow() override
+	{
+		++m_Trace.SyncWindows;
+		return TResult<FWindowState>::Success(m_Trace.Window);
 	}
 	/**
 	 * 検証で設定した入力または再生状態を返す。

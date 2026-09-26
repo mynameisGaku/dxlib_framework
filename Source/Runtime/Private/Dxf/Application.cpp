@@ -147,11 +147,24 @@ TResult<bool> FApplication::Step_Internal(Toolbox::f64 NowSeconds)
 		DXF_LOG_INFO("ApplicationLifecycle", "Step stopped app=%p branch=platform-false", static_cast<void*>(this));
 		return TResult<bool>::Success(false);
 	}
-	// フレームの時間情報。
+	// OSイベントの直後にウィンドウの状態を確定する（描画先の寸法の変更もこの境界で行う）。
+	auto Window = m_pPlatform->SyncWindow();
+	if (!Window)
+	{
+		return TResult<bool>::Failure(Window.Error());
+	}
+	m_Scenes.SetWindowState_Internal(Window.Value());
+	const bool bVisible = Window.Value().CanRender();
+	// フレームの時間情報。最小化で止める間も時刻は進め、復帰時に止めていた時間を追い付きへ変えない。
 	auto Time = m_Clock.Sample(NowSeconds);
 	if (!Time)
 	{
 		return TResult<bool>::Failure(Time.Error());
+	}
+	if (!bVisible && m_Settings.Window.bPauseWhenMinimized)
+	{
+		// 更新も描画もしない（Sceneの一時停止の状態は変えない）。終了の要求は次のOSイベントで受ける。
+		return TResult<bool>::Success(!WantsQuit_Internal());
 	}
 	// フレームの入力情報。
 	auto Input = m_Input.Update();
@@ -222,8 +235,17 @@ TResult<bool> FApplication::Step_Internal(Toolbox::f64 NowSeconds)
 	{
 		return TResult<bool>::Failure(Audio.Error());
 	}
-	// フレーム開始の結果。
-	auto Begin = m_Renderer.BeginFrame(m_Settings.Window.Width, m_Settings.Window.Height, m_Settings.ClearColor);
+	if (!bVisible)
+	{
+		// 表示できない間（最小化・0x0）は描画先を作らず、描画と提示を省く。
+		m_Assets.CollectUnused();
+		return TResult<bool>::Success(!WantsQuit_Internal());
+	}
+	// フレーム開始の結果。寸法はフレームの最初に確定した描画先（取得できなければ起動時の設定）。
+	const FWindowState& State = Window.Value();
+	const Toolbox::int32 FrameWidth = State.bKnown ? State.RenderWidth : m_Settings.Window.Width;
+	const Toolbox::int32 FrameHeight = State.bKnown ? State.RenderHeight : m_Settings.Window.Height;
+	auto Begin = m_Renderer.BeginFrame(FrameWidth, FrameHeight, m_Settings.ClearColor);
 	if (!Begin)
 	{
 		return TResult<bool>::Failure(Begin.Error());

@@ -63,6 +63,12 @@ FInputSnapshot FUiHostState::RouteInput(const FTickContext& Context)
 	{
 		return m_Filtered.GetSnapshot();
 	}
+	// このフレームの最初に確定した描画先の寸法で配置・選択する（前のフレームの描画の寸法を使わない）。
+	if (Context.Window.bKnown && Context.Window.RenderWidth > 0 && Context.Window.RenderHeight > 0)
+	{
+		m_ScreenWidth = Context.Window.RenderWidth;
+		m_ScreenHeight = Context.Window.RenderHeight;
+	}
 	const FInputSnapshot& Input = Context.Input;
 	const FRawInput& Raw = Input.GetRaw();
 	const Toolbox::f64 Delta = Toolbox::Clamp(Context.Time.UnscaledDeltaSeconds, 0.0, 0.25);

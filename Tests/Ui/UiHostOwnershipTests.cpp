@@ -277,3 +277,33 @@ TEST("UI modal blocks a click on the element behind it outside the modal content
 	(void)Input.Send(Host);
 	REQUIRE(Counter.Clicks == 1);
 }
+
+TEST("UI host lays out the first input after a resize with the frame's render size")
+{
+	FUiRoot Root;
+	auto Button = FullButton(Root);
+	Toolbox::int32 Clicks = 0;
+	FUiScope Scope;
+	Scope.Add(Button.Get()->OnClicked().Subscribe(
+	    [&Clicks]()
+	    {
+		    ++Clicks;
+	    }));
+	FUiSceneHost Host;
+	Host.AddScreen(Root, PixelOptions());
+	FHostInput Input;
+	Input.Window.bKnown = true;
+	Input.Window.RenderWidth = 1600;
+	Input.Window.RenderHeight = 900;
+	Input.Window.ClientWidth = 1600;
+	Input.Window.ClientHeight = 900;
+	// 描画の前（寸法の変わった最初のフレーム）の入力でも、新しい描画先の寸法で選ぶ。
+	Input.Raw.MouseX = 1500;
+	Input.Raw.MouseY = 850;
+	(void)Input.Send(Host);
+	Input.Raw.MouseButtons[0] = true;
+	(void)Input.Send(Host);
+	Input.Raw.MouseButtons[0] = false;
+	(void)Input.Send(Host);
+	REQUIRE(Clicks == 1);
+}

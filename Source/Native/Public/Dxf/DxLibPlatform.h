@@ -37,11 +37,25 @@ public:
 	 * OSイベントを処理し継続可否を返す。
 	 */
 	TResult<bool> PumpEvents() override;
+	/**
+	 * クライアント領域・最小化・フォーカス・DPIを取得し、Resizableなら描画先をクライアント領域の寸法へ変える。
+	 * 描画先の変更に失敗した場合は以前の状態を保ち、失敗を返す。最小化の間は短く待ち、空回りしない。
+	 */
+	TResult<FWindowState> SyncWindow() override;
 
 private:
 	/**
 	 * 初期化が完了しているか。
 	 */
 	bool m_bInitialized = false;
+	/**
+	 * 拡縮の扱いと垂直同期（画面モードの変更後に設定し直す）。
+	 */
+	EWindowResizeMode m_Resize = EWindowResizeMode::Fixed;
+	bool m_bVSync = true;
+	/**
+	 * 前のフレームで確定した状態。
+	 */
+	FWindowState m_State;
 };
 } // namespace Dxf

@@ -23,14 +23,18 @@ void ReleaseImage_Internal(void*, Toolbox::int32 Handle) noexcept
 
 void FScreenCapture::Capture()
 {
-	m_Image = FNativeHandle(DxLib::MakeARGB8ColorSoftImage(1280, 720), nullptr, &ReleaseImage_Internal);
+	// 描画先の現在の寸法で読み戻す（ウィンドウの拡縮で描画先の寸法が変わる）。
+	Require_Internal(DxLib::GetDrawScreenSize(&m_Width, &m_Height) == 0 && m_Width > 0 && m_Height > 0,
+	                 "display capture size");
+	m_Image = FNativeHandle(DxLib::MakeARGB8ColorSoftImage(m_Width, m_Height), nullptr, &ReleaseImage_Internal);
 	Require_Internal(m_Image.Get() >= 0, "display capture image allocation");
-	Require_Internal(DxLib::GetDrawScreenSoftImage(0, 0, 1280, 720, m_Image.Get()) == 0, "display capture readback");
+	Require_Internal(DxLib::GetDrawScreenSoftImage(0, 0, m_Width, m_Height, m_Image.Get()) == 0,
+	                 "display capture readback");
 }
 
 FColor FScreenCapture::Pixel(Toolbox::int32 X, Toolbox::int32 Y) const
 {
-	Require_Internal(IsCaptured() && X >= 0 && Y >= 0 && X < 1280 && Y < 720, "display capture pixel range");
+	Require_Internal(IsCaptured() && X >= 0 && Y >= 0 && X < m_Width && Y < m_Height, "display capture pixel range");
 	int R = 0;
 	int G = 0;
 	int B = 0;

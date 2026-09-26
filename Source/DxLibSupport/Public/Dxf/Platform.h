@@ -1,5 +1,6 @@
 #pragma once
 #include "Dxf/Result.h"
+#include "Dxf/WindowState.h"
 #include "Toolbox/String.h"
 namespace Dxf
 {
@@ -28,6 +29,15 @@ struct FWindowSettings
 	 * 垂直同期を使用するか。
 	 */
 	bool bVSync = true;
+	/**
+	 * 利用者によるウィンドウの拡縮の扱い（既定は拡縮しない）。
+	 */
+	EWindowResizeMode Resize = EWindowResizeMode::Fixed;
+	/**
+	 * 最小化の間、ゲームの更新を止めるか（既定は止めず、描画だけを省く）。
+	 * 止める場合も、復帰時に止めていた時間を固定更新の追い付きへ変えない。Sceneの一時停止の状態は変えない。
+	 */
+	bool bPauseWhenMinimized = false;
 };
 /**
  * OSとウィンドウ機能の呼び出し先を管理する型。
@@ -52,5 +62,14 @@ public:
 	 * 成功値がfalseの場合は正常終了を要求する。
 	 */
 	virtual TResult<bool> PumpEvents() = 0;
+	/**
+	 * フレームの境界でウィンドウの状態を確定する（Applicationが各フレームのOSイベントの直後に呼ぶ）。
+	 * 描画先の寸法の変更が必要ならここで行い、描画中の命令がない時点で反映する。
+	 * 既定は状態を取得できない実装（bKnown=false）で、起動時の寸法で描き続ける。
+	 */
+	virtual TResult<FWindowState> SyncWindow()
+	{
+		return TResult<FWindowState>::Success(FWindowState{});
+	}
 };
 } // namespace Dxf

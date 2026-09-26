@@ -4,6 +4,7 @@
 #include "Dxf/InputSnapshot.h"
 #include "Toolbox/Vector.h"
 #include "Dxf/TaskDispatcher.h"
+#include "Dxf/WindowState.h"
 namespace Dxf
 {
 class FAssetService;
@@ -61,6 +62,11 @@ struct FTickContext
 	 * GameInstanceの更新ではRoot。Scopeなしの単独利用では無効。
 	 */
 	FTaskScope TaskScope{};
+	/**
+	 * このフレームの最初に確定したウィンドウの状態（入力の位置と描画先の寸法の基準）。
+	 * Applicationを通さない利用では取得できない値（bKnown=false）。
+	 */
+	FWindowState Window{};
 };
 /**
  * 固定時間更新時の入力・時間・物理情報を管理する型。

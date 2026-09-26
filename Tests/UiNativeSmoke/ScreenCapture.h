@@ -7,7 +7,7 @@
 namespace Dxf::UiSmoke
 {
 /**
- * Present前の画面（1280x720）をCPUの画像へ一度だけ読み戻し、画素を返す。
+ * Present前の描画先をCPUの画像へ一度だけ読み戻し、画素を返す。
  */
 class FScreenCapture
 {
@@ -30,6 +30,17 @@ public:
 	 */
 	FColor Pixel(Toolbox::int32 X, Toolbox::int32 Y) const;
 	/**
+	 * 読み戻した描画先の幅と高さ。
+	 */
+	FORCEINLINE Toolbox::int32 GetWidth() const noexcept
+	{
+		return m_Width;
+	}
+	FORCEINLINE Toolbox::int32 GetHeight() const noexcept
+	{
+		return m_Height;
+	}
+	/**
 	 * 読み戻した画像をPNGで保存する。
 	 * @param Path 保存先。
 	 */
@@ -40,6 +51,11 @@ private:
 	 * CPU側の画像。
 	 */
 	FNativeHandle m_Image;
+	/**
+	 * 読み戻した描画先の寸法。
+	 */
+	int m_Width = 0;
+	int m_Height = 0;
 };
 } // namespace Dxf::UiSmoke
 #endif

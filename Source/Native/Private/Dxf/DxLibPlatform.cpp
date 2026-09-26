@@ -40,6 +40,17 @@ TResult<void> FDxLibPlatform::Initialize(const FWindowSettings& Settings)
 	{
 		return TResult<void>::Failure(EErrorCode::BackendFailure, "DxLib window configuration failed");
 	}
+	// 拡縮を許す場合はウィンドウの端で拡縮でき、描画先を表示へ引き伸ばす（入力の位置は描画先の画素で届く）。
+	// 描画先の寸法を変える場合は、画面モードの変更で画像・フォント等の資源を失わない設定にする。
+	if (Settings.Resize != EWindowResizeMode::Fixed && (DxLib::SetWindowSizeChangeEnableFlag(TRUE, TRUE) < 0 ||
+	                                                    (Settings.Resize == EWindowResizeMode::Resizable &&
+	                                                     DxLib::SetChangeScreenModeGraphicsSystemResetFlag(FALSE) < 0)))
+	{
+		return TResult<void>::Failure(EErrorCode::BackendFailure, "DxLib window resize configuration failed");
+	}
+	m_Resize = Settings.Resize;
+	m_bVSync = Settings.bVSync;
+	m_State = {};
 	GSessionOwner = this;
 	// 同じ初期化呼出しの戻り値を後始末より先に残す。
 	const Toolbox::int32 Initialized = DxLib::DxLib_Init();
@@ -74,6 +85,61 @@ void FDxLibPlatform::Shutdown() noexcept
 		m_bInitialized = false;
 		GSessionOwner = nullptr;
 	}
+}
+// フレームの境界でウィンドウの状態を確定する。
+TResult<FWindowState> FDxLibPlatform::SyncWindow()
+{
+	if (!m_bInitialized)
+	{
+		return TResult<FWindowState>::Failure(EErrorCode::InvalidState, "DxLib session is not initialized");
+	}
+	FWindowState Next;
+	Next.bKnown = true;
+	Toolbox::int32 ClientWidth = 0;
+	Toolbox::int32 ClientHeight = 0;
+	if (DxLib::GetWindowSize(&ClientWidth, &ClientHeight) < 0)
+	{
+		return TResult<FWindowState>::Failure(EErrorCode::BackendFailure, "Window client size query failed");
+	}
+	Next.bMinimized = DxLib::GetWindowMinSizeFlag() == TRUE || ClientWidth <= 0 || ClientHeight <= 0;
+	Next.bFocused = DxLib::GetWindowActiveFlag() == TRUE;
+	Next.ClientWidth = Next.bMinimized ? 0 : ClientWidth;
+	Next.ClientHeight = Next.bMinimized ? 0 : ClientHeight;
+	Toolbox::int32 DpiX = 0;
+	Toolbox::int32 DpiY = 0;
+	Next.Dpi = DxLib::GetMonitorDpi(&DpiX, &DpiY) >= 0 && DpiX > 0 ? DpiX : 96;
+	Toolbox::int32 DrawWidth = 0;
+	Toolbox::int32 DrawHeight = 0;
+	if (DxLib::GetDrawScreenSize(&DrawWidth, &DrawHeight) < 0)
+	{
+		return TResult<FWindowState>::Failure(EErrorCode::BackendFailure, "Draw screen size query failed");
+	}
+	if (m_Resize == EWindowResizeMode::Resizable && !Next.bMinimized &&
+	    (DrawWidth != ClientWidth || DrawHeight != ClientHeight))
+	{
+		// 引き伸ばしの倍率を等倍へ戻してから、描画先をクライアント領域と同じ画素数にする（描画中の命令はない境界）。
+		// 失敗した場合は以前の状態を保って失敗を返す。
+		if (DxLib::SetWindowSizeExtendRate(1.0) < 0 || DxLib::SetGraphMode(ClientWidth, ClientHeight, 32) != 0 ||
+		    DxLib::SetDrawScreen(DX_SCREEN_BACK) < 0 || DxLib::SetWaitVSyncFlag(m_bVSync ? TRUE : FALSE) < 0 ||
+		    DxLib::GetDrawScreenSize(&DrawWidth, &DrawHeight) < 0 || DrawWidth != ClientWidth ||
+		    DrawHeight != ClientHeight)
+		{
+			return TResult<FWindowState>::Failure(EErrorCode::BackendFailure,
+			                                      Toolbox::FString("Render size change to ") +
+			                                          Toolbox::ToString(ClientWidth) + "x" +
+			                                          Toolbox::ToString(ClientHeight) + " failed");
+		}
+	}
+	Next.RenderWidth = DrawWidth;
+	Next.RenderHeight = DrawHeight;
+	Next.Revision = Next.IsSameState(m_State) ? m_State.Revision : m_State.Revision + 1;
+	m_State = Next;
+	if (Next.bMinimized)
+	{
+		// 表示できない間は短く待ち、描画のない高速な空回りを避ける。
+		(void)DxLib::WaitTimer(16);
+	}
+	return TResult<FWindowState>::Success(Next);
 }
 // OSイベントを処理し継続可否を返す。
 TResult<bool> FDxLibPlatform::PumpEvents()
