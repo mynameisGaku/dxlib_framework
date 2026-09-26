@@ -64,6 +64,10 @@ struct FWindowState
 	 */
 	bool bPointerCaptured = false;
 	/**
+	 * 現在の拡縮の扱い（Platformが反映している値）。
+	 */
+	EWindowResizeMode ResizeMode = EWindowResizeMode::Fixed;
+	/**
 	 * 寸法・最小化・フォーカス・DPIのいずれかが変わるたびに増える番号。
 	 */
 	Toolbox::uint64 Revision = 0;
@@ -121,6 +125,11 @@ struct FPlatformRequests
 	 */
 	bool bCursorRequested = false;
 	ECursorShape Cursor = ECursorShape::Arrow;
+	/**
+	 * 拡縮の扱いの変更を求めるか、と求める扱い（設定画面等。フレームの境界で反映し、描画中の資源は作り直さない）。
+	 */
+	bool bResizeModeRequested = false;
+	EWindowResizeMode ResizeMode = EWindowResizeMode::Fixed;
 };
 } // namespace Dxf
 #endif

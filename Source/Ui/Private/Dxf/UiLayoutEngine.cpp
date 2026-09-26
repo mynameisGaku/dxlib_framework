@@ -100,8 +100,10 @@ TResult<void> FUiLayoutEngine::Run(FUiRootState& State)
 		return {};
 	}
 	// 論理寸法と倍率が同じなら、表示先の画素原点だけの変化は再測定しない。
+	// 乗算済みアルファの表示面へ変わった（または戻った）場合は、文字を乗算済みの字体で解決し直すため全体を測り直す。
 	if (m_bForceFull || State.Surface.GetLogicalSize() != m_LastSurface.GetLogicalSize() ||
-	    State.Surface.GetScale() != m_LastSurface.GetScale())
+	    State.Surface.GetScale() != m_LastSurface.GetScale() ||
+	    State.Surface.IsPremultipliedAlpha() != m_LastSurface.IsPremultipliedAlpha())
 	{
 		for (DUiElement* Layer : State.Layers)
 		{

@@ -208,3 +208,27 @@ TEST("UI style resources parse tokens and states and report source, line and key
 	auto Duplicate = ParseUiStyleSheet(Sources);
 	REQUIRE(!Duplicate && Contains(Duplicate.Error().Message, "C.dxfui:2: key 'A': duplicate style id"));
 }
+
+TEST("UI label resolves a premultiplied font again when only the surface composition changes")
+{
+	FFixedWidthTextService Text;
+	FUiRootSettings Settings;
+	Settings.Text = &Text;
+	FUiRoot Root(Settings);
+	auto Label = Root.Create<DUiLabel>("Hello");
+	REQUIRE(Root.AddToLayer(EUiLayer::Normal, Label.Cast<DUiElement>()));
+	FUiSurface Surface = MakeSurface(512, 256, 256);
+	LayoutRoot(Root, Surface);
+	REQUIRE(!Text.bLastPremultiplied);
+	// 同じ寸法・倍率で、透明な中間画像の表示面（乗算済み）へ変わった。
+	const Toolbox::int32 Before = Text.Resolves;
+	Surface.SetPremultipliedAlpha(true);
+	LayoutRoot(Root, Surface);
+	REQUIRE(Text.Resolves > Before && Text.bLastPremultiplied);
+	FUiDrawList List;
+	REQUIRE(Root.BuildDrawList(List));
+	// 戻すと通常の字体で解決し直す。
+	Surface.SetPremultipliedAlpha(false);
+	LayoutRoot(Root, Surface);
+	REQUIRE(!Text.bLastPremultiplied);
+}

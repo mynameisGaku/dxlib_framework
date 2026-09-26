@@ -21,6 +21,7 @@ public:
 	TResult<FFont> ResolveFont(const FUiFontKey& Key) override
 	{
 		LastPixelSize = Key.PixelSize;
+		bLastPremultiplied = Key.bPremultipliedAlpha;
 		++Resolves;
 		return TResult<FFont>::Success(FFont{});
 	}
@@ -57,6 +58,7 @@ public:
 	/**
 	 * 最後に解決した画素の大きさ（計測に使う）。
 	 */
+	bool bLastPremultiplied = false;
 	Toolbox::int32 LastPixelSize = 20;
 	/**
 	 * 計測の回数。

@@ -31,6 +31,9 @@ struct FUiSampleState
 	TUiProperty<Toolbox::f64> Volume{0.5};
 	TUiProperty<Toolbox::f64> Scale{1.0};
 	TUiProperty<bool> Split{false};
+	// ウィンドウの拡縮の扱い（0:固定・1:引き伸ばし・2:描画先を合わせる）と、ワールドのパネルを透明に合成するか。
+	TUiProperty<Toolbox::int32> ResizeMode{0};
+	TUiProperty<bool> TransparentPanel{false};
 	TUiProperty<Toolbox::FString> Status{"Ready"};
 	TUiProperty<Toolbox::FString> Detail{"項目を選択してください"};
 	TUiProperty<Toolbox::FString> Notice;

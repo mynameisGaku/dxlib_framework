@@ -29,6 +29,15 @@ void DUiSettingsPanel::OnFirstAttach()
 	m_Scale.Get()->SetName("Scale");
 	m_Split = CreateChild<DUiToggle>("2画面表示");
 	SetupSampleButton(*m_Split.Get(), "Split");
+	m_Resize = CreateChild<DUiChoice>();
+	Toolbox::TVector<Toolbox::FString> Modes;
+	Modes.PushBack("拡縮：固定");
+	Modes.PushBack("拡縮：引き伸ばし");
+	Modes.PushBack("拡縮：描画先を合わせる");
+	m_Resize.Get()->SetOptions(Toolbox::Move(Modes));
+	SetupSampleButton(*m_Resize.Get(), "ResizeMode");
+	m_Transparent = CreateChild<DUiToggle>("ワールドのパネルを透明に");
+	SetupSampleButton(*m_Transparent.Get(), "TransparentPanel");
 	m_Sound = CreateChild<DUiButton>("音を再生");
 	SetupSampleButton(*m_Sound.Get(), "Sound");
 	m_Reload = CreateChild<DUiButton>("スタイルを再読込");
@@ -55,6 +64,26 @@ void DUiSettingsPanel::OnAttach()
 	               {
 		               View.SetValue(Value);
 	               });
+	BindUiProperty(m_Resize, State->ResizeMode,
+	               [](DUiChoice& View, const Toolbox::int32& Value)
+	               {
+		               View.SetSelectedIndex(static_cast<Toolbox::size_t>(Value));
+	               });
+	BindUiProperty(m_Transparent, State->TransparentPanel,
+	               [](DUiToggle& View, const bool& Value)
+	               {
+		               View.SetValue(Value);
+	               });
+	GetAttachScope().Add(m_Resize.Get()->OnSelectionChanged().Subscribe(
+	    [State](Toolbox::size_t Index)
+	    {
+		    State->ResizeMode.Set(static_cast<Toolbox::int32>(Index));
+	    }));
+	GetAttachScope().Add(m_Transparent.Get()->OnValueChanged().Subscribe(
+	    [State](bool Value)
+	    {
+		    State->TransparentPanel.Set(Value);
+	    }));
 	GetAttachScope().Add(m_Volume.Get()->OnValueChanged().Subscribe(
 	    [State](Toolbox::f64 Value)
 	    {

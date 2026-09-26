@@ -5,6 +5,7 @@
 #include "Dxf/UiPanel.h"
 #include "Dxf/UiSlider.h"
 #include "Dxf/UiToggle.h"
+#include "Dxf/UiChoice.h"
 namespace Dxf::UiSample
 {
 /**
@@ -24,6 +25,8 @@ private:
 	TUiRef<DUiSlider> m_Volume;
 	TUiRef<DUiSlider> m_Scale;
 	TUiRef<DUiToggle> m_Split;
+	TUiRef<DUiChoice> m_Resize;
+	TUiRef<DUiToggle> m_Transparent;
 	TUiRef<DUiButton> m_Sound;
 	TUiRef<DUiButton> m_Reload;
 	TUiRef<DUiButton> m_Close;

@@ -132,6 +132,7 @@ TResult<FWindowState> FDxLibPlatform::SyncWindow()
 	}
 	Next.RenderWidth = DrawWidth;
 	Next.RenderHeight = DrawHeight;
+	Next.ResizeMode = m_Resize;
 	// マウスの捕捉は自アプリのウィンドウが実際に持っているかを返す（要求したこととは別）。
 	const HWND Window = DxLib::GetMainWindowHandle();
 	Next.bPointerCaptureSupported = Window != nullptr;
@@ -166,6 +167,18 @@ TResult<void> FDxLibPlatform::ApplyRequests(const FPlatformRequests& Requests)
 	else if (!Requests.bPointerCapture && GetCapture() == Window)
 	{
 		(void)ReleaseCapture();
+	}
+	if (Requests.bResizeModeRequested && Requests.ResizeMode != m_Resize)
+	{
+		// 拡縮の許可と表示の引き伸ばしを切り替える。描画先の寸法の変更は次のSyncWindowの境界で行う。
+		const bool bResizable = Requests.ResizeMode != EWindowResizeMode::Fixed;
+		if (DxLib::SetWindowSizeChangeEnableFlag(bResizable ? TRUE : FALSE, TRUE) < 0 ||
+		    (Requests.ResizeMode == EWindowResizeMode::Resizable &&
+		     DxLib::SetChangeScreenModeGraphicsSystemResetFlag(FALSE) < 0))
+		{
+			return TResult<void>::Failure(EErrorCode::BackendFailure, "Window resize mode change failed");
+		}
+		m_Resize = Requests.ResizeMode;
 	}
 	if (Requests.bCursorRequested)
 	{

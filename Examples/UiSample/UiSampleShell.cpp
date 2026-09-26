@@ -121,12 +121,14 @@ void FUiSampleShell::RefreshDisplays()
 {
 	const bool Split = m_pState->Split.Get();
 	const auto Scale = m_pState->Scale.Get();
-	if (m_LastScale == Scale && m_bLastSplit == Split)
+	const bool bTransparent = m_pState->TransparentPanel.Get();
+	if (m_LastScale == Scale && m_bLastSplit == Split && m_bLastTransparent == bTransparent)
 	{
 		return;
 	}
 	m_LastScale = Scale;
 	m_bLastSplit = Split;
+	m_bLastTransparent = bTransparent;
 	FUiDisplayOptions Screen;
 	Screen.Navigation = EUiNavigationPolicy::Always;
 	Screen.Scale.UserScale = static_cast<Toolbox::f32>(Scale);
@@ -161,7 +163,15 @@ void FUiSampleShell::RefreshDisplays()
 			FUiDisplayOptions Options;
 			Options.Scale.ReferenceHeight = 240;
 			Options.Layer = 0;
-			m_ChangingDisplays.PushBack(m_Host.AddWorldPanel2D(*m_pWorldRoot, Panel, Options));
+			// 透明な合成を選んだ場合は、中間画像へ描いて画素ごとの透明度で重ねる。
+			Panel.bOffscreen = bTransparent;
+			Panel.Composition = bTransparent ? EUiPanelComposition::Transparent : EUiPanelComposition::Opaque;
+			m_ChangingDisplays.PushBack(m_Host.AddWorldPanel2D(*m_pWorldRoot, Panel, *m_pAssets, Options));
+			if (I == 0)
+			{
+				m_WorldDisplay = m_ChangingDisplays.Back();
+				m_WorldPanel2D = Panel;
+			}
 		}
 	}
 	if (m_b3D)
@@ -170,9 +180,12 @@ void FUiSampleShell::RefreshDisplays()
 		Panel.TopLeft = {-3, 4, 0};
 		Panel.TopRight = {1, 4, 0};
 		Panel.BottomLeft = {-3, 2, 0};
+		Panel.Composition = bTransparent ? EUiPanelComposition::Transparent : EUiPanelComposition::Opaque;
 		FUiDisplayOptions Options;
 		Options.Scale.ReferenceHeight = 240;
 		m_ChangingDisplays.PushBack(m_Host.AddWorldPanel3D(*m_pWorldRoot, Panel, *m_pAssets, Options));
+		m_WorldDisplay = m_ChangingDisplays.Back();
+		m_WorldPanel3D = Panel;
 	}
 }
 
@@ -265,6 +278,12 @@ FInputSnapshot FUiSampleShell::RouteInput(const FTickContext& Context)
 		m_pState->Status.Set(m_ReadStatus());
 	}
 	const auto Routed = m_Host.RouteInput(Context);
+	// 設定画面で選んだ拡縮の扱いを、共通の窓口でPlatformへ求める（画面のクラスはDxLib・Windowsを直接呼ばない）。
+	if (Context.Requests != nullptr)
+	{
+		Context.Requests->bResizeModeRequested = true;
+		Context.Requests->ResizeMode = static_cast<EWindowResizeMode>(Toolbox::Clamp(m_pState->ResizeMode.Get(), 0, 2));
+	}
 	ExecuteAction(Context);
 	RefreshDisplays();
 	return Routed;

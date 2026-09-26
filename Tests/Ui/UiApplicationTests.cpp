@@ -7,6 +7,8 @@
 #include "Dxf/Application.h"
 #include "Dxf/UiListView.h"
 #include "Dxf/UiSlider.h"
+#include "Dxf/ViewCoordinates.h"
+#include "UiSampleViews.h"
 using namespace Dxf;
 using namespace Dxf::UiSample;
 using namespace UiTest;
@@ -411,6 +413,137 @@ TEST("UI sample pause and resume shift the gameplay trajectory only by the pause
 				Check();
 			}
 			REQUIRE(PausedFrames >= 20);
+			App.Shutdown();
+		}
+	}
+}
+
+namespace
+{
+// ワールドのパネルの要素の中心が映る画面の画素（パネルの配置と倍率・投影から、UIの配置とは独立に求める）。
+FVector2 WorldPixel_Internal(FApplication& App, bool bThreeD, bool bSplit, const char* Name)
+{
+	auto& Shell = Shell_Internal(App);
+	DUiElement* Element = Find_Internal(Shell.GetWorldRoot(), Name);
+	REQUIRE(Element != nullptr);
+	const FUiRect Rect = Element->GetRect();
+	const FVector2 Logical{Rect.X + Rect.Width * 0.5f, Rect.Y + Rect.Height * 0.5f};
+	const FUiSurface Surface = Shell.GetHost().GetSurface(Shell.GetWorldDisplay());
+	if (!bThreeD)
+	{
+		const FUiPixelRect Panel = Shell.GetWorldPanel2D().GetPixelRect();
+		return {static_cast<Toolbox::f32>(Panel.Left) + Logical.X * Surface.GetScale(),
+		        static_cast<Toolbox::f32>(Panel.Top) + Logical.Y * Surface.GetScale()};
+	}
+	const FUiWorldPanel3D& Panel = Shell.GetWorldPanel3D();
+	const FUiSize Size = Surface.GetLogicalSize();
+	const Toolbox::f32 U = Logical.X / Size.Width;
+	const Toolbox::f32 V = Logical.Y / Size.Height;
+	const Toolbox::FVector3 World =
+	    Panel.TopLeft + (Panel.TopRight - Panel.TopLeft) * U + (Panel.BottomLeft - Panel.TopLeft) * V;
+	const auto Views = MakeSampleViews(bSplit);
+	auto Projected = ProjectWorldToScreen(Views[0], 1280, 720, World);
+	REQUIRE(Projected && Projected.Value().bInsideView);
+	return Projected.Value().Screen;
+}
+
+void ClickPixel_Internal(FApplication& App, FRecordingRenderer& Backend, Toolbox::uint64& Frame, FVector2 Pixel)
+{
+	auto& Input = Backend.Assets.GetTrace().Input;
+	Input.MouseX = static_cast<Toolbox::int32>(Pixel.X);
+	Input.MouseY = static_cast<Toolbox::int32>(Pixel.Y);
+	Step_Internal(App, Backend, Frame);
+	Input.MouseButtons[0] = true;
+	Step_Internal(App, Backend, Frame);
+	Input.MouseButtons[0] = false;
+	Step_Internal(App, Backend, Frame);
+}
+} // namespace
+
+TEST("UI sample settings drive resize policy transparent world panels and survive resize minimize and restore")
+{
+	for (bool ThreeD : {false, true})
+	{
+		for (bool Split : {false, true})
+		{
+			FRecordingRenderer Backend;
+			Backend.Declared = TransparentCapabilities();
+			auto State = Toolbox::MakeShared<FUiSampleState>();
+			FBackendServices Services{Backend.Assets, Backend.Assets, Backend.Assets, Backend.Assets, Backend, Backend};
+			FApplication App(Services, Settings_Internal());
+			REQUIRE(App.Start(MakeTitleScene(State)));
+			Toolbox::uint64 Frame = 0;
+			Step_Internal(App, Backend, Frame);
+			Click_Internal(App, Backend, Frame, ThreeD ? "Start3D" : "Start2D");
+			Step_Internal(App, Backend, Frame);
+			// 設定画面の実際の部品で、拡縮の扱い（2回で「描画先を合わせる」）・透明なパネル・2画面を選ぶ。
+			Click_Internal(App, Backend, Frame, "Pause");
+			Click_Internal(App, Backend, Frame, "Settings");
+			Click_Internal(App, Backend, Frame, "ResizeMode");
+			Click_Internal(App, Backend, Frame, "ResizeMode");
+			Click_Internal(App, Backend, Frame, "TransparentPanel");
+			if (Split)
+			{
+				Click_Internal(App, Backend, Frame, "Split");
+			}
+			REQUIRE(State->ResizeMode.Get() == 2 && State->TransparentPanel.Get() && State->Split.Get() == Split);
+			Click_Internal(App, Backend, Frame, "CloseSettings");
+			Click_Internal(App, Backend, Frame, "Resume");
+			Step_Internal(App, Backend, Frame);
+			// 拡縮の扱いは共通の窓口でPlatformへ求める。ワールドのパネルは透明な中間画像で合成する。
+			const auto& Trace = Backend.Assets.GetTrace();
+			REQUIRE(Trace.LastRequests.bResizeModeRequested &&
+			        Trace.LastRequests.ResizeMode == EWindowResizeMode::Resizable);
+			auto& Shell = Shell_Internal(App);
+			REQUIRE(Shell.GetHost().GetSurface(Shell.GetWorldDisplay()).IsPremultipliedAlpha());
+			// 透明なワールドのパネルの部品を、パネルの配置から求めた画素で操作する。
+			ClickPixel_Internal(App, Backend, Frame, WorldPixel_Internal(App, ThreeD, Split, "WorldSplit"));
+			REQUIRE(State->Split.Get() == !Split);
+			Step_Internal(App, Backend, Frame);
+			// 一覧のスクロール。
+			auto* Items = dynamic_cast<DUiListView*>(Find_Internal(Shell_Internal(App).GetRoot(), "Items"));
+			REQUIRE(Items != nullptr);
+			const auto ListRect = Items->GetContentRect();
+			const auto ListPixel = Shell_Internal(App).GetRoot().GetSurface().ToPixel(
+			    FVector2{ListRect.X + 20, ListRect.Y + ListRect.Height * 0.5f});
+			auto& Input = Backend.Assets.GetTrace().Input;
+			Input.MouseX = static_cast<Toolbox::int32>(ListPixel.X);
+			Input.MouseY = static_cast<Toolbox::int32>(ListPixel.Y);
+			Input.Wheel = -3;
+			Step_Internal(App, Backend, Frame);
+			Input.Wheel = 0;
+			Step_Internal(App, Backend, Frame);
+			REQUIRE(Items->GetScrollOffset() > 0);
+			// 描画先の寸法の変更：同じフレームの入力から新しい寸法で配置し、操作できる。
+			FWindowState Window;
+			Window.bKnown = true;
+			Window.ClientWidth = 1600;
+			Window.ClientHeight = 900;
+			Window.RenderWidth = 1600;
+			Window.RenderHeight = 900;
+			Backend.Assets.GetTrace().Window = Window;
+			Step_Internal(App, Backend, Frame);
+			REQUIRE(Shell_Internal(App).GetRoot().GetSurface().GetPixelRect().Right == 1600);
+			Click_Internal(App, Backend, Frame, "Pause");
+			REQUIRE(App.GetScenes().GetCurrent()->GetClock().IsPaused());
+			Click_Internal(App, Backend, Frame, "Resume");
+			// 最小化の間は描かず、更新は続ける。復帰で描画が戻る。
+			const Toolbox::int32 PresentsBefore = Backend.Presents;
+			Backend.Assets.GetTrace().Window.bMinimized = true;
+			for (Toolbox::int32 I = 0; I < 5; ++I)
+			{
+				Step_Internal(App, Backend, Frame);
+			}
+			REQUIRE(Backend.Presents == PresentsBefore);
+			Backend.Assets.GetTrace().Window.bMinimized = false;
+			Step_Internal(App, Backend, Frame);
+			REQUIRE(Backend.Presents == PresentsBefore + 1);
+			// タイトルへ戻る。
+			Click_Internal(App, Backend, Frame, "Pause");
+			Click_Internal(App, Backend, Frame, "Title");
+			Click_Internal(App, Backend, Frame, "ConfirmYes");
+			Step_Internal(App, Backend, Frame);
+			REQUIRE(dynamic_cast<DUiTitleScene*>(App.GetScenes().GetCurrent()) != nullptr);
 			App.Shutdown();
 		}
 	}

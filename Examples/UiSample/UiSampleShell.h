@@ -34,6 +34,27 @@ public:
 		return m_Host;
 	}
 
+	// ワールドのパネルのルートと、最初の表示先・その配置（自動操作の試験で画面の点を求めるため）。
+	FUiRoot& GetWorldRoot() const noexcept
+	{
+		return *m_pWorldRoot;
+	}
+
+	FUiDisplayId GetWorldDisplay() const noexcept
+	{
+		return m_WorldDisplay;
+	}
+
+	const FUiWorldPanel2D& GetWorldPanel2D() const noexcept
+	{
+		return m_WorldPanel2D;
+	}
+
+	const FUiWorldPanel3D& GetWorldPanel3D() const noexcept
+	{
+		return m_WorldPanel3D;
+	}
+
 	bool IsPaused() const noexcept
 	{
 		return m_bPaused;
@@ -68,6 +89,10 @@ private:
 	bool m_b3D = false;
 	bool m_bPaused = false;
 	bool m_bLastSplit = false;
+	bool m_bLastTransparent = false;
+	FUiDisplayId m_WorldDisplay = 0;
+	FUiWorldPanel2D m_WorldPanel2D;
+	FUiWorldPanel3D m_WorldPanel3D;
 	Toolbox::f64 m_LastScale = -1;
 	void RefreshDisplays();
 	void ExecuteAction(const FTickContext& Context);
