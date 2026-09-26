@@ -242,3 +242,38 @@ TEST("UI host maps Shift wheel to horizontal scroll and keeps unconsumed game wh
 	(void)Input.Send(Host);
 	REQUIRE(Scroll.Get()->GetScrollOffsetX() == 50);
 }
+
+TEST("UI modal blocks a click on the element behind it outside the modal content")
+{
+	FUiRoot Root;
+	auto Behind = FullButton(Root);
+	FClickCounter Counter(*Behind.Get());
+	auto Popup = Root.Create<DUiPopup>();
+	auto Content = Root.Create<DUiButton>("modal");
+	Content.Get()->SetWidth(FUiLength::Fixed(100));
+	Content.Get()->SetHeight(FUiLength::Fixed(40));
+	Popup.Get()->SetContent(Content.Cast<DUiElement>());
+	// 背景が画面を覆わない小さいModalでも、外側の押下は背後へ抜けない（ヒット判定のModalの遮り）。
+	Popup.Get()->SetWidth(FUiLength::Fixed(200));
+	Popup.Get()->SetHeight(FUiLength::Fixed(100));
+	Popup.Get()->SetAlign(EUiAlign::Start, EUiAlign::Start);
+	FUiSceneHost Host;
+	Host.AddScreen(Root, PixelOptions());
+	FHostInput Input;
+	Input.Raw.MouseX = 600;
+	Input.Raw.MouseY = 400;
+	(void)Input.Send(Host);
+	// Modalなしなら背後のボタンが押せる（前提の確認）。
+	Input.Raw.MouseButtons[0] = true;
+	(void)Input.Send(Host);
+	Input.Raw.MouseButtons[0] = false;
+	(void)Input.Send(Host);
+	REQUIRE(Counter.Clicks == 1);
+	// Modalの外を押しても、背後の要素へ抜けない。
+	REQUIRE(Popup.Get()->Open());
+	Input.Raw.MouseButtons[0] = true;
+	(void)Input.Send(Host);
+	Input.Raw.MouseButtons[0] = false;
+	(void)Input.Send(Host);
+	REQUIRE(Counter.Clicks == 1);
+}

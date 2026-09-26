@@ -140,3 +140,42 @@ TEST("UI queued text keeps the accepted string after SetText and destroy before 
 	REQUIRE(Renderer.EndFrame());
 	REQUIRE(Backend.Texts.Size() == 1 && Backend.Texts[0] == "changed");
 }
+
+TEST("UI host submits every rectangle with the clip of its clipping ancestor in pixels")
+{
+	FRecordingRenderer Backend;
+	FUiRoot Root;
+	auto Frame = Root.Create<DUiPanel>(EUiStackMode::Overlay);
+	Frame.Get()->SetAbsolutePosition({40, 30});
+	Frame.Get()->SetWidth(FUiLength::Fixed(100));
+	Frame.Get()->SetHeight(FUiLength::Fixed(50));
+	Frame.Get()->SetClipChildren(true);
+	REQUIRE(Root.AddToLayer(EUiLayer::Panel, Frame.Cast<DUiElement>()));
+	auto Wide = Root.Create<DUiPanel>();
+	Wide.Get()->SetWidth(FUiLength::Fixed(400));
+	Wide.Get()->SetHeight(FUiLength::Fixed(20));
+	FUiStylePatch Style;
+	Style.Background = FColor{200, 10, 10, 255};
+	Style.BorderWidth = 0.0f;
+	Wide.Get()->SetStyleOverride(Style);
+	REQUIRE(Root.AddChild(Frame.Cast<DUiElement>(), Wide.Cast<DUiElement>()));
+	FUiSceneHost Host;
+	Host.AddScreen(Root, PixelOptions());
+	FRenderSystem Renderer(Backend);
+	REQUIRE(Renderer.BeginFrame(800, 600, {}));
+	REQUIRE(Host.Draw(Renderer.GetContext()));
+	REQUIRE(Renderer.EndFrame());
+	bool bFound = false;
+	for (const auto& Rectangle : Backend.Rectangles)
+	{
+		// 全命令が切り抜く。幅400の子は親の矩形(40,30)-(140,80)で切り抜かれる。
+		REQUIRE(Rectangle.Options.bClip);
+		if (Rectangle.Options.Color.R == 200)
+		{
+			bFound = true;
+			REQUIRE(Rectangle.Options.ClipRect.Left == 40 && Rectangle.Options.ClipRect.Top == 30 &&
+			        Rectangle.Options.ClipRect.Right == 140 && Rectangle.Options.ClipRect.Bottom == 80);
+		}
+	}
+	REQUIRE(bFound);
+}
