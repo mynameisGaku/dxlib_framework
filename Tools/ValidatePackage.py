@@ -15,7 +15,11 @@ import tempfile
 from ValidationSupport import project_version, run_logged, validation_report
 
 ROOT = Path(__file__).resolve().parents[1]
-CONSUMER_SOURCES = ('CMakeLists.txt', 'Main.cpp', 'Support.cpp', 'Physics.cpp', 'NativeApp.cpp', 'Ui.cpp', 'UiRuntime.cpp')
+CONSUMER_SOURCES = ('CMakeLists.txt', 'Main.cpp', 'Support.cpp', 'Physics.cpp', 'NativeApp.cpp', 'NativeUiApp.cpp',
+                    'Ui.cpp', 'UiRuntime.cpp')
+# UI入りの外部のApplicationへ渡す外部スタイル（正しいものと、読めないもの）。
+UI_STYLE = 'dxfui-style 1\nstyle ConsumerButton {\n background = #20a0e0\n}\n'
+UI_BROKEN_STYLE = 'dxfui-style 1\nstyle ConsumerButton {\n background = @missing\n}\n'
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -137,6 +141,28 @@ def main() -> int:
                 if 'NATIVE_CONSUMER_PASSED' not in output:
                     raise RuntimeError('native application did not report success')
                 summary['device_run'] = True
+            # UI入りのApplicationは、空白と日本語を含むディレクトリへ置き、無関係な作業ディレクトリから起動する。
+            ui_deployed = work / 'Deployed UI 日本語'
+            (ui_deployed / 'Styles').mkdir(parents=True)
+            shutil.copyfile(work / 'ConsumerBuild' / 'NativeUiApp.exe', ui_deployed / 'NativeUiApp.exe')
+            (ui_deployed / 'Styles' / 'app.dxfui').write_text(UI_STYLE, encoding='utf-8', newline='\n')
+            (ui_deployed / 'Styles' / 'broken.dxfui').write_text(UI_BROKEN_STYLE, encoding='utf-8', newline='\n')
+            summary['native_ui_app_built'] = True
+            if args.run_device:
+                unrelated = work / 'Unrelated cwd'
+                unrelated.mkdir()
+                executable = str(ui_deployed / 'NativeUiApp.exe')
+                # 組込みスタイルだけ（exeと実行時のDLL以外の資源なし）。
+                output = run('native-ui-app-builtin-run', [executable, str(ui_deployed.resolve())], timeout=240,
+                             cwd=unrelated)
+                if 'NATIVE_UI_CONSUMER_PASSED' not in output:
+                    raise RuntimeError('native UI application (built-in style) did not report success')
+                # exe＋外部スタイル（相対パス、読込失敗後の旧版保持）。
+                output = run('native-ui-app-styled-run', [executable, str(ui_deployed.resolve()), 'Styles/app.dxfui',
+                             'Styles/broken.dxfui'], timeout=240, cwd=unrelated)
+                if 'NATIVE_UI_CONSUMER_PASSED' not in output:
+                    raise RuntimeError('native UI application (external style) did not report success')
+                summary['native_ui_device_run'] = True
     return 0
 
 
