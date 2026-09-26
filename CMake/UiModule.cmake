@@ -86,9 +86,9 @@ if(DXF_BUILD_TESTS)
 endif()
 
 if(DXF_BUILD_TESTS)
-    add_executable(dxf_ui_benchmark Tools/UiBenchmark/Main.cpp
+    add_executable(dxf_ui_benchmark Tools/UiBenchmark/Main.cpp Tools/UiBenchmark/BenchmarkScene.cpp
         Source/Toolbox/Private/Toolbox/Testing/AllocationFault.cpp)
-    target_include_directories(dxf_ui_benchmark PRIVATE Source/Toolbox/Private/Toolbox/Testing)
+    target_include_directories(dxf_ui_benchmark PRIVATE Tests Source/Toolbox/Private/Toolbox/Testing)
     target_compile_definitions(dxf_ui_benchmark PRIVATE DXF_ALLOCATION_FAULT_TEST_EXECUTABLE=1)
     target_link_libraries(dxf_ui_benchmark PRIVATE dxf::ui)
     dxf_ide_headers(dxf_ui_benchmark Tools/UiBenchmark Source/Toolbox/Private/Toolbox/Testing)
