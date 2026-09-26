@@ -42,8 +42,7 @@ void FUiDrawContext::DrawBorder(const FUiRect& Rect, FColor Color, Toolbox::f32 
 	FillRect({Rect.Right() - Thickness, Rect.Y + Thickness, Thickness, Rect.Height - Thickness * 2}, Color);
 }
 // 一行の文字を記録する。
-void FUiDrawContext::DrawText(const FFont& Font, const Toolbox::FString& Text, FVector2 Position, FUiSize Size,
-                              FColor Color)
+void FUiDrawContext::DrawText(const FFont& Font, const FSharedText& Text, FVector2 Position, FUiSize Size, FColor Color)
 {
 	if (Text.IsEmpty() || Color.A == 0)
 	{

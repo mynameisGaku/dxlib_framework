@@ -2,6 +2,7 @@
 #ifndef DXF_UI_DRAW_LIST_H
 #define DXF_UI_DRAW_LIST_H
 #include "Dxf/Font.h"
+#include "Dxf/SharedText.h"
 #include "Dxf/Texture.h"
 #include "Dxf/UiTypes.h"
 #include "Toolbox/String.h"
@@ -57,9 +58,9 @@ struct FUiDrawItem
 	 */
 	FFont Font;
 	/**
-	 * 一行の文字。
+	 * 一行の文字（共有の所有。要素が保持する配置済みの文字を複製せずに参照する）。
 	 */
-	Toolbox::FString Text;
+	FSharedText Text;
 	/**
 	 * 画像。
 	 */

@@ -2,6 +2,7 @@
 #include "Dxf/Texture.h"
 #include "Dxf/Font.h"
 #include "Dxf/MathTypes.h"
+#include "Dxf/SharedText.h"
 #include "Toolbox/Variant.h"
 namespace Dxf
 {
@@ -112,7 +113,7 @@ struct FTextCommand
 	/**
 	 * 描画する文字列。
 	 */
-	Toolbox::FString Text;
+	FSharedText Text;
 	/**
 	 * 描画位置。
 	 */

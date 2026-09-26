@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: NOASSERTION
 // W3: 3Dのパネルの透明な合成（乗算済みアルファの中間画像）と、不透明・透明のパネルの描く順。
 #include "Ui/UiRuntimeTestSupport.h"
+#include "Dxf/UiAssetTextService.h"
+#include "Dxf/UiLabel.h"
 #include "Dxf/UiPanel.h"
 using namespace UiTest;
 
@@ -107,4 +109,34 @@ TEST("UI panel switching composition recreates its texture with the matching alp
 	REQUIRE(First != Second);
 	REQUIRE(Host.GetSurface(Id).IsPremultipliedAlpha());
 	REQUIRE(Renderer.EndFrame());
+}
+
+TEST("UI queued text keeps the accepted string after SetText and destroy before the queue runs")
+{
+	FRecordingRenderer Backend;
+	FAssetService Assets(Backend.Assets, Backend.Assets, Backend);
+	FUiAssetTextService Text(Assets);
+	FUiRootSettings Settings;
+	Settings.Text = &Text;
+	FUiRoot Root(Settings);
+	auto Label = Root.Create<DUiLabel>("accepted");
+	REQUIRE(Root.AddToLayer(EUiLayer::Normal, Label.Cast<DUiElement>()));
+	auto Other = Root.Create<DUiLabel>("removed");
+	REQUIRE(Root.AddToLayer(EUiLayer::Panel, Other.Cast<DUiElement>()));
+	FUiSceneHost Host;
+	Host.AddScreen(Root, PixelOptions());
+	FRenderSystem Renderer(Backend);
+	REQUIRE(Renderer.BeginFrame(800, 600, {}));
+	REQUIRE(Host.Draw(Renderer.GetContext()));
+	// 受付の後、実行の前に文字を変え、別の要素を破棄する。
+	Label.Get()->SetText("changed");
+	Root.Destroy(Other.Cast<DUiElement>());
+	REQUIRE(Renderer.EndFrame());
+	REQUIRE(Backend.Texts.Size() == 2 && Backend.Texts[0] == "accepted" && Backend.Texts[1] == "removed");
+	// 次のフレームは新しい文字を描く（共有の文字列を古い値のまま再利用しない）。
+	Backend.Texts.Clear();
+	REQUIRE(Renderer.BeginFrame(800, 600, {}));
+	REQUIRE(Host.Draw(Renderer.GetContext()));
+	REQUIRE(Renderer.EndFrame());
+	REQUIRE(Backend.Texts.Size() == 1 && Backend.Texts[0] == "changed");
 }

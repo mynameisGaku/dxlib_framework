@@ -20,6 +20,7 @@ public:
 	Toolbox::TVector<FRectangleCommand> Rectangles;
 	Toolbox::TVector<FRenderView3D> Views;
 	Toolbox::TVector<FTexturedQuad3D> Quads;
+	Toolbox::TVector<Toolbox::FString> Texts;
 	bool Clip = false;
 	bool ThrowSet = false;
 	bool ThrowReset = false;
@@ -124,8 +125,9 @@ public:
 		return {};
 	}
 
-	TResult<void> DrawText(const FTextCommand&) override
+	TResult<void> DrawText(const FTextCommand& Command) override
 	{
+		Texts.PushBack(Command.Text.Get());
 		return {};
 	}
 

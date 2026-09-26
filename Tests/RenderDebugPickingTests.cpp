@@ -37,7 +37,7 @@ public:
 	}
 	TResult<void> DrawText(const FTextCommand& Text) override
 	{
-		m_Text.PushBack(Text.Text);
+		m_Text.PushBack(Text.Text.Get());
 		return {};
 	}
 	TResult<void> DrawCircle2D(const FCircleCommand2D&) override

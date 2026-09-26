@@ -44,11 +44,11 @@ public:
 	}
 	/**
 	 * @param Font フォント。
-	 * @param Text UTF-8文字列。
+	 * @param Text UTF-8文字列（共有の所有。受付済みの命令はこの時点の文字列を使う）。
 	 * @param Position 画面位置。
 	 * @param Options 表示設定。
 	 */
-	TResult<void> DrawText(FFont Font, Toolbox::FString Text, FVector2 Position, const FDrawStyle& Options = {})
+	TResult<void> DrawText(FFont Font, FSharedText Text, FVector2 Position, const FDrawStyle& Options = {})
 	{
 		return Submit(FTextCommand{Toolbox::Move(Font), Toolbox::Move(Text), Position, Options});
 	}

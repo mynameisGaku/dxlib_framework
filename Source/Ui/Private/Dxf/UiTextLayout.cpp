@@ -95,8 +95,9 @@ FUiTextLine Ellipsize_Internal(FMeasurer& Measure, const Toolbox::FString& Text,
 		}
 	}
 	FUiTextLine Line;
-	Line.Text = TrimRight_Internal(Text.Substr(0, Boundaries[Low])) + Ellipsis_Internal;
-	Line.Width = Measure.Width(Line.Text);
+	Toolbox::FString Cut = TrimRight_Internal(Text.Substr(0, Boundaries[Low])) + Ellipsis_Internal;
+	Line.Width = Measure.Width(Cut);
+	Line.Text = FSharedText(Toolbox::Move(Cut));
 	return Line;
 }
 // 折返しの単位（ASCIIの語と後続の空白、またはASCII以外の一文字と後続の空白）へ分ける。
@@ -233,15 +234,19 @@ TResult<FUiTextLayoutResult> LayoutUiText(IUiTextService& Service, const FFont& 
 		for (Toolbox::size_t Index = 0; Index < Count; ++Index)
 		{
 			FUiTextLine Line;
-			Line.Text = Raw[Index];
-			Line.Width = Measure.Width(Line.Text);
+			Line.Width = Measure.Width(Raw[Index]);
 			const bool bLastCut = bCutLines && Index + 1 == Count;
 			if (Request.Overflow == EUiTextOverflow::Ellipsis && bBounded &&
 			    (Line.Width > Request.MaxWidth || bLastCut))
 			{
 				// 収まる最長の接頭辞に省略記号を付ける（行数で切った最後の行は、全体が収まっても記号を付ける）。
-				Line = Ellipsize_Internal(Measure, Line.Text, Request.MaxWidth);
+				Line = Ellipsize_Internal(Measure, Raw[Index], Request.MaxWidth);
 				Result.bTruncated = true;
+			}
+			else
+			{
+				// 行の文字は一度だけ共有の所有へ移す。
+				Line.Text = FSharedText(Toolbox::Move(Raw[Index]));
 			}
 			if (bBounded && Line.Width > Request.MaxWidth)
 			{

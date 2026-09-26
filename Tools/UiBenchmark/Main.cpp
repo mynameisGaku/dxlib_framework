@@ -26,7 +26,10 @@ struct FSample
 	Toolbox::uint64 Measures = 0;
 	Toolbox::uint64 TextMeasures = 0;
 	Toolbox::uint64 Commands = 0;
+	// 測定区間（変更〜入力）の前後で解放されずに残った割当の合計（代替の描画先の記録は含まない）。
 	Toolbox::int64 Retained = 0;
+	// Runの前後で解放されなかった割当（破棄後の漏れ）。
+	Toolbox::int64 Leaked = 0;
 	Toolbox::size_t Elements = 0;
 	Toolbox::size_t Rows = 0;
 	Toolbox::f64 Total() const noexcept
@@ -83,19 +86,15 @@ FSample Run(Toolbox::size_t Count, EBenchmarkMode Mode, Toolbox::int32 Views, bo
 	const Toolbox::int32 Height = bTexture ? 256 : 720;
 	FUiDrawList Draw;
 	FSample Result;
-	Toolbox::int64 RetainedStart = 0;
 	for (Toolbox::int32 Frame = -Warmup; Frame < Frames; ++Frame)
 	{
 		const bool bRecord = Frame >= 0;
-		if (Frame == 0)
-		{
-			RetainedStart = static_cast<Toolbox::int64>(Toolbox::Testing::GetOutstandingTestAllocations());
-		}
 		// フレームの開始（キューの準備）は測定の区間の外。
 		Check(Renderer.BeginFrame(1280, 720, {}));
 		FUiRoot& Root = Scene.GetRoot();
 		const auto BeforeMeasures = Root.GetStats().Layout.Measures;
 		const auto BeforeText = Text.GetMeasures();
+		const auto OutstandingBefore = static_cast<Toolbox::int64>(Toolbox::Testing::GetOutstandingTestAllocations());
 		FSegmentClock Clock;
 		Scene.Mutate(Frame);
 		Clock.Lap(Result, 0, bRecord);
@@ -130,6 +129,11 @@ FSample Run(Toolbox::size_t Count, EBenchmarkMode Mode, Toolbox::int32 Views, bo
 		}
 		Check(Current.Update(1.0 / 60.0));
 		Clock.Lap(Result, 4, bRecord);
+		if (bRecord)
+		{
+			Result.Retained +=
+			    static_cast<Toolbox::int64>(Toolbox::Testing::GetOutstandingTestAllocations()) - OutstandingBefore;
+		}
 		// 代替の描画先への実行は測定の区間の外。
 		Check(Renderer.EndFrame());
 		if (bRecord && Mode != EBenchmarkMode::RootRecreate)
@@ -141,7 +145,6 @@ FSample Run(Toolbox::size_t Count, EBenchmarkMode Mode, Toolbox::int32 Views, bo
 			Result.TextMeasures += Text.GetMeasures() - BeforeText;
 		}
 	}
-	Result.Retained = static_cast<Toolbox::int64>(Toolbox::Testing::GetOutstandingTestAllocations()) - RetainedStart;
 	Result.Elements = Scene.GetRoot().GetStats().Elements;
 	Result.Rows = Scene.GetRows();
 	return Result;
@@ -157,7 +160,8 @@ int main()
 		       Warmup, Frames, Repeats);
 		printf("surface,mode,count,views,total_median,total_min,total_max,mutation,layout,build,submit,input,"
 		       "alloc_mutation,alloc_layout,alloc_build,alloc_submit,alloc_input,alloc_gen_to_queue,alloc_total,"
-		       "layout_measures,text_measures,commands,retained_allocations,elements,rows,series_seconds\n");
+		       "layout_measures,text_measures,commands,retained_in_segments,leaked_after_run,elements,rows,series_"
+		       "seconds\n");
 		const char* Modes[] = {"static", "value", "layout", "list-scroll", "style-reload", "root-recreate"};
 		for (Toolbox::int32 Texture = 0; Texture < 2; ++Texture)
 			for (Toolbox::int32 Views = 1; Views <= 2; ++Views)
@@ -171,7 +175,11 @@ int main()
 						FSample Samples[Repeats];
 						for (Toolbox::int32 R = 0; R < Repeats; ++R)
 						{
+							const auto Before =
+							    static_cast<Toolbox::int64>(Toolbox::Testing::GetOutstandingTestAllocations());
 							Samples[R] = Run(Count, Series, Views, Texture != 0);
+							Samples[R].Leaked =
+							    static_cast<Toolbox::int64>(Toolbox::Testing::GetOutstandingTestAllocations()) - Before;
 						}
 						const Toolbox::f64 SeriesSeconds =
 						    static_cast<Toolbox::f64>(Toolbox::MonotonicNanoseconds() - SeriesStart) / 1.0e9;
@@ -196,7 +204,7 @@ int main()
 						}
 						printf(
 						    "%s,%s,%llu,%d,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,"
-						    "%.2f,%.2f,%.2f,%lld,%llu,%llu,%.2f\n",
+						    "%.2f,%.2f,%.2f,%lld,%lld,%llu,%llu,%.2f\n",
 						    Texture ? "panel-texture-layout" : "screen-layout", Modes[Mode],
 						    static_cast<unsigned long long>(Count), Views, PerFrameUs(S.Total()),
 						    PerFrameUs(Samples[0].Total()), PerFrameUs(Samples[Repeats - 1].Total()),
@@ -205,7 +213,7 @@ int main()
 						    PerFrame(S.Allocations[1]), PerFrame(S.Allocations[2]), PerFrame(S.Allocations[3]),
 						    PerFrame(S.Allocations[4]), PerFrame(S.Allocations[2] + S.Allocations[3]),
 						    PerFrame(AllAllocations), PerFrame(S.Measures), PerFrame(S.TextMeasures),
-						    PerFrame(S.Commands), static_cast<long long>(S.Retained),
+						    PerFrame(S.Commands), static_cast<long long>(S.Retained), static_cast<long long>(S.Leaked),
 						    static_cast<unsigned long long>(S.Elements), static_cast<unsigned long long>(S.Rows),
 						    SeriesSeconds);
 						fflush(stdout);

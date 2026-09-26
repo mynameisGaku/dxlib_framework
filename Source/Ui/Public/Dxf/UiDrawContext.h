@@ -41,12 +41,12 @@ public:
 	/**
 	 * 一行の文字を記録する。
 	 * @param Font 画素の大きさで解決したフォント。
-	 * @param Text 一行の文字。
+	 * @param Text 一行の文字（共有の所有を参照数だけで渡す）。
 	 * @param Position 左上（論理座標）。
 	 * @param Size 文字の範囲の大きさ（論理単位、検査用）。
 	 * @param Color 色。
 	 */
-	void DrawText(const FFont& Font, const Toolbox::FString& Text, FVector2 Position, FUiSize Size, FColor Color);
+	void DrawText(const FFont& Font, const FSharedText& Text, FVector2 Position, FUiSize Size, FColor Color);
 	/**
 	 * 画像を描画先の矩形へ拡縮して記録する。
 	 * @param Texture 画像。

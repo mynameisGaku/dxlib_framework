@@ -84,7 +84,7 @@ TResult<void> FRenderQueue2D::Validate_Internal(const FRenderCommand& Command) c
 				return TResult<void>::Failure(EErrorCode::InvalidArgument,
 				                              "Premultiplied blend requires a premultiplied font");
 			}
-			if (!Detail::IsValidNativeString_Internal(Value.Text, true))
+			if (!Detail::IsValidNativeString_Internal(Value.Text.Get(), true))
 			{
 				return TResult<void>::Failure(EErrorCode::InvalidArgument,
 				"Text must be UTF-8 without embedded NUL");
@@ -164,6 +164,20 @@ TResult<void> FRenderQueue2D::Execute_Internal(IRenderBackend& Backend)
 	// 実行待ちの描画命令。
 	Toolbox::TVector<FRenderCommand> Commands;
 	Commands.Swap(m_Commands);
+	// 実行後は命令を破棄して容量だけを次のフレームへ戻す（毎フレームの再確保をしない）。
+	struct FRecycle
+	{
+		Toolbox::TVector<FRenderCommand>& Executed;
+		Toolbox::TVector<FRenderCommand>& Queue;
+		~FRecycle()
+		{
+			Executed.Clear();
+			if (Queue.IsEmpty())
+			{
+				Queue.Swap(Executed);
+			}
+		}
+	} Recycle{Commands, m_Commands};
 	// 検索または入力のキー。
 	auto Key = [](const FRenderCommand& Command)
 	{

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: NOASSERTION
 #ifndef DXF_UI_TEXT_LAYOUT_H
 #define DXF_UI_TEXT_LAYOUT_H
+#include "Dxf/SharedText.h"
 #include "Dxf/UiTextService.h"
 #include "Toolbox/Vector.h"
 namespace Dxf
@@ -64,9 +65,9 @@ struct FUiTextLayoutRequest
 struct FUiTextLine
 {
 	/**
-	 * 描く文字列（省略記号を含む）。
+	 * 描く文字列（省略記号を含む）。配置のときに一度だけ作り、描画命令は複製せずに共有する。
 	 */
-	Toolbox::FString Text;
+	FSharedText Text;
 	/**
 	 * 描く文字列の幅（画素、描画と同じ計測）。
 	 */
