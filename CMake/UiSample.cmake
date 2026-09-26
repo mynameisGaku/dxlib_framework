@@ -69,6 +69,18 @@ if(DXF_BUILD_NATIVE_SMOKE)
     dxf_ide_headers(NativeUiSmoke Tests/UiNativeSmoke)
     dxf_warnings(NativeUiSmoke)
     dxf_enable_dpi_awareness(NativeUiSmoke)
+    # 実DxLib・実字体によるUIの測定（CTestへは登録しない。代替の文字の系列とは別の系列）。
+    add_executable(NativeUiBenchmark Tools/UiBenchmark/NativeMain.cpp Tools/UiBenchmark/BenchmarkScene.cpp
+        Source/Toolbox/Private/Toolbox/Testing/AllocationFault.cpp)
+    target_include_directories(NativeUiBenchmark PRIVATE Tests Source/Toolbox/Private/Toolbox/Testing)
+    target_compile_definitions(NativeUiBenchmark PRIVATE DXF_ALLOCATION_FAULT_TEST_EXECUTABLE=1 DX_NON_USING_NAMESPACE_DXLIB NOMINMAX)
+    target_link_libraries(NativeUiBenchmark PRIVATE dxf::ui_runtime dxf::native)
+    if(MSVC)
+        target_compile_options(NativeUiBenchmark PRIVATE /UUNICODE /U_UNICODE)
+    endif()
+    dxf_ide_headers(NativeUiBenchmark Tools/UiBenchmark Source/Toolbox/Private/Toolbox/Testing)
+    dxf_warnings(NativeUiBenchmark)
+    dxf_enable_dpi_awareness(NativeUiBenchmark)
     set_target_properties(NativeUiSmoke PROPERTIES
         VS_DEBUGGER_COMMAND_ARGUMENTS "\"${CMAKE_CURRENT_SOURCE_DIR}\" \"${CMAKE_CURRENT_BINARY_DIR}/ui-smoke-vs-$<CONFIG>\""
         VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:NativeUiSmoke>")

@@ -45,6 +45,25 @@ enum class EBenchmarkMode : Toolbox::int32
 };
 
 /**
+ * ラベルの文字と配置（既定は固定幅の文字の系列と同じ）。
+ */
+struct FBenchmarkLabel
+{
+	/**
+	 * 初期の文字と、値の変更の系列で交互に設定する文字。
+	 */
+	const char* Initial = "value 0";
+	const char* Alternate = "value 1";
+	/**
+	 * ラベルの幅・高さ（論理単位）と、折返し・省略。
+	 */
+	Toolbox::f32 Width = 52;
+	Toolbox::f32 Height = 20;
+	EUiTextWrap Wrap = EUiTextWrap::NoWrap;
+	EUiTextOverflow Overflow = EUiTextOverflow::Visible;
+};
+
+/**
  * 測定用のUI（絶対位置のラベルの格子、または一覧）。系列ごとの毎フレームの変更を行う。
  */
 class FBenchmarkScene
@@ -55,7 +74,7 @@ public:
 	 * @param Mode 系列。
 	 * @param Count ラベルの数、または一覧の項目数。
 	 */
-	FBenchmarkScene(FBenchmarkText& Text, EBenchmarkMode Mode, Toolbox::size_t Count);
+	FBenchmarkScene(IUiTextService& Text, EBenchmarkMode Mode, Toolbox::size_t Count, FBenchmarkLabel Label = {});
 	/**
 	 * 系列ごとの変更を行う。
 	 * @param Frame フレームの番号。
@@ -81,7 +100,11 @@ private:
 	/**
 	 * 文字の窓口。
 	 */
-	FBenchmarkText& m_Text;
+	IUiTextService& m_Text;
+	/**
+	 * ラベルの文字と配置。
+	 */
+	FBenchmarkLabel m_Label;
 	/**
 	 * 系列。
 	 */

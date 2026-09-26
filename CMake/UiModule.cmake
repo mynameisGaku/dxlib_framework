@@ -93,6 +93,14 @@ if(DXF_BUILD_TESTS)
     target_link_libraries(dxf_ui_benchmark PRIVATE dxf::ui)
     dxf_ide_headers(dxf_ui_benchmark Tools/UiBenchmark Source/Toolbox/Private/Toolbox/Testing)
     dxf_warnings(dxf_ui_benchmark)
+    # 確保の寿命（段階ごとの未解放・繰返しの増加）。Hostを含むためui_runtimeへリンクする。
+    add_executable(dxf_ui_lifetime Tools/UiBenchmark/LifetimeMain.cpp Tools/UiBenchmark/BenchmarkScene.cpp
+        Source/Toolbox/Private/Toolbox/Testing/AllocationFault.cpp)
+    target_include_directories(dxf_ui_lifetime PRIVATE Tests Source/Toolbox/Private/Toolbox/Testing)
+    target_compile_definitions(dxf_ui_lifetime PRIVATE DXF_ALLOCATION_FAULT_TEST_EXECUTABLE=1)
+    target_link_libraries(dxf_ui_lifetime PRIVATE dxf::ui_runtime)
+    dxf_ide_headers(dxf_ui_lifetime Tools/UiBenchmark Source/Toolbox/Private/Toolbox/Testing)
+    dxf_warnings(dxf_ui_lifetime)
 endif()
 
 if(DXF_BUILD_TESTS)

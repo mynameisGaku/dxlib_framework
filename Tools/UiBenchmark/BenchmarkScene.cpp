@@ -15,8 +15,9 @@ void Check_Internal(TResult<void> Result)
 }
 } // namespace
 
-FBenchmarkScene::FBenchmarkScene(FBenchmarkText& Text, EBenchmarkMode Mode, Toolbox::size_t Count)
-    : m_Text(Text), m_Mode(Mode), m_Count(Count)
+FBenchmarkScene::FBenchmarkScene(IUiTextService& Text, EBenchmarkMode Mode, Toolbox::size_t Count,
+                                 FBenchmarkLabel Label)
+    : m_Text(Text), m_Label(Label), m_Mode(Mode), m_Count(Count)
 {
 	Build_Internal();
 }
@@ -52,11 +53,15 @@ void FBenchmarkScene::Build_Internal()
 	m_Labels.Reserve(m_Count);
 	for (Toolbox::size_t I = 0; I < m_Count; ++I)
 	{
-		auto Label = m_pRoot->Create<DUiLabel>("value 0");
-		Label.Get()->SetAbsolutePosition(
-		    {static_cast<Toolbox::f32>((I % 20) * 55), static_cast<Toolbox::f32>((I / 20) * 22)});
-		Label.Get()->SetWidth(FUiLength::Fixed(52));
-		Label.Get()->SetHeight(FUiLength::Fixed(20));
+		auto Label = m_pRoot->Create<DUiLabel>(m_Label.Initial);
+		Label.Get()->SetAbsolutePosition({static_cast<Toolbox::f32>(I % 20) * (m_Label.Width + 3),
+		                                  static_cast<Toolbox::f32>(I / 20) * (m_Label.Height + 2)});
+		Label.Get()->SetWidth(FUiLength::Fixed(m_Label.Width));
+		Label.Get()->SetHeight(FUiLength::Fixed(m_Label.Height));
+		if (m_Label.Wrap != EUiTextWrap::NoWrap || m_Label.Overflow != EUiTextOverflow::Visible)
+		{
+			Label.Get()->SetTextLayout(m_Label.Wrap, m_Label.Overflow);
+		}
 		Check_Internal(m_pRoot->AddChild(Panel.Cast<DUiElement>(), Label.Cast<DUiElement>()));
 		m_Labels.PushBack(Label);
 	}
@@ -67,7 +72,7 @@ void FBenchmarkScene::Mutate(Toolbox::int32 Frame)
 	switch (m_Mode)
 	{
 	case EBenchmarkMode::Value:
-		m_Labels[0].Get()->SetText((Frame & 1) ? "value 1" : "value 0");
+		m_Labels[0].Get()->SetText((Frame & 1) ? m_Label.Alternate : m_Label.Initial);
 		break;
 	case EBenchmarkMode::Layout:
 		m_Labels[0].Get()->SetWidth(FUiLength::Fixed((Frame & 1) ? 48.0f : 52.0f));
