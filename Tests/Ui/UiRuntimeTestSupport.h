@@ -222,8 +222,10 @@ public:
 	FRawInput Raw;
 	Toolbox::uint64 Frame = 0;
 	FWindowState Window;
+	FPlatformRequests Requests;
 	FInputSnapshot Send(FUiSceneHost& Host)
 	{
+		Requests = {};
 		Tracker.Advance(Raw);
 		FFrameTime Time;
 		Time.FrameIndex = ++Frame;
@@ -231,6 +233,7 @@ public:
 		Time.DeltaSeconds = 1.0 / 60.0;
 		FTickContext Context{Tracker.GetSnapshot(), Time};
 		Context.Window = Window;
+		Context.Requests = &Requests;
 		return Host.RouteInput(Context);
 	}
 };

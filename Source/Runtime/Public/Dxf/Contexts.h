@@ -67,6 +67,10 @@ struct FTickContext
 	 * Applicationを通さない利用では取得できない値（bKnown=false）。
 	 */
 	FWindowState Window{};
+	/**
+	 * そのフレームにPlatformへ求める操作の書き込み先（Applicationを通さない利用ではnullptr）。
+	 */
+	FPlatformRequests* Requests = nullptr;
 };
 /**
  * 固定時間更新時の入力・時間・物理情報を管理する型。

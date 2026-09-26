@@ -55,6 +55,13 @@ public:
 	 * 現在の値に対応するつまみの論理矩形を返す。
 	 */
 	FUiRect GetThumbRect() const noexcept;
+	/**
+	 * 操作できる間は、横方向のドラッグのカーソル。
+	 */
+	ECursorShape GetCursorShape() const noexcept override
+	{
+		return IsEnabledInTree() ? ECursorShape::ResizeHorizontal : ECursorShape::Arrow;
+	}
 
 protected:
 	/**

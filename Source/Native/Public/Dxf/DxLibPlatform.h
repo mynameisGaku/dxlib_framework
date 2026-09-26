@@ -42,6 +42,11 @@ public:
 	 * 描画先の変更に失敗した場合は以前の状態を保ち、失敗を返す。最小化の間は短く待ち、空回りしない。
 	 */
 	TResult<FWindowState> SyncWindow() override;
+	/**
+	 * 自アプリのウィンドウだけのマウスの捕捉（SetCapture／ReleaseCapture）と標準カーソルの形を反映する。
+	 * 捕捉を取得できない場合は取り消し、次のSyncWindowで捕捉していないと返す。解除は何度呼んでもよい。
+	 */
+	TResult<void> ApplyRequests(const FPlatformRequests& Requests) override;
 
 private:
 	/**

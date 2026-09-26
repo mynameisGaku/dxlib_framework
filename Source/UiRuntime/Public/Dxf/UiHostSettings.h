@@ -114,6 +114,18 @@ struct FUiRoutingResult
 	 * 入力プレイヤーごとの、操作を受けた表示先（0はなし）。
 	 */
 	Toolbox::TArray<FUiDisplayId, 4> NavigationDisplays{};
+	/**
+	 * 失焦・マウスの捕捉の喪失で、押下中のポインターの操作を取り消したか。
+	 */
+	bool bPointerCancelled = false;
+	/**
+	 * 自アプリのウィンドウへマウスの捕捉を求めたか（UIがポインターを捕捉している間）。
+	 */
+	bool bWantsPointerCapture = false;
+	/**
+	 * カーソルの形の意図。
+	 */
+	ECursorShape Cursor = ECursorShape::Arrow;
 };
 /**
  * 仲介の設定。

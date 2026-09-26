@@ -296,6 +296,10 @@ private:
 	 */
 	Toolbox::f32 m_Dpi = 96;
 	/**
+	 * 前のフレームで自アプリのウィンドウへマウスの捕捉を求めたか（捕捉の喪失の判定）。
+	 */
+	bool m_bRequestedCapture = false;
+	/**
 	 * UIが持っているキー。
 	 */
 	Toolbox::TArray<bool, static_cast<Toolbox::size_t>(EKey::Count)> m_OwnedKeys{};

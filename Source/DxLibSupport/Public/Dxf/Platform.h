@@ -71,5 +71,16 @@ public:
 	{
 		return TResult<FWindowState>::Success(FWindowState{});
 	}
+	/**
+	 * そのフレームの更新が求めた操作（マウスの捕捉・カーソルの形）を反映する。
+	 * 既定は何もしない（捕捉は取得できず、カーソルは標準のまま。UIの操作の失敗ではない）。
+	 * 捕捉は自アプリのウィンドウだけで、取得できない場合は要求を取り消して結果を次のSyncWindowで返す。
+	 * @param Requests そのフレームの要求。
+	 */
+	virtual TResult<void> ApplyRequests(const FPlatformRequests& Requests)
+	{
+		(void)Requests;
+		return {};
+	}
 };
 } // namespace Dxf

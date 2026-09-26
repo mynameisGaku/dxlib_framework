@@ -90,6 +90,14 @@ public:
 		m_Window = Window;
 	}
 	/**
+	 * このフレームのPlatformへの要求の書き込み先を設定する（Applicationが所有し、フレームの間だけ有効）。
+	 * @param Requests 書き込み先（nullptrで無効）。
+	 */
+	FORCEINLINE void SetPlatformRequests_Internal(FPlatformRequests* Requests) noexcept
+	{
+		m_pRequests = Requests;
+	}
+	/**
 	 * このフレームのウィンドウの状態。
 	 */
 	FORCEINLINE const FWindowState& GetWindowState() const noexcept
@@ -183,6 +191,10 @@ private:
 	 * このフレームのウィンドウの状態。
 	 */
 	FWindowState m_Window;
+	/**
+	 * このフレームのPlatformへの要求の書き込み先。
+	 */
+	FPlatformRequests* m_pRequests = nullptr;
 	/**
 	 * シーン間で共有するゲーム状態。
 	 */

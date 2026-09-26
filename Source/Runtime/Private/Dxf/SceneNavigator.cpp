@@ -294,8 +294,8 @@ TResult<void> FSceneNavigator::Tick(FFrameTime Time, const FInputSnapshot& Input
 		if (auto* Scene = GetCurrent())
 		{
 			Time = Scene->GetClock().Advance(Time);
-			Result = Scene->Tick_Internal(
-			    {Input, Time, this, m_pGame, m_pAudio, Scene->GetAudioScope(), m_pTasks, m_SceneScope, m_Window});
+			Result = Scene->Tick_Internal({Input, Time, this, m_pGame, m_pAudio, Scene->GetAudioScope(), m_pTasks,
+			                               m_SceneScope, m_Window, m_pRequests});
 		}
 	}
 	FinishDispatch_Internal();

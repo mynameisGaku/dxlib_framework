@@ -22,6 +22,13 @@ public:
 		return m_Clicked;
 	}
 	/**
+	 * 操作できる間は、操作できる対象のカーソル。
+	 */
+	ECursorShape GetCursorShape() const noexcept override
+	{
+		return IsEnabledInTree() ? ECursorShape::Hand : ECursorShape::Arrow;
+	}
+	/**
 	 * 決定した回数（診断・試験用）。
 	 */
 	FORCEINLINE Toolbox::uint64 GetActivationCount() const noexcept

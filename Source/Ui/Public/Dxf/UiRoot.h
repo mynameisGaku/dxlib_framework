@@ -219,6 +219,10 @@ public:
 	 */
 	DUiElement* GetHovered() const noexcept;
 	/**
+	 * カーソルの形の意図。捕捉している要素、なければポインターの上の要素から、祖先へ向かって最初の矢印以外の形。
+	 */
+	ECursorShape GetCursorIntent() const noexcept;
+	/**
 	 * 表示中のツールチップの対象（なければnullptr）。
 	 */
 	DUiElement* GetTooltipTarget() const noexcept;

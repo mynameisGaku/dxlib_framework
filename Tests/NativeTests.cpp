@@ -340,3 +340,33 @@ TEST("Native window sync resizes the render target only in resizable mode and ke
 		Platform.Shutdown();
 	}
 }
+TEST("Native platform captures the pointer only for its own foreground window and releases idempotently")
+{
+	DxLib::Trace = {};
+	DxLib::TestWindow = {};
+	FDxLibPlatform Platform;
+	REQUIRE(Platform.Initialize({}));
+	FPlatformRequests Requests;
+	Requests.bPointerCapture = true;
+	Requests.bCursorRequested = true;
+	Requests.Cursor = ECursorShape::ResizeHorizontal;
+	REQUIRE(Platform.ApplyRequests(Requests));
+	REQUIRE(DxLib::TestWindow.bCaptured && DxLib::TestWindow.Captures == 1 && DxLib::TestWindow.CursorId == 32644);
+	auto State = Platform.SyncWindow();
+	REQUIRE(State && State.Value().bPointerCaptureSupported && State.Value().bPointerCaptured);
+	// 既に捕捉していれば取り直さない。
+	REQUIRE(Platform.ApplyRequests(Requests));
+	REQUIRE(DxLib::TestWindow.Captures == 1);
+	// 解除は捕捉しているときだけ（何度呼んでもよい）。
+	Requests.bPointerCapture = false;
+	REQUIRE(Platform.ApplyRequests(Requests));
+	REQUIRE(Platform.ApplyRequests(Requests));
+	REQUIRE(!DxLib::TestWindow.bCaptured && DxLib::TestWindow.Releases == 1);
+	// 前面でないウィンドウは捕捉を取得しない（強制的に前面へ移さない）。結果は捕捉していないと返す。
+	DxLib::TestWindow.bForeground = false;
+	Requests.bPointerCapture = true;
+	REQUIRE(Platform.ApplyRequests(Requests));
+	auto Refused = Platform.SyncWindow();
+	REQUIRE(Refused && !Refused.Value().bPointerCaptured && DxLib::TestWindow.Captures == 1);
+	Platform.Shutdown();
+}

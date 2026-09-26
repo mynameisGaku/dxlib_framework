@@ -71,7 +71,8 @@ TResult<void> DLifecycleObject::Tick_Internal(const FTickContext& Context)
 		                         Context.AudioScope,
 		                         Context.Tasks,
 		                         Context.TaskScope,
-		                         Context.Window};
+		                         Context.Window,
+		                         Context.Requests};
 		if (!Local.Time.bPaused || m_bTickWhenPaused)
 		{
 			OnTick(Local);

@@ -8,6 +8,7 @@
 #include "Dxf/UiEvents.h"
 #include "Dxf/UiLayoutParams.h"
 #include "Dxf/UiStyle.h"
+#include "Dxf/WindowState.h"
 #include "Toolbox/String.h"
 #include "Toolbox/Vector.h"
 namespace Dxf
@@ -96,6 +97,14 @@ public:
 	FORCEINLINE Toolbox::uint64 GetId() const noexcept
 	{
 		return m_Id;
+	}
+	/**
+	 * ポインターがこの要素の上にある・この要素が捕捉しているときのカーソルの形の意図（既定は標準の矢印）。
+	 * 形の決定は、Rootの最前面のヒット判定と同じ要素から行う。
+	 */
+	virtual ECursorShape GetCursorShape() const noexcept
+	{
+		return ECursorShape::Arrow;
 	}
 	/**
 	 * 検査・診断で使う安定した名前。

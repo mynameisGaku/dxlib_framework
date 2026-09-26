@@ -132,6 +132,10 @@ TResult<FWindowState> FDxLibPlatform::SyncWindow()
 	}
 	Next.RenderWidth = DrawWidth;
 	Next.RenderHeight = DrawHeight;
+	// マウスの捕捉は自アプリのウィンドウが実際に持っているかを返す（要求したこととは別）。
+	const HWND Window = DxLib::GetMainWindowHandle();
+	Next.bPointerCaptureSupported = Window != nullptr;
+	Next.bPointerCaptured = Window != nullptr && GetCapture() == Window;
 	Next.Revision = Next.IsSameState(m_State) ? m_State.Revision : m_State.Revision + 1;
 	m_State = Next;
 	if (Next.bMinimized)
@@ -140,6 +144,51 @@ TResult<FWindowState> FDxLibPlatform::SyncWindow()
 		(void)DxLib::WaitTimer(16);
 	}
 	return TResult<FWindowState>::Success(Next);
+}
+// フレームの更新が求めた操作を反映する。
+TResult<void> FDxLibPlatform::ApplyRequests(const FPlatformRequests& Requests)
+{
+	if (!m_bInitialized)
+	{
+		return TResult<void>::Failure(EErrorCode::InvalidState, "DxLib session is not initialized");
+	}
+	const HWND Window = DxLib::GetMainWindowHandle();
+	if (Window == nullptr)
+	{
+		return {};
+	}
+	// 捕捉は自アプリのウィンドウだけ。前面へ強制的に移したりはしない（取得できなければ次のフレームで喪失として扱う）。
+	// 自分で解除した場合もWM_CAPTURECHANGEDが届くが、ここで取り直すことはしない（解除は冪等）。
+	if (Requests.bPointerCapture && GetCapture() != Window && GetForegroundWindow() == Window)
+	{
+		(void)SetCapture(Window);
+	}
+	else if (!Requests.bPointerCapture && GetCapture() == Window)
+	{
+		(void)ReleaseCapture();
+	}
+	if (Requests.bCursorRequested)
+	{
+		// 標準のシステムカーソルの番号（IDC_ARROW・IDC_HAND・IDC_SIZEWE・IDC_SIZENS）。
+		WORD Id = 32512;
+		switch (Requests.Cursor)
+		{
+		case ECursorShape::Hand:
+			Id = 32649;
+			break;
+		case ECursorShape::ResizeHorizontal:
+			Id = 32644;
+			break;
+		case ECursorShape::ResizeVertical:
+			Id = 32645;
+			break;
+		default:
+			break;
+		}
+		// 標準カーソルだけを使う（共有のカーソルは解放しない）。
+		(void)SetCursor(LoadCursorW(nullptr, MAKEINTRESOURCEW(Id)));
+	}
+	return {};
 }
 // OSイベントを処理し継続可否を返す。
 TResult<bool> FDxLibPlatform::PumpEvents()

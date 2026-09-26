@@ -211,11 +211,19 @@ TResult<bool> FApplication::Step_Internal(Toolbox::f64 NowSeconds)
 		DXF_LOG_INFO("ApplicationLifecycle", "Step stopped app=%p branch=after-game-tick requested=%d sceneQuit=%d", static_cast<void*>(this), m_bShutdownRequested, m_Scenes.WantsQuit());
 		return TResult<bool>::Success(false);
 	}
-	// 更新に渡すフレーム情報。
+	// 更新に渡すフレーム情報。更新・入力の仲介が求めた操作は、このフレームの更新の後でPlatformへ反映する。
+	FPlatformRequests Requests;
+	m_Scenes.SetPlatformRequests_Internal(&Requests);
 	auto Tick = m_Scenes.Tick(Time.Value(), m_Input.GetSnapshot());
+	m_Scenes.SetPlatformRequests_Internal(nullptr);
 	if (!Tick)
 	{
 		return TResult<bool>::Failure(Tick.Error());
+	}
+	auto Applied = m_pPlatform->ApplyRequests(Requests);
+	if (!Applied)
+	{
+		return TResult<bool>::Failure(Applied.Error());
 	}
 	if (WantsQuit_Internal())
 	{

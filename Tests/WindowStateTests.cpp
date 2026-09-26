@@ -152,3 +152,27 @@ TEST("Application stops with the first error when the window state cannot be syn
 	REQUIRE(!Result && Result.Error().Message == "Render size change to 10x10 failed");
 	REQUIRE(Observation.Draws == 0 && Backend.GetTrace().Presentations == 0);
 }
+
+TEST("Application applies the input router's platform requests once per frame after the update")
+{
+	class DRequestScene final : public DScene
+	{
+	protected:
+		void OnTick(const FTickContext& Context) override
+		{
+			REQUIRE(Context.Requests != nullptr);
+			Context.Requests->bPointerCapture = true;
+			Context.Requests->bCursorRequested = true;
+			Context.Requests->Cursor = ECursorShape::Hand;
+		}
+	};
+	FFakeBackend Backend;
+	FApplication App(MakeServices(Backend));
+	REQUIRE(App.Start(Toolbox::MakeUnique<DRequestScene>()));
+	Toolbox::int32 Frame = 0;
+	Step(App, Frame);
+	Step(App, Frame);
+	REQUIRE(Backend.GetTrace().AppliedRequests == 2);
+	REQUIRE(Backend.GetTrace().LastRequests.bPointerCapture &&
+	        Backend.GetTrace().LastRequests.Cursor == ECursorShape::Hand);
+}

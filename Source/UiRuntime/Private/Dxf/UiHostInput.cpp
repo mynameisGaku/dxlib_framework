@@ -109,6 +109,24 @@ FInputSnapshot FUiHostState::RouteInput(const FTickContext& Context)
 		                    }
 		                    return A->Id > B->Id;
 	                    });
+	// 失焦・マウスの捕捉の喪失は、通常の解放と区別して押下中の操作を決定せずに取り消す（CaptureLost）。
+	// 捕捉の喪失は、Platformが捕捉に対応し、前のフレームで求めたのに取得していない場合だけ。
+	const bool bFocused = Raw.bFocused && (!Context.Window.bKnown || Context.Window.bFocused);
+	const bool bCaptureLost =
+	    m_bRequestedCapture && Context.Window.bPointerCaptureSupported && !Context.Window.bPointerCaptured;
+	const bool bCancelPointer = !bFocused || bCaptureLost;
+	if (bCancelPointer)
+	{
+		for (auto& Display : Displays)
+		{
+			if (FUiRoot* LiveRoot = Display.Root.Get())
+			{
+				LiveRoot->ResetPointer();
+			}
+		}
+		m_PointerOwner = 0;
+		Routing.bPointerCancelled = true;
+	}
 	// ポインターの対象: 押し始めた表示先が離すまで受ける。そうでなければ最前面でUIの要素に当たる表示先。
 	const FVector2 Screen{static_cast<Toolbox::f32>(Raw.MouseX), static_cast<Toolbox::f32>(Raw.MouseY)};
 	FDisplay* Target = nullptr;
@@ -168,6 +186,11 @@ FInputSnapshot FUiHostState::RouteInput(const FTickContext& Context)
 				}
 			}
 		}
+	}
+	if (bCancelPointer)
+	{
+		// 取り消したフレームはポインターを配送しない（解放を決定として届けない）。
+		Target = nullptr;
 	}
 	if (Target != nullptr)
 	{
@@ -532,6 +555,32 @@ FInputSnapshot FUiHostState::RouteInput(const FTickContext& Context)
 		m_bSeeded = true;
 	}
 	m_Filtered.Advance(Filtered);
+	// Platformへの要求：UIがドラッグ等でポインターを捕捉している間だけ、自アプリのウィンドウへマウスの捕捉を求める。
+	// カーソルはポインターの対象の表示先のRootの最前面の要素から決める。
+	bool bWantsCapture = false;
+	ECursorShape Cursor = ECursorShape::Arrow;
+	for (auto& Display : Displays)
+	{
+		const FUiRoot* LiveRoot = Display.Root.Get();
+		if (LiveRoot != nullptr && LiveRoot->GetCaptured() != nullptr)
+		{
+			bWantsCapture = true;
+			Cursor = LiveRoot->GetCursorIntent();
+		}
+	}
+	if (!bWantsCapture && Target != nullptr && Target->Root.Get() != nullptr)
+	{
+		Cursor = Target->Root.Get()->GetCursorIntent();
+	}
+	m_bRequestedCapture = bWantsCapture;
+	Routing.bWantsPointerCapture = bWantsCapture;
+	Routing.Cursor = Cursor;
+	if (Context.Requests != nullptr)
+	{
+		Context.Requests->bPointerCapture = Context.Requests->bPointerCapture || bWantsCapture;
+		Context.Requests->bCursorRequested = true;
+		Context.Requests->Cursor = Cursor;
+	}
 	m_LastFrame = Context.Time.FrameIndex;
 	m_LastRouting = Routing;
 	return m_Filtered.GetSnapshot();

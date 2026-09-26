@@ -110,6 +110,8 @@ struct FBackendTrace
 	 */
 	FWindowState Window;
 	Toolbox::int32 SyncWindows = 0;
+	FPlatformRequests LastRequests;
+	Toolbox::int32 AppliedRequests = 0;
 	Toolbox::int32 TargetWidth = 0;
 	Toolbox::int32 TargetHeight = 0;
 	/**
@@ -485,6 +487,15 @@ public:
 	{
 		++m_Trace.SyncWindows;
 		return TResult<FWindowState>::Success(m_Trace.Window);
+	}
+	/**
+	 * フレームの要求を記録する。
+	 */
+	TResult<void> ApplyRequests(const FPlatformRequests& Requests) override
+	{
+		++m_Trace.AppliedRequests;
+		m_Trace.LastRequests = Requests;
+		return {};
 	}
 	/**
 	 * 検証で設定した入力または再生状態を返す。

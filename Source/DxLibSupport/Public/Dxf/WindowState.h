@@ -56,6 +56,14 @@ struct FWindowState
 	 */
 	Toolbox::int32 Dpi = 96;
 	/**
+	 * 自アプリのウィンドウへマウスの捕捉（ウィンドウの外の移動・解放も受ける）を要求できるか。
+	 */
+	bool bPointerCaptureSupported = false;
+	/**
+	 * 自アプリのウィンドウがマウスを捕捉しているか（要求したことと、実際に取得できたことは別）。
+	 */
+	bool bPointerCaptured = false;
+	/**
 	 * 寸法・最小化・フォーカス・DPIのいずれかが変わるたびに増える番号。
 	 */
 	Toolbox::uint64 Revision = 0;
@@ -75,6 +83,44 @@ struct FWindowState
 		       RenderWidth == Other.RenderWidth && RenderHeight == Other.RenderHeight &&
 		       bMinimized == Other.bMinimized && bFocused == Other.bFocused && Dpi == Other.Dpi;
 	}
+};
+/**
+ * マウスカーソルの形（標準のカーソルへ対応させる意図）。
+ */
+enum class ECursorShape : Toolbox::uint8
+{
+	/**
+	 * 標準の矢印。
+	 */
+	Arrow,
+	/**
+	 * 操作できる対象の上。
+	 */
+	Hand,
+	/**
+	 * 横方向のドラッグ。
+	 */
+	ResizeHorizontal,
+	/**
+	 * 縦方向のドラッグ。
+	 */
+	ResizeVertical
+};
+
+/**
+ * 1フレームの間に更新・入力の仲介がPlatformへ求める操作。Applicationがフレームの境界でまとめて反映する。
+ */
+struct FPlatformRequests
+{
+	/**
+	 * 自アプリのウィンドウへマウスの捕捉を求めるか（UIのドラッグ中等）。
+	 */
+	bool bPointerCapture = false;
+	/**
+	 * カーソルの形を指定したか、と指定した形。
+	 */
+	bool bCursorRequested = false;
+	ECursorShape Cursor = ECursorShape::Arrow;
 };
 } // namespace Dxf
 #endif

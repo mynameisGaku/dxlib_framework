@@ -456,6 +456,24 @@ DUiElement* FUiRoot::GetHovered() const noexcept
 {
 	return m_pState->Input.GetHovered();
 }
+// カーソルの形の意図（最前面のヒット判定と同じ要素から）。
+ECursorShape FUiRoot::GetCursorIntent() const noexcept
+{
+	const DUiElement* Element = GetCaptured();
+	if (Element == nullptr)
+	{
+		Element = GetHovered();
+	}
+	for (; Element != nullptr; Element = Element->GetParent())
+	{
+		const ECursorShape Shape = Element->GetCursorShape();
+		if (Shape != ECursorShape::Arrow)
+		{
+			return Shape;
+		}
+	}
+	return ECursorShape::Arrow;
+}
 // ツールチップの対象。
 DUiElement* FUiRoot::GetTooltipTarget() const noexcept
 {
