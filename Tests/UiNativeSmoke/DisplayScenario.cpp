@@ -8,6 +8,7 @@
 #include "Dxf/Application.h"
 #include "Dxf/NativeBackends.h"
 #include "Dxf/ViewCoordinates.h"
+#include "DxLib.h"
 namespace Dxf::UiSmoke
 {
 namespace
@@ -155,6 +156,63 @@ void VerifyScreenDisplays_Internal(const FScreenCapture& Actual)
 	RequireColor_Internal(Actual.Pixel(820, 83), S::ClearColor, ExactTolerance, "2D panel bottom outside");
 }
 
+// 実画像の画素。元画像をCPUで読み、3x3が同じ色の点だけを2倍の位置で比べる（拡大の補間方式に依らない）。
+void VerifyImage_Internal(const FScreenCapture& Actual, const char* ProjectRoot)
+{
+	using S = DDisplayScene;
+	const Toolbox::FPath Path = Toolbox::FPath(ProjectRoot) / S::ImagePath;
+	const Toolbox::int32 Source = DxLib::LoadSoftImage(Path.ToUtf8().CStr());
+	Require_Internal(Source >= 0, "source image load");
+	int Width = 0;
+	int Height = 0;
+	Require_Internal(DxLib::GetSoftImageSize(Source, &Width, &Height) == 0 && Width == 64 && Height == 64,
+	                 "source image size");
+	auto SourcePixel = [&](Toolbox::int32 X, Toolbox::int32 Y)
+	{
+		int R = 0;
+		int G = 0;
+		int B = 0;
+		int A = 0;
+		(void)DxLib::GetPixelSoftImage(Source, X, Y, &R, &G, &B, &A);
+		return FColor{static_cast<Toolbox::uint8>(R), static_cast<Toolbox::uint8>(G), static_cast<Toolbox::uint8>(B),
+		              255};
+	};
+	Toolbox::int32 Checked = 0;
+	Toolbox::int32 Distinct = 0;
+	FColor Previous{0, 0, 0, 0};
+	for (Toolbox::int32 Y = 2; Y < 62; Y += 5)
+	{
+		for (Toolbox::int32 X = 2; X < 62; X += 5)
+		{
+			const FColor Center = SourcePixel(X, Y);
+			bool bUniform = true;
+			for (Toolbox::int32 DY = -1; DY <= 1 && bUniform; ++DY)
+			{
+				for (Toolbox::int32 DX = -1; DX <= 1 && bUniform; ++DX)
+				{
+					bUniform = SameRgb_Internal(SourcePixel(X + DX, Y + DY), Center);
+				}
+			}
+			if (!bUniform)
+			{
+				continue;
+			}
+			// DxLibの既定の透過色（黒）の画素は描かれず、背景が見える。
+			const bool bKey = SameRgb_Internal(Center, FColor{0, 0, 0, 255});
+			RequireColor_Internal(Actual.Pixel(S::ImageRect.Left + X * 2 + 1, S::ImageRect.Top + Y * 2 + 1),
+			                      bKey ? S::ClearColor : Center, SampledTolerance, "stretched real image pixel");
+			++Checked;
+			if (!SameRgb_Internal(Center, Previous))
+			{
+				++Distinct;
+			}
+			Previous = Center;
+		}
+	}
+	(void)DxLib::DeleteSoftImage(Source);
+	Require_Internal(Checked >= 20 && Distinct >= 3, "real image samples cover several colors");
+}
+
 // 3Dのパネルの画素。Referenceはパネルを描かないフレーム。
 void VerifyPanels3D_Internal(const FScreenCapture& Actual, const FScreenCapture& Reference)
 {
@@ -285,6 +343,7 @@ void RunDisplayScenario(const char* ProjectRoot, const Toolbox::FPath& Out)
 	Reference.Save(Out / "ui-display-reference.png");
 	Actual.Save(Out / "ui-display-actual.png");
 	VerifyScreenDisplays_Internal(Actual);
+	VerifyImage_Internal(Actual, ProjectRoot);
 	VerifyPanels3D_Internal(Actual, Reference);
 	// 既知の画素のクリックは、その表示先のルートだけへ届く。
 	struct FClickCase

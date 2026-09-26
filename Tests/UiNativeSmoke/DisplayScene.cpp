@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: NOASSERTION
 #include "DisplayScene.h"
+#include "Dxf/UiImage.h"
 #include "Dxf/UiLabel.h"
 #include "Dxf/UiPanel.h"
 namespace Dxf::UiSmoke
@@ -111,6 +112,23 @@ TResult<void> DDisplayScene::OnInitialize(const FInitContext& Context)
 		{
 			return Added;
 		}
+	}
+	// 実画像：DUiImageで2倍に引き伸ばす（入力は受けない）。
+	auto Texture = Context.Assets.LoadTexture(ImagePath);
+	if (!Texture)
+	{
+		return TResult<void>::Failure(Texture.Error());
+	}
+	auto Image = m_pOverlay->Create<DUiImage>(Texture.Value());
+	Image.Get()->SetFit(EUiImageFit::Stretch);
+	Image.Get()->SetAbsolutePosition(
+	    {static_cast<Toolbox::f32>(ImageRect.Left), static_cast<Toolbox::f32>(ImageRect.Top)});
+	Image.Get()->SetWidth(FUiLength::Fixed(static_cast<Toolbox::f32>(ImageRect.Width())));
+	Image.Get()->SetHeight(FUiLength::Fixed(static_cast<Toolbox::f32>(ImageRect.Height())));
+	Image.Get()->SetHitTest(EUiHitTest::None);
+	if (auto Added = m_pOverlay->AddToLayer(EUiLayer::Panel, Image.Cast<DUiElement>()); !Added)
+	{
+		return Added;
 	}
 	// 左右：全面のボタンと、論理(10,10)の目印。右は倍率2なので画素では2倍の位置と寸法になる。
 	const Toolbox::TArray<FUiRoot*, 2> Sides{m_pLeft.Get(), m_pRight.Get()};

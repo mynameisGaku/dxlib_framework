@@ -62,6 +62,14 @@ public:
 	 */
 	static constexpr FColor OverlayColor{250, 120, 10, 255};
 	/**
+	 * 実画像（Assets/player.bmp、64x64）を2倍に引き伸ばして描く画面の範囲。
+	 */
+	static constexpr FUiPixelRect ImageRect{40, 400, 168, 528};
+	/**
+	 * 実画像のプロジェクトの根からの相対パス。
+	 */
+	static constexpr const char* ImagePath = "Assets/player.bmp";
+	/**
 	 * 2Dワールドのパネルの色。
 	 */
 	static constexpr FColor Panel2DColor{20, 180, 160, 255};

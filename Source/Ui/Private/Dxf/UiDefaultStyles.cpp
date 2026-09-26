@@ -150,7 +150,9 @@ const char* GetBuiltInUiStyleText() noexcept
 	       "    font-size = @size.text.small\n"
 	       "    padding = 8 4\n"
 	       "}\n"
+	       // 画像のforegroundは色の乗算。既定は白で、元画像の色を変えない（文字色を継承して暗くしない）。
 	       "style Image {\n"
+	       "    foreground = #ffffff\n"
 	       "}\n";
 }
 // 組込みの既定スタイル。
