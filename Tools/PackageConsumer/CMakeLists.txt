@@ -42,6 +42,8 @@ if(DXF_VALIDATE_NATIVE)
     # UI入りの外部のApplication（画面・3Dの平面のUI、組込み／外部スタイル）。
     add_executable(NativeUiApp NativeUiApp.cpp)
     target_link_libraries(NativeUiApp PRIVATE dxf::native dxf::ui_runtime)
+    # DPI認識はアプリケーションのmanifestで宣言する（パッケージが提供する関数）。
+    dxf_enable_dpi_awareness(NativeUiApp)
     target_compile_definitions(NativeUiApp PRIVATE DX_NON_USING_NAMESPACE_DXLIB NOMINMAX)
     # DxLibのVC SDK（とソースからのビルド）は静的CRT。パッケージが用意する関数で合わせる。
     foreach(_dxf_target Consumer PhysicsOnly SupportOnly UiOnly UiRuntime NativeApp NativeUiApp)

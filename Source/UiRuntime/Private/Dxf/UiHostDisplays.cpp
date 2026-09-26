@@ -234,27 +234,33 @@ void FUiHostState::SetScreenSize(Toolbox::int32 Width, Toolbox::int32 Height) no
 // 表示先の表示面。
 FUiSurface FUiHostState::MakeSurface_Internal(const FDisplay& Display) const noexcept
 {
+	// DPI連動の方式にはウィンドウのDPIを渡す（他の方式には掛けない）。
+	FUiScaleSettings Scale = Display.Options.Scale;
+	if (Scale.Mode == EUiScaleMode::Dpi)
+	{
+		Scale.Dpi = m_Dpi;
+	}
 	switch (Display.Kind)
 	{
 	case EUiDisplayKind::Screen:
-		return FUiSurface({0, 0, m_ScreenWidth, m_ScreenHeight}, Display.Options.Scale);
+		return FUiSurface({0, 0, m_ScreenWidth, m_ScreenHeight}, Scale);
 	case EUiDisplayKind::Viewport:
-		return FUiSurface(Display.Rect, Display.Options.Scale);
+		return FUiSurface(Display.Rect, Scale);
 	case EUiDisplayKind::WorldPanel2D:
 	{
 		if (!Display.Panel2D.bOffscreen)
 		{
-			return FUiSurface(Display.Panel2D.GetPixelRect(), Display.Options.Scale);
+			return FUiSurface(Display.Panel2D.GetPixelRect(), Scale);
 		}
 		// 中間画像は画面の範囲と同じ画素数で、原点は中間画像の左上。
 		const FUiPixelRect Rect = Display.Panel2D.GetPixelRect();
-		FUiSurface Surface({0, 0, Rect.Width(), Rect.Height()}, Display.Options.Scale);
+		FUiSurface Surface({0, 0, Rect.Width(), Rect.Height()}, Scale);
 		Surface.SetPremultipliedAlpha(Display.Panel2D.Composition == EUiPanelComposition::Transparent);
 		return Surface;
 	}
 	default:
 	{
-		FUiSurface Surface({0, 0, Display.Panel3D.TextureWidth, Display.Panel3D.TextureHeight}, Display.Options.Scale);
+		FUiSurface Surface({0, 0, Display.Panel3D.TextureWidth, Display.Panel3D.TextureHeight}, Scale);
 		Surface.SetPremultipliedAlpha(Display.Panel3D.Composition == EUiPanelComposition::Transparent);
 		return Surface;
 	}

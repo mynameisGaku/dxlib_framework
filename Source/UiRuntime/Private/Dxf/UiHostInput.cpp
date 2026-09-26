@@ -69,6 +69,10 @@ FInputSnapshot FUiHostState::RouteInput(const FTickContext& Context)
 		m_ScreenWidth = Context.Window.RenderWidth;
 		m_ScreenHeight = Context.Window.RenderHeight;
 	}
+	if (Context.Window.bKnown && Context.Window.Dpi > 0)
+	{
+		m_Dpi = static_cast<Toolbox::f32>(Context.Window.Dpi);
+	}
 	const FInputSnapshot& Input = Context.Input;
 	const FRawInput& Raw = Input.GetRaw();
 	const Toolbox::f64 Delta = Toolbox::Clamp(Context.Time.UnscaledDeltaSeconds, 0.0, 0.25);

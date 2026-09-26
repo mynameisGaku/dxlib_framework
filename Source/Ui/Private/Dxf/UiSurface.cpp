@@ -11,7 +11,7 @@ FUiSurface::FUiSurface(FUiPixelRect PixelRect, const FUiScaleSettings& Settings)
 	        Toolbox::TNumericLimits<Toolbox::int32>::Max() ||
 	    static_cast<Toolbox::int64>(PixelRect.Bottom) - PixelRect.Top >
 	        Toolbox::TNumericLimits<Toolbox::int32>::Max() ||
-	    Settings.Mode > EUiScaleMode::FixedPixel || PixelRect.IsEmpty() || !Toolbox::IsFinite(Settings.UserScale) ||
+	    Settings.Mode > EUiScaleMode::Dpi || PixelRect.IsEmpty() || !Toolbox::IsFinite(Settings.UserScale) ||
 	    !(Settings.UserScale > 0) || !Toolbox::IsFinite(Settings.MinScale) || !Toolbox::IsFinite(Settings.MaxScale) ||
 	    !(Settings.MinScale > 0) || Settings.MaxScale < Settings.MinScale)
 	{
@@ -26,6 +26,15 @@ FUiSurface::FUiSurface(FUiPixelRect PixelRect, const FUiScaleSettings& Settings)
 			return;
 		}
 		Scale = Height / Settings.ReferenceHeight * Settings.UserScale;
+	}
+	else if (Settings.Mode == EUiScaleMode::Dpi)
+	{
+		// DPI連動：96を等倍とする画素の倍率に利用者倍率を掛ける（他の方式へはDPIを掛けない）。
+		if (!Toolbox::IsFinite(Settings.Dpi) || !(Settings.Dpi > 0))
+		{
+			return;
+		}
+		Scale = static_cast<Toolbox::f64>(Settings.Dpi) / 96.0 * Settings.UserScale;
 	}
 	Scale = Toolbox::Clamp<Toolbox::f64>(Scale, Settings.MinScale, Settings.MaxScale);
 	if (!Toolbox::IsFinite(Scale) || !(Scale > 0))

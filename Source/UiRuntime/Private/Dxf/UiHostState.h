@@ -292,6 +292,10 @@ private:
 	 */
 	Toolbox::int32 m_ScreenHeight = 720;
 	/**
+	 * DPI連動の表示先に使うウィンドウのDPI（フレームの最初に確定した値）。
+	 */
+	Toolbox::f32 m_Dpi = 96;
+	/**
 	 * UIが持っているキー。
 	 */
 	Toolbox::TArray<bool, static_cast<Toolbox::size_t>(EKey::Count)> m_OwnedKeys{};

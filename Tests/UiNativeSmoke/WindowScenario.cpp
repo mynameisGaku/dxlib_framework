@@ -115,6 +115,12 @@ void RunMode_Internal(const char* ProjectRoot, const Toolbox::FPath& Out, EWindo
 	Step_Internal(App, Frame);
 	VerifyFrame_Internal(Capture, ProjectRoot, 1280, 720);
 	Require_Internal(Scene->Window.bKnown && Scene->Window.RenderWidth == 1280, "initial window state");
+	// manifestで宣言したPer-Monitor V2のDPI認識で動いており、報告するDPIはOSのウィンドウのDPIと同じ。
+	Require_Internal(AreDpiAwarenessContextsEqual(GetThreadDpiAwarenessContext(),
+	                                              DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2) != FALSE,
+	                 "process runs per-monitor v2 DPI aware");
+	Require_Internal(Scene->Window.Dpi == static_cast<Toolbox::int32>(GetDpiForWindow(DxLib::GetMainWindowHandle())),
+	                 "reported DPI equals the window DPI");
 	// 奇数の寸法へ変える。Resizableは描画先を同じ画素数へ、Stretchは描画先を保って表示を引き伸ばす。
 	ResizeClient_Internal(App, Frame, 1001, 501);
 	const bool bResizable = Mode == EWindowResizeMode::Resizable;

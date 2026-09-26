@@ -16,7 +16,12 @@ enum class EUiScaleMode : Toolbox::uint8
 	/**
 	 * 1論理単位を1画素（に利用者倍率を掛けた値）で表す（固定ピクセル）。
 	 */
-	FixedPixel
+	FixedPixel,
+	/**
+	 * 1論理単位をDPI/96画素（に利用者倍率を掛けた値）で表す（DPI連動）。DPIは表示先の状態から渡す。
+	 * 高さ基準・固定ピクセルにはDPIを掛けない。
+	 */
+	Dpi
 };
 
 /**
@@ -36,6 +41,10 @@ struct FUiScaleSettings
 	 * 利用者の倍率（設定画面のUIスケール等）。
 	 */
 	Toolbox::f32 UserScale = 1;
+	/**
+	 * DPI連動の倍率に使うDPI（96が等倍。Dpiの方式だけで使う）。
+	 */
+	Toolbox::f32 Dpi = 96;
 	/**
 	 * 倍率の下限。
 	 */

@@ -71,6 +71,14 @@ function(dxf_public_headers Target Layer Visibility)
     dxf_ide_headers(${Target} "Source/${Layer}")
 endfunction()
 
+# Windowsのアプリケーションの実行ファイルに、Per-Monitor V2のDPI認識をmanifestで宣言する（プロセスの既定）。
+# ライブラリはプロセスのDPI認識を自分では変えない。配布ではdxlib_frameworkConfig.cmakeの同名の関数を使う。
+function(dxf_enable_dpi_awareness Target)
+    if(MSVC)
+        target_sources(${Target} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/CMake/DpiAware.manifest")
+    endif()
+endfunction()
+
 find_package(Threads REQUIRED)
 
 add_library(dxf_toolbox STATIC
@@ -484,7 +492,7 @@ if(DXF_INSTALL)
         VERSION ${PROJECT_VERSION} COMPATIBILITY SameMinorVersion)
     install(EXPORT dxlib_frameworkTargets NAMESPACE dxf:: DESTINATION "${DXF_CONFIG_DESTINATION}")
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/dxlib_frameworkConfig.cmake"
-        "${CMAKE_CURRENT_BINARY_DIR}/dxlib_frameworkConfigVersion.cmake" CMake/FindDxLib.cmake
+        "${CMAKE_CURRENT_BINARY_DIR}/dxlib_frameworkConfigVersion.cmake" CMake/FindDxLib.cmake CMake/DpiAware.manifest
         DESTINATION "${DXF_CONFIG_DESTINATION}")
     install(FILES README.md DESTINATION "${CMAKE_INSTALL_DATADIR}/dxlib_framework")
     install(FILES External/ufbx/LICENSE DESTINATION "${CMAKE_INSTALL_DATADIR}/dxlib_framework/licenses" RENAME ufbx-LICENSE.txt)

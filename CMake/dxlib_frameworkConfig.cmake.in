@@ -20,4 +20,11 @@ function(dxf_use_static_runtime Target)
         set_property(TARGET ${Target} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     endif()
 endfunction()
+# Call this for Windows application targets that should declare per-monitor DPI awareness in their manifest.
+# The library never changes the process DPI awareness by itself; an application that already declares it may skip this.
+function(dxf_enable_dpi_awareness Target)
+    if(MSVC)
+        target_sources(${Target} PRIVATE "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/DpiAware.manifest")
+    endif()
+endfunction()
 check_required_components(dxlib_framework)
