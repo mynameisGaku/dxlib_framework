@@ -5,6 +5,38 @@
 #include "Dxf/GuardValue.h"
 namespace Dxf::Detail
 {
+namespace
+{
+// 透明な合成に必要な能力を確かめ、不足する能力と表示先を失敗に書く（描画を始める前）。
+TResult<void> CheckTransparentComposition_Internal(FUiDisplayId Id, const FRenderCapabilities& Capabilities)
+{
+	Toolbox::FString Missing;
+	if (!Capabilities.bPremultipliedBlend2D)
+	{
+		Missing += " premultiplied-2d-blend";
+	}
+	if (!Capabilities.bAlphaTargetClear)
+	{
+		Missing += " alpha-target-clear";
+	}
+	if (!Capabilities.bTexturedQuads3D)
+	{
+		Missing += " textured-quads-3d";
+	}
+	if (!Capabilities.bPremultipliedQuads3D)
+	{
+		Missing += " premultiplied-quads-3d";
+	}
+	if (Missing.IsEmpty())
+	{
+		return {};
+	}
+	return TResult<void>::Failure(EErrorCode::BackendFailure,
+	                              Toolbox::FString("UI display ") + Toolbox::ToString(Id) +
+	                                  " requests transparent composition; backend lacks:" + Missing);
+}
+} // namespace
+
 // それぞれの表示面へ描画する。借用Rootはコールバック後に必ず再解決する。
 TResult<void> FUiHostState::RenderWorldPanelTextures(FRenderContext& Render)
 {
@@ -29,6 +61,13 @@ TResult<void> FUiHostState::RenderWorldPanelTextures(FRenderContext& Render)
 		if (!bTransparent && Display.Panel3D.Background.A != 255)
 		{
 			return TResult<void>::Failure(EErrorCode::InvalidArgument, "UI world panel background must be opaque");
+		}
+		if (bTransparent)
+		{
+			if (auto Capable = CheckTransparentComposition_Internal(Display.Id, Render.GetCapabilities()); !Capable)
+			{
+				return Capable;
+			}
 		}
 		const FUiSurface Surface = MakeSurface_Internal(Display);
 		Display.Root.Get()->SetSurface(Surface);

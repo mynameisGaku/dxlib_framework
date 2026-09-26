@@ -142,6 +142,29 @@ public:
 		return false;
 	}
 	/**
+	 * 2D命令の合成方式に対応するか。既定は通常のアルファ合成だけ（未実装の方式を対応済みと返さない）。
+	 * @param Mode 合成方式。
+	 */
+	virtual bool SupportsBlend2D(EBlendMode2D Mode) const noexcept
+	{
+		return Mode == EBlendMode2D::Alpha;
+	}
+	/**
+	 * アルファ付きの描画先を透明（A<255）で消去し、アルファを蓄積できるか。既定は非対応。
+	 */
+	virtual bool SupportsAlphaTargetClear() const noexcept
+	{
+		return false;
+	}
+	/**
+	 * テクスチャを貼った3Dの四角形を乗算済みアルファで合成できるか（FTexturedQuad3D::bPremultipliedAlpha）。
+	 * 四角形を描けることとは別の宣言で、既定は非対応。
+	 */
+	virtual bool SupportsPremultipliedQuads3D() const noexcept
+	{
+		return false;
+	}
+	/**
 	 * テクスチャを貼った四角形を描く（BeginView3DとEndView3Dの間）。
 	 * @param Quad 四角形。
 	 */

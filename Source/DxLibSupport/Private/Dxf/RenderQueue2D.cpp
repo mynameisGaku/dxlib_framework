@@ -188,6 +188,23 @@ TResult<void> FRenderQueue2D::Execute_Internal(IRenderBackend& Backend)
 		},
 		Command);
 	};
+	// 合成方式の能力は、Backendの状態を変える前に確かめる（未対応の命令を通常の合成へ置き換えない）。
+	for (const auto& Command : Commands)
+	{
+		const EBlendMode2D Blend = Toolbox::Visit(
+		    [](const auto& Value)
+		    {
+			    return Value.Options.Blend;
+		    },
+		    Command);
+		if (!Backend.SupportsBlend2D(Blend))
+		{
+			return TResult<void>::Failure(EErrorCode::BackendFailure,
+			                              Blend == EBlendMode2D::PremultipliedAlpha
+			                                  ? "Backend has no premultiplied 2D blend capability"
+			                                  : "Backend has no 2D blend capability for the command");
+		}
+	}
 	Toolbox::StableSort(Commands.Begin(), Commands.End(),
 	[&](const auto& A, const auto& B)
 	{

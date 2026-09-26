@@ -21,6 +21,7 @@ public:
 	Toolbox::TVector<FRenderView3D> Views;
 	Toolbox::TVector<FTexturedQuad3D> Quads;
 	Toolbox::TVector<Toolbox::FString> Texts;
+	FRenderCapabilities Declared;
 	bool Clip = false;
 	bool ThrowSet = false;
 	bool ThrowReset = false;
@@ -169,6 +170,23 @@ public:
 		return true;
 	}
 
+	// 合成の能力は試験ごとに明示する（既定は何も宣言しない）。
+	bool SupportsBlend2D(EBlendMode2D Mode) const noexcept override
+	{
+		return Mode == EBlendMode2D::Alpha ||
+		       (Mode == EBlendMode2D::PremultipliedAlpha && Declared.bPremultipliedBlend2D);
+	}
+
+	bool SupportsAlphaTargetClear() const noexcept override
+	{
+		return Declared.bAlphaTargetClear;
+	}
+
+	bool SupportsPremultipliedQuads3D() const noexcept override
+	{
+		return Declared.bPremultipliedQuads3D;
+	}
+
 	bool SupportsViewports3D() const noexcept override
 	{
 		return true;
@@ -225,6 +243,16 @@ inline TUiRef<DUiButton> FullButton(FUiRoot& Root)
 	Button.Get()->SetHeight(FUiLength::Fill());
 	REQUIRE(Root.AddToLayer(EUiLayer::Normal, Button.Cast<DUiElement>()));
 	return Button;
+}
+// 透明な合成に必要な能力をすべて宣言した値。
+inline FRenderCapabilities TransparentCapabilities()
+{
+	FRenderCapabilities Result;
+	Result.bPremultipliedBlend2D = true;
+	Result.bAlphaTargetClear = true;
+	Result.bTexturedQuads3D = true;
+	Result.bPremultipliedQuads3D = true;
+	return Result;
 }
 } // namespace UiTest
 #endif

@@ -213,6 +213,15 @@ TResult<void> FRender3DContext::Execute_Internal(IRenderBackend& Backend)
 	{
 		return TResult<void>::Failure(EErrorCode::BackendFailure, "Backend has no textured quad capability");
 	}
+	// 乗算済みの四角形は、その合成を宣言したBackendだけ（四角形を描けることを根拠にしない）。
+	for (const auto& Entry : Quads)
+	{
+		if (Entry.Quad.bPremultipliedAlpha && !Backend.SupportsPremultipliedQuads3D())
+		{
+			return TResult<void>::Failure(EErrorCode::BackendFailure,
+			                              "Backend has no premultiplied textured quad capability");
+		}
+	}
 	if (!Commands.IsEmpty() && !Backend.SupportsGeometry3D())
 	{
 		return TResult<void>::Failure(EErrorCode::BackendFailure, "Backend has no 3D geometry capability");

@@ -43,6 +43,13 @@ public:
 		return m_Draw3D;
 	}
 	/**
+	 * 描画Backendが宣言した合成の能力（パス制御がなければ何も対応しない）。
+	 */
+	FORCEINLINE FRenderCapabilities GetCapabilities() const
+	{
+		return m_pControl != nullptr ? m_pControl->GetCapabilities() : FRenderCapabilities{};
+	}
+	/**
 	 * 現在の描画先の幅（画素）。フレームの開始前・描画先の設定前は0。
 	 */
 	FORCEINLINE Toolbox::int32 GetTargetWidth() const noexcept

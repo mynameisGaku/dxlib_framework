@@ -1,6 +1,7 @@
 #pragma once
 #include "Dxf/Texture.h"
 #include "Dxf/MathTypes.h"
+#include "Dxf/RenderCapabilities.h"
 #include "Dxf/Result.h"
 #include "Toolbox/Function.h"
 namespace Dxf
@@ -37,6 +38,13 @@ public:
 	 * @param Color 描画色。
 	 */
 	virtual TResult<void> ClearTarget(FColor Color) = 0;
+	/**
+	 * 描画Backendが宣言した合成の能力。既定は何も対応しない（描画の前に確かめて、未対応なら描かずに失敗する）。
+	 */
+	virtual FRenderCapabilities GetCapabilities() const
+	{
+		return {};
+	}
 	/**
 	 * 保存した対象へ復帰する。失敗フレームでも復帰を試し、元の失敗は維持する。
 	 * @param Target 保存した対象。空はバックバッファ。

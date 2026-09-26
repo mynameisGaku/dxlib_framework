@@ -123,6 +123,27 @@ public:
 		return true;
 	}
 	/**
+	 * 通常のアルファ合成と、DX_BLENDMODE_PMA_ALPHAによる乗算済みアルファの合成。
+	 */
+	bool SupportsBlend2D(EBlendMode2D Mode) const noexcept override
+	{
+		return Mode == EBlendMode2D::Alpha || Mode == EBlendMode2D::PremultipliedAlpha;
+	}
+	/**
+	 * 描画先の画像はSetBackgroundColorのアルファで透明に消去できる（画面への透明な消去は失敗を返す）。
+	 */
+	bool SupportsAlphaTargetClear() const noexcept override
+	{
+		return true;
+	}
+	/**
+	 * 乗算済みの四角形はPMA合成とアルファテスト（α=0を捨てる）で描く。
+	 */
+	bool SupportsPremultipliedQuads3D() const noexcept override
+	{
+		return true;
+	}
+	/**
 	 * DrawPolygon3Dで二つの三角形として描く（照明なし。表面だけの指定なら、視点が裏側のときは描かない）。
 	 * @param Quad 四角形。
 	 */

@@ -275,6 +275,12 @@ TResult<void> FRenderSystem::ClearTarget(FColor Color)
 	{
 		return Flushed;
 	}
+	// 透明な消去はアルファを蓄積できる描画先だけ（未対応なら消去を始めずに失敗する）。
+	if (Color.A != 255 && !m_pBackend->SupportsAlphaTargetClear())
+	{
+		return FailFrame_Internal(
+		    FError{EErrorCode::BackendFailure, "Backend has no alpha render target clear capability"});
+	}
 	// 画面消去の結果。
 	auto Cleared = CallBackend_Internal(
 	[&]
@@ -283,6 +289,16 @@ TResult<void> FRenderSystem::ClearTarget(FColor Color)
 	}
 	);
 	return Cleared ? Cleared : FailFrame_Internal(Cleared.Error());
+}
+// 接続した描画Backendの宣言を写す。
+FRenderCapabilities FRenderSystem::GetCapabilities() const
+{
+	FRenderCapabilities Capabilities;
+	Capabilities.bPremultipliedBlend2D = m_pBackend->SupportsBlend2D(EBlendMode2D::PremultipliedAlpha);
+	Capabilities.bAlphaTargetClear = m_pBackend->SupportsAlphaTargetClear();
+	Capabilities.bTexturedQuads3D = m_pBackend->SupportsTexturedQuads3D();
+	Capabilities.bPremultipliedQuads3D = m_pBackend->SupportsPremultipliedQuads3D();
+	return Capabilities;
 }
 // ネイティブ処理を呼び出し、描画状態を復元する。
 // @param Callback 利用者が指定した処理。

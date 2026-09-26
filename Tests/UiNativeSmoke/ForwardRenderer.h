@@ -36,6 +36,9 @@ public:
 	bool SupportsGeometry3D() const noexcept override;
 	bool SupportsModels3D() const noexcept override;
 	bool SupportsTexturedQuads3D() const noexcept override;
+	bool SupportsBlend2D(EBlendMode2D Mode) const noexcept override;
+	bool SupportsAlphaTargetClear() const noexcept override;
+	bool SupportsPremultipliedQuads3D() const noexcept override;
 	TResult<void> Present() override;
 
 private:

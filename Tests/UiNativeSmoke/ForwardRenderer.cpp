@@ -107,6 +107,22 @@ bool FForwardRenderer::SupportsTexturedQuads3D() const noexcept
 	return m_Backend.SupportsTexturedQuads3D();
 }
 
+// 合成の能力は委譲先の宣言をそのまま返す（代替が勝手に対応済みにしない）。
+bool FForwardRenderer::SupportsBlend2D(EBlendMode2D Mode) const noexcept
+{
+	return m_Backend.SupportsBlend2D(Mode);
+}
+
+bool FForwardRenderer::SupportsAlphaTargetClear() const noexcept
+{
+	return m_Backend.SupportsAlphaTargetClear();
+}
+
+bool FForwardRenderer::SupportsPremultipliedQuads3D() const noexcept
+{
+	return m_Backend.SupportsPremultipliedQuads3D();
+}
+
 TResult<void> FForwardRenderer::Present()
 {
 	if (BeforePresent)

@@ -64,6 +64,10 @@ public:
 	 */
 	TResult<void> ClearTarget(FColor Color) override;
 	/**
+	 * 接続した描画Backendの宣言を写した合成の能力。
+	 */
+	FRenderCapabilities GetCapabilities() const override;
+	/**
 	 * 一時描画の保存先へ復帰する。最初のフレーム失敗を優先する。
 	 */
 	TResult<void> RestoreRenderTarget(const FRenderTarget& Target) override;

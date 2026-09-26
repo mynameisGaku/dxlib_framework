@@ -38,6 +38,7 @@ FUiWorldPanel3D PanelAt(Toolbox::f32 X, Toolbox::f32 Z, EUiPanelComposition Comp
 TEST("UI transparent panel draws premultiplied content and composites far to near after opaque panels")
 {
 	FRecordingRenderer Backend;
+	Backend.Declared = TransparentCapabilities();
 	FAssetService Assets(Backend.Assets, Backend.Assets, Backend.Assets);
 	FUiRoot Near;
 	FUiRoot Far;
@@ -92,6 +93,7 @@ TEST("UI transparent panel draws premultiplied content and composites far to nea
 TEST("UI panel switching composition recreates its texture with the matching alpha")
 {
 	FRecordingRenderer Backend;
+	Backend.Declared = TransparentCapabilities();
 	FAssetService Assets(Backend.Assets, Backend.Assets, Backend.Assets);
 	FUiRoot Root;
 	AddFill(Root, {255, 0, 0, 128});
