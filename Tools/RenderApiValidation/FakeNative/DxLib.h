@@ -27,7 +27,12 @@ inline Toolbox::int32 SetDrawArea(Toolbox::int32 Left, Toolbox::int32, Toolbox::
 	TestAreaRight = Right;
 	return 0;
 }
-inline Toolbox::int32 SetDrawBlendMode(Toolbox::int32, Toolbox::int32) { return 0; }
+inline Toolbox::int32 TestBlendAlpha = 255;
+inline Toolbox::int32 SetDrawBlendMode(Toolbox::int32, Toolbox::int32 Alpha)
+{
+	TestBlendAlpha = Alpha;
+	return 0;
+}
 inline Toolbox::int32 SetDrawBright(Toolbox::int32, Toolbox::int32, Toolbox::int32) { return 0; }
 inline Toolbox::int32 SetDrawMode(Toolbox::int32) { return 0; }
 inline Toolbox::int32 SetUseZBufferFlag(Toolbox::int32) { return 0; }

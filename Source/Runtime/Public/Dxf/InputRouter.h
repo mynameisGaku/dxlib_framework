@@ -2,22 +2,60 @@
 #ifndef DXF_INPUT_ROUTER_H
 #define DXF_INPUT_ROUTER_H
 #include "Dxf/Contexts.h"
+#include "Toolbox/SharedPtr.h"
 namespace Dxf
 {
+class IInputRouter;
+namespace Detail
+{
 /**
- * Sceneの更新の前に、そのフレームの入力を一度だけ受け取り、Scene・子のGameObject・Component・固定更新へ渡す入力を返す汎用の窓口。
- * UIの仲介（UIが使った操作をゲームへ二重に届けない）などに使う。Runtimeは具体的なUIを知らない。
- * 返す入力は、次のRouteInputの呼出しまで有効であること。
+ * 入力仲介の生存印。所有スレッドだけで解決する。
+ */
+struct FInputRouterLifetime
+{
+	IInputRouter* Router = nullptr;
+};
+/**
+ * Sceneが所有する接続枠。外部の仲介は弱参照で安全に切断できる。
+ */
+struct FInputRouterSlot
+{
+	Toolbox::TWeakPtr<FInputRouterLifetime> Router;
+};
+} // namespace Detail
+/**
+ * Scene更新前の任意の入力仲介。返す値は仲介が通知中に破棄されても有効。
+ * RuntimeはUIを知らず、入力を取得し直さない。所有スレッド専用。
  */
 class IInputRouter
 {
 public:
-	virtual ~IInputRouter() = default;
+	IInputRouter() : m_pLifetime(Toolbox::MakeShared<Detail::FInputRouterLifetime>())
+	{
+		m_pLifetime->Router = this;
+	}
+	virtual ~IInputRouter()
+	{
+		m_pLifetime->Router = nullptr;
+	}
+	IInputRouter(const IInputRouter&) = delete;
+	IInputRouter& operator=(const IInputRouter&) = delete;
 	/**
-	 * そのフレームの入力を処理し、Sceneへ渡す入力を返す。Sceneのポーズ中も呼ぶ（実時間はContext.Time.UnscaledDeltaSeconds）。
-	 * @param Context Sceneの更新の情報（Inputは入力の事実）。
+	 * Sceneの実時間側で一度処理し、子と固定更新に渡す入力を返す。
+	 * @param Context 入力の事実とフレーム時刻。
 	 */
-	virtual const FInputSnapshot& RouteInput(const FTickContext& Context) = 0;
+	virtual FInputSnapshot RouteInput(const FTickContext& Context) = 0;
+	/**
+	 * Sceneの接続に使う非所有の生存印。
+	 */
+	Toolbox::TWeakPtr<Detail::FInputRouterLifetime> GetLifetime_Internal() const noexcept
+	{
+		return Toolbox::TWeakPtr<Detail::FInputRouterLifetime>(m_pLifetime);
+	}
+
+private:
+	/** 生存中だけ自身を指す。 */
+	Toolbox::TSharedPtr<Detail::FInputRouterLifetime> m_pLifetime;
 };
 } // namespace Dxf
 #endif

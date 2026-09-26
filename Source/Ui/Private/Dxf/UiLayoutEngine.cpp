@@ -99,7 +99,9 @@ TResult<void> FUiLayoutEngine::Run(FUiRootState& State)
 	{
 		return {};
 	}
-	if (m_bForceFull || !(State.Surface == m_LastSurface))
+	// 論理寸法と倍率が同じなら、表示先の画素原点だけの変化は再測定しない。
+	if (m_bForceFull || State.Surface.GetLogicalSize() != m_LastSurface.GetLogicalSize() ||
+	    State.Surface.GetScale() != m_LastSurface.GetScale())
 	{
 		for (DUiElement* Layer : State.Layers)
 		{

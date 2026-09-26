@@ -74,7 +74,9 @@ enum class EUiCheckAllowance : Toolbox::uint8
 	/**
 	 * 兄弟と重なってよい（重ね合わせの装飾・バッジ等）。
 	 */
-	Overlap = 4
+	Overlap = 4,
+	/** 低解像度を意図する画像（理由の宣言が必須）。 */
+	ImageResolution = 8
 };
 
 /**
@@ -504,6 +506,13 @@ public:
 	/**
 	 * 基盤の呼出し: 毎フレームの更新。
 	 */
+	/**
+	 * レイアウト前の構造準備。更新対象だけに呼ぶ（仮想行の再利用など）。
+	 */
+	void PrepareLayout_Internal()
+	{
+		OnPrepareLayout();
+	}
 	FORCEINLINE void Update_Internal(const FUiUpdateContext& Context)
 	{
 		OnUpdate(Context);
@@ -583,6 +592,12 @@ protected:
 	 * 毎フレームの更新（SetWantsUpdate(true)の要素だけ）。
 	 * @param Context 更新の情報。
 	 */
+	/**
+	 * 測定前の構造準備。描画や時間の更新は行わない。
+	 */
+	virtual void OnPrepareLayout()
+	{
+	}
 	virtual void OnUpdate(const FUiUpdateContext& Context)
 	{
 		(void)Context;

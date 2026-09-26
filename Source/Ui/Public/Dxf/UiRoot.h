@@ -4,6 +4,7 @@
 #include "Dxf/UiDrawList.h"
 #include "Dxf/UiElement.h"
 #include "Dxf/UiInput.h"
+#include "Dxf/UiRootHandle.h"
 #include "Dxf/UiLayoutContext.h"
 #include "Dxf/UiPost.h"
 #include "Dxf/UiSignal.h"
@@ -114,6 +115,10 @@ public:
 	 * 接続済みの要素を切断（OnDetach）してから、すべての要素を解放する。
 	 */
 	~FUiRoot();
+	/**
+	 * 所有を持たない参照を返す。表示先はイベントごとに解決し直す。
+	 */
+	FUiRootHandle GetHandle() const noexcept;
 	FUiRoot(const FUiRoot&) = delete;
 	FUiRoot& operator=(const FUiRoot&) = delete;
 
@@ -293,20 +298,47 @@ private:
 	/**
 	 * 内部状態（木・レイアウト・入力・フォーカス・ツールチップ・描画・投函）。
 	 */
-	Toolbox::TUniquePtr<Detail::FUiRootState> m_pState;
+	Toolbox::TSharedPtr<Detail::FUiRootState> m_pState;
 };
 
 // 同じルートに子を作って末尾へ加える。
 template <typename T, typename... TArgs> TUiRef<T> DUiElement::CreateChild(TArgs&&... Args)
 {
-	TUiRef<T> Child = m_pRoot->template Create<T>(Toolbox::Forward<TArgs>(Args)...);
-	auto Added = m_pRoot->AddChild(m_Self, Child.template Cast<DUiElement>());
-	if (!Added)
+	if (m_pRoot == nullptr)
 	{
-		m_pRoot->Destroy(Child.template Cast<DUiElement>());
-		throw Toolbox::FException(Added.Error().Message.CStr());
+		throw Toolbox::FException("Cannot create a child without a UI root");
 	}
-	return Child;
+	// 接続フックで親やルートが破棄されても、この関数は借用ポインターを使い直さない。
+	const FUiRootHandle Root = m_pRoot->GetHandle();
+	const TUiRef<DUiElement> Parent = m_Self;
+	TUiRef<T> Child = m_pRoot->template Create<T>(Toolbox::Forward<TArgs>(Args)...);
+	try
+	{
+		FUiRoot* Owner = Root.Get();
+		if (Owner == nullptr)
+		{
+			throw Toolbox::FException("UI root was destroyed while creating a child");
+		}
+		auto Added = Owner->AddChild(Parent, Child.template Cast<DUiElement>());
+		if (!Added)
+		{
+			throw Toolbox::FException(Added.Error().Message.CStr());
+		}
+		if (!Child)
+		{
+			throw Toolbox::FException("UI child was destroyed during attachment");
+		}
+		return Child;
+	}
+	catch (...)
+	{
+		// AddChildの配列確保が例外になった場合も、親なしの登録を残さない。
+		if (FUiRoot* Owner = Root.Get())
+		{
+			Owner->Destroy(Child.template Cast<DUiElement>());
+		}
+		throw;
+	}
 }
 } // namespace Dxf
 #endif

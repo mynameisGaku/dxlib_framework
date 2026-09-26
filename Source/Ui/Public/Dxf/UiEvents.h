@@ -82,7 +82,7 @@ struct FUiPointerEvent
 	 */
 	EUiPointerButton Button = EUiPointerButton::Primary;
 	/**
-	 * 残りのホイールの量（論理単位のスクロール量。正は下方向）。処理した要素が差し引く。
+	 * 残りのホイールの量（ノッチ数。正は下方向）。処理した要素が差し引く。
 	 */
 	Toolbox::f32 WheelDelta = 0;
 	/**

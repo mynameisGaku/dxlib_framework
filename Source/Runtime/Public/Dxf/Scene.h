@@ -55,20 +55,37 @@ public:
 	 * 開始済みのシーンへ終了を通知する。
 	 */
 	/**
-	 * Sceneの入力の仲介を設定する（nullptrで外す）。仲介はSceneより長く生存するか、Sceneの終了前に外すこと。
+	 * Sceneの入力の仲介を設定する（nullptrで外す）。双方の寿命を弱参照で区別し、仲介が先に破棄されても安全に外れる。
 	 * 設定すると、Scene・子・固定更新は仲介が返した入力を受け取る。
 	 * @param Router 仲介。
 	 */
-	FORCEINLINE void SetInputRouter(IInputRouter* Router) noexcept
+	void SetInputRouter(IInputRouter* Router)
 	{
-		m_pInputRouter = Router;
+		if (Router != nullptr && !m_pInputRoute)
+		{
+			m_pInputRoute = Toolbox::MakeShared<Detail::FInputRouterSlot>();
+		}
+		if (m_pInputRoute)
+		{
+			m_pInputRoute->Router =
+			    Router != nullptr ? Router->GetLifetime_Internal() : Toolbox::TWeakPtr<Detail::FInputRouterLifetime>{};
+		}
+	}
+	/**
+	 * 入力仲介の接続枠。Scene破棄後は解決しない。
+	 */
+	Toolbox::TWeakPtr<Detail::FInputRouterSlot> GetInputRouteSlot_Internal() const noexcept
+	{
+		return Toolbox::TWeakPtr<Detail::FInputRouterSlot>(m_pInputRoute);
 	}
 	/**
 	 * 入力の仲介。
 	 */
 	FORCEINLINE IInputRouter* GetInputRouter() const noexcept
 	{
-		return m_pInputRouter;
+		const auto Life =
+		    m_pInputRoute ? m_pInputRoute->Router.Lock() : Toolbox::TSharedPtr<Detail::FInputRouterLifetime>{};
+		return Life ? Life->Router : nullptr;
 	}
 	void Exit_Internal() noexcept
 	{
@@ -98,7 +115,13 @@ protected:
 	 */
 	const FInputSnapshot* RouteInput_Internal(const FTickContext& Context) override
 	{
-		return m_pInputRouter != nullptr ? &m_pInputRouter->RouteInput(Context) : nullptr;
+		IInputRouter* Router = GetInputRouter();
+		if (Router == nullptr)
+		{
+			return nullptr;
+		}
+		m_RoutedInput = Router->RouteInput(Context);
+		return &m_RoutedInput;
 	}
 
 private:
@@ -117,6 +140,10 @@ private:
 	/**
 	 * 入力の仲介（所有しない）。
 	 */
-	IInputRouter* m_pInputRouter = nullptr;
+	Toolbox::TSharedPtr<Detail::FInputRouterSlot> m_pInputRoute;
+	/**
+	 * 仲介から返ったフレームの値。仲介より長く、このSceneの更新中を生存する。
+	 */
+	FInputSnapshot m_RoutedInput;
 };
 } // namespace Dxf

@@ -135,9 +135,14 @@ inline COLOR_U8 GetColorU8(Toolbox::int32 R, Toolbox::int32 G, Toolbox::int32 B,
  * テクスチャ付きのポリゴンの記録（四角形の確認用）。
  */
 inline Toolbox::int32 TestPolygons3D = 0;
-inline Toolbox::int32 DrawPolygon3D(const VERTEX3D*, Toolbox::int32 Count, Toolbox::int32, Toolbox::int32)
+inline VERTEX3D TestQuadVertices[6]{};
+inline Toolbox::int32 DrawPolygon3D(const VERTEX3D* Vertices, Toolbox::int32 Count, Toolbox::int32, Toolbox::int32)
 {
 	TestPolygons3D += Count;
+	for (Toolbox::int32 I = 0; I < Count * 3 && I < 6; ++I)
+	{
+		TestQuadVertices[I] = Vertices[I];
+	}
 	ViewTrace.Order.PushBack(4);
 	return ViewCall_Internal();
 }

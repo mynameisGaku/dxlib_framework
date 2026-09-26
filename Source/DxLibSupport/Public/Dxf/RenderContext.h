@@ -109,6 +109,14 @@ public:
 	 * 描画先のテクスチャを設定する。
 	 * @param Target 描画先またはその設定結果。
 	 */
+	/**
+	 * 一時描画の前に現在の描画先を保存する。空はバックバッファ。
+	 */
+	TResult<FRenderTarget> GetRenderTarget() const
+	{
+		return m_pControl ? m_pControl->GetRenderTarget()
+		                  : TResult<FRenderTarget>::Failure(EErrorCode::InvalidState, "No render control");
+	}
 	TResult<void> SetRenderTarget(const FRenderTarget& Target)
 	{
 		if (!m_Access.IsAllowed())
@@ -132,6 +140,17 @@ public:
 	 * 現在の描画先を指定色で消去する。
 	 * @param Color 描画色。
 	 */
+	/**
+	 * GetRenderTargetで保存した対象へ復帰を試す。失敗済みのフレームは再開しない。
+	 */
+	TResult<void> RestoreRenderTarget(const FRenderTarget& Target)
+	{
+		if (!m_Access.IsAllowed() || !m_pControl)
+		{
+			return MissingControl_Internal();
+		}
+		return m_pControl->RestoreRenderTarget(Target);
+	}
 	TResult<void> ClearTarget(FColor Color)
 	{
 		if (!m_Access.IsAllowed())

@@ -1,62 +1,95 @@
-# dxlib_framework
+# UIのVisual Studio表示・フィルター登録の修正
 
-DxLibを描画・入力・音声の実装として使う、C++20のゲームフレームワークです。
-Windows / Visual Studio / x64を対象にしています。Source・Examples・TestsではSTLを使わず、共通機能はToolboxを使います。
+前回の `dxlib_framework_17445ee_ui_continuation_update.zip` を適用したソース、または同じ全ソースZIPに追加する修正です。UIを実装する新しい指令書ではなく、生成設定の修正コードです。
 
-ゲーム固有の処理に集中できることを主目的とし、内部の責務分離と利用側の単純な公開APIを両立します。
-描画・音声だけ、Sceneまで、GameObject／Componentまで、必要な層を選んで利用できます。
+## 直した登録漏れ
 
-## 開発を始める
+1. `Tools/SolutionHelpers.ps1` の通常ソリューションの表示対象に `dxf_ui` と `dxf_ui_runtime` がありませんでした。この2つを追加しました。開発用のサンプル・試験を通常版へ混ぜる変更ではありません。`.sln` と `.slnx` の両分岐が同じ対象一覧を使います。
+2. `dxf_ui_sample` の実装cppは登録されていましたが、ヘッダーとスタイルのIDE登録がありませんでした。対応するh・`.dxfui`を登録し、既存の `dxf_ide_headers` によって実フォルダーと同じグループへ配置します。スタイルは表示専用で、C++としてコンパイルしません。
+3. UI Runtime／Application／故障注入の試験、UIベンチマーク、NativeUiSmokeにも、関連ヘッダーとグループの登録を追加しました。
 
-Visual Studioの「C++によるデスクトップ開発」（Windows SDKとCMakeを含む）を導入し、ルートで実行します。
+`Source/Ui` と `Source/UiRuntime` 自体のヘッダー登録は前回からありました。今回の「通常ソリューションからプロジェクトが落ちる問題」と「サンプル・試験のヘッダーが未登録の問題」を区別しています。
 
-```bat
-Setup.cmd
-GenerateProjectFiles.bat
-```
+## 適用
 
-`dxlib_framework.slnx`を開いてDebugまたはReleaseでビルドします。
-通常のソリューションはToolbox・フレームワーク・Sandbox・Starterを対象とします。
-`Setup.cmd`はDxLibの取得とソースビルドを行います。モデルの読み込みにAutodesk FBX SDKは不要です。
-
-空の開始点はStarter、小さいゲームの流れはSandboxを起動してください。Sandboxはタイトル→プレイ→結果→リトライを公開APIだけで構成しています。
-[小さいゲームを組む](Docs/SmallGame.md)で、処理を置く場所と操作を確認できます。
-
-テストやModelViewerを使う場合は、開発用ソリューションを生成します。
-
-```bat
-GenerateProjectFiles.bat -Development
-```
-
-`dxlib_framework-development.slnx`を開き、ModelViewerを起動対象にするとFBXモデルとアニメーションを確認できます。Vキーで[左右2ビュー](Docs/Rendering/Viewports.md)、Pキーで[球・箱のクリック選択](Docs/Rendering/ViewCoordinates.md)、Oキーで正射影を切り替えられます。
-生成物は`Build/`、ダウンロードしたSDKは`ThirdParty/`へ置きます。
-
-## アセットとモデル
-
-相対アセットパスは、ルートのソリューションを配置したフォルダーが基準です。
-実行ファイル横の`.dxfpaths`はビルド時に生成され、起動時の作業ディレクトリには依存しません。
-配布時は`.dxfpaths`を外し、実行ファイルと`Assets`を同じフォルダーへ配置します。
-
-- [アセットのパス規則](Docs/Assets/Paths.md)
-- [FBXモデル・アニメーションの利用手順](Docs/DxLibFbx.md)
-- [モーフ・追加UV・頂点色・基本PBR・カメラ／ライトの対応範囲](Docs/FbxSupport.md)
-- [APIとライフサイクル](Docs/API.md)
-- [設計](Docs/Architecture.md) / [C++規約](Docs/CodingStandard.md)
-- [検証手順](Docs/Testing.md) / [基本PBRの検証記録](Docs/Development/FbxBasicPbr-2026-09-23.md)
-
-## 検証
+ZIPをリポジトリ外へ展開し、`dxf_ui_filters_fix` フォルダーを置いてください。以下は、そのフォルダーをDownloads直下へ置いた場合です。**コマンドを実行する場所はリポジトリのルートです。**
 
 ```powershell
-python Tools/CheckNoStl.py
-python -m unittest discover -s Tools/Tests -v
-cmake --build Build/VisualStudio-development --config Debug
-ctest --test-dir Build/VisualStudio-development -C Debug --output-on-failure
+$Fix = "$HOME\Downloads\dxf_ui_filters_fix\apply_ui_filters.py"
+python "$Fix" --root .
+if ($LASTEXITCODE -ne 0) { throw "検査で停止しました。強制上書きしないでください。" }
+python "$Fix" --root . --apply
+if ($LASTEXITCODE -ne 0) { throw "適用で停止しました。表示された理由と退避先を確認してください。" }
+.\GenerateProjectFiles.bat -Development -Open -NoPause
+if ($LASTEXITCODE -ne 0) { throw "再生成に失敗しました。生成ログを確認してください。" }
 ```
 
-実際の描画を伴う試験は明示的に`DXF_RUN_DEVICE_TESTS=ON`を指定した構成で実行します。
-配布用ZIPは`Tools/PackageRelease.py`で作成します。ufbxのソースとライセンスを含め、SDK・ビルド生成物は含めません。
+`-Development`で生成した、ルートの `dxlib_framework-development.sln` または `.slnx` を開きます。通常版の古いソリューションを開いたままでは開発用プロジェクトを確認できません。再読み込みを求められたら、生成後の内容を読み込みます。
 
-## 過去の統合資料
+通常版にUIライブラリだけを表示する場合は `GenerateProjectFiles.bat -Open -NoPause` で通常版も再生成します。通常版に `UISample` がないのは意図した構成です。
 
-旧パッチ適用スクリプト、差分、旧配布README、当時の状態記録は[履歴保存先](Docs/Archive/IntegrationPackages/README.md)に移しました。
-この保存先はGitリポジトリ内の履歴で、ソースZIPには同梱しません。現在のソースへ旧パッチを再適用する必要はありません。履歴の検証結果は当時のものとして保存しています。
+### 表示場所
+
+```text
+dxf_ui
+  Source/Ui/Public/Dxf
+  Source/Ui/Private/Dxf
+
+dxf_ui_runtime
+  Source/UiRuntime/Public/Dxf
+  Source/UiRuntime/Private/Dxf
+
+開発用ソリューションのみ:
+dxf_ui_sample
+  Examples/UiSample           ← 画面・パネルなどのh/cpp
+  Examples/UiSample/Styles    ← Button.dxfui、Tokens.dxfui
+  Examples/GameplaySample     ← 共用する地形・キャラクター
+UISample
+  Examples/UiSample           ← WindowsMain.cpp等、実行ファイル側の入口
+```
+
+サンプル本体は `dxf_ui_sample` でコンパイルし、`UISample` がリンクする構成を保持しています。表示するためだけに同じcppを `UISample` へ再登録して二重コンパイルしません。UI試験と `NativeUiSmoke` のヘッダーは各プロジェクトの `Tests` 以下です。
+
+`.vcxproj`、`.vcxproj.filters`、`.vcxproj.user` の手編集・削除、`.vs`削除、SDKの再Setupは、この修正手順に含みません。
+
+## 適用器の保護
+
+変更は既存3ファイルと、新規の検証用Pythonファイル1つです。C++製品コードは変更しません。
+
+- 既定は検査だけ。`--apply` を付けた場合だけ書き込みます。
+- 前回の継続更新とハッシュが一致するファイルだけを更新します。LF/CRLFの差だけは比較時に許容し、元の実バイトを退避します。
+- 前回の更新が未コミットでも、対象が前回の配布内容と一致し、stage済みでなければ適用できます。独自編集・stage済み変更は停止します。
+- 変更前ファイルと復元用の一覧はリポジトリの隣の `*-ui-filter-backup-*` へ保存します。失敗時の復元を試み、競合したものは上書きせず記録します。
+- Gitの履歴・index・リモートを変更しません。commit/push、reset/clean/stashは実行しません。
+- 旧17445eeのまま、または別のUI更新が入っている場合は一致しないため停止します。古いZIPを適用し直して合わせるのではなく、現行差分を確認してください。
+
+## 確認したこと
+
+実行環境はLinux、CMake 3.31.6／Ninja／GCCです。
+
+- 修正前にCMakeを生成し、`dxf_ui_sample`等のヘッダー数が0、ソースが既定の `Source Files` グループであることを確認しました。
+- 新しい試験は修正前に失敗。修正後はCMakeの実生成情報で、登録されたヘッダー・スタイル・グループを確認しました。
+- 修正前後の33ターゲットで、コンパイルするcpp/cの一覧とリンク依存関係は一致しました。
+- Native無効の通常構成は生成成功。UI製品2ターゲットはあり、UISample・UIサンプル本体はありません。
+- Native無効・DebugのUI4群は4/4成功。
+- Python全体47件中40件成功、7件skip。生成情報を指定した新規試験は7件中4件成功、3件skip。
+- No-STLは544ファイル、違反0。
+- 適用器15件成功。前回の全ソースZIPに対して検査・適用・再適用を実行し、対象4ファイルだけが変わり、Payloadとバイト一致しました。
+
+**Windows／Visual Studioの実プロジェクト生成、GUIでのフィルター表示、PowerShellでの `.sln`／`.slnx` 変換の実行は、この環境では未実施です。** その試験はskipとして残しています。CMakeの生成情報の検査を実際のVisual Studio表示確認に読み替えていません。Release・実DxLib・配布・既存全群も今回再実行していません。前回のUI更新で明示した残課題を解決済みにする修正ではありません。
+
+### Windowsで実際のフィルターを検査する場合
+
+再生成した開発用ソリューションに対応するBuildディレクトリを指定します。これは任意の追加確認です。
+
+```powershell
+$env:DXF_CHECK_VS_BUILD = (Resolve-Path .\Build\VisualStudio-development).Path
+python -m unittest discover -s Tools/Tests -p test_ui_ide_visibility.py -v
+```
+
+実際の `.vcxproj.filters` から、各ヘッダーとスタイルの所属フィルターを確認します。`DXF_CHECK_UI_BUILD`を設定する別の試験はCMake File API用のため、未指定ならskipします。
+
+参照: CMake公式 `source_group` と `cmake-file-api(7)`。本修正はこのリポジトリの既存 `dxf_ide_headers` を再利用しています。
+
+- https://cmake.org/cmake/help/v3.31/command/source_group.html
+- https://cmake.org/cmake/help/v3.31/manual/cmake-file-api.7.html

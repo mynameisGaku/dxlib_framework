@@ -55,10 +55,18 @@ public:
 	 */
 	TResult<void> SetBackBuffer() override;
 	/**
+	 * 受付中の描画先を値で保存する。資源失効は失敗。
+	 */
+	TResult<FRenderTarget> GetRenderTarget() const override;
+	/**
 	 * 現在の描画先を指定色で消去する。
 	 * @param Color 描画色。
 	 */
 	TResult<void> ClearTarget(FColor Color) override;
+	/**
+	 * 一時描画の保存先へ復帰する。最初のフレーム失敗を優先する。
+	 */
+	TResult<void> RestoreRenderTarget(const FRenderTarget& Target) override;
 	/**
 	 * 蓄積した描画命令を実行する。
 	 */

@@ -38,6 +38,34 @@ struct FUiRootState
 	 */
 	FUiRoot* pOwner;
 	/**
+	 * 表示アダプターが参照する生存印。
+	 */
+	Toolbox::TSharedPtr<FUiRootLifetime> Lifetime;
+	/**
+	 * 入力・更新への再入を拒否する。
+	 */
+	bool bProcessingInput = false;
+	bool bUpdating = false;
+	/**
+	 * 生存する最前面のModal。窓口の生存に依存しない。
+	 */
+	DUiElement* GetTopModal() const noexcept
+	{
+		if (bShuttingDown)
+		{
+			return nullptr;
+		}
+		for (Toolbox::size_t Index = Modals.Size(); Index > 0; --Index)
+		{
+			DUiElement* Modal = Modals[Index - 1].Get();
+			if (IsLive(Modal) && Modal->IsVisibleInTree())
+			{
+				return Modal;
+			}
+		}
+		return nullptr;
+	}
+	/**
 	 * 設定。
 	 */
 	FUiRootSettings Settings;

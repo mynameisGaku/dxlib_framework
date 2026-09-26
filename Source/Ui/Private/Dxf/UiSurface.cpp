@@ -7,9 +7,13 @@ FUiSurface::FUiSurface(FUiPixelRect PixelRect, const FUiScaleSettings& Settings)
 {
 	const Toolbox::f64 Width = PixelRect.Width();
 	const Toolbox::f64 Height = PixelRect.Height();
-	if (PixelRect.IsEmpty() || !Toolbox::IsFinite(Settings.UserScale) || !(Settings.UserScale > 0) ||
-	    !Toolbox::IsFinite(Settings.MinScale) || !Toolbox::IsFinite(Settings.MaxScale) || !(Settings.MinScale > 0) ||
-	    Settings.MaxScale < Settings.MinScale)
+	if (static_cast<Toolbox::int64>(PixelRect.Right) - PixelRect.Left >
+	        Toolbox::TNumericLimits<Toolbox::int32>::Max() ||
+	    static_cast<Toolbox::int64>(PixelRect.Bottom) - PixelRect.Top >
+	        Toolbox::TNumericLimits<Toolbox::int32>::Max() ||
+	    Settings.Mode > EUiScaleMode::FixedPixel || PixelRect.IsEmpty() || !Toolbox::IsFinite(Settings.UserScale) ||
+	    !(Settings.UserScale > 0) || !Toolbox::IsFinite(Settings.MinScale) || !Toolbox::IsFinite(Settings.MaxScale) ||
+	    !(Settings.MinScale > 0) || Settings.MaxScale < Settings.MinScale)
 	{
 		return;
 	}

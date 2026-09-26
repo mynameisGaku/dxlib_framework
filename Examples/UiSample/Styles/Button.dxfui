@@ -1,0 +1,8 @@
+dxfui-style 1
+style Button {
+ background = @Accent
+ foreground = @Text
+ font-size = @TextSize
+ hover.background = #3388cc
+ pressed.background = #115599
+}

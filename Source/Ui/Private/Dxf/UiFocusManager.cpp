@@ -51,14 +51,14 @@ bool FUiFocusManager::CanFocus(FUiRootState& State, const DUiElement& Element) n
 	{
 		return false;
 	}
-	DUiElement* Modal = State.pOwner->GetTopModal();
+	DUiElement* Modal = State.GetTopModal();
 	return Modal == nullptr || IsWithin_Internal(Modal, &Element);
 }
 // フォーカスを受けられる要素の一覧。
 Toolbox::TVector<DUiElement*> FUiFocusManager::CollectFocusable(FUiRootState& State)
 {
 	Toolbox::TVector<DUiElement*> Out;
-	if (DUiElement* Modal = State.pOwner->GetTopModal())
+	if (DUiElement* Modal = State.GetTopModal())
 	{
 		Collect_Internal(State, *Modal, Out);
 		return Out;
@@ -87,7 +87,7 @@ bool FUiFocusManager::SetFocus(FUiRootState& State, DUiElement* Element)
 		FUiRootState::Focused(*Previous) = false;
 		FUiRootState::NotifyStateChanged(*Previous);
 	}
-	if (Element != nullptr)
+	if (!State.bShuttingDown && Element != nullptr && m_Focused.Get() == Element && CanFocus(State, *Element))
 	{
 		FUiRootState::Focused(*Element) = true;
 		FUiRootState::NotifyStateChanged(*Element);
@@ -164,14 +164,25 @@ bool FUiFocusManager::Dispatch_Internal(FUiRootState& State, EUiNavigationComman
 			}
 		}
 	}
-	return DefaultAction_Internal(State, Command);
+	return State.bShuttingDown ? true : DefaultAction_Internal(State, Command);
 }
 // 既定の動作。
 bool FUiFocusManager::DefaultAction_Internal(FUiRootState& State, EUiNavigationCommand Command)
 {
 	if (Command == EUiNavigationCommand::Cancel)
 	{
-		if (State.CancelRequested.GetSubscriberCount() > 0 || State.pOwner->GetTopModal() != nullptr)
+		if (DUiElement* Modal = State.GetTopModal())
+		{
+			FUiNavigationEvent Cancel;
+			Cancel.Command = Command;
+			FUiRootState::FDispatchScope Scope(State);
+			Modal->Navigation_Internal(Cancel);
+			if (Cancel.bHandled || State.bShuttingDown)
+			{
+				return true;
+			}
+		}
+		if (State.CancelRequested.GetSubscriberCount() > 0 || State.GetTopModal() != nullptr)
 		{
 			FUiRootState::FDispatchScope Scope(State);
 			State.CancelRequested.Emit();
@@ -275,43 +286,40 @@ void FUiFocusManager::Process(FUiRootState& State, const FUiNavigationFrame& Fra
 	}
 	const FUiNavigationSettings& Settings = State.Settings.Navigation;
 	bool bAny = false;
-	for (Toolbox::size_t Index = 0; Index < Frame.Pressed.Size(); ++Index)
+	for (Toolbox::size_t Index = 0; Index < Frame.Pressed.Size() && !State.bShuttingDown; ++Index)
 	{
 		const auto Command = static_cast<EUiNavigationCommand>(Index);
-		bool bFire = false;
-		bool bRepeat = false;
+		Toolbox::uint32 FireCount = 0;
 		if (Frame.Pressed[Index])
 		{
-			bFire = true;
+			FireCount = 1;
 			m_Held[Index] = 0;
 			m_NextRepeat[Index] = Settings.InitialRepeatDelay;
 		}
 		else if (Frame.Down[Index] && IsRepeatable_Internal(Command))
 		{
-			m_Held[Index] += Toolbox::Max(0.0, DeltaSeconds);
-			if (m_Held[Index] >= m_NextRepeat[Index])
+			m_Held[Index] += Toolbox::Clamp(DeltaSeconds, 0.0, 0.25);
+			// 絶対的な予定時刻を進める。長い1フレームでも経過時間分の入力を再現する。
+			while (m_Held[Index] + 1e-12 >= m_NextRepeat[Index] && FireCount < 64)
 			{
-				bFire = true;
-				bRepeat = true;
-				// 長いフレームでも1回だけ繰り返し、次の時刻を今から数え直す。
-				m_NextRepeat[Index] = m_Held[Index] + Settings.RepeatInterval;
+				++FireCount;
+				m_NextRepeat[Index] += Settings.RepeatInterval;
 			}
 		}
 		else
 		{
 			m_Held[Index] = 0;
-			m_NextRepeat[Index] = 0;
+			m_NextRepeat[Index] = Settings.InitialRepeatDelay;
 		}
-		if (!bFire)
+		for (Toolbox::uint32 Count = 0; Count < FireCount && !State.bShuttingDown; ++Count)
 		{
-			continue;
+			const bool bHadFocus = m_Focused.Get() != nullptr;
+			const bool bHandled = Dispatch_Internal(State, Command, !Frame.Pressed[Index]);
+			bAny = bAny || bHandled || bHadFocus;
 		}
-		const bool bHadFocus = m_Focused.Get() != nullptr;
-		const bool bHandled = Dispatch_Internal(State, Command, bRepeat);
-		bAny = bAny || bHandled || bHadFocus;
 	}
 	Result.bHasFocus = m_Focused.Get() != nullptr;
 	Result.bNavigationConsumed =
-	    Result.bNavigationConsumed || bAny || Result.bHasFocus || State.pOwner->GetTopModal() != nullptr;
+	    Result.bNavigationConsumed || bAny || Result.bHasFocus || State.GetTopModal() != nullptr;
 }
 } // namespace Dxf::Detail

@@ -466,6 +466,7 @@ endif()
 
 # 任意のDebug観察層・テスト・RenderDebug。Native・export一覧・実行時パス関数の定義後に読み込む。
 include(CMake/DebugTools.cmake)
+include(CMake/UiSample.cmake)
 
 if(DXF_INSTALL)
     include(GNUInstallDirs)

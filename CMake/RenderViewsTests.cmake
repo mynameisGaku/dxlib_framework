@@ -12,6 +12,7 @@ function(dxf_add_render_views_tests CoreTarget)
     add_executable(dxf_native_views_tests
         "${_root}/Tools/RenderValidation/Main.cpp"
         "${_root}/Tests/NativeRenderViewsTests.cpp"
+        "${_root}/Tests/Ui/NativeUiTranslationTests.cpp"
         "${_root}/Source/Native/Private/Dxf/DxLibRenderBackend.cpp"
         "${_root}/Source/Native/Private/Dxf/DxLibGeometryBackend.cpp"
         "${_root}/Source/Native/Private/Dxf/DxLibModelBackend.cpp")

@@ -60,10 +60,10 @@ void DUiLabel::LayoutText_Internal(FUiLayoutContext& Context, Toolbox::int32 Max
 	m_LayoutScale = Scale;
 	m_FontFamily = GetStyle().FontFamily;
 	m_FontSize = GetStyle().FontSize;
-	m_bTextDirty = false;
 	if (m_Text.IsEmpty() || !Context.HasTextService())
 	{
 		m_Font = {};
+		m_bTextDirty = false;
 		return;
 	}
 	auto Font = Context.ResolveFont(m_FontFamily, m_FontSize);
@@ -83,6 +83,7 @@ void DUiLabel::LayoutText_Internal(FUiLayoutContext& Context, Toolbox::int32 Max
 		throw Toolbox::FException(Layout.Error().Message.CStr());
 	}
 	m_Layout = Toolbox::Move(Layout).Value();
+	m_bTextDirty = false;
 }
 // 文字の大きさを測る。
 FUiSize DUiLabel::OnMeasure(FUiLayoutContext& Context, FUiSize Available)

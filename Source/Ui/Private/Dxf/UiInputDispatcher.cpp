@@ -53,7 +53,8 @@ bool IsSelfOrAncestor_Internal(const DUiElement* Ancestor, const DUiElement* Ele
 // 最前面の要素。
 DUiElement* FUiInputDispatcher::HitTest(FUiRootState& State, FVector2 Position)
 {
-	if (!State.Surface.IsDisplayable() || !Toolbox::IsFinite(Position.X) || !Toolbox::IsFinite(Position.Y))
+	if (State.bShuttingDown || !State.Surface.IsDisplayable() || !Toolbox::IsFinite(Position.X) ||
+	    !Toolbox::IsFinite(Position.Y))
 	{
 		return nullptr;
 	}
@@ -63,7 +64,7 @@ DUiElement* FUiInputDispatcher::HitTest(FUiRootState& State, FVector2 Position)
 		Hit = HitElement_Internal(*State.Layers[Layer - 1], Position);
 	}
 	// Modalの外は、Modalが遮る（背後の要素へ抜けない）。
-	DUiElement* Modal = State.pOwner->GetTopModal();
+	DUiElement* Modal = State.GetTopModal();
 	if (Modal != nullptr && !IsSelfOrAncestor_Internal(Modal, Hit))
 	{
 		// ツールチップの領域はModalより前面だが入力を受けない。
@@ -76,7 +77,7 @@ void FUiInputDispatcher::Deliver_Internal(FUiRootState& State, const TUiRef<DUiE
 {
 	// 直前に参照を確かめる（前の要素の処理で破棄・切断されていれば届けない）。
 	DUiElement* Element = Target.Get();
-	if (!FUiRootState::IsLive(Element) || !Element->IsEnabledInTree())
+	if (State.bShuttingDown || !FUiRootState::IsLive(Element) || !Element->IsEnabledInTree())
 	{
 		return;
 	}
@@ -189,10 +190,17 @@ void FUiInputDispatcher::LoseCapture_Internal(FUiRootState& State) noexcept
 	catch (...)
 	{
 	}
-	if (FUiRootState::Pressed(*Element))
+	Element = Captured.Get();
+	if (Element != nullptr && FUiRootState::Pressed(*Element))
 	{
 		FUiRootState::Pressed(*Element) = false;
-		FUiRootState::NotifyStateChanged(*Element);
+		try
+		{
+			FUiRootState::NotifyStateChanged(*Element);
+		}
+		catch (...)
+		{
+		}
 	}
 }
 // キャプチャする。

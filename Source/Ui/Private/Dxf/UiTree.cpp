@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: NOASSERTION
 #include "UiTree.h"
 #include "UiRootState.h"
+#include "Dxf/GuardValue.h"
 namespace Dxf::Detail
 {
 namespace
@@ -9,17 +10,6 @@ namespace
 TResult<void> Fail_Internal(EErrorCode Code, const char* Message)
 {
 	return TResult<void>::Failure(Code, Message);
-}
-// 子の一覧の写し（フックの中での変更に備える）。
-Toolbox::TVector<DUiElement*> SnapshotChildren_Internal(const DUiElement& Element)
-{
-	Toolbox::TVector<DUiElement*> Children;
-	Children.Reserve(Element.GetChildCount());
-	for (Toolbox::size_t Index = 0; Index < Element.GetChildCount(); ++Index)
-	{
-		Children.PushBack(Element.GetChild(Index));
-	}
-	return Children;
 }
 } // namespace
 
@@ -184,11 +174,12 @@ void FUiTree::Destroy(FUiRootState& State, DUiElement& Element) noexcept
 	MarkDestroyed_Internal(Element);
 	try
 	{
-		m_PendingDestroy.PushBack(&Element);
+		m_PendingDestroy.PushBack(Element.m_Self);
 	}
 	catch (...)
 	{
-		// 一覧へ入れられなくても参照は解決しない。窓口の破棄時にまとめて解放する。
+		// 確保なしで走査する代替経路を次の境界に予約する。
+		m_bScanDestroyed = true;
 	}
 	// レイアウト・描画中や、フックの途中の要素は、切断と取り外しを境界まで遅らせる。
 	if (State.bFrozen || Element.m_AttachState == EUiAttachState::Attaching ||
@@ -202,60 +193,66 @@ void FUiTree::Destroy(FUiRootState& State, DUiElement& Element) noexcept
 	}
 	Unlink_Internal(Element);
 }
-// 境界で解放する。
+// 子を先に外してから解放する。コールバックが配列を変えても古い参照を保持しない。
+void FUiTree::ReleaseSubtree_Internal(FUiRootState& State, DUiElement& Element) noexcept
+{
+	if (Element.m_AttachState == EUiAttachState::Attached)
+	{
+		DetachSubtree_Internal(State, Element);
+	}
+	Unlink_Internal(Element);
+	while (!Element.m_Children.IsEmpty())
+	{
+		DUiElement* Child = Element.m_Children.Back();
+		Element.m_Children.PopBack();
+		Child->m_pParent = nullptr;
+		ReleaseSubtree_Internal(State, *Child);
+	}
+	const auto Handle = Element.m_Self;
+	Element.m_pRoot = nullptr;
+	State.Elements.Remove(Handle);
+}
+// 予約は世代付きハンドルで解決する。子と親を同じ境界で破棄しても二重に解放しない。
 void FUiTree::FlushDestroyed(FUiRootState& State) noexcept
 {
-	if (State.DispatchDepth > 0 || State.bFrozen || m_WalkDepth > 0 || m_PendingDestroy.IsEmpty())
+	if (State.DispatchDepth > 0 || State.bFrozen || m_WalkDepth > 0 || m_bFlushing || State.bShuttingDown)
 	{
 		return;
 	}
+	m_bFlushing = true;
 	auto Pending = Toolbox::Move(m_PendingDestroy);
-	m_PendingDestroy = {};
-	// 取り外しがまだの要素を切断して外す。
-	for (DUiElement* Element : Pending)
+	for (const auto& Handle : Pending)
 	{
-		if (Element->m_AttachState == EUiAttachState::Attached)
+		DUiElement* Element = State.Elements.Find_Internal(Handle.GetId());
+		if (Element != nullptr)
 		{
-			DetachSubtree_Internal(State, *Element);
+			ReleaseSubtree_Internal(State, *Element);
 		}
-		Unlink_Internal(*Element);
 	}
-	// 子孫から順に格納領域から外して解放する。
-	Toolbox::TVector<DUiElement*> Order;
-	for (DUiElement* Element : Pending)
+	// no-throwのDestroyの予約が確保に失敗しても、未解放の印を回収する。
+	if (m_bScanDestroyed && !State.bShuttingDown)
 	{
-		// 前順に集めて、逆順に解放する。
-		Toolbox::size_t Begin = Order.Size();
-		try
+		m_bScanDestroyed = false;
+		const Toolbox::size_t Limit = State.Elements.Size();
+		for (Toolbox::size_t Count = 0; Count < Limit; ++Count)
 		{
-			Order.PushBack(Element);
-		}
-		catch (...)
-		{
-			continue;
-		}
-		for (Toolbox::size_t Index = Begin; Index < Order.Size(); ++Index)
-		{
-			for (DUiElement* Child : Order[Index]->m_Children)
+			DUiElement* Found = nullptr;
+			State.Elements.ForEach_Internal(
+			    [&](DUiElement& Element)
+			    {
+				    if (Found == nullptr && Element.m_bDestroyRequested)
+				    {
+					    Found = &Element;
+				    }
+			    });
+			if (Found == nullptr)
 			{
-				try
-				{
-					Order.PushBack(Child);
-				}
-				catch (...)
-				{
-				}
+				break;
 			}
+			ReleaseSubtree_Internal(State, *Found);
 		}
 	}
-	for (Toolbox::size_t Index = Order.Size(); Index > 0; --Index)
-	{
-		DUiElement* Element = Order[Index - 1];
-		Element->m_Children.Clear();
-		Element->m_pParent = nullptr;
-		const TUiRef<DUiElement> Handle = Element->m_Self;
-		State.Elements.Remove(Handle);
-	}
+	m_bFlushing = false;
 }
 // 全要素を切断する。
 void FUiTree::DetachAll(FUiRootState& State) noexcept
@@ -277,84 +274,100 @@ TResult<void> FUiTree::AttachSubtree_Internal(FUiRootState& State, DUiElement& E
 	// 前順に辿る要素。
 	Toolbox::TVector<DUiElement*> Stack;
 	Stack.PushBack(&Element);
-	++m_WalkDepth;
+	TGuardValue WalkGuard(m_WalkDepth, m_WalkDepth + 1);
 	TResult<void> Result;
-	while (!Stack.IsEmpty() && Result)
+	try
 	{
-		DUiElement* Current = Stack.Back();
-		Stack.PopBack();
-		// 途中で破棄・取り外し・別の接続が起きた要素は飛ばす。
-		if (Current->m_bDestroyRequested || Current->m_AttachState != EUiAttachState::Detached)
+		while (!Stack.IsEmpty() && Result && !State.bShuttingDown)
 		{
-			continue;
-		}
-		if (Current != &Element &&
-		    (Current->m_pParent == nullptr || Current->m_pParent->m_AttachState != EUiAttachState::Attached))
-		{
-			continue;
-		}
-		Current->m_AttachState = EUiAttachState::Attaching;
-		try
-		{
-			if (!Current->m_bAttachedOnce)
+			DUiElement* Current = Stack.Back();
+			Stack.PopBack();
+			// 途中で破棄・取り外し・別の接続が起きた要素は飛ばす。
+			if (Current->m_bDestroyRequested || Current->m_AttachState != EUiAttachState::Detached)
 			{
-				const Toolbox::size_t ChildCount = Current->m_Children.Size();
-				try
-				{
-					Current->OnFirstAttach();
-				}
-				catch (...)
-				{
-					// 失敗した初回のフックが作った子を破棄する（次の接続で重複して作らないため）。
-					while (Current->m_Children.Size() > ChildCount)
-					{
-						DUiElement* Created = Current->m_Children.Back();
-						Destroy(State, *Created);
-						if (!Current->m_Children.IsEmpty() && Current->m_Children.Back() == Created)
-						{
-							Unlink_Internal(*Created);
-						}
-					}
-					throw;
-				}
-				Current->m_bAttachedOnce = true;
+				continue;
 			}
-			Current->OnAttach();
-		}
-		catch (const Toolbox::FException& Error)
-		{
-			Current->m_AttachScope.Clear();
-			Current->m_AttachState = EUiAttachState::Detached;
-			Result = TResult<void>::Failure(EErrorCode::UserException, Error.What());
-			break;
-		}
-		catch (...)
-		{
-			Current->m_AttachScope.Clear();
-			Current->m_AttachState = EUiAttachState::Detached;
-			Result = TResult<void>::Failure(EErrorCode::UserException, "UI attach hook failed");
-			break;
-		}
-		Current->m_AttachState = EUiAttachState::Attached;
-		Attached.PushBack(Current);
-		if (Current->m_bDestroyRequested)
-		{
-			// フックの中で自身の破棄を要求した: 切断して外す（解放は境界で）。
-			continue;
-		}
-		Current->m_bStyleDirty = true;
-		Current->InvalidateMeasure();
-		if (Current->m_bWantsUpdate)
-		{
-			State.Updating.PushBack(Current->m_Self);
-		}
-		// 子を前順で辿るため、逆順に積む。
-		for (Toolbox::size_t Index = Current->m_Children.Size(); Index > 0; --Index)
-		{
-			Stack.PushBack(Current->m_Children[Index - 1]);
+			if (Current != &Element &&
+			    (Current->m_pParent == nullptr || Current->m_pParent->m_AttachState != EUiAttachState::Attached))
+			{
+				continue;
+			}
+			Attached.PushBack(Current);
+			Current->m_AttachState = EUiAttachState::Attaching;
+			try
+			{
+				if (!Current->m_bAttachedOnce)
+				{
+					const Toolbox::size_t ChildCount = Current->m_Children.Size();
+					try
+					{
+						Current->OnFirstAttach();
+					}
+					catch (...)
+					{
+						// 失敗した初回のフックが作った子を破棄する（次の接続で重複して作らないため）。
+						while (Current->m_Children.Size() > ChildCount)
+						{
+							DUiElement* Created = Current->m_Children.Back();
+							Destroy(State, *Created);
+							if (!Current->m_Children.IsEmpty() && Current->m_Children.Back() == Created)
+							{
+								Unlink_Internal(*Created);
+							}
+						}
+						throw;
+					}
+					Current->m_bAttachedOnce = true;
+				}
+				if (!State.bShuttingDown && !Current->m_bDestroyRequested)
+				{
+					Current->OnAttach();
+				}
+			}
+			catch (const Toolbox::FException& Error)
+			{
+				Current->m_AttachScope.Clear();
+				Current->m_AttachState = EUiAttachState::Detached;
+				Result = TResult<void>::Failure(EErrorCode::UserException, Error.What());
+				break;
+			}
+			catch (...)
+			{
+				Current->m_AttachScope.Clear();
+				Current->m_AttachState = EUiAttachState::Detached;
+				Result = TResult<void>::Failure(EErrorCode::UserException, "UI attach hook failed");
+				break;
+			}
+			Current->m_AttachState = EUiAttachState::Attached;
+			if (Current->m_bDestroyRequested || State.bShuttingDown)
+			{
+				// フックの中で自身の破棄を要求した: 切断して外す（解放は境界で）。
+				continue;
+			}
+			Current->m_bStyleDirty = true;
+			Current->InvalidateMeasure();
+			if (Current->m_bWantsUpdate)
+			{
+				State.Updating.PushBack(Current->m_Self);
+			}
+			// 子を前順で辿るため、逆順に積む。
+			for (Toolbox::size_t Index = Current->m_Children.Size(); Index > 0; --Index)
+			{
+				Stack.PushBack(Current->m_Children[Index - 1]);
+			}
 		}
 	}
-	--m_WalkDepth;
+	catch (...)
+	{
+		for (Toolbox::size_t Index = Attached.Size(); Index > 0; --Index)
+		{
+			if (Attached[Index - 1]->m_AttachState == EUiAttachState::Attached)
+			{
+				DetachOne_Internal(State, *Attached[Index - 1]);
+			}
+		}
+		throw;
+	}
 	if (!Result)
 	{
 		for (Toolbox::size_t Index = Attached.Size(); Index > 0; --Index)
@@ -387,21 +400,13 @@ void FUiTree::DetachSubtree_Internal(FUiRootState& State, DUiElement& Element) n
 	}
 	Element.m_AttachState = EUiAttachState::Detaching;
 	++m_WalkDepth;
-	Toolbox::TVector<DUiElement*> Children;
-	try
+	// 親はDetachingなので新しい子は追加できない。削除に合わせ添字を縮める。
+	Toolbox::size_t Index = Element.m_Children.Size();
+	while (Index > 0)
 	{
-		Children = SnapshotChildren_Internal(Element);
-	}
-	catch (...)
-	{
-		Children = {};
-	}
-	for (DUiElement* Child : Children)
-	{
-		if (Child->m_pParent == &Element)
-		{
-			DetachSubtree_Internal(State, *Child);
-		}
+		DUiElement* Child = Element.m_Children[Index - 1];
+		DetachSubtree_Internal(State, *Child);
+		Index = Toolbox::Min(Index - 1, Element.m_Children.Size());
 	}
 	--m_WalkDepth;
 	Element.m_AttachState = EUiAttachState::Attached;
@@ -428,7 +433,10 @@ void FUiTree::DetachOne_Internal(FUiRootState& State, DUiElement& Element) noexc
 	{
 		if (State.Modals[Index - 1].GetId() == Element.m_Self.GetId())
 		{
-			State.pOwner->PopModal_Internal(Element.m_Self);
+			if (State.pOwner != nullptr)
+			{
+				State.pOwner->PopModal_Internal(Element.m_Self);
+			}
 		}
 	}
 	Element.m_bHovered = false;

@@ -92,7 +92,13 @@ private:
 	/**
 	 * 破棄を要求した要素（解放待ち）。
 	 */
-	Toolbox::TVector<DUiElement*> m_PendingDestroy;
+	Toolbox::TVector<TUiRef<DUiElement>> m_PendingDestroy;
+	/** 解放中のデストラクタ再入を遅延する。 */
+	bool m_bFlushing = false;
+	/** 予約の確保失敗時も破棄済み要素を次の境界で回収する。 */
+	bool m_bScanDestroyed = false;
+	/** 子孫から解放する。再帰の深さは木の上限以下。 */
+	void ReleaseSubtree_Internal(FUiRootState& State, DUiElement& Element) noexcept;
 	/**
 	 * 切断・接続のフックを呼んでいる深さ。
 	 */

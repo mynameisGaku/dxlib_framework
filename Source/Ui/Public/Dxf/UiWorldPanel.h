@@ -63,7 +63,7 @@ struct FUiWorldPanel2D
 };
 
 /**
- * 3D世界の平面のパネル（長方形）。同じルートをテクスチャへ描き、その画像を平面へ貼る。
+ * 3D世界の平面のパネル（平行四辺形）。同じルートをテクスチャへ描き、その画像を平面へ貼る。
  * 表面は右（左上→右上）と下（左上→左下）の外積の向き。既定では表面からの入力だけを受ける。
  */
 struct FUiWorldPanel3D
@@ -102,6 +102,11 @@ struct FUiWorldPanel3D
 	 */
 	Toolbox::TFunction<bool(Toolbox::FVector3, Toolbox::FVector3)> IsOccluded;
 	/**
+	 * 中間テクスチャの不透明な背景。Aは255に限る。部品の半透明はこの背景へ合成する。
+	 * 透明なRenderTargetの合成規約を既存Rendererへ暗黙に追加しない。
+	 */
+	FColor Background{0, 0, 0, 255};
+	/**
 	 * 右下の角。
 	 */
 	FORCEINLINE Toolbox::FVector3 BottomRight() const noexcept
@@ -117,8 +122,10 @@ struct FUiWorldPanel3D
  * @param Start 線分の始点（視点側）。
  * @param End 線分の終点。
  * @param OutWorld 交点（世界）。
+ * @param bAllowOutside キャプチャ配送専用。trueなら平面外のUVも返す。背面・近遠範囲の条件は維持する。
  */
-Toolbox::TOptional<FVector2> IntersectUiWorldPanel3D(const FUiWorldPanel3D& Panel, Toolbox::FVector3 Start, Toolbox::FVector3 End,
-                                                     Toolbox::FVector3* OutWorld = nullptr) noexcept;
+Toolbox::TOptional<FVector2> IntersectUiWorldPanel3D(const FUiWorldPanel3D& Panel, Toolbox::FVector3 Start,
+                                                     Toolbox::FVector3 End, Toolbox::FVector3* OutWorld = nullptr,
+                                                     bool bAllowOutside = false) noexcept;
 } // namespace Dxf
 #endif

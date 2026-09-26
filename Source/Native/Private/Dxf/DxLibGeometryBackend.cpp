@@ -182,7 +182,7 @@ TResult<void> FDxLibRenderBackend::DrawTexturedQuad3D(const FTexturedQuad3D& Qua
 	const auto& C = Quad.Corners;
 	// 表面（右×下）の向き。表面だけの指定で視点が裏側なら描かない。
 	const Toolbox::FVector3 Normal = Toolbox::Cross(C[1] - C[0], C[3] - C[0]);
-	if (!Quad.bDoubleSided && Toolbox::Dot(Normal, m_ModelView.Eye - C[0]) >= 0)
+	if (!Quad.bDoubleSided && Toolbox::Dot(Normal, m_ModelView.Eye - C[0]) <= 0)
 	{
 		return {};
 	}
@@ -208,7 +208,8 @@ TResult<void> FDxLibRenderBackend::DrawTexturedQuad3D(const FTexturedQuad3D& Qua
 		auto& Vertex = Vertices[Index];
 		Vertex.pos = NativeVector_Internal(C[Corner]);
 		Vertex.norm = NativeVector_Internal(Unit);
-		Vertex.dif = DxLib::GetColorU8(Quad.Tint.R, Quad.Tint.G, Quad.Tint.B, Quad.Tint.A);
+		// 不透明度はShapeStateの定数へ一度だけ渡す。頂点側で二重に掛けない。
+		Vertex.dif = DxLib::GetColorU8(Quad.Tint.R, Quad.Tint.G, Quad.Tint.B, 255);
 		Vertex.spc = DxLib::GetColorU8(0, 0, 0, 0);
 		Vertex.u = U[Corner];
 		Vertex.v = V[Corner];
@@ -217,8 +218,8 @@ TResult<void> FDxLibRenderBackend::DrawTexturedQuad3D(const FTexturedQuad3D& Qua
 	}
 	auto Drawn = Detail::CheckNative_Internal(DxLib::DrawPolygon3D(Vertices, 2, Quad.Texture.GetNativeHandle_Internal(), TRUE),
 	                                          "DrawPolygon3D failed");
-	// 照明は他の形状の既定（有効）へ戻す。
-	if (DxLib::SetUseLighting(TRUE) < 0 && Drawn)
+	// 同じビューの基本形状はCPU側で照明済みなので、照明無効を維持する。
+	if (DxLib::SetUseLighting(FALSE) < 0 && Drawn)
 	{
 		return TResult<void>::Failure(EErrorCode::BackendFailure, "Lighting restore failed");
 	}

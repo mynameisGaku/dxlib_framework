@@ -76,14 +76,16 @@ struct FUiPixelRect
 	 */
 	FORCEINLINE Toolbox::int32 Width() const noexcept
 	{
-		return Right - Left;
+		return static_cast<Toolbox::int32>(Toolbox::Clamp<Toolbox::int64>(
+		    static_cast<Toolbox::int64>(Right) - Left, 0, Toolbox::TNumericLimits<Toolbox::int32>::Max()));
 	}
 	/**
 	 * 高さ。
 	 */
 	FORCEINLINE Toolbox::int32 Height() const noexcept
 	{
-		return Bottom - Top;
+		return static_cast<Toolbox::int32>(Toolbox::Clamp<Toolbox::int64>(
+		    static_cast<Toolbox::int64>(Bottom) - Top, 0, Toolbox::TNumericLimits<Toolbox::int32>::Max()));
 	}
 	/**
 	 * 面積がないか。

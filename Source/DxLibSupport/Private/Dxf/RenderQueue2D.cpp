@@ -173,104 +173,130 @@ TResult<void> FRenderQueue2D::Execute_Internal(IRenderBackend& Backend)
 			return {};
 		}
 		bClipActive = false;
-		return Backend.SetClip2D(false, {});
-	};
-	// 実行する描画命令を順に処理する。
-	for (const auto& Command : Commands)
-	{
-		// 入力内容の検証結果。
-		auto Validation = Validate_Internal(Command);
-		if (!Validation)
+		try
 		{
-			(void)RestoreClip();
-			return Validation;
+			return Backend.SetClip2D(false, {});
 		}
-		// 命令のクリップ。空の矩形は描かない。
-		const FDrawStyle& Style = Toolbox::Visit([](const auto& Value) -> const FDrawStyle& { return Value.Options; }, Command);
-		if (Style.bClip)
+		catch (const Toolbox::FException& Error)
 		{
-			if (Style.ClipRect.Right <= Style.ClipRect.Left || Style.ClipRect.Bottom <= Style.ClipRect.Top)
-			{
-				continue;
-			}
-			if (!Backend.SupportsClip2D())
+			return TResult<void>::Failure(EErrorCode::BackendFailure, Error.What());
+		}
+		catch (...)
+		{
+			return TResult<void>::Failure(EErrorCode::BackendFailure, "Clip restoration threw");
+		}
+	};
+	try
+	{
+		// 実行する描画命令を順に処理する。
+		for (const auto& Command : Commands)
+		{
+			// 入力内容の検証結果。
+			auto Validation = Validate_Internal(Command);
+			if (!Validation)
 			{
 				(void)RestoreClip();
-				return TResult<void>::Failure(EErrorCode::BackendFailure, "2D clip unsupported");
+				return Validation;
 			}
-			const FIntRect& Clip = Style.ClipRect;
-			if (!bClipActive || Clip.Left != ActiveClip.Left || Clip.Top != ActiveClip.Top || Clip.Right != ActiveClip.Right ||
-			    Clip.Bottom != ActiveClip.Bottom)
+			// 命令のクリップ。空の矩形は描かない。
+			const FDrawStyle& Style = Toolbox::Visit(
+			    [](const auto& Value) -> const FDrawStyle&
+			    {
+				    return Value.Options;
+			    },
+			    Command);
+			if (Style.bClip)
 			{
-				auto Set = Backend.SetClip2D(true, Clip);
-				if (!Set)
+				if (Style.ClipRect.Right <= Style.ClipRect.Left || Style.ClipRect.Bottom <= Style.ClipRect.Top)
+				{
+					continue;
+				}
+				if (!Backend.SupportsClip2D())
+				{
+					(void)RestoreClip();
+					return TResult<void>::Failure(EErrorCode::BackendFailure, "2D clip unsupported");
+				}
+				const FIntRect& Clip = Style.ClipRect;
+				if (!bClipActive || Clip.Left != ActiveClip.Left || Clip.Top != ActiveClip.Top ||
+				    Clip.Right != ActiveClip.Right || Clip.Bottom != ActiveClip.Bottom)
 				{
 					bClipActive = true;
-					(void)RestoreClip();
-					return Set;
+					auto Set = Backend.SetClip2D(true, Clip);
+					if (!Set)
+					{
+						bClipActive = true;
+						(void)RestoreClip();
+						return Set;
+					}
+					bClipActive = true;
+					ActiveClip = Clip;
 				}
-				bClipActive = true;
-				ActiveClip = Clip;
+			}
+			else if (bClipActive)
+			{
+				auto Restored = RestoreClip();
+				if (!Restored)
+				{
+					return Restored;
+				}
+			}
+			// 処理結果。
+			auto Result = Toolbox::Visit(
+			    [&](const auto& Value) -> TResult<void>
+			    {
+				    // 現在の描画命令の実体型。
+				    using T = Toolbox::TDecay<decltype(Value)>;
+				    if constexpr (Toolbox::IsSame<T, FSpriteCommand>)
+				    {
+					    return Backend.DrawSprite(Value);
+				    }
+				    else if constexpr (Toolbox::IsSame<T, FTextCommand>)
+				    {
+					    return Backend.DrawText(Value);
+				    }
+				    else if constexpr (Toolbox::IsSame<T, FRectangleCommand>)
+				    {
+					    if (!Value.bFilled && !Backend.SupportsShapes2D())
+					    {
+						    return TResult<void>::Failure(EErrorCode::BackendFailure, "Outline rectangle unsupported");
+					    }
+					    return Backend.DrawRectangle(Value);
+				    }
+				    else
+				    {
+					    if (!Backend.SupportsShapes2D())
+					    {
+						    return TResult<void>::Failure(EErrorCode::BackendFailure, "2D shape unsupported");
+					    }
+					    if constexpr (Toolbox::IsSame<T, FLineCommand2D>)
+					    {
+						    return Backend.DrawLine2D(Value);
+					    }
+					    else if constexpr (Toolbox::IsSame<T, FCircleCommand2D>)
+					    {
+						    return Backend.DrawCircle2D(Value);
+					    }
+					    else
+					    {
+						    return Backend.DrawTriangle2D(Value);
+					    }
+				    }
+			    },
+			    Command);
+			if (!Result)
+			{
+				(void)RestoreClip();
+				return Result;
 			}
 		}
-		else if (bClipActive)
-		{
-			auto Restored = RestoreClip();
-			if (!Restored)
-			{
-				return Restored;
-			}
-		}
-		// 処理結果。
-		auto Result = Toolbox::Visit(
-		[&](const auto& Value) -> TResult<void>
-		{
-			// 現在の描画命令の実体型。
-			using T = Toolbox::TDecay<decltype(Value)>;
-			if constexpr (Toolbox::IsSame<T, FSpriteCommand>)
-			{
-				return Backend.DrawSprite(Value);
-			}
-			else if constexpr (Toolbox::IsSame<T, FTextCommand>)
-			{
-				return Backend.DrawText(Value);
-			}
-			else if constexpr (Toolbox::IsSame<T, FRectangleCommand>)
-			{
-				if (!Value.bFilled && !Backend.SupportsShapes2D())
-				{
-					return TResult<void>::Failure(EErrorCode::BackendFailure, "Outline rectangle unsupported");
-				}
-				return Backend.DrawRectangle(Value);
-			}
-			else
-			{
-				if (!Backend.SupportsShapes2D())
-				{
-					return TResult<void>::Failure(EErrorCode::BackendFailure, "2D shape unsupported");
-				}
-				if constexpr (Toolbox::IsSame<T, FLineCommand2D>)
-				{
-					return Backend.DrawLine2D(Value);
-				}
-				else if constexpr (Toolbox::IsSame<T, FCircleCommand2D>)
-				{
-					return Backend.DrawCircle2D(Value);
-				}
-				else
-				{
-					return Backend.DrawTriangle2D(Value);
-				}
-			}
-		},
-		Command);
-		if (!Result)
-		{
-			(void)RestoreClip();
-			return Result;
-		}
+		return RestoreClip();
 	}
-	return RestoreClip();
+	catch (...)
+	{
+		// 復帰がさらに失敗しても最初に発生した例外を再送する。
+		(void)RestoreClip();
+		throw;
+	}
 }
 }
 // namespace Dxf

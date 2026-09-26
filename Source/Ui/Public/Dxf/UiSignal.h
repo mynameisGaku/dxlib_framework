@@ -100,11 +100,14 @@ private:
 		 */
 		void Unsubscribe_Internal(Toolbox::uint64 Id) noexcept override
 		{
+			// 捕捉の破棄は配列操作の完了後。デストラクタからの再購読でも走査を壊さない。
+			Toolbox::TSharedPtr<Toolbox::TFunction<void(TArgs...)>> Retired;
 			for (auto& Entry : Entries)
 			{
 				if (Entry.Id == Id)
 				{
-					Entry.Callback = {};
+					Retired = Toolbox::Move(Entry.Callback);
+					break;
 				}
 			}
 			if (EmitDepth == 0)

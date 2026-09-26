@@ -11,6 +11,10 @@ DUiButton::DUiButton(Toolbox::FString Text) : m_Text(Toolbox::Move(Text))
 // 表示する文字を変える。
 void DUiButton::SetText(Toolbox::FString Text)
 {
+	if (m_Text == Text)
+	{
+		return;
+	}
 	m_Text = Toolbox::Move(Text);
 	if (DUiLabel* Label = m_Label.Get())
 	{

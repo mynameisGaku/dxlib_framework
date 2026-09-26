@@ -15,7 +15,7 @@ import tempfile
 from ValidationSupport import project_version, run_logged, validation_report
 
 ROOT = Path(__file__).resolve().parents[1]
-CONSUMER_SOURCES = ('CMakeLists.txt', 'Main.cpp', 'Support.cpp', 'Physics.cpp', 'NativeApp.cpp')
+CONSUMER_SOURCES = ('CMakeLists.txt', 'Main.cpp', 'Support.cpp', 'Physics.cpp', 'NativeApp.cpp', 'Ui.cpp', 'UiRuntime.cpp')
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -119,6 +119,9 @@ def main() -> int:
         run('consumer-run', [str(work / 'ConsumerBuild' / ('Consumer' + suffix))], timeout=240)
         run('support-only-run', [str(work / 'ConsumerBuild' / ('SupportOnly' + suffix))], timeout=240)
         run('physics-only-run', [str(work / 'ConsumerBuild' / ('PhysicsOnly' + suffix))], timeout=240)
+        run('ui-only-run', [str(work / 'ConsumerBuild' / ('UiOnly' + suffix))], timeout=240)
+        run('ui-runtime-run', [str(work / 'ConsumerBuild' / ('UiRuntime' + suffix))], timeout=240)
+        summary.update(ui_without_physics_or_runtime=True, ui_scene_adapter=True)
         summary.update(install=True, relocation=True, external_consumer=True, export_paths_relocatable=True,
                        support_without_runtime=True, physics_without_debug_or_support=True,
                        character_physics_only=True, character_gameplay_components=True)

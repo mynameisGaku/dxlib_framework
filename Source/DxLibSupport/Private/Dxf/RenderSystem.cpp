@@ -377,3 +377,41 @@ void FRenderSystem::CancelFrame() noexcept
 }
 }
 // namespace Dxf
+
+namespace Dxf
+{
+// Nativeのグローバル状態でなく、Rendererが管理している描画先を返す。
+TResult<FRenderTarget> FRenderSystem::GetRenderTarget() const
+{
+	if (!m_bFrame || m_bBusy || m_FrameError || (m_Target.AsTexture().GetResource_Internal() && !m_Target.IsValid()))
+	{
+		return TResult<FRenderTarget>::Failure(EErrorCode::InvalidState, "Render target unavailable");
+	}
+	return TResult<FRenderTarget>::Success(m_Target);
+}
+} // namespace Dxf
+
+namespace Dxf
+{
+// Flushが失敗しても保存対象へ戻す。失敗した描画を成功へ読み替えない。
+TResult<void> FRenderSystem::RestoreRenderTarget(const FRenderTarget& Target)
+{
+	if (!m_Context.IsOwnerOperationAllowed_Internal() || !m_bFrame || m_bBusy)
+	{
+		return StateError_Internal();
+	}
+	TGuardValue Guard(m_bBusy, true);
+	auto Flushed = Flush_Internal();
+	if (Target.AsTexture().GetResource_Internal() && !Target.IsValid())
+	{
+		return Flushed ? FailFrame_Internal({EErrorCode::InvalidState, "Saved render target invalidated"}) : Flushed;
+	}
+	m_Target = Target;
+	auto Restored = RestoreTarget_Internal();
+	if (!Flushed)
+	{
+		return Flushed;
+	}
+	return Restored ? Restored : FailFrame_Internal(Restored.Error());
+}
+} // namespace Dxf

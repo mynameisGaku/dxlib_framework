@@ -9,9 +9,18 @@ namespace Detail
 {
 // 内部状態を作る。
 FUiRootState::FUiRootState(FUiRoot& Owner, FUiRootSettings InSettings)
-    : pOwner(&Owner), Settings(Toolbox::Move(InSettings)), PostQueue(Toolbox::MakeShared<FUiPostQueue>()),
-      Styles(Settings.Styles), BuiltInStyles(GetBuiltInUiStyleSheet())
+    : pOwner(&Owner), Lifetime(Toolbox::MakeShared<FUiRootLifetime>()), Settings(Toolbox::Move(InSettings)),
+      PostQueue(Toolbox::MakeShared<FUiPostQueue>()), Styles(Settings.Styles), BuiltInStyles(GetBuiltInUiStyleSheet())
 {
+	const auto& N = Settings.Navigation;
+	if (!Toolbox::IsFinite(N.InitialRepeatDelay) || N.InitialRepeatDelay < 0 || !Toolbox::IsFinite(N.RepeatInterval) ||
+	    N.RepeatInterval <= 0 || !Toolbox::IsFinite(N.TooltipDelay) || N.TooltipDelay < 0 ||
+	    !Toolbox::IsFinite(N.DragThreshold) || N.DragThreshold < 0 || Settings.Limits.MaxDepth == 0 ||
+	    Settings.Limits.MaxElements < 4)
+	{
+		throw Toolbox::FException("Invalid UI root limits or navigation timing");
+	}
+	Lifetime->Owner = &Owner;
 }
 // 状態の変化を知らせる。
 void FUiRootState::NotifyStateChanged(DUiElement& Element)
@@ -59,9 +68,10 @@ void FUiRootState::ResolveStyle(DUiElement& Element)
 
 // ルートを作る。
 FUiRoot::FUiRoot(FUiRootSettings Settings)
-    : m_pState(Toolbox::MakeUnique<Detail::FUiRootState>(*this, Toolbox::Move(Settings)))
+    : m_pState(Toolbox::MakeShared<Detail::FUiRootState>(*this, Toolbox::Move(Settings)))
 {
-	auto& State = *m_pState;
+	const auto Lease = m_pState;
+	auto& State = *Lease;
 	for (Toolbox::size_t Layer = 0; Layer < State.Layers.Size(); ++Layer)
 	{
 		Toolbox::TUniquePtr<DUiElement> Element;
@@ -85,16 +95,31 @@ FUiRoot::FUiRoot(FUiRootSettings Settings)
 // 切断してから解放する。
 FUiRoot::~FUiRoot()
 {
-	auto& State = *m_pState;
+	const auto Lease = m_pState;
+	auto& State = *Lease;
 	State.bShuttingDown = true;
+	State.Lifetime->Owner = nullptr;
 	State.PostQueue->Close();
 	State.Tree.DetachAll(State);
-	// 格納領域の破棄で要素を解放する（要素のデストラクタは購読を解除するだけ）。
+	// 配送中のStateは呼出し側のLeaseが保つ。全参照はここで即時失効させる。
+	State.Elements.ForEach_Internal(
+	    [](DUiElement& Element)
+	    {
+		    Element.m_bDestroyRequested = true;
+		    Element.m_pRoot = nullptr;
+	    });
+	State.pOwner = nullptr;
+}
+// 表示先への弱い参照。
+FUiRootHandle FUiRoot::GetHandle() const noexcept
+{
+	return FUiRootHandle(Toolbox::TWeakPtr<Detail::FUiRootLifetime>(m_pState->Lifetime));
 }
 // 要素を登録する。
 TUiRef<DUiElement> FUiRoot::Register_Internal(Toolbox::TUniquePtr<DUiElement> Element)
 {
-	auto& State = *m_pState;
+	const auto Lease = m_pState;
+	auto& State = *Lease;
 	if (!Element)
 	{
 		throw Toolbox::FException("Null UI element");
@@ -133,7 +158,9 @@ TResult<void> FUiRoot::AddChild(const TUiRef<DUiElement>& Parent, const TUiRef<D
 	{
 		return TResult<void>::Failure(EErrorCode::InvalidArgument, "Invalid or destroyed UI element");
 	}
-	return m_pState->Tree.AddChild(*m_pState, *ParentElement, *ChildElement, Index);
+	const auto Lease = m_pState;
+	Detail::FUiRootState::FDispatchScope Scope(*Lease);
+	return Lease->Tree.AddChild(*Lease, *ParentElement, *ChildElement, Index);
 }
 // 親から取り外す。
 TResult<void> FUiRoot::Remove(const TUiRef<DUiElement>& Element)
@@ -143,7 +170,9 @@ TResult<void> FUiRoot::Remove(const TUiRef<DUiElement>& Element)
 	{
 		return TResult<void>::Failure(EErrorCode::InvalidArgument, "Invalid or destroyed UI element");
 	}
-	return m_pState->Tree.Remove(*m_pState, *Target);
+	const auto Lease = m_pState;
+	Detail::FUiRootState::FDispatchScope Scope(*Lease);
+	return Lease->Tree.Remove(*Lease, *Target);
 }
 // 破棄を要求する。
 bool FUiRoot::Destroy(const TUiRef<DUiElement>& Element) noexcept
@@ -153,7 +182,9 @@ bool FUiRoot::Destroy(const TUiRef<DUiElement>& Element) noexcept
 	{
 		return false;
 	}
-	m_pState->Tree.Destroy(*m_pState, *Target);
+	const auto Lease = m_pState;
+	Detail::FUiRootState::FDispatchScope Scope(*Lease);
+	Lease->Tree.Destroy(*Lease, *Target);
 	return true;
 }
 // 重なり領域の入れ物。
@@ -175,38 +206,99 @@ const FUiSurface& FUiRoot::GetSurface() const noexcept
 // レイアウト。
 TResult<void> FUiRoot::Layout()
 {
-	auto& State = *m_pState;
+	const auto Lease = m_pState;
+	auto& State = *Lease;
+	if (State.bFrozen || State.bShuttingDown)
+	{
+		return TResult<void>::Failure(EErrorCode::InvalidState, "UI layout unavailable or reentrant");
+	}
 	State.Tree.FlushDestroyed(State);
-	return State.Layout.Run(State);
+	try
+	{
+		// 一度配置した実寸法で仮想行数を調整する。静止した木は再測定しない。
+		for (Toolbox::int32 Pass = 0; Pass < 2; ++Pass)
+		{
+			const auto Preparing = State.Updating;
+			for (const auto& Handle : Preparing)
+			{
+				if (DUiElement* Element = Handle.Get(); Detail::FUiRootState::IsLive(Element))
+				{
+					Detail::FUiRootState::FDispatchScope Scope(State);
+					Element->PrepareLayout_Internal();
+				}
+			}
+			if (State.bShuttingDown)
+			{
+				return TResult<void>::Failure(EErrorCode::InvalidState, "UI root destroyed during layout preparation");
+			}
+			auto Result = State.Layout.Run(State);
+			if (!Result)
+			{
+				return Result;
+			}
+		}
+	}
+	catch (const Toolbox::FException& Error)
+	{
+		return TResult<void>::Failure(EErrorCode::UserException, Error.What());
+	}
+	catch (...)
+	{
+		return TResult<void>::Failure(EErrorCode::UserException, "UI layout preparation failed");
+	}
+	State.Tree.FlushDestroyed(State);
+	return {};
 }
 // 入力を処理する。
 TResult<FUiInputResult> FUiRoot::ProcessInput(const FUiInputFrame& Frame)
 {
-	auto& State = *m_pState;
-	FUiInputResult Result;
-	if (State.bShuttingDown)
+	const auto Lease = m_pState;
+	auto& State = *Lease;
+	if (State.bShuttingDown || State.bProcessingInput || State.bFrozen)
 	{
-		return TResult<FUiInputResult>::Success(Result);
+		return TResult<FUiInputResult>::Failure(EErrorCode::InvalidState, "UI input unavailable or reentrant");
 	}
+	if (!Toolbox::IsFinite(Frame.DeltaSeconds) || Frame.DeltaSeconds < 0)
+	{
+		return TResult<FUiInputResult>::Failure(EErrorCode::InvalidArgument, "Invalid UI input time");
+	}
+	FUiInputResult Result;
+	// 開閉を起こした操作自身もModalの入力として扱う。
+	Result.bModal = State.GetTopModal() != nullptr;
+	State.bProcessingInput = true;
+	TResult<FUiInputResult> Output = TResult<FUiInputResult>::Success(Result);
 	try
 	{
-		// 入力は前回のレイアウトで判定する（描いた位置と一致させる）。
+		Detail::FUiRootState::FDispatchScope Scope(State);
 		State.Input.Process(State, Frame.Pointer, Result);
-		State.Focus.Process(State, Frame.Navigation, Frame.DeltaSeconds, Result);
+		if (!State.bShuttingDown)
+		{
+			State.Focus.Process(State, Frame.Navigation, Frame.DeltaSeconds, Result);
+		}
+		Result.bModal = Result.bModal || State.GetTopModal() != nullptr;
+		Output = TResult<FUiInputResult>::Success(Result);
 	}
 	catch (const Toolbox::FException& Error)
 	{
-		State.Tree.FlushDestroyed(State);
-		return TResult<FUiInputResult>::Failure(EErrorCode::UserException, Error.What());
+		Output = TResult<FUiInputResult>::Failure(EErrorCode::UserException, Error.What());
 	}
-	Result.bModal = GetTopModal() != nullptr;
+	catch (...)
+	{
+		Output = TResult<FUiInputResult>::Failure(EErrorCode::UserException, "UI input callback failed");
+	}
+	State.bProcessingInput = false;
 	State.Tree.FlushDestroyed(State);
-	return TResult<FUiInputResult>::Success(Result);
+	return Output;
 }
 // 毎フレームの更新。
 TResult<void> FUiRoot::Update(Toolbox::f64 DeltaSeconds)
 {
-	auto& State = *m_pState;
+	const auto Lease = m_pState;
+	auto& State = *Lease;
+	if (State.bUpdating || State.bShuttingDown || State.bFrozen)
+	{
+		return TResult<void>::Failure(EErrorCode::InvalidState, "UI update unavailable or reentrant");
+	}
 	if (!Toolbox::IsFinite(DeltaSeconds) || DeltaSeconds < 0)
 	{
 		return TResult<void>::Failure(EErrorCode::InvalidArgument, "Invalid UI delta seconds");
@@ -214,23 +306,30 @@ TResult<void> FUiRoot::Update(Toolbox::f64 DeltaSeconds)
 	// 長い停止の後でも時間の進みを抑える。
 	const Toolbox::f64 Delta = Toolbox::Min(DeltaSeconds, 0.25);
 	State.Elapsed += Delta;
+	State.bUpdating = true;
 	TResult<void> Result;
 	try
 	{
+		Detail::FUiRootState::FDispatchScope Dispatch(State);
 		// 投函された処理（非同期の完了等）を所有スレッドで実行する。取り出した後の実行・破棄はロックの外。
 		Toolbox::TVector<Toolbox::TFunction<void()>> Posted;
 		State.PostQueue->Drain(Posted);
 		for (auto& Callback : Posted)
 		{
+			if (State.bShuttingDown)
+			{
+				break;
+			}
 			Detail::FUiRootState::FDispatchScope Scope(State);
 			Callback();
 		}
 		Posted.Clear();
 		// 更新を受ける要素（一覧の写しを参照で確かめてから呼ぶ）。
 		auto Updating = State.Updating;
+		const Toolbox::size_t OriginalCount = Updating.Size();
 		Toolbox::size_t Write = 0;
 		FUiUpdateContext Context{Delta, State.Elapsed};
-		for (Toolbox::size_t Index = 0; Index < Updating.Size(); ++Index)
+		for (Toolbox::size_t Index = 0; Index < Updating.Size() && !State.bShuttingDown; ++Index)
 		{
 			DUiElement* Element = Updating[Index].Get();
 			if (!Detail::FUiRootState::IsLive(Element) || !Element->m_bWantsUpdate)
@@ -256,39 +355,64 @@ TResult<void> FUiRoot::Update(Toolbox::f64 DeltaSeconds)
 		{
 			Updating.PopBack();
 		}
-		for (Toolbox::size_t Index = Updating.Size(); Index < State.Updating.Size(); ++Index)
+		for (Toolbox::size_t Index = OriginalCount; Index < State.Updating.Size(); ++Index)
 		{
 			Updating.PushBack(State.Updating[Index]);
 		}
 		State.Updating = Toolbox::Move(Updating);
-		State.Tooltip.Update(State, Delta);
+		if (!State.bShuttingDown)
+		{
+			State.Tooltip.Update(State, Delta);
+		}
 	}
 	catch (const Toolbox::FException& Error)
 	{
 		Result = TResult<void>::Failure(EErrorCode::UserException, Error.What());
 	}
+	catch (...)
+	{
+		Result = TResult<void>::Failure(EErrorCode::UserException, "UI update callback failed");
+	}
+	State.bUpdating = false;
 	State.Tree.FlushDestroyed(State);
 	return Result;
 }
 // 描画を記録する。
 TResult<void> FUiRoot::BuildDrawList(FUiDrawList& List)
 {
-	auto& State = *m_pState;
+	const auto Lease = m_pState;
+	auto& State = *Lease;
+	if (State.bFrozen || State.bShuttingDown)
+	{
+		return TResult<void>::Failure(EErrorCode::InvalidState, "UI draw is unavailable or reentrant");
+	}
 	State.Tree.FlushDestroyed(State);
 	const Toolbox::size_t Before = List.GetItems().Size();
 	State.bFrozen = true;
+	TResult<void> Result;
 	try
 	{
 		Detail::FUiDrawBuilder::Build(State, List);
 	}
 	catch (const Toolbox::FException& Error)
 	{
-		State.bFrozen = false;
-		return TResult<void>::Failure(EErrorCode::UserException, Error.What());
+		Result = TResult<void>::Failure(EErrorCode::UserException, Error.What());
+	}
+	catch (...)
+	{
+		Result = TResult<void>::Failure(EErrorCode::UserException, "UI draw callback failed");
 	}
 	State.bFrozen = false;
+	if (!Result || State.bShuttingDown)
+	{
+		while (List.GetItems().Size() > Before)
+		{
+			List.EditItems().PopBack();
+		}
+	}
 	State.LastDrawItems = List.GetItems().Size() - Before;
-	return {};
+	State.Tree.FlushDestroyed(State);
+	return Result;
 }
 // 最前面の要素。
 DUiElement* FUiRoot::HitTest(FVector2 Position)
@@ -303,7 +427,9 @@ bool FUiRoot::SetFocus(const TUiRef<DUiElement>& Element)
 	{
 		return false;
 	}
-	return m_pState->Focus.SetFocus(*m_pState, Target);
+	const auto Lease = m_pState;
+	Detail::FUiRootState::FDispatchScope Scope(*Lease);
+	return Lease->Focus.SetFocus(*Lease, Target);
 }
 // フォーカスのある要素。
 DUiElement* FUiRoot::GetFocused() const noexcept
@@ -313,8 +439,12 @@ DUiElement* FUiRoot::GetFocused() const noexcept
 // ホバーとキャプチャを外す。
 void FUiRoot::ResetPointer() noexcept
 {
-	m_pState->Input.Reset(*m_pState);
-	m_pState->Tree.FlushDestroyed(*m_pState);
+	const auto Lease = m_pState;
+	{
+		Detail::FUiRootState::FDispatchScope Scope(*Lease);
+		Lease->Input.Reset(*Lease);
+	}
+	Lease->Tree.FlushDestroyed(*Lease);
 }
 // キャプチャ中の要素。
 DUiElement* FUiRoot::GetCaptured() const noexcept
@@ -334,21 +464,16 @@ DUiElement* FUiRoot::GetTooltipTarget() const noexcept
 // 最前面のModal。
 DUiElement* FUiRoot::GetTopModal() const noexcept
 {
-	for (Toolbox::size_t Index = m_pState->Modals.Size(); Index > 0; --Index)
-	{
-		DUiElement* Modal = m_pState->Modals[Index - 1].Get();
-		if (Detail::FUiRootState::IsLive(Modal) && Modal->IsVisibleInTree())
-		{
-			return Modal;
-		}
-	}
-	return nullptr;
+	return m_pState->GetTopModal();
 }
 // Modalを登録する。
 void FUiRoot::PushModal_Internal(const TUiRef<DUiElement>& Element)
 {
-	auto& State = *m_pState;
+	const auto Lease = m_pState;
+	auto& State = *Lease;
 	DUiElement* Focused = State.Focus.GetFocused();
+	State.Modals.Reserve(State.Modals.Size() + 1);
+	State.ModalReturnFocus.Reserve(State.ModalReturnFocus.Size() + 1);
 	State.Modals.PushBack(Element);
 	State.ModalReturnFocus.PushBack(Focused != nullptr ? Focused->GetRef() : TUiRef<DUiElement>{});
 	// Modalの外へのキャプチャ・フォーカスを外す。
@@ -370,7 +495,8 @@ void FUiRoot::PushModal_Internal(const TUiRef<DUiElement>& Element)
 // Modalの登録を外す。
 void FUiRoot::PopModal_Internal(const TUiRef<DUiElement>& Element) noexcept
 {
-	auto& State = *m_pState;
+	const auto Lease = m_pState;
+	auto& State = *Lease;
 	for (Toolbox::size_t Index = State.Modals.Size(); Index > 0; --Index)
 	{
 		if (State.Modals[Index - 1].GetId() != Element.GetId())
@@ -401,24 +527,15 @@ void FUiRoot::PopModal_Internal(const TUiRef<DUiElement>& Element) noexcept
 // スタイルを差し替える。
 void FUiRoot::SetStyleSheet(Toolbox::TSharedPtr<const FUiStyleSheet> Styles)
 {
-	auto& State = *m_pState;
+	const auto Lease = m_pState;
+	auto& State = *Lease;
 	State.Styles = Toolbox::Move(Styles);
-	// 見た目だけ解決し直す（状態・フォーカス・スクロール位置は要素が保つ）。
-	for (DUiElement* Layer : State.Layers)
-	{
-		Toolbox::TVector<DUiElement*> Stack;
-		Stack.PushBack(Layer);
-		while (!Stack.IsEmpty())
-		{
-			DUiElement* Element = Stack.Back();
-			Stack.PopBack();
-			Element->InvalidateStyle();
-			for (DUiElement* Child : Element->m_Children)
-			{
-				Stack.PushBack(Child);
-			}
-		}
-	}
+	// 設定全体の反映は確保なし。再描画は必要な境界で一括して行う。
+	State.Elements.ForEach_Internal(
+	    [](DUiElement& Element)
+	    {
+		    Element.InvalidateStyle();
+	    });
 }
 // 現在のスタイル。
 const FUiStyleSheet& FUiRoot::GetStyleSheet() const noexcept
@@ -448,7 +565,8 @@ TUiSignal<>& FUiRoot::OnCancelRequested() noexcept
 // 状態の数。
 FUiRootStats FUiRoot::GetStats() const noexcept
 {
-	const auto& State = *m_pState;
+	const auto Lease = m_pState;
+	auto& State = *Lease;
 	FUiRootStats Stats;
 	Stats.Elements = State.Elements.Size();
 	Stats.PendingDestroy = State.Tree.GetPendingDestroyCount();

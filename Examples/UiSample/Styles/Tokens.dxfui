@@ -1,0 +1,4 @@
+dxfui-style 1
+token Accent = #2277bb
+token Text = #eeeeee
+token TextSize = 20
