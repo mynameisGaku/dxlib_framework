@@ -157,11 +157,13 @@ void RunMode_Internal(const char* ProjectRoot, const Toolbox::FPath& Out, EWindo
 		Require_Internal(GetCapture() != Owner, "OS pointer capture released");
 		Require_Internal(Scene->Clicks == 2, "click with OS capture");
 		Toolbox::Out << "OS_POINTER_CAPTURE_VERIFIED\n";
+		Toolbox::Out << "DXF_CHECK os_pointer_capture." << (bResizable ? "resizable" : "stretch") << "=verified\n";
 	}
 	else
 	{
 		// 前面でないウィンドウは捕捉を取得しない（強制的に前面へ移さない）。この実行では確かめていないことを残す。
 		Toolbox::Out << "OS_POINTER_CAPTURE_NOT_VERIFIED_WINDOW_NOT_FOREGROUND\n";
+		Toolbox::Out << "DXF_CHECK os_pointer_capture." << (bResizable ? "resizable" : "stretch") << "=not_exercised\n";
 	}
 	// 最小化の間は描かず、更新は続ける（既定）。復帰後は同じ寸法で描く。
 	const HWND Window = DxLib::GetMainWindowHandle();

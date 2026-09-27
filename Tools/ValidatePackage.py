@@ -12,7 +12,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from ValidationSupport import project_version, run_logged, validation_report
+from ValidationSupport import new_run_directory, project_version, run_logged, validation_report
 
 ROOT = Path(__file__).resolve().parents[1]
 CONSUMER_SOURCES = ('CMakeLists.txt', 'Main.cpp', 'Support.cpp', 'Physics.cpp', 'NativeApp.cpp', 'NativeUiApp.cpp',
@@ -26,7 +26,7 @@ def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--work', type=Path, default=ROOT / 'Build' / 'PackageValidation')
     parser.add_argument('--logs', type=Path, default=None,
-                        help='log directory (default: Docs/Validation/Package, or a per-configuration subdirectory)')
+                        help='new or empty run directory (default: a new run below Build/ValidationLogs/Package/<config>)')
     parser.add_argument('--jobs', type=int, default=4)
     parser.add_argument('--config', choices=('Debug', 'Release'), default='Debug')
     parser.add_argument('--native', action='store_true', help='also build and consume dxf::native')
@@ -46,12 +46,13 @@ def parse_arguments() -> argparse.Namespace:
     if args.native and sys.platform != 'win32':
         parser.error('--native needs Windows/MSVC')
     if args.logs is None:
-        # 従来の既定（Native OFF・Debug）は同じ場所。その他の構成は別の場所へ分ける。
-        name = f"{args.config}-{'Native' if args.native else 'Portable'}"
-        args.logs = ROOT / 'Docs' / 'Validation' / 'Package'
-        if name != 'Debug-Portable':
-            args.logs = args.logs / name
+        # 既定は構成ごとの親の下へ、実行ごとに新しいrunのディレクトリを作る（過去のrunを上書きしない）。
+        args.logs_parent = ROOT / 'Build' / 'ValidationLogs' / 'Package' / default_log_name(args)
     return args
+
+
+def default_log_name(args: argparse.Namespace) -> str:
+    return f"{args.config}-{'Native' if args.native else 'Portable'}"
 
 
 def sdk_arguments(sdk_root: Path | None) -> list[str]:
@@ -82,8 +83,9 @@ def absolute_paths_in_exports(package: Path, forbidden: list[Path]) -> list[str]
 
 def main() -> int:
     args = parse_arguments()
+    if args.logs is None:
+        args.logs = new_run_directory(args.logs_parent)
     args.work.mkdir(parents=True, exist_ok=True)
-    args.logs.mkdir(parents=True, exist_ok=True)
     # Each run is clean; never accept an old install as evidence for a failed build.
     work = Path(tempfile.mkdtemp(prefix='run-', dir=args.work.resolve()))
     summary: dict[str, object] = {'real_dxlib_sdk': args.native, 'config': args.config, 'native': args.native,
@@ -92,7 +94,7 @@ def main() -> int:
     def run(name: str, command: list[str], timeout: int = 1800, cwd: Path = ROOT) -> str:
         return run_logged(args.logs, name, command, cwd=cwd, timeout=timeout)
 
-    with validation_report(args.logs, summary):
+    with validation_report(args.logs, summary, root=ROOT):
         summary['version'] = project_version(ROOT)
         sdk = sdk_arguments(args.sdk_root if args.native else None)
         if args.native:

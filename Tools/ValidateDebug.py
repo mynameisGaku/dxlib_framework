@@ -7,7 +7,7 @@ import subprocess
 import sys
 import tempfile
 import xml.etree.ElementTree as ET
-from ValidationSupport import run_logged, validation_report
+from ValidationSupport import new_run_directory, run_logged, validation_report
 
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED = {
@@ -56,15 +56,18 @@ def check_results(path: Path, names: list[str]) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--work', type=Path, default=ROOT / 'Build' / 'DebugValidation')
-    parser.add_argument('--logs', type=Path, default=ROOT / 'Build' / 'DebugValidationLogs')
+    parser.add_argument('--logs', type=Path, default=None,
+                        help='new or empty run directory (default: a new run below Build/DebugValidationLogs)')
     parser.add_argument('--jobs', type=int, default=4)
     args = parser.parse_args()
     if args.jobs < 1:
         parser.error('--jobs must be positive')
+    if args.logs is None:
+        args.logs = new_run_directory(ROOT / 'Build' / 'DebugValidationLogs')
     args.work.mkdir(parents=True, exist_ok=True)
     work = Path(tempfile.mkdtemp(prefix='run-', dir=args.work.resolve()))
     summary = {'work': str(work), 'real_dxlib_sdk': False, 'configurations': {}}
-    with validation_report(args.logs, summary):
+    with validation_report(args.logs, summary, root=ROOT):
         for config in ('Debug', 'Release'):
             build = work / config
             prefix = config.lower()
@@ -81,10 +84,10 @@ def main() -> int:
                                  ['ctest', '--test-dir', str(build), '-C', config,
                                   '--show-only=json-v1'], cwd=ROOT)
             names = check_configuration((build / 'CMakeCache.txt').read_text(encoding='utf-8'), listing)
-            results = build / 'results.xml'
+            results = args.logs / (prefix + '-junit.xml')
             run_logged(args.logs, prefix + '-tests',
-                       ['ctest', '--test-dir', str(build), '-C', config, '-j', '1',
-                        '--no-tests=error', '--output-on-failure', '--output-junit', str(results)],
+                       ['ctest', '--test-dir', str(build), '-C', config, '-j', '1', '-V',
+                        '--no-tests=error', '--output-on-failure', '--output-junit', str(results.resolve())],
                        cwd=ROOT, timeout=600)
             check_results(results, names)
             summary['configurations'][config] = {'tests': names, 'count': len(names)}

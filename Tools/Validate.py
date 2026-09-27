@@ -10,7 +10,7 @@ import struct
 import subprocess
 import sys
 import wave
-from ValidationSupport import project_version, run_logged, validation_report
+from ValidationSupport import new_run_directory, project_version, run_logged, validation_report
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -20,13 +20,14 @@ def main() -> int:
     parser.add_argument("--build-root", type=Path, default=ROOT / "Build" / "Validation")
     parser.add_argument("--with-sanitizers", action="store_true")
     parser.add_argument("--jobs", type=int, default=4)
+    parser.add_argument("--logs", type=Path, default=None,
+                        help="new or empty run directory (default: a new run below Build/ValidationLogs/Portable)")
     args = parser.parse_args()
     if args.jobs < 1:
         parser.error("--jobs must be positive")
     build_root = args.build_root.resolve()
-    logs = ROOT / "Docs" / "Validation"
+    logs = args.logs if args.logs is not None else new_run_directory(ROOT / "Build" / "ValidationLogs" / "Portable")
     build_root.mkdir(parents=True, exist_ok=True)
-    logs.mkdir(parents=True, exist_ok=True)
     environment = os.environ.copy()
     environment.update(ASAN_OPTIONS="detect_leaks=1", UBSAN_OPTIONS="halt_on_error=1:print_stacktrace=1")
     summary: dict[str, object] = {"native_sdk_verified": False, "warnings_as_errors": True, "profiles": {}}
@@ -34,7 +35,7 @@ def main() -> int:
     def run(name: str, command: list[str]) -> str:
         return run_logged(logs, name, command, cwd=ROOT, environment=environment)
 
-    with validation_report(logs, summary):
+    with validation_report(logs, summary, root=ROOT):
         summary["version"] = project_version(ROOT)
         run("no-stl", [sys.executable, str(ROOT / "Tools" / "CheckNoStl.py")])
         profiles = [("debug", "Debug", []), ("release", "Release", [])]

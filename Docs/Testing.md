@@ -36,7 +36,7 @@ ctest --preset portable-debug
 
 Windowsでは末尾に `.exe` を付けて実行できます。
 
-Linuxでの全検証は `python Tools/Validate.py --with-sanitizers` です。各コマンド、終了コード、コンパイル・テスト出力を `Docs/Validation` に記録します。メモリ検査はAddressSanitizerとUndefinedBehaviorSanitizer、リーク検査は `ASAN_OPTIONS=detect_leaks=1` を用います。
+Linuxでの全検証は `python Tools/Validate.py --with-sanitizers` です。各コマンド、終了コード、コンパイル・テスト出力を実行ごとの新しいディレクトリ（既定は `Build/ValidationLogs/Portable/<UTC時刻>-<ID>`）に記録します（下の「検証ログの出力先」）。メモリ検査はAddressSanitizerとUndefinedBehaviorSanitizer、リーク検査は `ASAN_OPTIONS=detect_leaks=1` を用います。
 
 公開ヘッダーは一つずつ別cppからincludeし、PCHやumbrella headerに依存しない構成でコンパイルします。さらに別のCMakeプロジェクトからadd_subdirectoryで組み込み、テスト・サンプル・SDK依存が勝手に有効にならないことと、リンク・実行を確認します。
 
@@ -111,7 +111,7 @@ ctest --test-dir Build/DebugValidation-local -C Release -j 1 --no-tests=error --
 
 各工程の終了コードを確認し、生成・ビルド失敗後は試験へ進みません。単一構成Generatorでは構成ごとに別ディレクトリを使ってください。
 
-再発確認は `python Tools/ValidateDebug.py --logs Build/DebugValidationLogs` です。毎回新しい作業ディレクトリを作り、Debug/Releaseの全ビルド、必要群の登録、Native等のOFF、JUnitの実行結果を照合します。欠落・重複・スキップ・失敗を成功にしません。Windowsでは既定Visual Studio/x64、その他は既定Generatorを使います。Python単体試験は検証器の制御だけを確認し、C++コンパイラーやSDKを要求しません。
+再発確認は `python Tools/ValidateDebug.py` です（ログは `Build/DebugValidationLogs/<UTC時刻>-<ID>`。CTestは `-V` で成功した試験の出力も残し、JUnitはrunのディレクトリへ出します）。毎回新しい作業ディレクトリを作り、Debug/Releaseの全ビルド、必要群の登録、Native等のOFF、JUnitの実行結果を照合します。欠落・重複・スキップ・失敗を成功にしません。Windowsでは既定Visual Studio/x64、その他は既定Generatorを使います。Python単体試験は検証器の制御だけを確認し、C++コンパイラーやSDKを要求しません。
 
 旧13群（DebugTools / DebugPhysicsCapture / RenderContinuation / JobFault 5群 / RenderViews / NativeViewsTranslation / Transparency 3群）を保持し、現行では正規のportable登録を含む22群です（範囲問い合わせの確保故障注入 `PhysicsOverlapFault` を含む）。DebugPhysicsCaptureはSnapshot選択と実RenderDebugの11ケース、PhysicsContinuationはWorld問い合わせ（3D 7ケース、2Dの線分交差とWorld問い合わせ9ケース、2D／3Dの対象フィルター20ケース、2D／3Dの範囲問い合わせ20ケース、2D／3Dのスイープ問い合わせ20ケース、スイープの接触法線9ケース、円・球の移動候補（1回の滑り）15ケース、2D／3Dのキャラクター移動（接触・初期重なり・反復滑り・接地・段差・ジャンプ）16ケース、World問い合わせの索引（木の構造7ケース、同じWorldで索引と総当たりの結果・例外を比べる一致6ケース、自動同期・失敗・世代・順序・切り替え条件・診断の契約20ケース））を含みます。範囲問い合わせの結果確保の故障注入と、スイープ問い合わせ（接触法線の有無を含む）・移動候補・キャラクター移動（接触の取得・MoveAndSlide・StepCharacter）の通常経路で確保しないことの確認、索引の登録途中の確保失敗で索引に何も残らないことと、登録・移動の直後の問い合わせで確保しないことの確認（6件）は隔離した `PhysicsOverlapFault` 群です。キャラクター移動Component（2D／3D）の14ケースは `Framework`（dxf_tests）群です。`debug_tests` / `debug_physics_tests` の実行ファイル名は正規の `dxf_debug_tools_tests` / `dxf_debug_physics_tests` に統一しました。通常は名前を直接実行せずCTestを使います。
 
@@ -122,6 +122,19 @@ ctest --test-dir Build/DebugValidation-local -C Release -j 1 --no-tests=error --
 これは同じPCで実DxLib SDKを使用しない検証です。SDK未導入PC・実DxLib描画・rootの実デバイス試験とは別の結果として扱ってください。[修復の実行記録](Development/DebugValidationRepair-2026-09-24.md)に修正前の失敗、今回の結果と未解決事項を記録しています。
 
 
+## 検証ログの出力先
+
+`Tools/Validate.py`・`ValidateDebug.py`・`ValidatePackage.py`は、実行ごとに自分のログのディレクトリを持ちます（共通処理は`Tools/ValidationSupport.py`）。
+
+- `--logs`を省くと、既定の親の下に`<UTC時刻>-<ID>`の新しいディレクトリを作ります。同じ名前を再使用しません。
+- `--logs`を指定する場合、存在しないか空のディレクトリだけを受け付けます。ファイルがあるディレクトリは、子プロセスを一つも起動する前に拒否し、中身を変更しません（削除・初期化もしません）。別のディレクトリを指定し直してください。
+- `Summary.json`は排他的に作成し、同じディレクトリを同時に使う二つ目の実行は失敗します。状態は`running`から`passed`／`failed`／`interrupted`になり、run ID・開始／終了時刻・作業ディレクトリ・HEAD・`git status`・実バイトのソース指紋（`source_sha256`、一覧は`SourceManifest.txt`）・各工程のコマンド・作業ディレクトリ・終了コード（`TIMEOUT`・`NOT_STARTED`を含む）・ログのパスを持ちます。
+- 同じ工程名のログは上書きしません（再試験は別の工程名で記録します）。
+- 実機の試験が出す`DXF_CHECK <名前>=verified|not_exercised|failed`の行は、成功した工程でも`Summary.json`の`checks`へ記録します。終了コード0だけで、実行しなかった確認（前面でないためのOSの捕捉など）を確認済みにしません。
+- 実バイトの指紋だけを取るには`python Tools/SourceFingerprint.py <新しいファイル>`を使います（Gitのindexではなく作業ツリーのバイトを対象にし、HEADと`git status`は別の行に書きます）。
+
+`Docs/Validation`の既存のファイルは、当時の実行の記録として残しています（新しい実行はそこへ書きません）。
+
 ## キャラクター移動のサンプルを固定入力で確認する（NativeGameplayDeviceSmoke）
 
 `DXF_RUN_DEVICE_TESTS=ON` のrootでは、`NativeGameplayDeviceSmoke` が `Examples/GameplaySample` のSceneを実Application・実DxLibで、入力だけを固定して操作します（出力先 `gameplay-smoke-<構成>`）。2D／3Dの両方で同じ手順（`SmokeAcceptance`）を実行します: 歩行・低い段差・30度の坂・60度の急坂の手前での停止、停止と接地、リセット、ジャンプと着地、低い天井で頭を打って着地、初期重なりからの復帰、壁と床の角（3Dは二つの壁の稜線）での停止、一時停止と再開（アニメーション時間を含む）、途中での歩行キャラクターの生成と破棄（Colliderの数が増減する）、毎フレーム地形と重ならないこと、プレイヤーの描画位置の画素。さらに `SmokeTraces` で、同じ固定入力（生成・歩行・ジャンプ・反転）を1画面・2画面・総当たりの参照経路（`SetQueryIndexEnabled_Internal(false)`）で、それぞれ新しいApplicationで実行し、フレームごとの位置・速度・固定更新の数・ジャンプと着地・歩行キャラクターの位置・アニメーション時間がビット単位で一致することを確かめます。シーンの切替・再入場・2画面の表示の保存・終了と、終了後の新しいApplicationでの再起動も確認します。上限は120秒です（Debugで約13秒）。他のデバイス試験と同じデバイスを使うため、並列に実行しないでください（`-j 1`）。
@@ -130,14 +143,14 @@ ctest --test-dir Build/DebugValidation-local -C Release -j 1 --no-tests=error --
 
 ## 再配置したパッケージを使う（ValidatePackage）
 
-`python Tools/ValidatePackage.py` は、ビルド・install・インストール先の移動・`find_package` による外部の利用（`Tools/PackageConsumer`）を、ネットワークなしで確認します。既定はNative OFF・Debugで、SDKは不要です（ログは `Docs/Validation/Package`）。
+`python Tools/ValidatePackage.py` は、ビルド・install・インストール先の移動・`find_package` による外部の利用（`Tools/PackageConsumer`）を、ネットワークなしで確認します。既定はNative OFF・Debugで、SDKは不要です（ログは `Build/ValidationLogs/Package/<構成>/<UTC時刻>-<ID>`）。
 
 | 引数 | 内容 |
 |---|---|
-| `--config Debug` / `Release` | 構成。既定以外の構成のログは `Docs/Validation/Package/<構成>-Native` または `-Portable` |
+| `--config Debug` / `Release` | 構成。ログの親は `Build/ValidationLogs/Package/<構成>-Native` または `-Portable` |
 | `--native --sdk-root <SDK>` | `dxf::native` もビルドし、外部のApplication（2D／3Dのキャラクター移動を実DxLibで動かす）を作る。SDKは公式VCパッケージか `Tools/DxLibFbx` のビルド（`DxLibFbx.json`）を明示する。取得・ビルドはしない |
 | `--run-device` | 実行ファイルだけを別のディレクトリへ置いて起動する（窓とデバイスを使う。他のデバイス試験と重ねない） |
-| `--work` / `--logs` | 作業・ログの出力先。構成ごとに分ける |
+| `--work` / `--logs` | 作業・ログの出力先。`--logs` は存在しないか空のディレクトリだけを受け付ける（下の「検証ログの出力先」） |
 
 確認: 移動後のCMakeファイルに元のソースツリー・元のBuildの絶対パスが残らないこと、`dxf::physics` の依存にNative・Debug・Support・Runtime・Gameplayが含まれないこと、Physicsだけ・Supportだけ・全体の利用者の実行。SDKがない環境では `--native` を実行できず、その構成は未確認として扱います（成功とはみなしません）。
 
