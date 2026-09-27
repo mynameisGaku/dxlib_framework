@@ -268,6 +268,7 @@ if(DXF_BUILD_TESTS)
         Tools/CharacterBenchmark/ScenarioRunner.cpp
         Tools/CharacterBenchmark/LegacyScenarios.cpp
         Tools/CharacterBenchmark/InteractionScenarios.cpp
+        Tools/CharacterBenchmark/CapsuleScenarios.cpp
         Tools/CharacterBenchmark/ScalingScenarios.cpp
         Tools/CharacterBenchmark/QueryCosts.cpp
         Tools/CharacterBenchmark/KernelCosts.cpp

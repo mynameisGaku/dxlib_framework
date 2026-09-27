@@ -1390,6 +1390,11 @@ struct FPhysicsWorld2D::FImpl
 	{
 		if (bSolverIndexEnabled)
 		{
+#if defined(DXF_INTERACTION_BENCHMARK_PROBES)
+			// 索引の更新・候補の収集・並べ替え（BroadPhase）だけを記録する。
+			PhysicsPrivate::FWorldInteractionProbe::FRegion PairProbe(
+			    PhysicsPrivate::FWorldInteractionProbe::EPhase::SolverPairs);
+#endif
 			RefreshMovingColliders_Internal();
 			const bool bIndexed = PhysicsPrivate::CollectIndexedPairs_Internal(
 			    QueryIndex, Colliders, Contact.ContactSlop,
@@ -1399,6 +1404,9 @@ struct FPhysicsWorld2D::FImpl
 				    return Body != nullptr && Body->Type == EBodyType::Dynamic;
 			    },
 			    SolverPairs);
+#if defined(DXF_INTERACTION_BENCHMARK_PROBES)
+			PairProbe.Stop();
+#endif
 			if (bIndexed)
 			{
 				for (Toolbox::size_t Index = 0; Index < SolverPairs.Size(); ++Index)

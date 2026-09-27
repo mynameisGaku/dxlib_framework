@@ -34,6 +34,10 @@ public:
 		 */
 		Carry,
 		/**
+		 * Solver（直列の経路）の組の候補を、索引を現在の姿勢へ合わせて集め、並べるまで（BroadPhase）。
+		 */
+		SolverPairs,
+		/**
 		 * 集計中の区間がない状態と配列の要素数。
 		 */
 		Count

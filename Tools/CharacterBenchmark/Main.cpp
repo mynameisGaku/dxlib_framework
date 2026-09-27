@@ -9,8 +9,10 @@
 //   costs   前回の配置で、キャラクターの位置での問い合わせ種別ごとの費用（索引と総当たり、結果の一致）
 //   scaling 移動継続・局所・動的更新・密集・登録の入替・大きな床の系列（索引と総当たり）
 //   interaction 接触イベント・実Component配送・移動床のR7系列（CSV、初回と慣らし後を分離）
+//   capsule カプセル・押し合い・SolverのBroadPhaseの系列（CSV、2D／3D、Collider 64／512／1024）
 //   --reference 索引を使わない総当たりの参照経路で計る（索引のあるビルドだけ）
 //   --pilot     所要時間の見積り用に、繰り返しの固定更新を短くする
+#include "CapsuleScenarios.h"
 #include "KernelCosts.h"
 #include "InteractionScenarios.h"
 #include "LegacyScenarios.h"
@@ -72,9 +74,9 @@ int main(int Count, char** Args)
 {
 	if (Count < 2)
 	{
-		printf(
-		    "usage: dxf_character_benchmark legacy|legacy-static|heavy|kernels|costs|scaling|interaction [--reference] "
-		    "[--pilot]\n");
+		printf("usage: dxf_character_benchmark legacy|legacy-static|heavy|kernels|costs|scaling|interaction|capsule "
+		       "[--reference] "
+		       "[--pilot]\n");
 		return 2;
 	}
 	bool bReference = false;
@@ -112,6 +114,25 @@ int main(int Count, char** Args)
 		catch (const Toolbox::FException& Error)
 		{
 			printf("interaction failed: %s\n", Error.What());
+			return 1;
+		}
+	}
+	if (strcmp(Args[1], "capsule") == 0)
+	{
+		// 索引の有無は条件（solver-broadphase-off／on）として系列の中で計る。
+		if (bReference)
+		{
+			printf("capsule does not support --reference\n");
+			return 2;
+		}
+		try
+		{
+			RunCapsuleSeries(Warmup, Steps);
+			return 0;
+		}
+		catch (const Toolbox::FException& Error)
+		{
+			printf("capsule failed: %s\n", Error.What());
 			return 1;
 		}
 	}
