@@ -19,16 +19,22 @@
 | 初期接触を無視するスイープ | 済／済 | 済／済 | 済／済 | 済／済 | 済／済 | 済／済（costs） | `SweepClosestIgnoringInitialContacts` | なし（SweepClosestの契約は不変） |
 | A. 初期重なりの解消 | 済／済 | 済／済 | 済／済 | 済／済（床へのめり込みから復帰） | 済／済 | 済／済 | `ResolveCharacterOverlap`、StepCharacter・Componentでは自動 | 解消不能（Ambiguous・TooDeep・Blocked・上限）は移動せず理由を返すだけ |
 | B. 反復滑り（平面・角・稜線・上限） | 済／済 | 済／済 | 済／済 | 済／済（2Dは壁と床の角、3Dは二つの壁の稜線） | 済／済 | 済／済 | `MoveAndSlide` | 接触の保持は8件まで（超えるとContactLimit） |
-| C. 接地・坂・吸い付き | 済／済 | 済／済 | 済／済 | 済／済（30度の坂を上り60度の急坂の手前で停止） | 済／済 | 済／済 | `ProbeCharacterGround`、StepCharacter | 動く床の上の接地・追従は未対応 |
+| C. 接地・坂・吸い付き | 済／済 | 済／済 | 済／済 | 済／済（30度の坂を上り60度の急坂の手前で停止） | 済／済 | 済／済 | `ProbeCharacterGround`、StepCharacter | 動く床はL（Kinematicの床だけ。Dynamicの床は追従しない） |
 | D. 段差上り・重力・ジャンプ・着地・天井 | 済／済 | 済／済 | 済／済 | 済／済（段差・ジャンプと着地・低い天井） | 済／済 | 済／済 | `StepCharacter`（上→前→下） | 低い天井の下の段差は上らない（仕様） |
-| E. 移動Component（固定更新・入力・補間・寿命・Body一つ・剛体併用の拒否・登録順） | — | — | 済／済（各7ケース） | 済／済（途中の生成と破棄、一時停止と再開） | 済／済（Consumer、Nativeの外部Application） | — | `DCharacterMovement2DComponent` / `3DComponent` | 剛体との押し合い、動く床、カプセル形状は未対応 |
+| E. 移動Component（固定更新・入力・補間・寿命・Body一つ・剛体併用の拒否・登録順） | — | — | 済／済（各7ケース） | 済／済（途中の生成と破棄、一時停止と再開） | 済／済（Consumer、Nativeの外部Application） | — | `DCharacterMovement2DComponent` / `3DComponent` | 剛体との押し合い、カプセル形状は未対応（動く床はL） |
 | F. 操作できるサンプル | — | — | — | 済／済（1画面／2画面・索引／総当たりで軌跡がビット単位で一致、再入場・終了後の再起動） | — | — | 開発用ソリューションの `GameplaySample`（[Tab]で2D／3D切替、[N]／[M]で歩行キャラクターの生成／破棄、[V]で2画面） | 実機の目視操作は手動（自動確認は固定入力のみ） |
 | G. World問い合わせの索引（自動更新のAABB木） | 済／済（木7ケース） | 済／済（一致6・契約20ケース、故障注入6件、変異12件） | 済／済（Componentは索引経由） | 済／済（索引／総当たりの軌跡の一致） | 済／済（PhysicsOnlyで診断を確認） | 済／済 | 自動（[World問い合わせの索引](QueryAcceleration.md)、任意の診断 `GetQueryDiagnostics`） | Solver・連続衝突の組の生成は索引を使わない。多数のColliderではStepが次の支配項 |
+| I. Solid／Sensorと衝突フィルター（両側の許可） | 済／済 | 済／済（応答・連続衝突・休止・問い合わせ・キャラクター） | 済／済（Sensorを障害物にしない） | 済／済（取得物・圧力板・危険領域） | 済／済（PhysicsOnly） | 済／済（sensor-off／on） | `EColliderResponse`、`FColliderCollisionFilter`、`FWorldQueryFilter::bIncludeSolid／bIncludeSensors` | QueryCategoryとは独立。任意形状の連続Triggerは対象外 |
+| J. 接触・TriggerのBegin／Stay／End（成功したStep単位の値のバッチ） | 済／済 | 済／済（総当たりの解析との一致、削除・変更・上限・失敗したStep・確保の故障注入） | — | 済／済（イベント列の一致） | 済／済 | 済／済（sensor-dense ほか） | `SetEventSettings`、`GetEventBatch`（[World相互作用](WorldInteraction.md)） | 1回のStepの間に通過した重なりは通知しない（離散） |
+| K. ゲームへの配送（監視・Triggerの領域、物理Stepの後） | — | — | 済／済（固定更新0／複数回、通知中の破棄・購読変更・例外・終了） | 済／済 | 済／済（Gameplay・Native） | 済／済（配送） | `DContactListener2D／3DComponent`、`DTriggerVolume2D／3DComponent` | 配送予約に毎Step 1件の確保が残る |
+| L. 動く床（Kinematicの運動・追従・離地速度・挟まれ） | 済／済 | 済／済（`PredictBodyPoint`） | 済／済（横・縦・回転、逆向き歩行、ジャンプ、壁・天井、Teleport、登録順） | 済／済（横・昇降・回転床のコース） | 済／済 | 済／済（moving-floor） | `DKinematicMover2D／3DComponent`、`FCharacterMoveTuning::bFollowMovingGround` | 回転は最大32区間の保守的な経路検査。剛体との押し合い・挟まれの押し出しは未対応 |
 | H. 配布の利用者 | — | — | — | — | 済／済（Native OFF／ON × Debug／Release、Nativeは移動後の実行ファイルを起動） | — | `dxf::physics`だけ／`dxf::framework`／`dxf::native` | SDKのないPCでNative構成は検証できない（未確認として扱う） |
 | 性能測定 | — | — | — | — | — | 済／済 | `dxf_character_benchmark`（CTest外） | [問い合わせの大規模化の検証記録](../Development/QueryScale-2026-09-25.md#性能測定)。3Dの詳細判定は2Dより高い |
 
-今後の大きな単位（未着手）: 動く床への追従、キャラクターと剛体の押し合い、カプセル形状、Solverの接触の組の生成への索引の利用、
-接触イベント（Begin／Stay／End）とTrigger、Island管理、Joint、Mesh Collider、経路探索、アニメーションとの接続。
+今後の大きな単位（未着手）: キャラクターと剛体の双方向の押し合い、カプセル形状、Solverの接触の組の生成への索引の利用、
+Island管理、Joint、Mesh Collider、経路探索、アニメーションとの接続、任意形状の連続Trigger検出。
+
+R0〜R7 の各構成と試行結果は [World相互作用の検証記録](../Development/WorldInteraction-2026-09-27.md) を参照してください。接触イベント・移動床の利用経路は [World相互作用](WorldInteraction.md) にまとめています。
 
 使い方は[キャラクター移動](CharacterMovement.md)・[World問い合わせの索引](QueryAcceleration.md)、検証は[ゲームプレイ基盤の検証記録](../Development/Gameplay-2026-09-25.md)・[問い合わせの大規模化の検証記録](../Development/QueryScale-2026-09-25.md)を参照してください。
 

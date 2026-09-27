@@ -141,6 +141,47 @@ ctest --test-dir Build/DebugValidation-local -C Release -j 1 --no-tests=error --
 
 サンプルは開発用ソリューション（`GenerateProjectFiles.bat -Development`）の `GameplaySample` です。キャラクター移動の負荷測定 `dxf_character_benchmark` はCTestに登録していません（[キャラクター移動](Physics/CharacterMovement.md#性能測定)）。系列は `legacy`（従来の18条件、地形がDynamic）・`legacy-static`（同じ条件で地形をStaticにした比較の主系列）・`heavy`（1024／64）・`scaling`（移動・局所・動く物体・密集・生成と破棄・大きな床）・`costs`（問い合わせの種類ごとの費用）・`kernels`（詳細判定の単体費用）で、`--reference` で総当たりの参照経路を測ります。
 
+## 接触・Trigger・動く床のサンプルを確認する（InteractionSample）
+
+[相互作用サンプル](Physics/WorldInteraction.md#既存gameplaysampleで試す)は、通常のGameplaySample、CPU試験、既存のNativeGameplaySmokeで同じ `dxf_gameplay_sample` を使います。確認する内容と実行環境を分けて記録してください。
+
+| 入口 | 確認する内容 | 描画の扱い |
+| --- | --- | --- |
+| `InteractionSample`（`dxf_interaction_sample_tests`） | 実Applicationと2D／3D Sceneで、箱の接触、取得物の一度だけの破棄、圧力板のBody単位の占有、チェックポイント復帰、View数・ポーズ・設定Modal・描画先寸法とDPIの変更を確認する | Backendは代替。描画命令や分割領域の境界を確認し、実画素の証拠にはしない |
+| `NativeGameplayDeviceSmoke`（`NativeGameplaySmoke`） | 従来のキャラクター試験に加え、2D／3Dそれぞれで同じ時刻・固定入力を1／2Viewへ与え、数値・ゲーム状態とContact／Triggerイベントの内容・順序を比較する。移動床、扉、支持先の破棄、ポーズ、設定からの復帰、Scene切替・再入場・Application再起動も含む | 実DxLibの描画先からプレイヤーと床の画素を読み戻して判定し、PNGを保存する |
+
+上の「単独Debug検証入口」で生成したビルドから、CPU群だけを選ぶ例です。Releaseは構成名を置き換えます。全群の確認には `python Tools/ValidateDebug.py` を使います。
+
+```powershell
+cmake --build Build/DebugValidation-local --config Debug --target dxf_interaction_sample_tests
+ctest --test-dir Build/DebugValidation-local -C Debug -j 1 -R '^InteractionSample$' --no-tests=error -V
+```
+
+Nativeは[WindowsのSDK設定](WindowsValidation.md)を済ませ、rootの `DXF_BUILD_NATIVE=ON`・`DXF_BUILD_NATIVE_SMOKE=ON`・`DXF_RUN_DEVICE_TESTS=ON` で生成したビルドを使います。次の `Build/NativeInteraction-local` はそのビルド先へ置き換えてください。他の実デバイス試験と同時に起動しません。
+
+```powershell
+cmake --build Build/NativeInteraction-local --config Debug --target NativeGameplaySmoke
+ctest --test-dir Build/NativeInteraction-local -C Debug -j 1 -R '^NativeGameplayDeviceSmoke$' --no-tests=error -V
+```
+
+固定入力の確認は数値とゲーム効果の検査です。仕掛けの開始位置へ移るための公開Teleportを含むので、全コースをキー操作だけで連続完走した検査ではありません。`INTERACTION_VIEW_INVARIANCE` の比較では、別ApplicationのWorld識別子だけを対応付け、Body／Colliderの世代やイベント順を比較に残します。
+
+実画素の判定は `INTERACTION_PIXEL` の出力と `interaction2d_single.png`／`interaction2d_split.png`／`interaction3d_single.png`／`interaction3d_split.png` を確認します。設定画面の `interaction2d_settings.png`／`interaction3d_settings.png` は画像保存であり、設定UIの画素合否とは区別します。CPU試験の成功、画素の判定、保存画像の目視確認を一つの結果にまとめないでください。
+
+各コマンドの終了コードと出力は[実行ごとのログ](#検証ログの出力先)へ保存します。`ValidateDebug.py` の `--logs` は新規または空のディレクトリだけを受け付け、省略すれば固有のrunを作ります。個別のCTestには `--output-log <run内の未使用ファイル>` と `--output-junit <run内の未使用XML>` を付けられますが、CTest自体には同じ出力名の上書き防止はありません。再試験は別runへ記録し、最初の失敗を残します。
+
+NativeのCTest画像出力先はビルド内の `gameplay-smoke-<構成>` で固定です。各実行のログと画像を再実行前にrunへ保存してください。実行ファイルを直接起動する場合は `NativeGameplaySmoke <ソースルート> <新しい画像出力先>` の二引数で出力先を分けられます。`--logs` は検証スクリプトの引数であり、この実行ファイルやCTestの引数ではありません。
+
+相互作用のCPU費用は、CTestとは別に既存の `dxf_character_benchmark interaction` をReleaseで実行します。上記のVisual Studio用Debug検証入口を使う例です。
+
+```powershell
+cmake --build Build/DebugValidation-local --config Release --target dxf_character_benchmark
+.\Build\DebugValidation-local\framework\Release\dxf_character_benchmark.exe interaction --pilot
+.\Build\DebugValidation-local\framework\Release\dxf_character_benchmark.exe interaction
+```
+
+`--pilot` は短い測定、通常実行は同じ系列の本測定です。`interaction` は `--reference` を受け付けません。各実行のCSVと終了コードを別のログへ保存し、[系列・列の定義と測定できない内訳](../Tools/CharacterBenchmark/Interaction.md)に従って比較します。これらの値に実描画やUIの費用は含みません。
+
 ## 再配置したパッケージを使う（ValidatePackage）
 
 `python Tools/ValidatePackage.py` は、ビルド・install・インストール先の移動・`find_package` による外部の利用（`Tools/PackageConsumer`）を、ネットワークなしで確認します。既定はNative OFF・Debugで、SDKは不要です（ログは `Build/ValidationLogs/Package/<構成>/<UTC時刻>-<ID>`）。

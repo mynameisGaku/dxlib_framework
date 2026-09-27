@@ -9,7 +9,7 @@
 | Componentで使う（推奨） | `DCharacterMovement2DComponent` / `DCharacterMovement3DComponent`（`Dxf/CharacterMovementComponent2D.h` / `3D.h`） | `dxf::gameplay`（`dxf::framework`） |
 | Physicsだけで使う | `StepCharacter`・`MoveAndSlide`・`ProbeCharacterGround`・`ResolveCharacterOverlap`（`Dxf/CharacterMovement2D.h` / `3D.h`） | `dxf::physics` |
 
-動く床への追従、剛体との押し合い（キャラクターが箱を押す・押される）、しゃがみ・カプセル形状、ネットワーク同期は提供しません。キャラクターは現在の姿勢のColliderを障害物として扱うだけです。
+Kinematicの動く床への並進・限定回転の追従を提供します。剛体との押し合い（キャラクターが箱を押す・押される）、しゃがみ・カプセル形状、ネットワーク同期は提供しません。
 
 ## Componentで使う（最小の例）
 
@@ -92,6 +92,26 @@ World.SetBodyTransform(SelfBody, State.Center, Toolbox::FQuaternion{});   // 自
 
 すべて読み取り専用で、同じ入力・状態・Worldなら同じ結果です。通常経路で配列を確保しません（隔離した故障注入試験で確認）。入力・設定・World状態の異常は`Toolbox::FException`で、部分的な結果は返しません。同じWorldの変更・Stepとは呼出し側で直列化してください。
 
+## 動く床への追従と離地速度
+
+`bFollowMovingGround`が有効なら、固定更新の開始時に歩けるKinematic床のColliderを、現在のWorldから完全なIDで選びます。床の削除、ColliderのSensor化、問い合わせ条件の変更は次の計算で反映されます。古い`State.Ground`のスロット番号から床を復活させません。
+
+床の開始姿勢に対して歩行・ジャンプを計算した後、その中心を床に固定した点として、同じ区間の`PredictBodyPoint`で追従先を求めます。キャラクターのUp・見た目の向きは床と一緒に回しません。床のBodyだけを追従経路から除き、他のSolidは自己除外・問い合わせ条件を保って検査します。床自身の移動は後の`World.Step`が一度だけ積分します。
+
+並進だけなら通常の滑り移動を使います。回転する支持点は、Worldと同じ積分から区間の途中点を求め、曲線を覆う幅を円・球の半径へ加えて検査します。回転軸からの距離を`r`、角速度の大きさを`w`、固定秒数を`dt`、分割数を`N`とすると、追加幅は保守的に`r * (w * dt / N)^2 / 4`です。この幅が`SkinWidth / 4`以下になるまで最大32分割します。近接しているだけの地面や壁は既存の接触面の制約で扱い、膨らませた形状が既に重なる場合は保守的に止めます。障害物で支持点の軌道から外れた後は、残りの曲線へ無理に戻しません。
+
+`bInheritGroundVelocity`が有効なら、ジャンプ・歩いて降りた固定更新で一度だけ、次の速度を加えます。
+
+```text
+支持点速度 = 床の並進速度 + 床の角速度 × (支持点 - 床の重心)
+```
+
+支持点は、固定更新の開始姿勢に対する「初期重なりを解消した後、歩行・ジャンプで動かす前のキャラクター中心」です。2DはZ軸回りの外積として計算します。終点変位を秒数で割った弦の平均速度は使わず、空中の以降の更新でも重ねて加えません。
+
+床の並進の速さ＋回転接線の速さが`MaxGroundCarrySpeed`を超える、`w * dt`がπを超える、または32分割でも必要な幅に収まらない場合は、追従を始める前に`bCarryRejected`で拒否します。床の変位・速度は加えず、通常の歩行・ジャンプの結果を保持します。`MaxQueries`等の計算上限へ途中で達した場合は、最後に確認できた位置までを採用し、`Carry.Stop`・`Carry.Applied`・`Carry.Remaining`へ理由と進行量を残します。例外は従来どおり部分結果を返しません。
+
+これは2Dの歩行可能な傾き、3DのUp軸回りの回転床に使う保守的な追従です。任意形状の回転CCD、任意の高速運動、移動床に挟まれた状態からの必ず成功する押し出しは保証しません。
+
 ## 単位と設定（`FCharacterMoveTuning`、2D／3D共通）
 
 距離は物理ワールドの距離単位（メートルを想定）、時間は秒、角度はラジアン。既定値は人型程度の例です。
@@ -110,6 +130,9 @@ World.SetBodyTransform(SelfBody, State.Center, Toolbox::FQuaternion{});   // 自
 | `MaxSpeed` / `Acceleration` / `Deceleration` | 5 / 40 / 40 | 入力の大きさ1での目標速さと加減速 |
 | `AirControl` | 0.3 | 空中の加減速の倍率 |
 | `JumpSpeed` / `Gravity` / `MaxFallSpeed` | 6 / 20 / 30 | ジャンプ初速、キャラクターの重力（Worldの重力とは独立）、落下速度上限 |
+| `bFollowMovingGround` | true | 固定更新の開始時に乗っているKinematic床の並進・限定回転へ追従する |
+| `bInheritGroundVelocity` | true | 離地時に開始支持点の瞬間速度を一度だけ加える |
+| `MaxGroundCarrySpeed` | 50 | 床の並進の速さ＋回転接線の速さに対する追従上限 |
 | `Up`（`FCharacterMoveSettings2D/3D`） | (0,1) / (0,1,0) | 上方向（単位ベクトル） |
 
 ## 結果と停止理由
@@ -127,7 +150,7 @@ World.SetBodyTransform(SelfBody, State.Center, Toolbox::FQuaternion{});   // 自
 
 `ECharacterRecoveryStatus`は`NoOverlap`・`Resolved`・`Ambiguous`（同心・同距離の面）・`TooDeep`・`Blocked`（挟み込み）・`IterationLimit`・`ContactLimit`・`QueryLimit`です。解消できなかった場合は元の中心のまま移動しません。`ECharacterGroundState`は`Airborne`・`Walkable`・`Steep`（急坂は歩けず、上れない）です。
 
-`FCharacterStepResult2D/3D`は`State`・`Recovery`・`Horizontal`／`Vertical`の移動結果・`bJumped`・`bLanded`・`bLeftGround`・`bHitCeiling`・`bSteppedUp`・`bSnapped`・`Queries`を返します。
+`FCharacterStepResult2D/3D`は`State`・`Recovery`・`Horizontal`／`Vertical`の移動結果・`bJumped`・`bLanded`・`bLeftGround`・`bHitCeiling`・`bSteppedUp`・`bSnapped`・`Queries`を返します。動く床については`Carrier`・`CarryRequested`・`Carry`・`bCarried`・`bCarryBlocked`・`bCarryRejected`・`bInheritedGroundVelocity`で、支持のID、要求と実際の移動、閉塞・拒否・速度継承を区別できます。
 
 ## 限定仕様
 
