@@ -60,6 +60,21 @@ TResult<void> BuildPhysicsDebugCommands2D(const FPhysicsDebugItem2D& Item, const
 				    // 円は回転で輪郭が変わらないため、Body角の方向へ半径線を描く。
 				    AddLine(Shape.Center, Shape.Center + Direction_Internal(Item.BodyAngle, Shape.Radius));
 			    }
+			    else if constexpr (Toolbox::IsSame<Toolbox::TDecay<decltype(Shape)>, Toolbox::FCapsule2D>)
+			    {
+				    // 両端の円と、中心線に平行な二本の側線。
+				    const Toolbox::f32 Radius = Shape.Radius * View.PixelsPerMeter;
+				    Commands.PushBack(FCircleCommand2D{ToScreen_Internal(View, Shape.Start), Radius, false, Style});
+				    Commands.PushBack(FCircleCommand2D{ToScreen_Internal(View, Shape.End), Radius, false, Style});
+				    const Toolbox::FVector2 Axis = Shape.End - Shape.Start;
+				    const Toolbox::f32 Length = Toolbox::Sqrt(Axis.X * Axis.X + Axis.Y * Axis.Y);
+				    if (Length > 0)
+				    {
+					    const Toolbox::FVector2 Side = Toolbox::FVector2{-Axis.Y, Axis.X} * (Shape.Radius / Length);
+					    AddLine(Shape.Start + Side, Shape.End + Side);
+					    AddLine(Shape.Start - Side, Shape.End - Side);
+				    }
+			    }
 			    else
 			    {
 				    // 変換済みの角度から四隅を作る。Body角は変換時に一度だけ加算済み。

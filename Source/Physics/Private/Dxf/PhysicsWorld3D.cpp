@@ -10,6 +10,8 @@
 #if defined(DXF_INTERACTION_BENCHMARK_PROBES)
 #include "WorldInteractionProbe.h"
 #endif
+#include "Toolbox/CapsuleContact3D.h"
+#include "Toolbox/CapsuleQuery3D.h"
 #include "Toolbox/ContinuousCollision.h"
 #include "Toolbox/SegmentIntersection.h"
 #include "Toolbox/ShapeSweep3D.h"
@@ -152,7 +154,7 @@ struct FColliderRecord3D
 	// 取り付け先の剛体。
 	FBodyId3D Body;
 	// 重心相対の形状。
-	Toolbox::TVariant<Toolbox::FSphere, Toolbox::FOBB> Shape;
+	decltype(FColliderDescription3D::Shape) Shape;
 	// 摩擦係数。
 	Toolbox::f32 Friction = 0.5f;
 	// 反発係数。
@@ -306,6 +308,81 @@ static FSweptBounds3D SweptBox_Internal(const Toolbox::FOBB& Box, Toolbox::FVect
 		}
 	}
 	return Bounds;
+}
+// カプセルの移動区間を覆う境界を求める。
+static FSweptBounds3D SweptCapsule_Internal(const Toolbox::FCapsule& Capsule, Toolbox::FVector3 Displacement) noexcept
+{
+	const Toolbox::FAABB Start = Toolbox::CapsuleBounds(Capsule);
+	Toolbox::f32 Min[3]{};
+	Toolbox::f32 Max[3]{};
+	for (Toolbox::int32 Axis = 0; Axis < 3; ++Axis)
+	{
+		const Toolbox::f64 Move = Displacement.Component(Axis);
+		const Toolbox::f64 Low = Start.Min.Component(Axis);
+		const Toolbox::f64 High = Start.Max.Component(Axis);
+		Min[Axis] = static_cast<Toolbox::f32>(Move < 0 ? Low + Move : Low);
+		Max[Axis] = static_cast<Toolbox::f32>(Move > 0 ? High + Move : High);
+	}
+	FSweptBounds3D Bounds;
+	Bounds.Min = {Min[0], Min[1], Min[2]};
+	Bounds.Max = {Max[0], Max[1], Max[2]};
+	return Bounds;
+}
+// カプセルを含まない組（呼ばれない）。
+template <typename TA, typename TB>
+static Toolbox::uint32 CapsuleContacts_Internal(const TA&, const TB&, Toolbox::f32,
+                                                Toolbox::FContactPoint3D (&)[Toolbox::MaxCapsuleContacts]) noexcept
+{
+	return 0;
+}
+// 一点の接触をMargin以下なら加える。
+static Toolbox::uint32 SingleContact_Internal(const Toolbox::FContactPoint3D& Hit, Toolbox::f32 Margin,
+                                              Toolbox::FContactPoint3D (&Out)[Toolbox::MaxCapsuleContacts]) noexcept
+{
+	if (!(Hit.Separation <= Margin))
+	{
+		return 0;
+	}
+	Out[0] = Hit;
+	return 1;
+}
+// 球とカプセル（一点）。法線はB→A。
+static Toolbox::uint32 CapsuleContacts_Internal(const Toolbox::FSphere& A, const Toolbox::FCapsule& B,
+                                                Toolbox::f32 Margin,
+                                                Toolbox::FContactPoint3D (&Out)[Toolbox::MaxCapsuleContacts])
+{
+	return SingleContact_Internal(Toolbox::FindContact(A, B), Margin, Out);
+}
+// カプセルと球（一点）。法線はB→A。
+static Toolbox::uint32 CapsuleContacts_Internal(const Toolbox::FCapsule& A, const Toolbox::FSphere& B,
+                                                Toolbox::f32 Margin,
+                                                Toolbox::FContactPoint3D (&Out)[Toolbox::MaxCapsuleContacts])
+{
+	return SingleContact_Internal(Toolbox::FindContact(A, B), Margin, Out);
+}
+// カプセルと箱（最も近い点と中心線の両端、最大三点）。法線はB→A。
+static Toolbox::uint32 CapsuleContacts_Internal(const Toolbox::FCapsule& A, const Toolbox::FOBB& B, Toolbox::f32 Margin,
+                                                Toolbox::FContactPoint3D (&Out)[Toolbox::MaxCapsuleContacts])
+{
+	return Toolbox::FindCapsuleContacts(A, B, Margin, Out);
+}
+// 箱とカプセル。カプセルと箱の接触の法線を反転する（B→A）。
+static Toolbox::uint32 CapsuleContacts_Internal(const Toolbox::FOBB& A, const Toolbox::FCapsule& B, Toolbox::f32 Margin,
+                                                Toolbox::FContactPoint3D (&Out)[Toolbox::MaxCapsuleContacts])
+{
+	const Toolbox::uint32 Count = Toolbox::FindCapsuleContacts(B, A, Margin, Out);
+	for (Toolbox::uint32 Index = 0; Index < Count; ++Index)
+	{
+		Out[Index].Normal = -Out[Index].Normal;
+	}
+	return Count;
+}
+// カプセル同士（最大三点）。法線はB→A。
+static Toolbox::uint32 CapsuleContacts_Internal(const Toolbox::FCapsule& A, const Toolbox::FCapsule& B,
+                                                Toolbox::f32 Margin,
+                                                Toolbox::FContactPoint3D (&Out)[Toolbox::MaxCapsuleContacts])
+{
+	return Toolbox::FindCapsuleContacts(A, B, Margin, Out);
 }
 // 二つの移動境界が重なるかを調べる。
 static bool SweptOverlaps_Internal(const FSweptBounds3D& A, const FSweptBounds3D& B) noexcept
@@ -934,6 +1011,24 @@ struct FPhysicsWorld3D::FImpl
 			Hit = Toolbox::FindContact(ToWorld_Internal(BodyA, A.Shape.template Get<1>()),
 			                           ToWorld_Internal(BodyB, B.Shape.template Get<0>()));
 		}
+		else if (IndexA == 2 || IndexB == 2)
+		{
+			// カプセルを含む組は、Margin以下の点のうち最も深い点。
+			Toolbox::FContactPoint3D Points[Toolbox::MaxCapsuleContacts];
+			const Toolbox::uint32 Count = FindCapsulePair_Internal(A, BodyA, B, BodyB, Margin, Points);
+			if (Count == 0)
+			{
+				return false;
+			}
+			Hit = Points[0];
+			for (Toolbox::uint32 Index = 1; Index < Count; ++Index)
+			{
+				if (Points[Index].Separation < Hit.Separation)
+				{
+					Hit = Points[Index];
+				}
+			}
+		}
 		else
 		{
 			EventHits.Clear();
@@ -1079,6 +1174,44 @@ struct FPhysicsWorld3D::FImpl
 			World.Axes[Axis] = Body.Orientation.Rotate(Local.Axes[Axis]);
 		}
 		return World;
+	}
+	// ローカルカプセルをワールド形状へ変換する。中心線の両端を姿勢で回して重心へ足す。
+	static Toolbox::FCapsule ToWorld_Internal(const FBodyRecord3D& Body, const Toolbox::FCapsule& Local)
+	{
+		Toolbox::FCapsule World = Local;
+		const Toolbox::FVector3 Start = Body.Orientation.Rotate(Local.Start);
+		const Toolbox::FVector3 End = Body.Orientation.Rotate(Local.End);
+		World.Start = {Body.Position.X + Start.X, Body.Position.Y + Start.Y, Body.Position.Z + Start.Z};
+		World.End = {Body.Position.X + End.X, Body.Position.Y + End.Y, Body.Position.Z + End.Z};
+		return World;
+	}
+	// Colliderの現在の姿勢のワールド形状。
+	static decltype(FColliderRecord3D::Shape) WorldShape_Internal(const FBodyRecord3D& Body,
+	                                                              const FColliderRecord3D& Record)
+	{
+		return Record.Shape.Visit(
+		    [&](const auto& Local)
+		    {
+			    return decltype(FColliderRecord3D::Shape){ToWorld_Internal(Body, Local)};
+		    });
+	}
+	// カプセルを含む組の接触点（最大三点、Margin以下）。法線はB→A。
+	static Toolbox::uint32 FindCapsulePair_Internal(const FColliderRecord3D& A, const FBodyRecord3D& BodyA,
+	                                                const FColliderRecord3D& B, const FBodyRecord3D& BodyB,
+	                                                Toolbox::f32 Margin,
+	                                                Toolbox::FContactPoint3D (&Out)[Toolbox::MaxCapsuleContacts])
+	{
+		const auto WorldA = WorldShape_Internal(BodyA, A);
+		const auto WorldB = WorldShape_Internal(BodyB, B);
+		return WorldA.Visit(
+		    [&](const auto& ShapeA)
+		    {
+			    return WorldB.Visit(
+			        [&](const auto& ShapeB)
+			        {
+				        return CapsuleContacts_Internal(ShapeA, ShapeB, Margin, Out);
+			        });
+		    });
 	}
 	// Colliderの現在の姿勢での索引用の境界。
 	static PhysicsPrivate::TQueryShapeBounds<3> ColliderQueryBounds_Internal(
@@ -1297,6 +1430,24 @@ struct FPhysicsWorld3D::FImpl
 			Point.Restitution = Restitution;
 			Manifold.Points.PushBack(Point);
 		}
+		else if (IndexA == 2 || IndexB == 2)
+		{
+			// カプセルを含む組。最も近い点と中心線の両端（特徴ID 0〜2）。
+			Toolbox::FContactPoint3D Hits[Toolbox::MaxCapsuleContacts];
+			const Toolbox::uint32 Count =
+			    FindCapsulePair_Internal(RecordA, BodyA, RecordB, BodyB, Contact.ContactSlop, Hits);
+			for (Toolbox::uint32 Index = 0; Index < Count; ++Index)
+			{
+				FSolvePoint3D Point;
+				Point.Position = Hits[Index].Position;
+				Point.Normal = Hits[Index].Normal;
+				Point.Separation = Hits[Index].Separation;
+				Point.FeatureId = Hits[Index].FeatureId;
+				Point.Friction = Friction;
+				Point.Restitution = Restitution;
+				Manifold.Points.PushBack(Point);
+			}
+		}
 		else
 		{
 			Toolbox::TVector<Toolbox::FContactPoint3D> Hits;
@@ -1340,6 +1491,19 @@ struct FPhysicsWorld3D::FImpl
 			Bounds.MaxX = Toolbox::f64(World.Center.X + World.Radius);
 			Bounds.MaxY = Toolbox::f64(World.Center.Y + World.Radius);
 			Bounds.MaxZ = Toolbox::f64(World.Center.Z + World.Radius);
+			Bounds.bUseZ = true;
+			return Bounds;
+		}
+		if (Record.Shape.Index() == 2)
+		{
+			// 中心線の両端の球を覆うワールド境界。
+			const Toolbox::FAABB Box = Toolbox::CapsuleBounds(ToWorld_Internal(Body, Record.Shape.Get<2>()));
+			Bounds.MinX = Box.Min.X;
+			Bounds.MinY = Box.Min.Y;
+			Bounds.MinZ = Box.Min.Z;
+			Bounds.MaxX = Box.Max.X;
+			Bounds.MaxY = Box.Max.Y;
+			Bounds.MaxZ = Box.Max.Z;
 			Bounds.bUseZ = true;
 			return Bounds;
 		}
@@ -2124,7 +2288,8 @@ struct FPhysicsWorld3D::FImpl
 	{
 		const Toolbox::size_t IndexA = RecordA.Shape.Index();
 		const Toolbox::size_t IndexB = RecordB.Shape.Index();
-		if (IndexA == 1 && IndexB == 1)
+		// カプセルを含む組と箱同士は線形CCDの対象外（離散の接触で解く）。
+		if ((IndexA == 1 && IndexB == 1) || IndexA == 2 || IndexB == 2)
 		{
 			return EContinuousSupport::UnsupportedPair;
 		}
@@ -2145,6 +2310,10 @@ struct FPhysicsWorld3D::FImpl
 		if (Record.Shape.Index() == 0)
 		{
 			return SweptSphere_Internal(ToWorld_Internal(Body, Record.Shape.Get<0>()), Displacement);
+		}
+		if (Record.Shape.Index() == 2)
+		{
+			return SweptCapsule_Internal(ToWorld_Internal(Body, Record.Shape.Get<2>()), Displacement);
 		}
 		return SweptBox_Internal(ToWorld_Internal(Body, Record.Shape.Get<1>()), Displacement);
 	}
@@ -2462,6 +2631,80 @@ static void IntegratePosition_Internal(FBodyRecord3D& Record, Toolbox::f64 StepS
 	Record.Position += {static_cast<Toolbox::f32>(static_cast<Toolbox::f64>(Record.Velocity.X) * StepSeconds),
 	                    static_cast<Toolbox::f32>(static_cast<Toolbox::f64>(Record.Velocity.Y) * StepSeconds),
 	                    static_cast<Toolbox::f32>(static_cast<Toolbox::f64>(Record.Velocity.Z) * StepSeconds)};
+}
+// 取り付ける形状を検査する。不正な値は例外。
+static void ValidateColliderShape_Internal(const decltype(FColliderDescription3D::Shape)& Shape)
+{
+	if (Shape.Index() == 0)
+	{
+		const Toolbox::FSphere& Local = Shape.Get<0>();
+		if (!Local.Center.IsValid() || !Toolbox::IsFinite(Local.Radius) || Local.Radius < 0)
+		{
+			throw Toolbox::FException("Invalid 3D sphere collider");
+		}
+	}
+	else if (Shape.Index() == 1)
+	{
+		const Toolbox::FOBB& Local = Shape.Get<1>();
+		if (!Local.Center.IsValid() || !Local.HalfExtents.IsValid())
+		{
+			throw Toolbox::FException("Invalid 3D box collider");
+		}
+		if (Local.HalfExtents.X < 0 || Local.HalfExtents.Y < 0 || Local.HalfExtents.Z < 0)
+		{
+			throw Toolbox::FException("Invalid 3D box collider");
+		}
+	}
+	else if (!Toolbox::IsValid(Shape.Get<2>()))
+	{
+		throw Toolbox::FException("Invalid 3D capsule collider");
+	}
+}
+// 問い合わせ形状の中心（球は中心、カプセルは中心線の中点）。
+static Toolbox::FVector3 QueryCenter_Internal(const Toolbox::FSphere& Shape) noexcept
+{
+	return Shape.Center;
+}
+static Toolbox::FVector3 QueryCenter_Internal(const Toolbox::FCapsule& Shape) noexcept
+{
+	return {static_cast<Toolbox::f32>((Toolbox::f64(Shape.Start.X) + Shape.End.X) * 0.5),
+	        static_cast<Toolbox::f32>((Toolbox::f64(Shape.Start.Y) + Shape.End.Y) * 0.5),
+	        static_cast<Toolbox::f32>((Toolbox::f64(Shape.Start.Z) + Shape.End.Z) * 0.5)};
+}
+// 問い合わせ形状を中心から覆う距離（球は半径、カプセルは中心線の半分の長さと半径の和）。
+static Toolbox::f64 QueryReach_Internal(const Toolbox::FSphere& Shape) noexcept
+{
+	return Shape.Radius;
+}
+static Toolbox::f64 QueryReach_Internal(const Toolbox::FCapsule& Shape) noexcept
+{
+	const Toolbox::f64 X = Toolbox::f64(Shape.End.X) - Shape.Start.X;
+	const Toolbox::f64 Y = Toolbox::f64(Shape.End.Y) - Shape.Start.Y;
+	const Toolbox::f64 Z = Toolbox::f64(Shape.End.Z) - Shape.Start.Z;
+	// 中点の丸め分の余裕を足す。
+	const Toolbox::f64 Half = Toolbox::Sqrt(X * X + Y * Y + Z * Z) * 0.5;
+	return Half + Shape.Radius + Half * 1e-6;
+}
+// 範囲の形状と対象の重なり（接触を含む）。
+template <typename TShape> static bool AreaOverlaps_Internal(const Toolbox::FSphere& Area, const TShape& Shape)
+{
+	return Toolbox::IntersectsSphere(Area, Shape, 0.0f);
+}
+template <typename TShape> static bool AreaOverlaps_Internal(const Toolbox::FCapsule& Area, const TShape& Shape)
+{
+	return Toolbox::FindShapeContact(Area, Shape).Separation <= 0;
+}
+// 移動量がf32で表現できるかを検査する。
+static void RequireRepresentableMove_Internal(Toolbox::FVector3 Start, Toolbox::FVector3 End)
+{
+	for (Toolbox::int32 Axis = 0; Axis < 3; ++Axis)
+	{
+		if (Toolbox::Abs(Toolbox::f64(End.Component(Axis)) - Start.Component(Axis)) >
+		    Toolbox::f64(Toolbox::TNumericLimits<Toolbox::f32>::Max()))
+		{
+			throw Toolbox::FException("Unrepresentable 3D world sweep movement");
+		}
+	}
 }
 FPhysicsWorld3D::FPhysicsWorld3D() : m_pImpl(Toolbox::MakeUnique<FImpl>())
 {
@@ -2787,26 +3030,7 @@ Toolbox::FVector3 FPhysicsWorld3D::GetGravity() const noexcept
 FColliderId3D FPhysicsWorld3D::AttachCollider(FBodyId3D Body, const FColliderDescription3D& Description)
 {
 	FBodyRecord3D& Target = m_pImpl->Resolve_Internal(Body);
-	if (Description.Shape.Index() == 0)
-	{
-		const Toolbox::FSphere& Local = Description.Shape.Get<0>();
-		if (!Local.Center.IsValid() || !Toolbox::IsFinite(Local.Radius) || Local.Radius < 0)
-		{
-			throw Toolbox::FException("Invalid 3D sphere collider");
-		}
-	}
-	else
-	{
-		const Toolbox::FOBB& Local = Description.Shape.Get<1>();
-		if (!Local.Center.IsValid() || !Local.HalfExtents.IsValid())
-		{
-			throw Toolbox::FException("Invalid 3D box collider");
-		}
-		if (Local.HalfExtents.X < 0 || Local.HalfExtents.Y < 0 || Local.HalfExtents.Z < 0)
-		{
-			throw Toolbox::FException("Invalid 3D box collider");
-		}
-	}
+	ValidateColliderShape_Internal(Description.Shape);
 	if (!Toolbox::IsFinite(Description.Friction) || Description.Friction < 0)
 	{
 		throw Toolbox::FException("Invalid 3D collider friction");
@@ -2882,6 +3106,34 @@ bool FPhysicsWorld3D::DetachCollider(FColliderId3D Id) noexcept
 	// 古い接触記録を使い回さない。
 	m_pImpl->Cache.Clear();
 	return true;
+}
+void FPhysicsWorld3D::SetColliderShape(FColliderId3D Id, const decltype(FColliderDescription3D::Shape)& Shape)
+{
+	// 状態・ID・形状の検査がすべて成功してから書き換える。
+	(void)m_pImpl->ResolveQueryCollider_Internal(Id);
+	ValidateColliderShape_Internal(Shape);
+	FColliderRecord3D& Record = m_pImpl->Colliders[Id.Index];
+	FBodyRecord3D& Body = m_pImpl->Resolve_Internal(Record.Body);
+	Record.Shape = Shape;
+	// 索引へ反映した姿勢のまま、この形状の境界と問い合わせ用のWorld形状だけを合わせ直す。
+	m_pImpl->QueryIndex.Refresh(Id.Index,
+	                            FImpl::ColliderQueryBounds_Internal(Body, Record, m_pImpl->QueryWorldShapes[Id.Index]));
+	// 古い接触の記録を使い回さず、支えが変わる剛体を起こす。
+	m_pImpl->Cache.Clear();
+	if (Body.Type == EBodyType::Dynamic)
+	{
+		Body.bSleeping = false;
+		Body.SleepTimer = 0;
+	}
+}
+decltype(FColliderDescription3D::Shape) FPhysicsWorld3D::GetColliderShape(FColliderId3D Id) const
+{
+	const FColliderRecord3D* Record = m_pImpl->FindCollider_Internal(Id);
+	if (Record == nullptr)
+	{
+		throw Toolbox::FException("Invalid 3D collider id");
+	}
+	return Record->Shape;
 }
 void FPhysicsWorld3D::SetContactSettings(const FContactSettings3D& Settings)
 {
@@ -3184,16 +3436,33 @@ Toolbox::TOptional<FWorldSweepHit3D> FPhysicsWorld3D::SweepClosest(const Toolbox
 	}
 	return SweepColliders_Internal(StartShape, EndCenter, ExcludedBody, Filter, false);
 }
+// カプセルの移動。形状・終点・移動量を検査してから走査する。
+Toolbox::TOptional<FWorldSweepHit3D> FPhysicsWorld3D::SweepCapsuleClosest(const Toolbox::FCapsule& StartShape,
+                                                                          Toolbox::FVector3 EndCenter,
+                                                                          Toolbox::TOptional<FBodyId3D> ExcludedBody,
+                                                                          const FWorldQueryFilter& Filter) const
+{
+	if (!Toolbox::IsValid(StartShape) || !EndCenter.IsValid())
+	{
+		throw Toolbox::FException("Invalid 3D world sweep shape or end center");
+	}
+	RequireRepresentableMove_Internal(QueryCenter_Internal(StartShape), EndCenter);
+	return SweepColliders_Internal(StartShape, EndCenter, ExcludedBody, Filter, false);
+}
 // SweepClosestの走査部分。bSkipInitialContactsなら開始時に接触しているColliderを候補から除く。
+template <typename TShape>
 Toolbox::TOptional<FWorldSweepHit3D> FPhysicsWorld3D::SweepColliders_Internal(
-    const Toolbox::FSphere& StartShape, Toolbox::FVector3 EndCenter, const Toolbox::TOptional<FBodyId3D>& ExcludedBody,
+    const TShape& StartShape, Toolbox::FVector3 EndCenter, const Toolbox::TOptional<FBodyId3D>& ExcludedBody,
     const FWorldQueryFilter& Filter, bool bSkipInitialContacts) const
 {
-	const Toolbox::f64 XStart = StartShape.Center.X;
+	// 移動する形状の中心（球は中心、カプセルは中心線の中点）と、中心から形状を覆う距離。
+	const Toolbox::FVector3 StartCenter = QueryCenter_Internal(StartShape);
+	const Toolbox::f64 Reach = QueryReach_Internal(StartShape);
+	const Toolbox::f64 XStart = StartCenter.X;
 	const Toolbox::f64 XEnd = EndCenter.X;
-	const Toolbox::f64 YStart = StartShape.Center.Y;
+	const Toolbox::f64 YStart = StartCenter.Y;
 	const Toolbox::f64 YEnd = EndCenter.Y;
-	const Toolbox::f64 ZStart = StartShape.Center.Z;
+	const Toolbox::f64 ZStart = StartCenter.Z;
 	const Toolbox::f64 ZEnd = EndCenter.Z;
 	// 読み取り専用の内部状態。
 	const FImpl& Impl = *m_pImpl;
@@ -3207,18 +3476,16 @@ Toolbox::TOptional<FWorldSweepHit3D> FPhysicsWorld3D::SweepColliders_Internal(
 	Toolbox::f64 QueryMaxAbs = 0;
 	for (Toolbox::int32 Axis = 0; Axis < 3; ++Axis)
 	{
-		Segment.Start[Axis] = StartShape.Center.Component(Axis);
-		Segment.Delta[Axis] = Toolbox::f64(EndCenter.Component(Axis)) - StartShape.Center.Component(Axis);
-		QueryMaxAbs =
-		    Toolbox::Max(QueryMaxAbs, Toolbox::Max(Toolbox::Abs(Toolbox::f64(StartShape.Center.Component(Axis))),
-		                                           Toolbox::Abs(Toolbox::f64(EndCenter.Component(Axis)))));
+		Segment.Start[Axis] = StartCenter.Component(Axis);
+		Segment.Delta[Axis] = Toolbox::f64(EndCenter.Component(Axis)) - StartCenter.Component(Axis);
+		QueryMaxAbs = Toolbox::Max(QueryMaxAbs, Toolbox::Max(Toolbox::Abs(Toolbox::f64(StartCenter.Component(Axis))),
+		                                                     Toolbox::Abs(Toolbox::f64(EndCenter.Component(Axis)))));
 	}
-	QueryMaxAbs += StartShape.Radius;
-	Segment.Radius =
-	    Toolbox::f64(StartShape.Radius) + PhysicsPrivate::QueryInflation_Internal(Impl.QueryIndex, QueryMaxAbs);
+	QueryMaxAbs += Reach;
+	Segment.Radius = Reach + PhysicsPrivate::QueryInflation_Internal(Impl.QueryIndex, QueryMaxAbs);
 	for (Toolbox::int32 Axis = 0; Axis < 3; ++Axis)
 	{
-		const Toolbox::f64 A = StartShape.Center.Component(Axis);
+		const Toolbox::f64 A = StartCenter.Component(Axis);
 		const Toolbox::f64 B = EndCenter.Component(Axis);
 		Segment.Bounds.Min[Axis] = Toolbox::Min(A, B) - Segment.Radius;
 		Segment.Bounds.Max[Axis] = Toolbox::Max(A, B) + Segment.Radius;
@@ -3308,6 +3575,18 @@ Toolbox::TOptional<FWorldSweepHit3D> FPhysicsWorld3D::SweepClosestIgnoringInitia
 	}
 	return SweepColliders_Internal(StartShape, EndCenter, ExcludedBody, Filter, true);
 }
+// カプセルの移動で、開始時に接触しているColliderを除く。半径は正。
+Toolbox::TOptional<FWorldSweepHit3D> FPhysicsWorld3D::SweepCapsuleClosestIgnoringInitialContacts(
+    const Toolbox::FCapsule& StartShape, Toolbox::FVector3 EndCenter, Toolbox::TOptional<FBodyId3D> ExcludedBody,
+    const FWorldQueryFilter& Filter) const
+{
+	if (!Toolbox::IsValid(StartShape) || !(StartShape.Radius > 0) || !EndCenter.IsValid())
+	{
+		throw Toolbox::FException("Invalid 3D world sweep shape or end center");
+	}
+	RequireRepresentableMove_Internal(QueryCenter_Internal(StartShape), EndCenter);
+	return SweepColliders_Internal(StartShape, EndCenter, ExcludedBody, Filter, true);
+}
 // 索引（または総当たり）で候補を絞り、Margin以下の符号付き距離のColliderを固定容量の結果へ集める。
 FWorldContactSet3D FPhysicsWorld3D::QueryContacts(const Toolbox::FSphere& Shape, Toolbox::f64 Margin,
                                                   Toolbox::TOptional<FBodyId3D> ExcludedBody,
@@ -3319,26 +3598,46 @@ FWorldContactSet3D FPhysicsWorld3D::QueryContacts(const Toolbox::FSphere& Shape,
 	{
 		throw Toolbox::FException("Invalid 3D world contact query");
 	}
+	return QueryContacts_Internal(Shape, Margin, ExcludedBody, Filter);
+}
+// カプセルの接触の問い合わせ。形状とMarginを検査してから走査する。
+FWorldContactSet3D FPhysicsWorld3D::QueryCapsuleContacts(const Toolbox::FCapsule& Shape, Toolbox::f64 Margin,
+                                                         Toolbox::TOptional<FBodyId3D> ExcludedBody,
+                                                         const FWorldQueryFilter& Filter) const
+{
+	if (!Toolbox::IsValid(Shape) || !Toolbox::IsFinite(Margin) || Margin < 0)
+	{
+		throw Toolbox::FException("Invalid 3D world contact query");
+	}
+	return QueryContacts_Internal(Shape, Margin, ExcludedBody, Filter);
+}
+// QueryContactsの走査部分。
+template <typename TShape>
+FWorldContactSet3D FPhysicsWorld3D::QueryContacts_Internal(const TShape& Shape, Toolbox::f64 Margin,
+                                                           const Toolbox::TOptional<FBodyId3D>& ExcludedBody,
+                                                           const FWorldQueryFilter& Filter) const
+{
 	const FImpl& Impl = *m_pImpl;
 	Impl.RequireQueryState_Internal();
 	if (ExcludedBody)
 	{
 		(void)Impl.Resolve_Internal(*ExcludedBody);
 	}
-	// 候補を絞る範囲（中心から半径＋Marginまで）と、問い合わせの座標の規模。
+	// 候補を絞る範囲（中心から形状を覆う距離＋Marginまで）と、問い合わせの座標の規模。
+	const Toolbox::FVector3 Center = QueryCenter_Internal(Shape);
 	Toolbox::f64 QueryMaxAbs = 0;
 	for (Toolbox::int32 Axis = 0; Axis < 3; ++Axis)
 	{
-		QueryMaxAbs = Toolbox::Max(QueryMaxAbs, Toolbox::Abs(Toolbox::f64(Shape.Center.Component(Axis))));
+		QueryMaxAbs = Toolbox::Max(QueryMaxAbs, Toolbox::Abs(Toolbox::f64(Center.Component(Axis))));
 	}
-	QueryMaxAbs += Toolbox::f64(Shape.Radius) + Margin;
+	QueryMaxAbs += QueryReach_Internal(Shape) + Margin;
 	const Toolbox::f64 Reach =
-	    Toolbox::f64(Shape.Radius) + Margin + PhysicsPrivate::QueryInflation_Internal(Impl.QueryIndex, QueryMaxAbs);
+	    QueryReach_Internal(Shape) + Margin + PhysicsPrivate::QueryInflation_Internal(Impl.QueryIndex, QueryMaxAbs);
 	PhysicsPrivate::TQueryBounds<3> Area;
 	for (Toolbox::int32 Axis = 0; Axis < 3; ++Axis)
 	{
-		Area.Min[Axis] = Toolbox::f64(Shape.Center.Component(Axis)) - Reach;
-		Area.Max[Axis] = Toolbox::f64(Shape.Center.Component(Axis)) + Reach;
+		Area.Min[Axis] = Toolbox::f64(Center.Component(Axis)) - Reach;
+		Area.Max[Axis] = Toolbox::f64(Center.Component(Axis)) + Reach;
 	}
 	// 呼出しごとのローカルな結果。例外時は破棄され、部分結果は外へ出ない。
 	FWorldContactSet3D Result;
@@ -3389,6 +3688,25 @@ Toolbox::TVector<FColliderId3D> FPhysicsWorld3D::OverlapAll(const Toolbox::FSphe
 	{
 		throw Toolbox::FException("Invalid 3D world overlap area");
 	}
+	return OverlapAll_Internal(Area, ExcludedBody, Filter);
+}
+// カプセルの範囲の重なりの問い合わせ。範囲を検査してから走査する。
+Toolbox::TVector<FColliderId3D> FPhysicsWorld3D::OverlapCapsuleAll(const Toolbox::FCapsule& Area,
+                                                                   Toolbox::TOptional<FBodyId3D> ExcludedBody,
+                                                                   const FWorldQueryFilter& Filter) const
+{
+	if (!Toolbox::IsValid(Area))
+	{
+		throw Toolbox::FException("Invalid 3D world overlap area");
+	}
+	return OverlapAll_Internal(Area, ExcludedBody, Filter);
+}
+// OverlapAllの走査部分。
+template <typename TShape>
+Toolbox::TVector<FColliderId3D> FPhysicsWorld3D::OverlapAll_Internal(const TShape& Area,
+                                                                     const Toolbox::TOptional<FBodyId3D>& ExcludedBody,
+                                                                     const FWorldQueryFilter& Filter) const
+{
 	const FImpl& Impl = *m_pImpl;
 	Impl.RequireQueryState_Internal();
 	if (ExcludedBody)
@@ -3396,19 +3714,20 @@ Toolbox::TVector<FColliderId3D> FPhysicsWorld3D::OverlapAll(const Toolbox::FSphe
 		(void)Impl.Resolve_Internal(*ExcludedBody);
 	}
 	// 候補を絞る範囲と、問い合わせの座標の規模。
+	const Toolbox::FVector3 Center = QueryCenter_Internal(Area);
 	Toolbox::f64 QueryMaxAbs = 0;
 	for (Toolbox::int32 Axis = 0; Axis < 3; ++Axis)
 	{
-		QueryMaxAbs = Toolbox::Max(QueryMaxAbs, Toolbox::Abs(Toolbox::f64(Area.Center.Component(Axis))));
+		QueryMaxAbs = Toolbox::Max(QueryMaxAbs, Toolbox::Abs(Toolbox::f64(Center.Component(Axis))));
 	}
-	QueryMaxAbs += Area.Radius;
+	QueryMaxAbs += QueryReach_Internal(Area);
 	const Toolbox::f64 Reach =
-	    Toolbox::f64(Area.Radius) + PhysicsPrivate::QueryInflation_Internal(Impl.QueryIndex, QueryMaxAbs);
+	    QueryReach_Internal(Area) + PhysicsPrivate::QueryInflation_Internal(Impl.QueryIndex, QueryMaxAbs);
 	PhysicsPrivate::TQueryBounds<3> Bounds;
 	for (Toolbox::int32 Axis = 0; Axis < 3; ++Axis)
 	{
-		Bounds.Min[Axis] = Toolbox::f64(Area.Center.Component(Axis)) - Reach;
-		Bounds.Max[Axis] = Toolbox::f64(Area.Center.Component(Axis)) + Reach;
+		Bounds.Min[Axis] = Toolbox::f64(Center.Component(Axis)) - Reach;
+		Bounds.Max[Axis] = Toolbox::f64(Center.Component(Axis)) + Reach;
 	}
 	// 呼出しごとのローカルな結果。一致しなければ確保しない。例外時は破棄され、部分結果は外へ出ない。
 	Toolbox::TVector<FColliderId3D> Result;
@@ -3420,7 +3739,7 @@ Toolbox::TVector<FColliderId3D> FPhysicsWorld3D::OverlapAll(const Toolbox::FSphe
 		                           .Visit(
 		                               [&](const auto& WorldShape)
 		                               {
-			                               return Toolbox::IntersectsSphere(Area, WorldShape, 0.0f);
+			                               return AreaOverlaps_Internal(Area, WorldShape);
 		                               });
 		if (bOverlaps)
 		{

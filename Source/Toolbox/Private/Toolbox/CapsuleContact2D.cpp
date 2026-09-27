@@ -176,4 +176,12 @@ FShapeContact2D FindShapeContact(const FCapsule2D& Shape, const FCapsule2D& Targ
 	return FindShapeContact(FCircle2D{AxisPoint_Internal(Shape, S), Shape.Radius},
 	                        FCircle2D{AxisPoint_Internal(Target, T), Target.Radius});
 }
+bool Intersects(const FCircle2D& Circle, const FCapsule2D& Capsule, f32 Tolerance)
+{
+	if (!IsFinite(Tolerance) || Tolerance < 0)
+	{
+		throw FException("Invalid 2D capsule overlap tolerance");
+	}
+	return FindShapeContact(Circle, Capsule).Separation <= Tolerance;
+}
 } // namespace Toolbox

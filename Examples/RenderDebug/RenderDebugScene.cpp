@@ -361,6 +361,13 @@ void ARenderDebugScene::OnDraw(FRenderContext& Render) const
 			{
 				Require_Internal(Render.Get3D().DrawSphere(Shape, Style));
 			}
+			else if constexpr (Toolbox::IsSame<Toolbox::TDecay<decltype(Shape)>, Toolbox::FCapsule>)
+			{
+				// カプセルは両端の球と中心線で示す。
+				Require_Internal(Render.Get3D().DrawSphere(Toolbox::FSphere{Shape.Start, Shape.Radius}, Style));
+				Require_Internal(Render.Get3D().DrawSphere(Toolbox::FSphere{Shape.End, Shape.Radius}, Style));
+				Require_Internal(Render.Get3D().DrawLine(Shape.Start, Shape.End, Style));
+			}
 			else
 			{
 				Require_Internal(Render.Get3D().DrawBox(Shape, Style));

@@ -2,6 +2,46 @@
 #include "Dxf/PhysicsDebugDisplay3D.h"
 namespace Dxf
 {
+namespace
+{
+// カプセルの線の形状（両端の球の辺と、中心線に平行な四本の側線）。
+TResult<FGeometry3D> BuildCapsuleGeometry_Internal(const Toolbox::FCapsule& Capsule)
+{
+	auto Start = BuildSphereGeometry3D(Toolbox::FSphere{Capsule.Start, Capsule.Radius}, 12);
+	if (!Start)
+	{
+		return Start;
+	}
+	auto End = BuildSphereGeometry3D(Toolbox::FSphere{Capsule.End, Capsule.Radius}, 12);
+	if (!End)
+	{
+		return End;
+	}
+	FGeometry3D Geometry = Toolbox::Move(Start).Value();
+	const FGeometry3D EndGeometry = Toolbox::Move(End).Value();
+	for (const FLine3D& Line : EndGeometry.Lines)
+	{
+		Geometry.Lines.PushBack(Line);
+	}
+	const Toolbox::FVector3 Axis = Capsule.End - Capsule.Start;
+	const Toolbox::f32 Length = Toolbox::Length(Axis);
+	if (Length > 0)
+	{
+		// 中心線に直交する二方向。
+		const Toolbox::FVector3 Direction = Axis * (1.0f / Length);
+		const Toolbox::FVector3 Helper =
+		    Toolbox::Abs(Direction.Y) < 0.9f ? Toolbox::FVector3{0, 1, 0} : Toolbox::FVector3{1, 0, 0};
+		const Toolbox::FVector3 SideA = Toolbox::Normalize(Toolbox::Cross(Direction, Helper)) * Capsule.Radius;
+		const Toolbox::FVector3 SideB = Toolbox::Cross(Direction, SideA);
+		const Toolbox::FVector3 Sides[4] = {SideA, -SideA, SideB, -SideB};
+		for (const Toolbox::FVector3& Side : Sides)
+		{
+			Geometry.Lines.PushBack({Capsule.Start + Side, Capsule.End + Side});
+		}
+	}
+	return TResult<FGeometry3D>::Success(Toolbox::Move(Geometry));
+}
+} // namespace
 TResult<FGeometryCommand3D> BuildPhysicsDebugGeometry3D(const FPhysicsDebugItem3D& Item,
 	const FPhysicsDebugDisplaySettings3D& Settings)
 {
@@ -21,6 +61,10 @@ TResult<FGeometryCommand3D> BuildPhysicsDebugGeometry3D(const FPhysicsDebugItem3
 			if constexpr (Toolbox::IsSame<Toolbox::TDecay<decltype(Shape)>, Toolbox::FSphere>)
 			{
 				return BuildSphereGeometry3D(Shape, 12);
+			}
+			else if constexpr (Toolbox::IsSame<Toolbox::TDecay<decltype(Shape)>, Toolbox::FCapsule>)
+			{
+				return BuildCapsuleGeometry_Internal(Shape);
 			}
 			else
 			{

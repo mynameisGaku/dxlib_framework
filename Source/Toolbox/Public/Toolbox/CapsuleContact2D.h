@@ -80,5 +80,13 @@ FShapeContact2D FindShapeContact(const FCapsule2D& Shape, const FOrientedBox2D& 
  * @param Target 対象のカプセル。
  */
 FShapeContact2D FindShapeContact(const FCapsule2D& Shape, const FCapsule2D& Target);
+/**
+ * 円とカプセルが重なるか（接触を含む）。円の中心からカプセルの中心線までの距離が半径の和と許容距離以下か。
+ * 不正な形状・負や非有限の許容距離は例外。
+ * @param Circle 対象の円。半径0は点。
+ * @param Capsule 対象のカプセル。
+ * @param Tolerance 半径の和へ加える有限・非負の距離。
+ */
+bool Intersects(const FCircle2D& Circle, const FCapsule2D& Capsule, f32 Tolerance);
 } // namespace Toolbox
 #endif

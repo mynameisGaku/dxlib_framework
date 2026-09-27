@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: NOASSERTION
 #include "Dxf/PhysicsDebugPicking3D.h"
+#include "Toolbox/CapsuleQuery3D.h"
 #include "Toolbox/SegmentIntersection.h"
 namespace Dxf
 {

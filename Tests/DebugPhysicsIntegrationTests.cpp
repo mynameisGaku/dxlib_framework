@@ -7,6 +7,7 @@
 #include "Dxf/PhysicsDebugRecorder3D.h"
 #include "Dxf/PhysicsDebugDisplay2D.h"
 #include "Dxf/PhysicsDebugDisplay3D.h"
+#include "Dxf/PhysicsDebugPicking3D.h"
 #include "Dxf/RenderContext.h"
 using namespace Dxf;
 using namespace Toolbox;
@@ -355,4 +356,66 @@ TEST("actual worlds preserve debug geometry in one and four execution lanes")
 	REQUIRE(Results[0].Items[0].CenterOfMass == Results[1].Items[0].CenterOfMass);
 	REQUIRE(Results[0].Items[0].Velocity == Results[1].Items[0].Velocity);
 	REQUIRE(Results[0].Step == 60 && Results[1].Step == 60);
+}
+TEST("capsule colliders reach the debug snapshot, geometry and picking in 2d and 3d")
+{
+	// 3D：Z軸回りに90度回したBodyの横向きカプセルは、Worldでは縦向きになる。
+	FPhysicsWorld3D World3D;
+	World3D.SetGravity({0, 0, 0});
+	FBodyDescription3D Body3D;
+	Body3D.Position = {1, 2, 3};
+	Body3D.Orientation = {0, 0, static_cast<f32>(Sin(0.7853981633974483)), static_cast<f32>(Cos(0.7853981633974483))};
+	const auto Id3D = World3D.CreateBody(Body3D);
+	FColliderDescription3D Capsule3D;
+	Capsule3D.Shape = FCapsule{{-1, 0, 0}, {1, 0, 0}, 0.25f};
+	const auto Collider3D = World3D.AttachCollider(Id3D, Capsule3D);
+	auto Captured3D = CapturePhysicsDebugSnapshot3D(World3D, 0);
+	REQUIRE(Captured3D);
+	const auto& Item3D = Captured3D.Value().Items[0];
+	REQUIRE(Item3D.Collider == Collider3D && Item3D.Shape.Index() == 2);
+	const FCapsule& World3DShape = Get<FCapsule>(Item3D.Shape);
+	REQUIRE(Near_Internal(World3DShape.Start.X, 1) && Near_Internal(World3DShape.Start.Y, 1));
+	REQUIRE(Near_Internal(World3DShape.End.X, 1) && Near_Internal(World3DShape.End.Y, 3));
+	// 形状の線だけを比べる（重心の印・速度の線を除く）。
+	FPhysicsDebugDisplaySettings3D ShapeOnly;
+	ShapeOnly.bVelocities = false;
+	ShapeOnly.bCenters = false;
+	auto Geometry = BuildPhysicsDebugGeometry3D(Item3D, ShapeOnly);
+	REQUIRE(Geometry);
+	FPhysicsDebugItem3D SphereItem = Item3D;
+	SphereItem.Shape = FSphere{{1, 2, 3}, 0.25f};
+	auto SphereGeometry = BuildPhysicsDebugGeometry3D(SphereItem, ShapeOnly);
+	REQUIRE(SphereGeometry);
+	// 両端の球（同じ分割）の辺と四本の側線。
+	REQUIRE(Geometry.Value().Geometry.Lines.Size() == SphereGeometry.Value().Geometry.Lines.Size() * 2 + 4);
+	// 胴体を横から：x=−1から3への線分は胴体の面x=0.75で当たる（割合1.75／4）。
+	auto Pick = PickPhysicsDebugSnapshot3D(Captured3D.Value(), FLine3D{{-1, 2, 3}, {3, 2, 3}});
+	REQUIRE(Pick && Pick.Value() && Pick.Value()->Collider == Collider3D);
+	REQUIRE(Near_Internal(Pick.Value()->Fraction, 0.4375));
+	// 2D：角度90度のBodyの横向きカプセルは縦向きになり、両端の円と二本の側線を描く。
+	FPhysicsWorld2D World2D;
+	World2D.SetGravity({0, 0});
+	FBodyDescription2D Body2D;
+	Body2D.Position = {1, 2};
+	Body2D.Angle = 1.5707963267948966f;
+	const auto Id2D = World2D.CreateBody(Body2D);
+	FColliderDescription2D Capsule2D;
+	Capsule2D.Shape = FCapsule2D{{-1, 0}, {1, 0}, 0.25f};
+	World2D.AttachCollider(Id2D, Capsule2D);
+	auto Captured2D = CapturePhysicsDebugSnapshot2D(World2D, 0);
+	REQUIRE(Captured2D);
+	const FCapsule2D& World2DShape = Get<FCapsule2D>(Captured2D.Value().Items[0].Shape);
+	REQUIRE(Near_Internal(World2DShape.Start.X, 1) && Near_Internal(World2DShape.Start.Y, 1));
+	REQUIRE(Near_Internal(World2DShape.End.X, 1) && Near_Internal(World2DShape.End.Y, 3));
+	FRenderQueue2D Queue;
+	FJobSystem Jobs(1);
+	FRenderContext Render(Queue, nullptr, &Jobs);
+	Queue.SetAccepting_Internal(true);
+	FPhysicsDebugDisplaySettings2D Settings;
+	Settings.bVelocities = false;
+	Settings.bCenters = false;
+	REQUIRE(SubmitPhysicsDebugSnapshot2D(Captured2D.Value(), {}, Settings, Render.Get2D()));
+	FCountingBackend2D Backend;
+	REQUIRE(Queue.Execute_Internal(Backend));
+	REQUIRE(Backend.m_Circles == 2 && Backend.m_Lines == 2);
 }

@@ -3,6 +3,7 @@
 #define DXF_PHYSICS_DEBUG_SNAPSHOT_2D_H
 #include "Dxf/Result.h"
 #include "Dxf/RigidBody2D.h"
+#include "Toolbox/Capsule2D.h"
 namespace Dxf
 {
 /**
@@ -23,9 +24,9 @@ struct FPhysicsDebugItem2D
 	 */
 	FColliderId2D Collider;
 	/**
-	 * ワールド座標の形状。メートル単位でY軸が上向き。箱の角度はBody角と形状角の和。
+	 * ワールド座標の形状。メートル単位でY軸が上向き。箱の角度はBody角と形状角の和。カプセルは中心線の両端をBody角で回した位置。
 	 */
-	Toolbox::TVariant<Toolbox::FCircle2D, Toolbox::FOrientedBox2D> Shape;
+	Toolbox::TVariant<Toolbox::FCircle2D, Toolbox::FOrientedBox2D, Toolbox::FCapsule2D> Shape;
 	/**
 	 * 採取時のBody重心位置。メートル単位。
 	 */

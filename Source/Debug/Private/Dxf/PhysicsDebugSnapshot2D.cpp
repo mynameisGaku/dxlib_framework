@@ -16,6 +16,11 @@ bool ValidShape_Internal(const Toolbox::FOrientedBox2D& Shape) noexcept
 	return Shape.Center.IsValid() && Shape.HalfExtents.IsValid() && Shape.HalfExtents.X > 0 &&
 	       Shape.HalfExtents.Y > 0 && Toolbox::IsFinite(Shape.Angle);
 }
+// カプセルの両端と半径が表示可能な値か調べる。
+bool ValidShape_Internal(const Toolbox::FCapsule2D& Shape) noexcept
+{
+	return Toolbox::IsValid(Shape) && Shape.Radius > 0;
+}
 // 運動区分が定義済みの値か調べる。
 bool ValidType_Internal(EBodyType Type) noexcept
 {
@@ -127,12 +132,20 @@ TResult<FPhysicsDebugSnapshot2D> BuildPhysicsDebugSnapshot2D(const FPhysicsSnaps
 		Item.AngularVelocity = Body->AngularVelocity;
 		Item.Type = Body->Type;
 		Item.bSleeping = Body->bSleeping;
-		// 中心はBody角で回転させ、矩形の角度はBody角を一度だけ加える。
+		// 中心（カプセルは中心線の両端）はBody角で回転させ、矩形の角度はBody角を一度だけ加える。
 		Collider.LocalShape.Visit(
 		    [&](const auto& Local)
 		    {
 			    auto Transformed = Local;
-			    Transformed.Center = ToWorld_Internal(*Body, Local.Center);
+			    if constexpr (Toolbox::IsSame<Toolbox::TDecay<decltype(Local)>, Toolbox::FCapsule2D>)
+			    {
+				    Transformed.Start = ToWorld_Internal(*Body, Local.Start);
+				    Transformed.End = ToWorld_Internal(*Body, Local.End);
+			    }
+			    else
+			    {
+				    Transformed.Center = ToWorld_Internal(*Body, Local.Center);
+			    }
 			    if constexpr (Toolbox::IsSame<Toolbox::TDecay<decltype(Local)>, Toolbox::FOrientedBox2D>)
 			    {
 				    Transformed.Angle = Body->Rotation + Local.Angle;

@@ -2,6 +2,7 @@
 #ifndef DXF_PRIVATE_PHYSICS_WORLD_QUERY_SHAPES_2D_H
 #define DXF_PRIVATE_PHYSICS_WORLD_QUERY_SHAPES_2D_H
 #include "QueryBounds.h"
+#include "Toolbox/Capsule2D.h"
 #include "Toolbox/Collision2D.h"
 #include "Toolbox/Contact2D.h"
 namespace Dxf::PhysicsPrivate
@@ -45,6 +46,28 @@ inline TQueryShapeBounds<2> QueryShapeBounds_Internal(const Toolbox::FOrientedBo
 	Result.Tight.Max[0] = Toolbox::f64(World.Center.X) + ReachX;
 	Result.Tight.Min[1] = Toolbox::f64(World.Center.Y) - ReachY;
 	Result.Tight.Max[1] = Toolbox::f64(World.Center.Y) + ReachY;
+	Result.Tight = Padded_Internal(Result.Tight);
+	return Result;
+}
+/**
+ * World座標のカプセルを覆う索引用の境界を返す（中心線の両端の円を覆う）。無効な形状は索引に入れない。
+ * @param World 現在の姿勢へ移したカプセル。
+ */
+inline TQueryShapeBounds<2> QueryShapeBounds_Internal(const Toolbox::FCapsule2D& World) noexcept
+{
+	TQueryShapeBounds<2> Result;
+	Result.bIndexable = Toolbox::IsValid(World);
+	if (!Result.bIndexable)
+	{
+		return Result;
+	}
+	const Toolbox::f64 Start[2] = {World.Start.X, World.Start.Y};
+	const Toolbox::f64 End[2] = {World.End.X, World.End.Y};
+	for (Toolbox::int32 Axis = 0; Axis < 2; ++Axis)
+	{
+		Result.Tight.Min[Axis] = Toolbox::Min(Start[Axis], End[Axis]) - World.Radius;
+		Result.Tight.Max[Axis] = Toolbox::Max(Start[Axis], End[Axis]) + World.Radius;
+	}
 	Result.Tight = Padded_Internal(Result.Tight);
 	return Result;
 }

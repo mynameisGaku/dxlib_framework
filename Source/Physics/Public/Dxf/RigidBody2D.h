@@ -12,6 +12,7 @@
 #include "Toolbox/Optional.h"
 #include "Dxf/PhysicsSnapshot.h"
 #include "Dxf/PhysicsExecution.h"
+#include "Toolbox/Capsule2D.h"
 #include "Toolbox/Contact2D.h"
 #include "Toolbox/Variant.h"
 #include "Toolbox/UniquePtr.h"
@@ -78,9 +79,11 @@ struct FBodyDescription2D
 struct FColliderDescription2D
 {
 	/**
-	 * 取り付ける形状。円または回転矩形。
+	 * 取り付ける形状。円・回転矩形・カプセル。
+	 * カプセルのStart／Endは重心からの相対位置で、剛体の角度で回る（中心線の向きはBodyの角度に従う）。
+	 * カプセルを含む組の連続衝突（CCD）は対象外（QueryContinuousSupportはUnsupportedPair）で、離散の接触で解く。
 	 */
-	Toolbox::TVariant<Toolbox::FCircle2D, Toolbox::FOrientedBox2D> Shape;
+	Toolbox::TVariant<Toolbox::FCircle2D, Toolbox::FOrientedBox2D, Toolbox::FCapsule2D> Shape;
 	/**
 	 * 有限な非負の摩擦係数。
 	 */
@@ -333,6 +336,20 @@ public:
 	 */
 	bool DetachCollider(FColliderId2D Id) noexcept;
 	/**
+	 * 取り付け済みのColliderの形状を置き換える。ID・世代・材質・カテゴリ・区分・衝突フィルターは変えない。
+	 * 問い合わせの索引へ直ちに反映し、接触の記録を捨て、取り付け先のDynamicの剛体を起こす。
+	 * 形状の不正、無効/別World/削除済み/旧世代のID、Step中/途中失敗後はFExceptionで拒否し、状態を変更しない。
+	 * 質量・慣性は変えない（必要なら呼び出し側がBodyを作り直す）。
+	 * @param Id 対象Collider。
+	 * @param Shape 新しい形状（重心からの相対位置）。
+	 */
+	void SetColliderShape(FColliderId2D Id, const decltype(FColliderDescription2D::Shape)& Shape);
+	/**
+	 * Colliderの現在の形状（重心からの相対位置）を返す。無効/別World/削除済み/旧世代のIDはFException。
+	 * @param Id 対象Collider。
+	 */
+	decltype(FColliderDescription2D::Shape) GetColliderShape(FColliderId2D Id) const;
+	/**
 	 * 接触拘束の解決設定を変更する。不正な値は例外で通知する。
 	 * @param Settings 接触拘束の解決設定。
 	 */
@@ -555,6 +572,20 @@ public:
 	                                                  Toolbox::TOptional<FBodyId2D> ExcludedBody = {},
 	                                                  const FWorldQueryFilter& Filter = {}) const;
 	/**
+	 * カプセルを、中心線の中点がEndCenterになるまで平行移動したときに最初に接触するColliderを返す（向きは変えない）。
+	 * 接触の時刻は距離の下限による保守的な前進で求め、接触の手前（許容距離の範囲）で止まり、貫通させない。
+	 * CenterAtHitは接触時の中心線の中点。Normalは接触対象から移動するカプセルへ向く単位方向（区別できない場合は空）。
+	 * 半径0（線分）も移動の判定で扱う（RaycastClosestへは委譲しない）。その他の規則は円の版と同じ。
+	 * @param StartShape 開始時のカプセル。2D物理ワールド座標。
+	 * @param EndCenter 終点の中心線の中点。
+	 * @param ExcludedBody 任意の自己Body。除外しない場合は空Optional。
+	 * @param Filter 対象にする問い合わせカテゴリ。既定は全ビット。
+	 */
+	Toolbox::TOptional<FWorldSweepHit2D> SweepCapsuleClosest(const Toolbox::FCapsule2D& StartShape,
+	                                                         Toolbox::FVector2 EndCenter,
+	                                                         Toolbox::TOptional<FBodyId2D> ExcludedBody = {},
+	                                                         const FWorldQueryFilter& Filter = {}) const;
+	/**
 	 * 範囲（円）と重なる（接触を含む）現在の全ColliderのIDを返す。範囲の中に重心があるかではなく、形状との重なりで判定する。
 	 * 結果は値所有で、生存する対象Colliderのスロット昇順。同じBodyの複数ColliderはそれぞれのIDを返す（Body単位にはまとめない）。
 	 * 交点・割合・法線は返さない。非交差は空配列。許容距離は0（範囲を膨らませない）。半径0は点の問い合わせ。
@@ -570,6 +601,15 @@ public:
 	                                           Toolbox::TOptional<FBodyId2D> ExcludedBody = {},
 	                                           const FWorldQueryFilter& Filter = {}) const;
 	/**
+	 * 範囲（カプセル）と重なる（接触を含む）現在の全ColliderのIDを返す。規則は円の版と同じ。
+	 * @param Area 2D物理ワールド座標の範囲。
+	 * @param ExcludedBody 任意の自己Body。除外しない場合は空Optional。
+	 * @param Filter 対象にする問い合わせカテゴリ。既定は全ビット。
+	 */
+	Toolbox::TVector<FColliderId2D> OverlapCapsuleAll(const Toolbox::FCapsule2D& Area,
+	                                                  Toolbox::TOptional<FBodyId2D> ExcludedBody = {},
+	                                                  const FWorldQueryFilter& Filter = {}) const;
+	/**
 	 * 問い合わせ円と現在の各Colliderの符号付き距離を求め、距離がMargin以下（接触・重なりを含む）のものを返す。
 	 * 分離方向はToolbox::FindShapeContactと同じ規則（回転矩形はSweepClosestと同じ角度規約）。結果は固定容量で配列を確保しない。
 	 * 保持はColliderスロット昇順の先頭Capacity件で、全件数はTotalFoundに入る（容量を超えた接触を黙って捨てない）。
@@ -584,6 +624,17 @@ public:
 	                                 Toolbox::TOptional<FBodyId2D> ExcludedBody = {},
 	                                 const FWorldQueryFilter& Filter = {}) const;
 	/**
+	 * 問い合わせカプセルと現在の各Colliderの符号付き距離を求め、距離がMargin以下のものを返す。規則は円の版と同じ。
+	 * 法線は対象から問い合わせカプセルへ向く（区別できない場合は空）。
+	 * @param Shape 調べるカプセル（半径0は線分）。物理ワールド座標。
+	 * @param Margin 結果に含める最大の符号付き距離（有限・非負）。
+	 * @param ExcludedBody 任意の自己Body。除外しない場合は空Optional。
+	 * @param Filter 対象にする問い合わせカテゴリ。既定は全ビット。
+	 */
+	FWorldContactSet2D QueryCapsuleContacts(const Toolbox::FCapsule2D& Shape, Toolbox::f64 Margin,
+	                                        Toolbox::TOptional<FBodyId2D> ExcludedBody = {},
+	                                        const FWorldQueryFilter& Filter = {}) const;
+	/**
 	 * SweepClosestと同じ移動の問い合わせだが、開始位置で既に接触・重なっている（初期接触になる）Colliderを候補から除く。
 	 * 結果にbInitialContact=trueは含まれない。開始時に離れていたColliderだけが対象で、その扱いはSweepClosestと同じ。
 	 * 除いたColliderへの貫通は検査しないため、それらは呼出し側が接触の法線などで扱う必要がある。
@@ -595,6 +646,17 @@ public:
 	 */
 	Toolbox::TOptional<FWorldSweepHit2D> SweepClosestIgnoringInitialContacts(
 	    const Toolbox::FCircle2D& StartShape, Toolbox::FVector2 EndCenter,
+	    Toolbox::TOptional<FBodyId2D> ExcludedBody = {}, const FWorldQueryFilter& Filter = {}) const;
+	/**
+	 * カプセルの移動の問い合わせで、開始位置で既に接触・重なっているColliderを候補から除く。半径は正。
+	 * その他の規則はSweepCapsuleClosestと、円の版のSweepClosestIgnoringInitialContactsと同じ。
+	 * @param StartShape 開始時のカプセル（正の半径）。物理ワールド座標。
+	 * @param EndCenter 終点の中心線の中点。
+	 * @param ExcludedBody 任意の自己Body。除外しない場合は空Optional。
+	 * @param Filter 対象にする問い合わせカテゴリ。既定は全ビット。
+	 */
+	Toolbox::TOptional<FWorldSweepHit2D> SweepCapsuleClosestIgnoringInitialContacts(
+	    const Toolbox::FCapsule2D& StartShape, Toolbox::FVector2 EndCenter,
 	    Toolbox::TOptional<FBodyId2D> ExcludedBody = {}, const FWorldQueryFilter& Filter = {}) const;
 	/**
 	 * 問い合わせの集計（診断）を有効／無効にする。既定は無効。集計は物理の状態・問い合わせの結果に影響しない。
@@ -620,17 +682,38 @@ public:
 private:
 	/**
 	 * SweepClosestの走査部分。bSkipInitialContactsなら開始時に接触しているColliderを候補から除く。
-	 * @param StartShape 開始時の形状（検査済み）。
+	 * @param StartShape 開始時の形状（検査済み。円またはカプセル）。
 	 * @param EndCenter 終点の中心（検査済み）。
 	 * @param ExcludedBody 任意の自己Body。
 	 * @param Filter 対象にする問い合わせカテゴリ。
 	 * @param bSkipInitialContacts 初期接触になるColliderを候補から除くか。
 	 */
-	Toolbox::TOptional<FWorldSweepHit2D> SweepColliders_Internal(const Toolbox::FCircle2D& StartShape,
-	                                                             Toolbox::FVector2 EndCenter,
+	template <typename TShape>
+	Toolbox::TOptional<FWorldSweepHit2D> SweepColliders_Internal(const TShape& StartShape, Toolbox::FVector2 EndCenter,
 	                                                             const Toolbox::TOptional<FBodyId2D>& ExcludedBody,
 	                                                             const FWorldQueryFilter& Filter,
 	                                                             bool bSkipInitialContacts) const;
+	/**
+	 * QueryContactsの走査部分（形状は検査済み）。
+	 * @param Shape 調べる形状（円またはカプセル）。
+	 * @param Margin 結果に含める最大の符号付き距離。
+	 * @param ExcludedBody 任意の自己Body。
+	 * @param Filter 対象にする問い合わせカテゴリ。
+	 */
+	template <typename TShape>
+	FWorldContactSet2D QueryContacts_Internal(const TShape& Shape, Toolbox::f64 Margin,
+	                                          const Toolbox::TOptional<FBodyId2D>& ExcludedBody,
+	                                          const FWorldQueryFilter& Filter) const;
+	/**
+	 * OverlapAllの走査部分（範囲は検査済み）。
+	 * @param Area 範囲の形状（円またはカプセル）。
+	 * @param ExcludedBody 任意の自己Body。
+	 * @param Filter 対象にする問い合わせカテゴリ。
+	 */
+	template <typename TShape>
+	Toolbox::TVector<FColliderId2D> OverlapAll_Internal(const TShape& Area,
+	                                                    const Toolbox::TOptional<FBodyId2D>& ExcludedBody,
+	                                                    const FWorldQueryFilter& Filter) const;
 	/**
 	 * 実装と登録データの所有領域。
 	 */

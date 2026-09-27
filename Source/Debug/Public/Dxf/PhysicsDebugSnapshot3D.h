@@ -3,6 +3,7 @@
 #define DXF_PHYSICS_DEBUG_SNAPSHOT_3D_H
 #include "Dxf/Result.h"
 #include "Dxf/RigidBody3D.h"
+#include "Toolbox/Capsule.h"
 #include "Toolbox/CollisionShapes.h"
 namespace Dxf
 {
@@ -26,7 +27,7 @@ struct FPhysicsDebugItem3D
 	/**
 	 * Bodyの位置・姿勢で重心相対形状をワールド座標へ変換した形状。
 	 */
-	Toolbox::TVariant<Toolbox::FSphere, Toolbox::FOBB> Shape;
+	Toolbox::TVariant<Toolbox::FSphere, Toolbox::FOBB, Toolbox::FCapsule> Shape;
 	/**
 	 * 採取時のBody重心位置。メートル単位。
 	 */

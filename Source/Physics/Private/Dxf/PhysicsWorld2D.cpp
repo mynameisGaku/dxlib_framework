@@ -10,6 +10,8 @@
 #if defined(DXF_INTERACTION_BENCHMARK_PROBES)
 #include "WorldInteractionProbe.h"
 #endif
+#include "Toolbox/CapsuleContact2D.h"
+#include "Toolbox/CapsuleQuery2D.h"
 #include "Toolbox/ContinuousCollision.h"
 #include "Toolbox/SegmentIntersection2D.h"
 #include "Toolbox/ShapeSweep2D.h"
@@ -77,7 +79,7 @@ struct FColliderRecord2D
 	// 取り付け先の剛体。
 	FBodyId2D Body;
 	// 重心相対の形状。
-	Toolbox::TVariant<Toolbox::FCircle2D, Toolbox::FOrientedBox2D> Shape;
+	decltype(FColliderDescription2D::Shape) Shape;
 	// 摩擦係数。
 	Toolbox::f32 Friction = 0.5f;
 	// 反発係数。
@@ -428,6 +430,83 @@ static FSweptBounds2D SweptBox_Internal(Toolbox::FOrientedBox2D Box, Toolbox::FV
 	}
 	return Bounds;
 }
+// カプセルの移動区間を覆う境界を求める。
+static FSweptBounds2D SweptCapsule_Internal(const Toolbox::FCapsule2D& Capsule, Toolbox::FVector2 Displacement) noexcept
+{
+	const Toolbox::FAABB2D Start = Toolbox::CapsuleBounds(Capsule);
+	const Toolbox::f64 Move[2] = {Displacement.X, Displacement.Y};
+	const Toolbox::f64 Low[2] = {Start.Min.X, Start.Min.Y};
+	const Toolbox::f64 High[2] = {Start.Max.X, Start.Max.Y};
+	Toolbox::f32 Min[2]{};
+	Toolbox::f32 Max[2]{};
+	for (Toolbox::int32 Axis = 0; Axis < 2; ++Axis)
+	{
+		Min[Axis] = static_cast<Toolbox::f32>(Move[Axis] < 0 ? Low[Axis] + Move[Axis] : Low[Axis]);
+		Max[Axis] = static_cast<Toolbox::f32>(Move[Axis] > 0 ? High[Axis] + Move[Axis] : High[Axis]);
+	}
+	FSweptBounds2D Bounds;
+	Bounds.Min = {Min[0], Min[1]};
+	Bounds.Max = {Max[0], Max[1]};
+	return Bounds;
+}
+// カプセルを含まない組（呼ばれない）。
+template <typename TA, typename TB>
+static Toolbox::uint32 CapsuleContacts_Internal(const TA&, const TB&, Toolbox::f32,
+                                                Toolbox::FContactPoint2D (&)[Toolbox::MaxCapsuleContacts2D]) noexcept
+{
+	return 0;
+}
+// 一点の接触をMargin以下なら加える。
+static Toolbox::uint32 SingleContact_Internal(const Toolbox::FContactPoint2D& Hit, Toolbox::f32 Margin,
+                                              Toolbox::FContactPoint2D (&Out)[Toolbox::MaxCapsuleContacts2D]) noexcept
+{
+	if (!(Hit.Separation <= Margin))
+	{
+		return 0;
+	}
+	Out[0] = Hit;
+	return 1;
+}
+// 円とカプセル（一点）。法線はB→A。
+static Toolbox::uint32 CapsuleContacts_Internal(const Toolbox::FCircle2D& A, const Toolbox::FCapsule2D& B,
+                                                Toolbox::f32 Margin,
+                                                Toolbox::FContactPoint2D (&Out)[Toolbox::MaxCapsuleContacts2D])
+{
+	return SingleContact_Internal(Toolbox::FindContact(A, B), Margin, Out);
+}
+// カプセルと円（一点）。法線はB→A。
+static Toolbox::uint32 CapsuleContacts_Internal(const Toolbox::FCapsule2D& A, const Toolbox::FCircle2D& B,
+                                                Toolbox::f32 Margin,
+                                                Toolbox::FContactPoint2D (&Out)[Toolbox::MaxCapsuleContacts2D])
+{
+	return SingleContact_Internal(Toolbox::FindContact(A, B), Margin, Out);
+}
+// カプセルと矩形（最も近い点と中心線の両端、最大三点）。法線はB→A。
+static Toolbox::uint32 CapsuleContacts_Internal(const Toolbox::FCapsule2D& A, const Toolbox::FOrientedBox2D& B,
+                                                Toolbox::f32 Margin,
+                                                Toolbox::FContactPoint2D (&Out)[Toolbox::MaxCapsuleContacts2D])
+{
+	return Toolbox::FindCapsuleContacts(A, B, Margin, Out);
+}
+// 矩形とカプセル。カプセルと矩形の接触の法線を反転する（B→A）。
+static Toolbox::uint32 CapsuleContacts_Internal(const Toolbox::FOrientedBox2D& A, const Toolbox::FCapsule2D& B,
+                                                Toolbox::f32 Margin,
+                                                Toolbox::FContactPoint2D (&Out)[Toolbox::MaxCapsuleContacts2D])
+{
+	const Toolbox::uint32 Count = Toolbox::FindCapsuleContacts(B, A, Margin, Out);
+	for (Toolbox::uint32 Index = 0; Index < Count; ++Index)
+	{
+		Out[Index].Normal = -Out[Index].Normal;
+	}
+	return Count;
+}
+// カプセル同士（最大三点）。法線はB→A。
+static Toolbox::uint32 CapsuleContacts_Internal(const Toolbox::FCapsule2D& A, const Toolbox::FCapsule2D& B,
+                                                Toolbox::f32 Margin,
+                                                Toolbox::FContactPoint2D (&Out)[Toolbox::MaxCapsuleContacts2D])
+{
+	return Toolbox::FindCapsuleContacts(A, B, Margin, Out);
+}
 // 二つの移動境界が重なるかを調べる。
 static bool SweptOverlaps_Internal(const FSweptBounds2D& A, const FSweptBounds2D& B) noexcept
 {
@@ -671,6 +750,24 @@ struct FPhysicsWorld2D::FImpl
 			Hit = Toolbox::FindContact(ToWorld_Internal(BodyA, A.Shape.template Get<1>()),
 			                           ToWorld_Internal(BodyB, B.Shape.template Get<0>()));
 		}
+		else if (IndexA == 2 || IndexB == 2)
+		{
+			// カプセルを含む組は、Margin以下の点のうち最も深い点。
+			Toolbox::FContactPoint2D Points[Toolbox::MaxCapsuleContacts2D];
+			const Toolbox::uint32 Count = FindCapsulePair_Internal(A, BodyA, B, BodyB, Margin, Points);
+			if (Count == 0)
+			{
+				return false;
+			}
+			Hit = Points[0];
+			for (Toolbox::uint32 Index = 1; Index < Count; ++Index)
+			{
+				if (Points[Index].Separation < Hit.Separation)
+				{
+					Hit = Points[Index];
+				}
+			}
+		}
 		else
 		{
 			EventHits.Clear();
@@ -817,6 +914,49 @@ struct FPhysicsWorld2D::FImpl
 		World.Angle = Body.Angle + Local.Angle;
 		return World;
 	}
+	// ローカルカプセルをワールド形状へ変換する。中心線の両端を角度で回して重心へ足す。
+	static Toolbox::FCapsule2D ToWorld_Internal(const FBodyRecord2D& Body, const Toolbox::FCapsule2D& Local) noexcept
+	{
+		// 回転角の余弦と正弦。
+		const Toolbox::f64 Cosine = Toolbox::Cos(Toolbox::f64(Body.Angle));
+		const Toolbox::f64 Sine = Toolbox::Sin(Toolbox::f64(Body.Angle));
+		Toolbox::FCapsule2D World = Local;
+		World.Start = {
+		    static_cast<Toolbox::f32>(Toolbox::f64(Body.Position.X) + Cosine * Local.Start.X - Sine * Local.Start.Y),
+		    static_cast<Toolbox::f32>(Toolbox::f64(Body.Position.Y) + Sine * Local.Start.X + Cosine * Local.Start.Y)};
+		World.End = {
+		    static_cast<Toolbox::f32>(Toolbox::f64(Body.Position.X) + Cosine * Local.End.X - Sine * Local.End.Y),
+		    static_cast<Toolbox::f32>(Toolbox::f64(Body.Position.Y) + Sine * Local.End.X + Cosine * Local.End.Y)};
+		return World;
+	}
+	// Colliderの現在の姿勢のワールド形状。
+	static decltype(FColliderRecord2D::Shape) WorldShape_Internal(const FBodyRecord2D& Body,
+	                                                              const FColliderRecord2D& Record) noexcept
+	{
+		return Record.Shape.Visit(
+		    [&](const auto& Local)
+		    {
+			    return decltype(FColliderRecord2D::Shape){ToWorld_Internal(Body, Local)};
+		    });
+	}
+	// カプセルを含む組の接触点（最大三点、Margin以下）。法線はB→A。
+	static Toolbox::uint32 FindCapsulePair_Internal(const FColliderRecord2D& A, const FBodyRecord2D& BodyA,
+	                                                const FColliderRecord2D& B, const FBodyRecord2D& BodyB,
+	                                                Toolbox::f32 Margin,
+	                                                Toolbox::FContactPoint2D (&Out)[Toolbox::MaxCapsuleContacts2D])
+	{
+		const auto WorldA = WorldShape_Internal(BodyA, A);
+		const auto WorldB = WorldShape_Internal(BodyB, B);
+		return WorldA.Visit(
+		    [&](const auto& ShapeA)
+		    {
+			    return WorldB.Visit(
+			        [&](const auto& ShapeB)
+			        {
+				        return CapsuleContacts_Internal(ShapeA, ShapeB, Margin, Out);
+			        });
+		    });
+	}
 	// Colliderの現在の姿勢での索引用の境界。
 	static PhysicsPrivate::TQueryShapeBounds<2> ColliderQueryBounds_Internal(
 	    const FBodyRecord2D& Body, const FColliderRecord2D& Record,
@@ -954,6 +1094,24 @@ struct FPhysicsWorld2D::FImpl
 			Point.Restitution = Restitution;
 			Manifold.Points.PushBack(Point);
 		}
+		else if (IndexA == 2 || IndexB == 2)
+		{
+			// カプセルを含む組。最も近い点と中心線の両端（特徴ID 0〜2）。
+			Toolbox::FContactPoint2D Hits[Toolbox::MaxCapsuleContacts2D];
+			const Toolbox::uint32 Count =
+			    FindCapsulePair_Internal(RecordA, BodyA, RecordB, BodyB, Contact.ContactSlop, Hits);
+			for (Toolbox::uint32 Index = 0; Index < Count; ++Index)
+			{
+				FSolvePoint2D Point;
+				Point.Position = Hits[Index].Position;
+				Point.Normal = Hits[Index].Normal;
+				Point.Separation = Hits[Index].Separation;
+				Point.FeatureId = Hits[Index].FeatureId;
+				Point.Friction = Friction;
+				Point.Restitution = Restitution;
+				Manifold.Points.PushBack(Point);
+			}
+		}
 		else
 		{
 			Toolbox::TVector<Toolbox::FContactPoint2D> Hits;
@@ -995,6 +1153,16 @@ struct FPhysicsWorld2D::FImpl
 			Bounds.MinY = Toolbox::f64(World.Center.Y - World.Radius);
 			Bounds.MaxX = Toolbox::f64(World.Center.X + World.Radius);
 			Bounds.MaxY = Toolbox::f64(World.Center.Y + World.Radius);
+			return Bounds;
+		}
+		if (Record.Shape.Index() == 2)
+		{
+			// 中心線の両端の円を覆うワールド境界。
+			const Toolbox::FAABB2D Box = Toolbox::CapsuleBounds(ToWorld_Internal(Body, Record.Shape.Get<2>()));
+			Bounds.MinX = Box.Min.X;
+			Bounds.MinY = Box.Min.Y;
+			Bounds.MaxX = Box.Max.X;
+			Bounds.MaxY = Box.Max.Y;
 			return Bounds;
 		}
 		// 回転矩形のワールド形状。
@@ -1724,7 +1892,8 @@ struct FPhysicsWorld2D::FImpl
 	{
 		const Toolbox::size_t IndexA = RecordA.Shape.Index();
 		const Toolbox::size_t IndexB = RecordB.Shape.Index();
-		if (IndexA == 1 && IndexB == 1)
+		// カプセルを含む組と矩形同士は線形CCDの対象外（離散の接触で解く）。
+		if ((IndexA == 1 && IndexB == 1) || IndexA == 2 || IndexB == 2)
 		{
 			return EContinuousSupport::UnsupportedPair;
 		}
@@ -1745,6 +1914,10 @@ struct FPhysicsWorld2D::FImpl
 		if (Record.Shape.Index() == 0)
 		{
 			return SweptCircle_Internal(ToWorld_Internal(Body, Record.Shape.Get<0>()), Displacement);
+		}
+		if (Record.Shape.Index() == 2)
+		{
+			return SweptCapsule_Internal(ToWorld_Internal(Body, Record.Shape.Get<2>()), Displacement);
 		}
 		return SweptBox_Internal(ToWorld_Internal(Body, Record.Shape.Get<1>()), Displacement);
 	}
@@ -2043,6 +2216,69 @@ static void IntegrateKinematic_Internal(FBodyRecord2D& Record, Toolbox::f64 Step
 	const Toolbox::f64 Turned = static_cast<Toolbox::f64>(Record.AngularVelocity) * StepSeconds;
 	Record.Angle = static_cast<Toolbox::f32>(static_cast<Toolbox::f64>(Record.Angle) + Turned);
 }
+// 取り付ける形状を検査する。不正な値は例外。
+static void ValidateColliderShape_Internal(const decltype(FColliderDescription2D::Shape)& Shape)
+{
+	if (Shape.Index() == 0)
+	{
+		if (!Toolbox::IsValid(Shape.Get<0>()))
+		{
+			throw Toolbox::FException("Invalid 2D circle collider");
+		}
+	}
+	else if (Shape.Index() == 1)
+	{
+		if (!Toolbox::IsValid(Shape.Get<1>()))
+		{
+			throw Toolbox::FException("Invalid 2D box collider");
+		}
+	}
+	else if (!Toolbox::IsValid(Shape.Get<2>()))
+	{
+		throw Toolbox::FException("Invalid 2D capsule collider");
+	}
+}
+// 問い合わせ形状の中心（円は中心、カプセルは中心線の中点）。
+static Toolbox::FVector2 QueryCenter_Internal(const Toolbox::FCircle2D& Shape) noexcept
+{
+	return Shape.Center;
+}
+static Toolbox::FVector2 QueryCenter_Internal(const Toolbox::FCapsule2D& Shape) noexcept
+{
+	return {static_cast<Toolbox::f32>((Toolbox::f64(Shape.Start.X) + Shape.End.X) * 0.5),
+	        static_cast<Toolbox::f32>((Toolbox::f64(Shape.Start.Y) + Shape.End.Y) * 0.5)};
+}
+// 問い合わせ形状を中心から覆う距離（円は半径、カプセルは中心線の半分の長さと半径の和）。
+static Toolbox::f64 QueryReach_Internal(const Toolbox::FCircle2D& Shape) noexcept
+{
+	return Shape.Radius;
+}
+static Toolbox::f64 QueryReach_Internal(const Toolbox::FCapsule2D& Shape) noexcept
+{
+	const Toolbox::f64 X = Toolbox::f64(Shape.End.X) - Shape.Start.X;
+	const Toolbox::f64 Y = Toolbox::f64(Shape.End.Y) - Shape.Start.Y;
+	// 中点の丸め分の余裕を足す。
+	const Toolbox::f64 Half = Toolbox::Sqrt(X * X + Y * Y) * 0.5;
+	return Half + Shape.Radius + Half * 1e-6;
+}
+// 範囲の形状と対象の重なり（接触を含む）。
+template <typename TShape> static bool AreaOverlaps_Internal(const Toolbox::FCircle2D& Area, const TShape& Shape)
+{
+	return Toolbox::Intersects(Area, Shape, 0.0f);
+}
+template <typename TShape> static bool AreaOverlaps_Internal(const Toolbox::FCapsule2D& Area, const TShape& Shape)
+{
+	return Toolbox::FindShapeContact(Area, Shape).Separation <= 0;
+}
+// 移動量がf32で表現できるかを検査する。
+static void RequireRepresentableMove_Internal(Toolbox::FVector2 Start, Toolbox::FVector2 End)
+{
+	if (Toolbox::Abs(Toolbox::f64(End.X) - Start.X) > Toolbox::f64(Toolbox::TNumericLimits<Toolbox::f32>::Max()) ||
+	    Toolbox::Abs(Toolbox::f64(End.Y) - Start.Y) > Toolbox::f64(Toolbox::TNumericLimits<Toolbox::f32>::Max()))
+	{
+		throw Toolbox::FException("Unrepresentable 2D world sweep movement");
+	}
+}
 FPhysicsWorld2D::FPhysicsWorld2D() : m_pImpl(Toolbox::MakeUnique<FImpl>())
 {
 }
@@ -2327,20 +2563,7 @@ Toolbox::FVector2 FPhysicsWorld2D::GetGravity() const noexcept
 FColliderId2D FPhysicsWorld2D::AttachCollider(FBodyId2D Body, const FColliderDescription2D& Description)
 {
 	FBodyRecord2D& Target = m_pImpl->Resolve_Internal(Body);
-	if (Description.Shape.Index() == 0)
-	{
-		if (!Toolbox::IsValid(Description.Shape.Get<0>()))
-		{
-			throw Toolbox::FException("Invalid 2D circle collider");
-		}
-	}
-	else
-	{
-		if (!Toolbox::IsValid(Description.Shape.Get<1>()))
-		{
-			throw Toolbox::FException("Invalid 2D box collider");
-		}
-	}
+	ValidateColliderShape_Internal(Description.Shape);
 	if (!Toolbox::IsFinite(Description.Friction) || Description.Friction < 0)
 	{
 		throw Toolbox::FException("Invalid 2D collider friction");
@@ -2416,6 +2639,34 @@ bool FPhysicsWorld2D::DetachCollider(FColliderId2D Id) noexcept
 	// 古い接触記録を使い回さない。
 	m_pImpl->Cache.Clear();
 	return true;
+}
+void FPhysicsWorld2D::SetColliderShape(FColliderId2D Id, const decltype(FColliderDescription2D::Shape)& Shape)
+{
+	// 状態・ID・形状の検査がすべて成功してから書き換える。
+	(void)m_pImpl->ResolveQueryCollider_Internal(Id);
+	ValidateColliderShape_Internal(Shape);
+	FColliderRecord2D& Record = m_pImpl->Colliders[Id.Index];
+	FBodyRecord2D& Body = m_pImpl->Resolve_Internal(Record.Body);
+	Record.Shape = Shape;
+	// 索引へ反映した姿勢のまま、この形状の境界と問い合わせ用のWorld形状だけを合わせ直す。
+	m_pImpl->QueryIndex.Refresh(Id.Index,
+	                            FImpl::ColliderQueryBounds_Internal(Body, Record, m_pImpl->QueryWorldShapes[Id.Index]));
+	// 古い接触の記録を使い回さず、支えが変わる剛体を起こす。
+	m_pImpl->Cache.Clear();
+	if (Body.Type == EBodyType::Dynamic)
+	{
+		Body.bSleeping = false;
+		Body.SleepTimer = 0;
+	}
+}
+decltype(FColliderDescription2D::Shape) FPhysicsWorld2D::GetColliderShape(FColliderId2D Id) const
+{
+	const FColliderRecord2D* Record = m_pImpl->FindCollider_Internal(Id);
+	if (Record == nullptr)
+	{
+		throw Toolbox::FException("Invalid 2D collider id");
+	}
+	return Record->Shape;
 }
 void FPhysicsWorld2D::SetContactSettings(const FContactSettings2D& Settings)
 {
@@ -2700,14 +2951,31 @@ Toolbox::TOptional<FWorldSweepHit2D> FPhysicsWorld2D::SweepClosest(const Toolbox
 	}
 	return SweepColliders_Internal(StartShape, EndCenter, ExcludedBody, Filter, false);
 }
-// SweepClosestの走査部分。bSkipInitialContactsなら開始時に接触しているColliderを候補から除く。
-Toolbox::TOptional<FWorldSweepHit2D> FPhysicsWorld2D::SweepColliders_Internal(
-    const Toolbox::FCircle2D& StartShape, Toolbox::FVector2 EndCenter,
-    const Toolbox::TOptional<FBodyId2D>& ExcludedBody, const FWorldQueryFilter& Filter, bool bSkipInitialContacts) const
+// カプセルの移動。形状・終点・移動量を検査してから走査する。
+Toolbox::TOptional<FWorldSweepHit2D> FPhysicsWorld2D::SweepCapsuleClosest(const Toolbox::FCapsule2D& StartShape,
+                                                                          Toolbox::FVector2 EndCenter,
+                                                                          Toolbox::TOptional<FBodyId2D> ExcludedBody,
+                                                                          const FWorldQueryFilter& Filter) const
 {
-	const Toolbox::f64 XStart = StartShape.Center.X;
+	if (!Toolbox::IsValid(StartShape) || !EndCenter.IsValid())
+	{
+		throw Toolbox::FException("Invalid 2D world sweep shape or end center");
+	}
+	RequireRepresentableMove_Internal(QueryCenter_Internal(StartShape), EndCenter);
+	return SweepColliders_Internal(StartShape, EndCenter, ExcludedBody, Filter, false);
+}
+// SweepClosestの走査部分。bSkipInitialContactsなら開始時に接触しているColliderを候補から除く。
+template <typename TShape>
+Toolbox::TOptional<FWorldSweepHit2D> FPhysicsWorld2D::SweepColliders_Internal(
+    const TShape& StartShape, Toolbox::FVector2 EndCenter, const Toolbox::TOptional<FBodyId2D>& ExcludedBody,
+    const FWorldQueryFilter& Filter, bool bSkipInitialContacts) const
+{
+	// 移動する形状の中心（円は中心、カプセルは中心線の中点）と、中心から形状を覆う距離。
+	const Toolbox::FVector2 StartCenter = QueryCenter_Internal(StartShape);
+	const Toolbox::f64 Reach = QueryReach_Internal(StartShape);
+	const Toolbox::f64 XStart = StartCenter.X;
 	const Toolbox::f64 XEnd = EndCenter.X;
-	const Toolbox::f64 YStart = StartShape.Center.Y;
+	const Toolbox::f64 YStart = StartCenter.Y;
 	const Toolbox::f64 YEnd = EndCenter.Y;
 	// 読み取り専用の内部状態。
 	const FImpl& Impl = *m_pImpl;
@@ -2721,10 +2989,9 @@ Toolbox::TOptional<FWorldSweepHit2D> FPhysicsWorld2D::SweepColliders_Internal(
 	const Toolbox::f64 EndXY[2] = {XEnd, YEnd};
 	const Toolbox::f64 QueryMaxAbs = Toolbox::Max(Toolbox::Max(Toolbox::Abs(XStart), Toolbox::Abs(YStart)),
 	                                              Toolbox::Max(Toolbox::Abs(XEnd), Toolbox::Abs(YEnd))) +
-	                                 StartShape.Radius;
+	                                 Reach;
 	PhysicsPrivate::TQuerySegment<2> Segment;
-	Segment.Radius =
-	    Toolbox::f64(StartShape.Radius) + PhysicsPrivate::QueryInflation_Internal(Impl.QueryIndex, QueryMaxAbs);
+	Segment.Radius = Reach + PhysicsPrivate::QueryInflation_Internal(Impl.QueryIndex, QueryMaxAbs);
 	for (Toolbox::int32 Axis = 0; Axis < 2; ++Axis)
 	{
 		Segment.Start[Axis] = StartXY[Axis];
@@ -2814,6 +3081,18 @@ Toolbox::TOptional<FWorldSweepHit2D> FPhysicsWorld2D::SweepClosestIgnoringInitia
 	}
 	return SweepColliders_Internal(StartShape, EndCenter, ExcludedBody, Filter, true);
 }
+// カプセルの移動で、開始時に接触しているColliderを除く。半径は正。
+Toolbox::TOptional<FWorldSweepHit2D> FPhysicsWorld2D::SweepCapsuleClosestIgnoringInitialContacts(
+    const Toolbox::FCapsule2D& StartShape, Toolbox::FVector2 EndCenter, Toolbox::TOptional<FBodyId2D> ExcludedBody,
+    const FWorldQueryFilter& Filter) const
+{
+	if (!Toolbox::IsValid(StartShape) || !(StartShape.Radius > 0) || !EndCenter.IsValid())
+	{
+		throw Toolbox::FException("Invalid 2D world sweep shape or end center");
+	}
+	RequireRepresentableMove_Internal(QueryCenter_Internal(StartShape), EndCenter);
+	return SweepColliders_Internal(StartShape, EndCenter, ExcludedBody, Filter, true);
+}
 // 索引（または総当たり）で候補を絞り、Margin以下の符号付き距離のColliderを固定容量の結果へ集める。
 FWorldContactSet2D FPhysicsWorld2D::QueryContacts(const Toolbox::FCircle2D& Shape, Toolbox::f64 Margin,
                                                   Toolbox::TOptional<FBodyId2D> ExcludedBody,
@@ -2824,18 +3103,38 @@ FWorldContactSet2D FPhysicsWorld2D::QueryContacts(const Toolbox::FCircle2D& Shap
 	{
 		throw Toolbox::FException("Invalid 2D world contact query");
 	}
+	return QueryContacts_Internal(Shape, Margin, ExcludedBody, Filter);
+}
+// カプセルの接触の問い合わせ。形状とMarginを検査してから走査する。
+FWorldContactSet2D FPhysicsWorld2D::QueryCapsuleContacts(const Toolbox::FCapsule2D& Shape, Toolbox::f64 Margin,
+                                                         Toolbox::TOptional<FBodyId2D> ExcludedBody,
+                                                         const FWorldQueryFilter& Filter) const
+{
+	if (!Toolbox::IsValid(Shape) || !Toolbox::IsFinite(Margin) || Margin < 0)
+	{
+		throw Toolbox::FException("Invalid 2D world contact query");
+	}
+	return QueryContacts_Internal(Shape, Margin, ExcludedBody, Filter);
+}
+// QueryContactsの走査部分。
+template <typename TShape>
+FWorldContactSet2D FPhysicsWorld2D::QueryContacts_Internal(const TShape& Shape, Toolbox::f64 Margin,
+                                                           const Toolbox::TOptional<FBodyId2D>& ExcludedBody,
+                                                           const FWorldQueryFilter& Filter) const
+{
 	const FImpl& Impl = *m_pImpl;
 	Impl.RequireQueryState_Internal();
 	if (ExcludedBody)
 	{
 		(void)Impl.Resolve_Internal(*ExcludedBody);
 	}
-	// 候補を絞る範囲（中心から半径＋Marginまで）と、問い合わせの座標の規模。
-	const Toolbox::f64 Center[2] = {Shape.Center.X, Shape.Center.Y};
+	// 候補を絞る範囲（中心から形状を覆う距離＋Marginまで）と、問い合わせの座標の規模。
+	const Toolbox::FVector2 ShapeCenter = QueryCenter_Internal(Shape);
+	const Toolbox::f64 Center[2] = {ShapeCenter.X, ShapeCenter.Y};
 	const Toolbox::f64 QueryMaxAbs =
-	    Toolbox::Max(Toolbox::Abs(Center[0]), Toolbox::Abs(Center[1])) + Toolbox::f64(Shape.Radius) + Margin;
+	    Toolbox::Max(Toolbox::Abs(Center[0]), Toolbox::Abs(Center[1])) + QueryReach_Internal(Shape) + Margin;
 	const Toolbox::f64 Reach =
-	    Toolbox::f64(Shape.Radius) + Margin + PhysicsPrivate::QueryInflation_Internal(Impl.QueryIndex, QueryMaxAbs);
+	    QueryReach_Internal(Shape) + Margin + PhysicsPrivate::QueryInflation_Internal(Impl.QueryIndex, QueryMaxAbs);
 	PhysicsPrivate::TQueryBounds<2> Area;
 	for (Toolbox::int32 Axis = 0; Axis < 2; ++Axis)
 	{
@@ -2891,6 +3190,25 @@ Toolbox::TVector<FColliderId2D> FPhysicsWorld2D::OverlapAll(const Toolbox::FCirc
 	{
 		throw Toolbox::FException("Invalid 2D world overlap area");
 	}
+	return OverlapAll_Internal(Area, ExcludedBody, Filter);
+}
+// カプセルの範囲の重なりの問い合わせ。範囲を検査してから走査する。
+Toolbox::TVector<FColliderId2D> FPhysicsWorld2D::OverlapCapsuleAll(const Toolbox::FCapsule2D& Area,
+                                                                   Toolbox::TOptional<FBodyId2D> ExcludedBody,
+                                                                   const FWorldQueryFilter& Filter) const
+{
+	if (!Toolbox::IsValid(Area))
+	{
+		throw Toolbox::FException("Invalid 2D world overlap area");
+	}
+	return OverlapAll_Internal(Area, ExcludedBody, Filter);
+}
+// OverlapAllの走査部分。
+template <typename TShape>
+Toolbox::TVector<FColliderId2D> FPhysicsWorld2D::OverlapAll_Internal(const TShape& Area,
+                                                                     const Toolbox::TOptional<FBodyId2D>& ExcludedBody,
+                                                                     const FWorldQueryFilter& Filter) const
+{
 	const FImpl& Impl = *m_pImpl;
 	Impl.RequireQueryState_Internal();
 	if (ExcludedBody)
@@ -2898,10 +3216,12 @@ Toolbox::TVector<FColliderId2D> FPhysicsWorld2D::OverlapAll(const Toolbox::FCirc
 		(void)Impl.Resolve_Internal(*ExcludedBody);
 	}
 	// 候補を絞る範囲と、問い合わせの座標の規模。
-	const Toolbox::f64 Center[2] = {Area.Center.X, Area.Center.Y};
-	const Toolbox::f64 QueryMaxAbs = Toolbox::Max(Toolbox::Abs(Center[0]), Toolbox::Abs(Center[1])) + Area.Radius;
+	const Toolbox::FVector2 AreaCenter = QueryCenter_Internal(Area);
+	const Toolbox::f64 Center[2] = {AreaCenter.X, AreaCenter.Y};
+	const Toolbox::f64 QueryMaxAbs =
+	    Toolbox::Max(Toolbox::Abs(Center[0]), Toolbox::Abs(Center[1])) + QueryReach_Internal(Area);
 	const Toolbox::f64 Reach =
-	    Toolbox::f64(Area.Radius) + PhysicsPrivate::QueryInflation_Internal(Impl.QueryIndex, QueryMaxAbs);
+	    QueryReach_Internal(Area) + PhysicsPrivate::QueryInflation_Internal(Impl.QueryIndex, QueryMaxAbs);
 	PhysicsPrivate::TQueryBounds<2> Bounds;
 	for (Toolbox::int32 Axis = 0; Axis < 2; ++Axis)
 	{
@@ -2918,7 +3238,7 @@ Toolbox::TVector<FColliderId2D> FPhysicsWorld2D::OverlapAll(const Toolbox::FCirc
 		                           .Visit(
 		                               [&](const auto& WorldShape)
 		                               {
-			                               return Toolbox::Intersects(Area, WorldShape, 0.0f);
+			                               return AreaOverlaps_Internal(Area, WorldShape);
 		                               });
 		if (bOverlaps)
 		{

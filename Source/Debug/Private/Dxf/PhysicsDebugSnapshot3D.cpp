@@ -34,6 +34,11 @@ bool ValidShape_Internal(const Toolbox::FOBB& Shape) noexcept
 	}
 	return true;
 }
+// カプセルの両端と半径が表示可能な値か調べる。
+bool ValidShape_Internal(const Toolbox::FCapsule& Shape) noexcept
+{
+	return Toolbox::IsValid(Shape) && Shape.Radius > 0;
+}
 // 運動区分が定義済みの値か調べる。
 bool ValidType_Internal(EBodyType Type) noexcept
 {
@@ -134,13 +139,21 @@ TResult<FPhysicsDebugSnapshot3D> BuildPhysicsDebugSnapshot3D(const FPhysicsSnaps
 		Item.AngularVelocity = Body->AngularVelocity;
 		Item.Type = Body->Type;
 		Item.bSleeping = Body->bSleeping;
-		// 重心相対の中心と箱の軸へ、Body姿勢を一度だけ適用する。
+		// 重心相対の中心（カプセルは中心線の両端）と箱の軸へ、Body姿勢を一度だけ適用する。
 		const Toolbox::FQuaternion Orientation = Body->Rotation;
 		Collider.LocalShape.Visit(
 		    [&](const auto& Local)
 		    {
 			    auto Transformed = Local;
-			    Transformed.Center = Body->Position + Orientation.Rotate(Local.Center);
+			    if constexpr (Toolbox::IsSame<Toolbox::TDecay<decltype(Local)>, Toolbox::FCapsule>)
+			    {
+				    Transformed.Start = Body->Position + Orientation.Rotate(Local.Start);
+				    Transformed.End = Body->Position + Orientation.Rotate(Local.End);
+			    }
+			    else
+			    {
+				    Transformed.Center = Body->Position + Orientation.Rotate(Local.Center);
+			    }
 			    if constexpr (Toolbox::IsSame<Toolbox::TDecay<decltype(Local)>, Toolbox::FOBB>)
 			    {
 				    for (Toolbox::size_t Axis = 0; Axis < 3; ++Axis)

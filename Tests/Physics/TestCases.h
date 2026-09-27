@@ -130,6 +130,11 @@ const FCase* GetWorldEventCases(Toolbox::size_t& Count) noexcept;
  * @param Count 返す配列の要素数。
  */
 const FCase* GetCapsuleGeometryCases(Toolbox::size_t& Count) noexcept;
+/**
+ * カプセルのColliderのWorldへの統合（解決・イベント・問い合わせ・形状の置き換え・寿命）の2D／3D回帰を返す。
+ * @param Count 返す配列の要素数。
+ */
+const FCase* GetCapsuleWorldCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryTreeCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryIndexEquivalenceCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryIndexContractCases(Toolbox::size_t& Count) noexcept;

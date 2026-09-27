@@ -79,5 +79,13 @@ FShapeContact3D FindShapeContact(const FCapsule& Shape, const FOBB& Target);
  * @param Target 対象のカプセル。
  */
 FShapeContact3D FindShapeContact(const FCapsule& Shape, const FCapsule& Target);
+/**
+ * 球とカプセルが重なるか（接触を含む）。球の中心からカプセルの中心線までの距離が半径の和と許容距離以下か。
+ * 不正な形状・負や非有限の許容距離は例外。
+ * @param Sphere 対象の球。半径0は点。
+ * @param Capsule 対象のカプセル。
+ * @param Tolerance 半径の和へ加える有限・非負の距離。
+ */
+bool IntersectsSphere(const FSphere& Sphere, const FCapsule& Capsule, f32 Tolerance);
 } // namespace Toolbox
 #endif

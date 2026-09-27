@@ -173,4 +173,12 @@ FShapeContact3D FindShapeContact(const FCapsule& Shape, const FCapsule& Target)
 	return FindShapeContact(FSphere{AxisPoint_Internal(Shape, S), Shape.Radius},
 	                        FSphere{AxisPoint_Internal(Target, T), Target.Radius});
 }
+bool IntersectsSphere(const FSphere& Sphere, const FCapsule& Capsule, f32 Tolerance)
+{
+	if (!IsFinite(Tolerance) || Tolerance < 0)
+	{
+		throw FException("Invalid 3D capsule overlap tolerance");
+	}
+	return FindShapeContact(Sphere, Capsule).Separation <= Tolerance;
+}
 } // namespace Toolbox
