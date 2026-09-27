@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: NOASSERTION
 #include "CharacterSample2DScene.h"
 #include "CharacterSample3DScene.h"
+#include "InteractionScene2D.h"
 #include "SampleHud.h"
 #include "SampleLevel.h"
 #include "Dxf/AssetService.h"
@@ -40,6 +41,11 @@ protected:
 		if (Context.Scenes != nullptr && Input.WasPressed(EKey::Tab))
 		{
 			RequireSample(Context.Scenes->RequestChange<DCharacterSample3DScene>());
+			return;
+		}
+		if (Context.Scenes != nullptr && Input.WasPressed(EKey::I))
+		{
+			RequireSample(Context.Scenes->RequestChange<DInteraction2DScene>());
 			return;
 		}
 		if (Input.WasPressed(EKey::P))
@@ -219,7 +225,7 @@ void DCharacterSample2DScene::OnDraw(FRenderContext& Render) const
 	RequireSample(
 	    Draw.DrawText(m_Font,
 	                  "Character 2D  [A/D] move  [Space] jump  [R] reset  [O] overlap  [N/M] add/remove walker  "
-	                  "[V] split  [P] pause  [Tab] 3D  [Esc] quit",
+	                  "[V] split  [P] pause  [Tab] 3D  [I] interaction  [Esc] quit",
 	                  {16, 12}, Text));
 	const DPlayer2D* Player = m_Player.Get();
 	if (Player == nullptr)

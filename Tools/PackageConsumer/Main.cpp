@@ -3,6 +3,8 @@
 // DPhysicsScene2D／3D上のキャラクター移動Componentの生成・固定更新・破棄を確かめる。終了コード0が成功。
 #include "Dxf/GameScene.h"
 #include "Dxf/AssetService.h"
+#include "Dxf/AudioPlayer.h"
+#include "InteractionConsumer.h"
 #include "Dxf/CharacterMovementComponent2D.h"
 #include "Dxf/CharacterMovementComponent3D.h"
 #include "Dxf/InputStateTracker.h"
@@ -160,6 +162,14 @@ int Walk(FNoAssets& Backend, TCenter Start, TCenter Move, TFloorShape Floor, int
 int main()
 {
 	FNoAssets Backend;
+	// 同じ外部シーンをNative Applicationでも実行し、上位APIの利用を二重実装しない。
+	Dxf::FAssetService InteractionAssets(Backend, Backend, Backend);
+	Dxf::FAudioPlayer InteractionAudio(Backend);
+	const Toolbox::int32 InteractionCode = RunInteractionConsumer(InteractionAssets, InteractionAudio);
+	if (InteractionCode != 0)
+	{
+		return InteractionCode;
+	}
 	const int Walk2D = Walk<Dxf::DPhysicsScene2D, Dxf::DCharacterMovement2DComponent,
 	                        DFloor<Dxf::DRigidBody2DComponent, Dxf::DCollider2DComponent, Dxf::FBodyDescription2D,
 	                               Dxf::FColliderDescription2D>,

@@ -2,6 +2,8 @@
 #ifndef DXF_GAMEPLAY_SAMPLE_SMOKE_SUPPORT_H
 #define DXF_GAMEPLAY_SAMPLE_SMOKE_SUPPORT_H
 #include "CharacterSample.h"
+#include "InteractionScene2D.h"
+#include "InteractionScene3D.h"
 #include "Dxf/Application.h"
 #include "Dxf/NativeBackends.h"
 #include "Toolbox/Platform.h"
@@ -48,6 +50,11 @@ public:
 	 */
 	void Start();
 	/**
+	 * 相互作用サンプルを直接起動し、基準のStepまで進める。
+	 * @param b3D 3Dならtrue、2Dならfalse。
+	 */
+	void StartInteraction(bool b3D);
+	/**
 	 * 1フレーム進める（終了していたら失敗）。
 	 */
 	void Step();
@@ -82,11 +89,27 @@ public:
 	 */
 	GameplaySample::DCharacterSample3DScene& Scene3D();
 	/**
+	 * 現在のシーンを2Dの相互作用サンプルとして返す（違えば失敗）。
+	 */
+	GameplaySample::DInteraction2DScene& Interaction2D();
+	/**
+	 * 現在のシーンを3Dの相互作用サンプルとして返す（違えば失敗）。
+	 */
+	GameplaySample::DInteraction3DScene& Interaction3D();
+	/**
 	 * 表示した画面を保存し、指定した画面座標の色を返す。
 	 * @param Path 保存先。
 	 * @param Point 画面座標。
 	 */
 	FColor Capture(const Toolbox::FPath& Path, FVector2 Point);
+	/**
+	 * 画面をCPU画像へ一度だけ読み戻し、同じ画像から保存と全指定画素の照合用データを得る。
+	 * @param Path 保存先。
+	 * @param Points 画面座標の配列。
+	 * @param Colors 同じ順番で色を受け取る配列。
+	 * @param Count 両配列の要素数。
+	 */
+	void CapturePoints(const Toolbox::FPath& Path, const FVector2* Points, FColor* Colors, Toolbox::size_t Count);
 
 private:
 	/**

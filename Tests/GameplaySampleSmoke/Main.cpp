@@ -4,6 +4,7 @@
 // 1画面／2画面・索引あり／総当たりの軌跡の一致（SmokeTraces。各回を新しいApplicationで起動）と、終了後の再起動を確かめる。
 #include "SmokeAcceptance.h"
 #include "SmokeTraces.h"
+#include "InteractionSmoke.h"
 // Windowsの文字種マクロとToolboxの同名関数を分離する。
 #ifdef CreateDirectory
 #undef CreateDirectory
@@ -49,6 +50,8 @@ Toolbox::int32 main(Toolbox::int32 Count, char** Args)
 		// 軌跡の一致（それぞれ新しいApplicationで3回ずつ起動・終了する）。
 		RunTraceComparisons2D(Backends, Args[1]);
 		RunTraceComparisons3D(Backends, Args[1]);
+		// 同じサンプルライブラリの相互作用を実描画・固定入力・1／2画面で確認する。
+		RunInteractionSmoke(Backends, Args[1], Output);
 		{
 			// 終了後の再起動: 新しいApplicationで開始し、歩いて終了できる。
 			FSmokeApp App(Backends, Args[1]);

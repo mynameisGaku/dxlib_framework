@@ -12,6 +12,7 @@
 #include "Dxf/RigidBodyComponent2D.h"
 #include "Dxf/RigidBodyComponent3D.h"
 #include "Dxf/SceneNavigator.h"
+#include "InteractionConsumer.h"
 #include "DxLib.h"
 namespace
 {
@@ -220,6 +221,9 @@ int main(int Count, char** Args)
 		Settings.Window.Height = 720;
 		Settings.Window.bVSync = false;
 		Settings.ExecutionThreadCount = 1;
+		// Appと全Sceneを破棄するまで、共通シーンの結果の保存先を維持する。
+		FInteractionConsumerResult Interaction2D;
+		FInteractionConsumerResult Interaction3D;
 		FApplication App(
 		    {Services.Platform, Input, Services.Textures, Services.Sounds, Services.Fonts, Services.Renderer},
 		    Settings);
@@ -258,6 +262,21 @@ int main(int Count, char** Args)
 		Check(Scene3D != nullptr, "3D scene missing");
 		const auto& Walker3D = Scene3D->GetWalker().Get()->GetCharacter();
 		Check(Walker3D.IsGrounded() && Walker3D.GetCenter().X > 2 && Walker3D.GetStepCount() >= 59, "3D walk");
+		// 再配置した公開APIだけで作る同じ検証シーンを、実Applicationの固定更新・描画で通す。
+		Check(static_cast<bool>(App.GetScenes().RequestChange(MakeInteractionConsumer2D(Interaction2D))),
+		      "2D interaction scene change");
+		for (Toolbox::int32 Frame = 0; Frame < 72; ++Frame)
+		{
+			Step();
+		}
+		Check(Interaction2D.bComplete, "2D interaction delivery and moving floor");
+		Check(static_cast<bool>(App.GetScenes().RequestChange(MakeInteractionConsumer3D(Interaction3D))),
+		      "3D interaction scene change");
+		for (Toolbox::int32 Frame = 0; Frame < 72; ++Frame)
+		{
+			Step();
+		}
+		Check(Interaction3D.bComplete, "3D interaction delivery and moving floor");
 		App.GetScenes().RequestQuit();
 		const auto Quit = App.Step(Time);
 		Check(Quit && !Quit.Value(), "quit failed");

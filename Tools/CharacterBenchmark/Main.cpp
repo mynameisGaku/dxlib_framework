@@ -8,9 +8,11 @@
 //   kernels Toolboxの詳細判定の関数の1回あたりの費用（2D／3Dの同じ配置）
 //   costs   前回の配置で、キャラクターの位置での問い合わせ種別ごとの費用（索引と総当たり、結果の一致）
 //   scaling 移動継続・局所・動的更新・密集・登録の入替・大きな床の系列（索引と総当たり）
+//   interaction 接触イベント・実Component配送・移動床のR7系列（CSV、初回と慣らし後を分離）
 //   --reference 索引を使わない総当たりの参照経路で計る（索引のあるビルドだけ）
 //   --pilot     所要時間の見積り用に、繰り返しの固定更新を短くする
 #include "KernelCosts.h"
+#include "InteractionScenarios.h"
 #include "LegacyScenarios.h"
 #include "Report.h"
 #include "ScalingScenarios.h"
@@ -70,8 +72,9 @@ int main(int Count, char** Args)
 {
 	if (Count < 2)
 	{
-		printf("usage: dxf_character_benchmark legacy|legacy-static|heavy|kernels|costs|scaling [--reference] "
-		       "[--pilot]\n");
+		printf(
+		    "usage: dxf_character_benchmark legacy|legacy-static|heavy|kernels|costs|scaling|interaction [--reference] "
+		    "[--pilot]\n");
 		return 2;
 	}
 	bool bReference = false;
@@ -93,6 +96,25 @@ int main(int Count, char** Args)
 		}
 	}
 	const Toolbox::int32 Steps = bPilot ? PilotMeasured : Measured;
+	if (strcmp(Args[1], "interaction") == 0)
+	{
+		// イベントの参照経路切替は公開されていないため、無関係なオプションを黙って無視しない。
+		if (bReference)
+		{
+			printf("interaction does not support --reference\n");
+			return 2;
+		}
+		try
+		{
+			RunInteractionSeries(Warmup, Steps);
+			return 0;
+		}
+		catch (const Toolbox::FException& Error)
+		{
+			printf("interaction failed: %s\n", Error.What());
+			return 1;
+		}
+	}
 	PrintConditions(Warmup, Steps);
 	if (strcmp(Args[1], "legacy") == 0)
 	{

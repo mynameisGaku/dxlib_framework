@@ -15,6 +15,11 @@ if(MSVC AND DXF_MSVC_INCLUDE_PREFIX)
 endif()
 
 option(DXF_BUILD_TESTS "Build portable and native-contract regression tests" ${PROJECT_IS_TOP_LEVEL})
+# 専用のRelease測定ディレクトリだけで有効にする。配布・通常回帰の既定は計測なし。
+option(DXF_INTERACTION_BENCHMARK_PROBES "Instrument private interaction phases for the CPU benchmark" OFF)
+if(DXF_INTERACTION_BENCHMARK_PROBES AND NOT DXF_BUILD_TESTS)
+    message(FATAL_ERROR "DXF_INTERACTION_BENCHMARK_PROBES requires DXF_BUILD_TESTS")
+endif()
 option(DXF_BUILD_NATIVE "Build the Windows/MSVC DxLib adapter" OFF)
 option(DXF_BUILD_NATIVE_SMOKE "Build the self-terminating real-SDK smoke executable" ${DXF_BUILD_NATIVE})
 option(DXF_RUN_DEVICE_TESTS "Register smoke tests requiring a Windows desktop and devices" OFF)
@@ -226,7 +231,23 @@ set(DXF_GAMEPLAY_SAMPLE_SOURCES
     Examples/GameplaySample/SampleCharacters.cpp
     Examples/GameplaySample/SampleHud.cpp
     Examples/GameplaySample/CharacterSample2DScene.cpp
-    Examples/GameplaySample/CharacterSample3DScene.cpp)
+    Examples/GameplaySample/CharacterSample3DScene.cpp
+    Examples/GameplaySample/InteractionLayout.cpp
+    Examples/GameplaySample/InteractionRules.cpp
+    Examples/GameplaySample/InteractionUi.cpp
+    Examples/GameplaySample/InteractionHud.cpp
+    Examples/GameplaySample/InteractionScene2D.cpp
+    Examples/GameplaySample/InteractionScene3D.cpp)
+# サンプルのゲーム処理（2D／3D）の正規ライブラリ。サンプルの実行ファイル・実Appの固定入力の確認・CPUの試験が同じものを使う。
+# 通常のソリューション（試験・サンプル・実機試験がOFF）には含めない。
+if(DXF_BUILD_TESTS OR DXF_BUILD_GAMEPLAY_SAMPLE OR DXF_BUILD_NATIVE_SMOKE)
+    add_library(dxf_gameplay_sample STATIC ${DXF_GAMEPLAY_SAMPLE_SOURCES})
+    target_include_directories(dxf_gameplay_sample PUBLIC Examples/GameplaySample)
+    target_link_libraries(dxf_gameplay_sample PUBLIC dxf::framework dxf::ui_runtime)
+    target_compile_features(dxf_gameplay_sample PUBLIC cxx_std_20)
+    dxf_ide_headers(dxf_gameplay_sample Examples/GameplaySample)
+    dxf_warnings(dxf_gameplay_sample)
+endif()
 
 if(DXF_BUILD_TESTS)
     enable_testing()
@@ -239,6 +260,7 @@ if(DXF_BUILD_TESTS)
         Tools/CharacterBenchmark/BenchmarkSupport.cpp
         Tools/CharacterBenchmark/ScenarioRunner.cpp
         Tools/CharacterBenchmark/LegacyScenarios.cpp
+        Tools/CharacterBenchmark/InteractionScenarios.cpp
         Tools/CharacterBenchmark/ScalingScenarios.cpp
         Tools/CharacterBenchmark/QueryCosts.cpp
         Tools/CharacterBenchmark/KernelCosts.cpp
@@ -246,7 +268,12 @@ if(DXF_BUILD_TESTS)
         Source/Toolbox/Private/Toolbox/Testing/AllocationFault.cpp)
     dxf_ide_headers(dxf_character_benchmark Tools/CharacterBenchmark)
     target_compile_definitions(dxf_character_benchmark PRIVATE DXF_ALLOCATION_FAULT_TEST_EXECUTABLE=1)
-    target_link_libraries(dxf_character_benchmark PRIVATE dxf::physics)
+    if(DXF_INTERACTION_BENCHMARK_PROBES)
+        target_sources(dxf_physics PRIVATE Source/Physics/Private/Dxf/WorldInteractionProbe.cpp)
+        target_compile_definitions(dxf_physics PRIVATE DXF_INTERACTION_BENCHMARK_PROBES=1)
+        target_compile_definitions(dxf_character_benchmark PRIVATE DXF_INTERACTION_BENCHMARK_PROBES=1)
+    endif()
+    target_link_libraries(dxf_character_benchmark PRIVATE dxf::physics dxf::gameplay)
     dxf_warnings(dxf_character_benchmark)
     find_package(Python3 QUIET COMPONENTS Interpreter)
     if(Python3_Interpreter_FOUND)
@@ -262,6 +289,14 @@ if(DXF_BUILD_TESTS)
     dxf_warnings(dxf_tests)
     add_test(NAME Framework COMMAND dxf_tests)
     set_tests_properties(Framework PROPERTIES TIMEOUT 60 LABELS "portable")
+
+    # 接触・Trigger・動く床のサンプル（2D／3D）を実Application・SceneNavigator・固定入力で通す。描画・文字は代替のBackend。
+    add_executable(dxf_interaction_sample_tests Tests/TestMain.cpp Tests/InteractionSampleTests.cpp)
+    target_link_libraries(dxf_interaction_sample_tests PRIVATE dxf_gameplay_sample)
+    target_include_directories(dxf_interaction_sample_tests PRIVATE Tests)
+    dxf_warnings(dxf_interaction_sample_tests)
+    add_test(NAME InteractionSample COMMAND dxf_interaction_sample_tests)
+    set_tests_properties(InteractionSample PROPERTIES TIMEOUT 120 LABELS "portable;gameplay")
 
     # 実Application・Scene・Renderer・JobSystemを使う描画統合テスト。Backendだけがテスト実装。
     include(CMake/ApplicationRenderIntegrationTests.cmake)
@@ -355,12 +390,11 @@ if(DXF_BUILD_NATIVE_SMOKE)
     add_executable(NativeGameplaySmoke
         Tests/GameplaySampleSmoke/Main.cpp
         Tests/GameplaySampleSmoke/SmokeSupport.cpp
+        Tests/GameplaySampleSmoke/InteractionSmoke.cpp
         Tests/GameplaySampleSmoke/SmokeAcceptance.cpp
-        Tests/GameplaySampleSmoke/SmokeTraces.cpp
-        ${DXF_GAMEPLAY_SAMPLE_SOURCES})
+        Tests/GameplaySampleSmoke/SmokeTraces.cpp)
     dxf_ide_headers(NativeGameplaySmoke Tests/GameplaySampleSmoke)
-    target_include_directories(NativeGameplaySmoke PRIVATE Examples/GameplaySample)
-    target_link_libraries(NativeGameplaySmoke PRIVATE dxf::native)
+    target_link_libraries(NativeGameplaySmoke PRIVATE dxf_gameplay_sample dxf::native)
     target_compile_definitions(NativeGameplaySmoke PRIVATE DX_NON_USING_NAMESPACE_DXLIB NOMINMAX)
     target_compile_options(NativeGameplaySmoke PRIVATE /UUNICODE /U_UNICODE)
     dxf_warnings(NativeGameplaySmoke)
@@ -420,9 +454,8 @@ if(DXF_BUILD_GAMEPLAY_SAMPLE)
         message(FATAL_ERROR "DXF_BUILD_GAMEPLAY_SAMPLE requires DXF_BUILD_NATIVE=ON")
     endif()
     # 公開の移動Componentだけで作った、2D／3Dを切り替えて操作できる開発用の例。通常のソリューションには含めない。
-    add_executable(GameplaySample WIN32 Examples/GameplaySample/WindowsMain.cpp ${DXF_GAMEPLAY_SAMPLE_SOURCES})
-    dxf_ide_headers(GameplaySample Examples/GameplaySample)
-    target_link_libraries(GameplaySample PRIVATE dxf::native)
+    add_executable(GameplaySample WIN32 Examples/GameplaySample/WindowsMain.cpp)
+    target_link_libraries(GameplaySample PRIVATE dxf_gameplay_sample dxf::native)
     dxf_warnings(GameplaySample)
     set_property(TARGET GameplaySample PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 endif()

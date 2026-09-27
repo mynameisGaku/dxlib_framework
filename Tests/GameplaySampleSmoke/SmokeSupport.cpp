@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: NOASSERTION
 #include "SmokeSupport.h"
+#include "Dxf/NativeHandle.h"
 #include "DxLib.h"
 namespace Dxf::GameplaySmoke
 {
@@ -21,6 +22,11 @@ FBackendServices Services_Internal(FDxLibBackends& Backends, IInputSource& Input
 {
 	const auto Services = Backends.GetServices();
 	return {Services.Platform, Input, Services.Textures, Services.Sounds, Services.Fonts, Services.Renderer};
+}
+// 一括読戻し用のCPU画像を解放する。
+void ReleaseImage_Internal(void*, Toolbox::int32 Handle) noexcept
+{
+	(void)DxLib::DeleteSoftImage(Handle);
 }
 } // namespace
 
@@ -53,6 +59,24 @@ void FSmokeApp::Step()
 {
 	const auto Result = m_App.Step(m_Time += 1.0 / 60.0);
 	Check(Result && Result.Value(), "game step failed");
+}
+void FSmokeApp::StartInteraction(bool b3D)
+{
+	if (b3D)
+	{
+		Check(static_cast<bool>(m_App.Start(Toolbox::MakeUnique<GameplaySample::DInteraction3DScene>())),
+		      "interaction 3D start failed");
+	}
+	else
+	{
+		Check(static_cast<bool>(m_App.Start(Toolbox::MakeUnique<GameplaySample::DInteraction2DScene>())),
+		      "interaction 2D start failed");
+	}
+	// 既存の試験と同じ、固定更新の境界から4分の1ずらしたフレーム時刻。
+	m_Time = 0;
+	const auto First = m_App.Step(m_Time);
+	Check(First && First.Value(), "interaction first step failed");
+	m_Time += 0.25 / 60.0;
 }
 void FSmokeApp::Press(EKey Key)
 {
@@ -92,16 +116,47 @@ GameplaySample::DCharacterSample3DScene& FSmokeApp::Scene3D()
 }
 FColor FSmokeApp::Capture(const Toolbox::FPath& Path, FVector2 Point)
 {
+	FColor Color;
+	CapturePoints(Path, &Point, &Color, 1);
+	return Color;
+}
+GameplaySample::DInteraction2DScene& FSmokeApp::Interaction2D()
+{
+	auto* Scene = m_App.GetScenes().GetCurrent()->TryCast<GameplaySample::DInteraction2DScene>();
+	Check(Scene != nullptr, "interaction 2D scene missing");
+	return *Scene;
+}
+GameplaySample::DInteraction3DScene& FSmokeApp::Interaction3D()
+{
+	auto* Scene = m_App.GetScenes().GetCurrent()->TryCast<GameplaySample::DInteraction3DScene>();
+	Check(Scene != nullptr, "interaction 3D scene missing");
+	return *Scene;
+}
+void FSmokeApp::CapturePoints(const Toolbox::FPath& Path, const FVector2* Points, FColor* Colors, Toolbox::size_t Count)
+{
+	// GPUからの読み戻しは一度だけ行い、保存と画素の確認は同じCPU画像を使う。
+	FNativeHandle Image(DxLib::MakeARGB8ColorSoftImage(1280, 720), nullptr, &ReleaseImage_Internal);
+	Check(Image.Get() >= 0, "capture image allocation failed");
 	Check(DxLib::SetDrawScreen(DX_SCREEN_FRONT) == 0, "front buffer selection failed");
-	// ABIに合わせたRGB出力先。
-	int R = 0;
-	int G = 0;
-	int B = 0;
-	const Toolbox::int32 Color = DxLib::GetPixel(static_cast<int>(Point.X), static_cast<int>(Point.Y));
-	DxLib::GetColor2(Color, &R, &G, &B);
-	const Toolbox::int32 Saved = DxLib::SaveDrawScreenToPNG(0, 0, 1280, 720, Path.ToUtf8().CStr());
+	const Toolbox::int32 Read = DxLib::GetDrawScreenSoftImage(0, 0, 1280, 720, Image.Get());
 	Check(DxLib::SetDrawScreen(DX_SCREEN_BACK) == 0, "back buffer restoration failed");
-	Check(Saved == 0, "capture failed");
-	return {static_cast<Toolbox::uint8>(R), static_cast<Toolbox::uint8>(G), static_cast<Toolbox::uint8>(B), 255};
+	Check(Read == 0, "capture one-shot readback failed");
+	Check(DxLib::SaveSoftImageToPng(Path.ToUtf8().CStr(), Image.Get(), 1) == 0, "capture failed");
+	for (Toolbox::size_t Index = 0; Index < Count; ++Index)
+	{
+		// 描画領域から外れた投影を端へ丸めて成功にしない。
+		Check(Points[Index].X >= 0 && Points[Index].Y >= 0 && Points[Index].X < 1280 && Points[Index].Y < 720,
+		      "capture point outside image");
+		// DxLibのABIが要求するRGBA出力先。
+		int R = 0;
+		int G = 0;
+		int B = 0;
+		int A = 0;
+		Check(DxLib::GetPixelSoftImage(Image.Get(), static_cast<int>(Points[Index].X),
+		                               static_cast<int>(Points[Index].Y), &R, &G, &B, &A) == 0,
+		      "capture CPU pixel read failed");
+		Colors[Index] = {static_cast<Toolbox::uint8>(R), static_cast<Toolbox::uint8>(G), static_cast<Toolbox::uint8>(B),
+		                 255};
+	}
 }
 } // namespace Dxf::GameplaySmoke
