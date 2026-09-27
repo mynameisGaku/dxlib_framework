@@ -154,6 +154,10 @@ struct FColliderRecord3D
 	Toolbox::f32 Restitution = 0;
 	// 線分問い合わせ用のカテゴリ。0は問い合わせ対象外。接触には使わない。
 	Toolbox::uint32 QueryCategory = 1u;
+	// Solid／Sensorの区分。Sensorを含む組は物理応答をしない。
+	EColliderResponse Response = EColliderResponse::Solid;
+	// 接触・Triggerの組を調べるかを決める衝突カテゴリとマスク。
+	FColliderCollisionFilter Collision;
 };
 // 速度拘束の反復で使う単一接触点。
 struct FSolvePoint3D
@@ -846,6 +850,26 @@ struct FPhysicsWorld3D::FImpl
 		}
 		return *Record;
 	}
+	// 二つのColliderが物理的に応答する組か（両方Solidで、衝突フィルターが互いに許す）。
+	static bool RespondsTogether_Internal(const FColliderRecord3D& A, const FColliderRecord3D& B) noexcept
+	{
+		return A.Response == EColliderResponse::Solid && B.Response == EColliderResponse::Solid &&
+		       AllowsCollisionPair(A.Collision, B.Collision);
+	}
+	// 区分・衝突フィルターの変更後、古い接触の記録を捨て、休止中のDynamicの剛体を起こす。
+	void AfterResponseChange_Internal() noexcept
+	{
+		Cache.Clear();
+		for (Toolbox::size_t Index = 0; Index < Slots.Size(); ++Index)
+		{
+			FBodyRecord3D& Record = Slots[Index];
+			if (Record.bAlive && Record.Type == EBodyType::Dynamic)
+			{
+				Record.bSleeping = false;
+				Record.SleepTimer = 0;
+			}
+		}
+	}
 	// 正準順序が小さい方か調べる。
 	static bool ColliderLess_Internal(const FColliderId3D& A, const FColliderId3D& B) noexcept
 	{
@@ -1245,6 +1269,11 @@ struct FPhysicsWorld3D::FImpl
 		{
 			return;
 		}
+		// Sensorを含む組と、衝突フィルターが許さない組は物理応答をしない。
+		if (!RespondsTogether_Internal(RecordA, RecordB))
+		{
+			return;
+		}
 		const FColliderId3D IdA = {RecordA.Body, Pair.FirstColliderIndex, RecordA.Generation};
 		const FColliderId3D IdB = {RecordB.Body, Pair.SecondColliderIndex, RecordB.Generation};
 		if (ColliderLess_Internal(IdB, IdA))
@@ -1338,6 +1367,11 @@ struct FPhysicsWorld3D::FImpl
 				}
 				// 両方が非Dynamicの組は応答も運動もしない。
 				if (BodyA->Type != EBodyType::Dynamic && BodyB->Type != EBodyType::Dynamic)
+				{
+					continue;
+				}
+				// Sensorを含む組と、衝突フィルターが許さない組は物理応答をしない。
+				if (!RespondsTogether_Internal(RecordA, RecordB))
 				{
 					continue;
 				}
@@ -2073,6 +2107,11 @@ struct FPhysicsWorld3D::FImpl
 					{
 						continue;
 					}
+					// Sensorを含む組と、衝突フィルターが許さない組は連続衝突で止めない。
+					if (!RespondsTogether_Internal(RecordA, RecordB))
+					{
+						continue;
+					}
 					// 残り時間の変位。
 					const bool bMoverA = BodyA->Type == EBodyType::Dynamic && BodyA->bUseContinuous;
 					const bool bMoverB = BodyB->Type == EBodyType::Dynamic && BodyB->bUseContinuous;
@@ -2606,6 +2645,10 @@ FColliderId3D FPhysicsWorld3D::AttachCollider(FBodyId3D Body, const FColliderDes
 	{
 		throw Toolbox::FException("Invalid 3D collider restitution");
 	}
+	if (Description.Response != EColliderResponse::Solid && Description.Response != EColliderResponse::Sensor)
+	{
+		throw Toolbox::FException("Invalid 3D collider response");
+	}
 	// 新しい登録の初期状態。
 	FColliderRecord3D Record;
 	Record.Body = Body;
@@ -2613,6 +2656,8 @@ FColliderId3D FPhysicsWorld3D::AttachCollider(FBodyId3D Body, const FColliderDes
 	Record.Friction = Description.Friction;
 	Record.Restitution = Description.Restitution;
 	Record.QueryCategory = Description.QueryCategory;
+	Record.Response = Description.Response;
+	Record.Collision = Description.Collision;
 	// 現在の姿勢での索引用の境界と、索引の領域を先に用意する（失敗しても状態は変わらない）。
 	decltype(FColliderRecord3D::Shape) QueryWorld;
 	const auto QueryBounds = FImpl::ColliderQueryBounds_Internal(Target, Record, QueryWorld);
@@ -3240,6 +3285,35 @@ void FPhysicsWorld3D::SetColliderQueryCategory(FColliderId3D Id, Toolbox::uint32
 Toolbox::uint32 FPhysicsWorld3D::GetColliderQueryCategory(FColliderId3D Id) const
 {
 	return m_pImpl->ResolveQueryCollider_Internal(Id).QueryCategory;
+}
+// ColliderのSolid／Sensorの区分を変更する。
+void FPhysicsWorld3D::SetColliderResponse(FColliderId3D Id, EColliderResponse Response)
+{
+	// 状態・ID・値の検査がすべて成功してから書き換える。
+	(void)m_pImpl->ResolveQueryCollider_Internal(Id);
+	if (Response != EColliderResponse::Solid && Response != EColliderResponse::Sensor)
+	{
+		throw Toolbox::FException("Invalid 3D collider response");
+	}
+	m_pImpl->Colliders[Id.Index].Response = Response;
+	m_pImpl->AfterResponseChange_Internal();
+}
+// ColliderのSolid／Sensorの区分を返す。
+EColliderResponse FPhysicsWorld3D::GetColliderResponse(FColliderId3D Id) const
+{
+	return m_pImpl->ResolveQueryCollider_Internal(Id).Response;
+}
+// Colliderの衝突カテゴリとマスクを変更する。
+void FPhysicsWorld3D::SetColliderCollisionFilter(FColliderId3D Id, const FColliderCollisionFilter& Filter)
+{
+	(void)m_pImpl->ResolveQueryCollider_Internal(Id);
+	m_pImpl->Colliders[Id.Index].Collision = Filter;
+	m_pImpl->AfterResponseChange_Internal();
+}
+// Colliderの衝突カテゴリとマスクを返す。
+FColliderCollisionFilter FPhysicsWorld3D::GetColliderCollisionFilter(FColliderId3D Id) const
+{
+	return m_pImpl->ResolveQueryCollider_Internal(Id).Collision;
 }
 // 問い合わせの集計を有効／無効にする。
 void FPhysicsWorld3D::SetQueryDiagnosticsEnabled(bool bEnabled) noexcept

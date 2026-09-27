@@ -7,7 +7,7 @@ namespace Dxf
 /**
  * 問い合わせ（線分のRaycastClosest・範囲のOverlapAll）で調べるColliderの種類を、呼出しごとに指定する値。2D／3D共通。
  * 問い合わせの候補だけを絞り込み、物理的な衝突・接触応答・Snapshotの観察対象は変えない。
- * 既存の双方向の衝突フィルター（Toolbox::FCollisionFilter）とは別の、片方向の判定。
+ * 接触・Triggerの組を決める双方向の衝突フィルター（FColliderCollisionFilter）とは別の、片方向の判定。
  */
 struct FWorldQueryFilter
 {
@@ -16,6 +16,15 @@ struct FWorldQueryFilter
 	 * 既定は全ビット（絞り込みなし）。0は正常な「対象なし」で、結果は空になる（入力・状態・除外IDの検査は行う）。
 	 */
 	Toolbox::uint32 IncludeCategories = 0xffffffffu;
+	/**
+	 * Solid（EColliderResponse::Solid）のColliderを対象にするか。既定は対象にする。
+	 */
+	bool bIncludeSolid = true;
+	/**
+	 * Sensor（EColliderResponse::Sensor）のColliderを対象にするか。既定は対象にする。
+	 * キャラクター移動（StepCharacter等）は指定にかかわらずSensorを対象にしない。
+	 */
+	bool bIncludeSensors = true;
 };
 } // namespace Dxf
 #endif

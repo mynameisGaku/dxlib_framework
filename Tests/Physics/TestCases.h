@@ -115,6 +115,11 @@ const FCase* GetWorldSlideCases(Toolbox::size_t& Count) noexcept;
  * @param Count 返す配列の要素数。
  */
 const FCase* GetCharacterMovementCases(Toolbox::size_t& Count) noexcept;
+/**
+ * 2D／3DのColliderのSolid／Sensorの区分と衝突フィルター（物理応答・連続衝突・休止・問い合わせ・キャラクター移動）の回帰を返す。
+ * @param Count 返す配列の要素数。
+ */
+const FCase* GetColliderResponseCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryTreeCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryIndexEquivalenceCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryIndexContractCases(Toolbox::size_t& Count) noexcept;

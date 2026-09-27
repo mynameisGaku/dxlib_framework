@@ -2,6 +2,7 @@
 #ifndef DXF_PHYSICS_RIGID_BODY_3D_H
 #define DXF_PHYSICS_RIGID_BODY_3D_H
 #include "Dxf/BodyType.h"
+#include "Dxf/ColliderResponse.h"
 #include "Dxf/WorldSegmentHit3D.h"
 #include "Dxf/WorldQueryFilter.h"
 #include "Dxf/WorldQueryDiagnostics.h"
@@ -96,6 +97,15 @@ struct FColliderDescription3D
 	 * 0はこのWorldの問い合わせから外す指定。接触・物理更新・Snapshotには影響しない。
 	 */
 	Toolbox::uint32 QueryCategory = 1u;
+	/**
+	 * 重なりへの応じ方。既定はSolid（従来の挙動）。Sensorは重なりを観測するだけで押し返さない。
+	 */
+	EColliderResponse Response = EColliderResponse::Solid;
+	/**
+	 * 接触・Triggerの組を調べるかを決める衝突カテゴリとマスク（両側の許可が必要）。QueryCategoryとは独立。
+	 * 既定はカテゴリ1・全マスクで、従来どおり全ての組を調べる。
+	 */
+	FColliderCollisionFilter Collision;
 };
 /**
  * 接触拘束の解決設定。プロジェクトの試験条件に合わせた初期値。
@@ -466,6 +476,31 @@ public:
 	 * @param Id 対象Collider。
 	 */
 	Toolbox::uint32 GetColliderQueryCategory(FColliderId3D Id) const;
+	/**
+	 * ColliderのSolid／Sensorの区分を変更する。次のStepの接触・Trigger判定と、次の問い合わせへ反映する。
+	 * 古い接触の記録は使い回さず、休止中のDynamicの剛体を起こす（押し返しの有無が変わるため）。
+	 * 無効/別World/削除済み/旧世代のID、範囲外の値、Step中/途中失敗後はFExceptionで拒否し、値を変更しない。
+	 * @param Id 対象Collider。
+	 * @param Response 新しい区分。
+	 */
+	void SetColliderResponse(FColliderId3D Id, EColliderResponse Response);
+	/**
+	 * ColliderのSolid／Sensorの区分を返す。IDとStep状態の検査はSetColliderResponseと同じ。
+	 * @param Id 対象Collider。
+	 */
+	EColliderResponse GetColliderResponse(FColliderId3D Id) const;
+	/**
+	 * Colliderの衝突カテゴリとマスクを変更する。次のStepの接触・Trigger判定へ反映する（問い合わせには影響しない）。
+	 * 古い接触の記録は使い回さず、休止中のDynamicの剛体を起こす。IDとStep状態の検査はSetColliderResponseと同じ。
+	 * @param Id 対象Collider。
+	 * @param Filter 新しいカテゴリとマスク。
+	 */
+	void SetColliderCollisionFilter(FColliderId3D Id, const FColliderCollisionFilter& Filter);
+	/**
+	 * Colliderの衝突カテゴリとマスクを返す。IDとStep状態の検査はSetColliderResponseと同じ。
+	 * @param Id 対象Collider。
+	 */
+	FColliderCollisionFilter GetColliderCollisionFilter(FColliderId3D Id) const;
 	/**
 	 * 半径一定の球を、StartShape.CenterからEndCenterまで直線移動させたときに最初に接触する（許容距離0）Colliderを返す。
 	 * 対象は問い合わせ時点の姿勢で固定し、相手の速度で未来位置を予測しない。非交差は空、異常はFException。

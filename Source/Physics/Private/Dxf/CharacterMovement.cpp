@@ -956,6 +956,13 @@ template <typename T> void CheckCenter_Internal(const typename T::FVector& Cente
 		throw Toolbox::FException("Invalid character center");
 	}
 }
+// キャラクター移動の問い合わせの条件。Sensorは重なりを観測するだけの形状なので、障害物・接地面にしない。
+FWorldQueryFilter SolidOnly_Internal(const FWorldQueryFilter& Filter) noexcept
+{
+	FWorldQueryFilter Solid = Filter;
+	Solid.bIncludeSensors = false;
+	return Solid;
+}
 } // namespace
 
 FCharacterRecovery2D ResolveCharacterOverlap(const FPhysicsWorld2D& World, Toolbox::FVector2 Center,
@@ -967,7 +974,8 @@ FCharacterRecovery2D ResolveCharacterOverlap(const FPhysicsWorld2D& World, Toolb
 	CheckCenter_Internal<F2D_Internal>(Center);
 	FBudget_Internal Budget;
 	Budget.Limit = Settings.MaxQueries;
-	return RecoverCore_Internal<F2D_Internal>(World, Center, Settings, ExcludedBody, Filter, Budget);
+	return RecoverCore_Internal<F2D_Internal>(World, Center, Settings, ExcludedBody, SolidOnly_Internal(Filter),
+	                                          Budget);
 }
 FCharacterRecovery3D ResolveCharacterOverlap(const FPhysicsWorld3D& World, Toolbox::FVector3 Center,
                                              const FCharacterMoveSettings3D& Settings,
@@ -978,7 +986,8 @@ FCharacterRecovery3D ResolveCharacterOverlap(const FPhysicsWorld3D& World, Toolb
 	CheckCenter_Internal<F3D_Internal>(Center);
 	FBudget_Internal Budget;
 	Budget.Limit = Settings.MaxQueries;
-	return RecoverCore_Internal<F3D_Internal>(World, Center, Settings, ExcludedBody, Filter, Budget);
+	return RecoverCore_Internal<F3D_Internal>(World, Center, Settings, ExcludedBody, SolidOnly_Internal(Filter),
+	                                          Budget);
 }
 FCharacterMoveResult2D MoveAndSlide(const FPhysicsWorld2D& World, Toolbox::FVector2 Center,
                                     Toolbox::FVector2 Displacement, const FCharacterMoveSettings2D& Settings,
@@ -996,7 +1005,7 @@ FCharacterMoveResult2D MoveAndSlide(const FPhysicsWorld2D& World, Toolbox::FVect
 	Mode.Up = Checked.Up;
 	Mode.CosMaxSlope = Checked.CosMaxSlope;
 	return MoveCore_Internal<F2D_Internal>(World, Center, F2D_Internal::Load(Displacement), Settings, Mode,
-	                                       ExcludedBody, Filter, Budget);
+	                                       ExcludedBody, SolidOnly_Internal(Filter), Budget);
 }
 FCharacterMoveResult3D MoveAndSlide(const FPhysicsWorld3D& World, Toolbox::FVector3 Center,
                                     Toolbox::FVector3 Displacement, const FCharacterMoveSettings3D& Settings,
@@ -1014,7 +1023,7 @@ FCharacterMoveResult3D MoveAndSlide(const FPhysicsWorld3D& World, Toolbox::FVect
 	Mode.Up = Checked.Up;
 	Mode.CosMaxSlope = Checked.CosMaxSlope;
 	return MoveCore_Internal<F3D_Internal>(World, Center, F3D_Internal::Load(Displacement), Settings, Mode,
-	                                       ExcludedBody, Filter, Budget);
+	                                       ExcludedBody, SolidOnly_Internal(Filter), Budget);
 }
 FCharacterGround2D ProbeCharacterGround(const FPhysicsWorld2D& World, Toolbox::FVector2 Center,
                                         const FCharacterMoveSettings2D& Settings,
@@ -1025,8 +1034,8 @@ FCharacterGround2D ProbeCharacterGround(const FPhysicsWorld2D& World, Toolbox::F
 	FBudget_Internal Budget;
 	Budget.Limit = Settings.MaxQueries;
 	bool bQueryLimit = false;
-	return GroundCore_Internal<F2D_Internal>(World, Center, Settings, Checked, ExcludedBody, Filter, Budget,
-	                                         bQueryLimit);
+	return GroundCore_Internal<F2D_Internal>(World, Center, Settings, Checked, ExcludedBody, SolidOnly_Internal(Filter),
+	                                         Budget, bQueryLimit);
 }
 FCharacterGround3D ProbeCharacterGround(const FPhysicsWorld3D& World, Toolbox::FVector3 Center,
                                         const FCharacterMoveSettings3D& Settings,
@@ -1037,21 +1046,23 @@ FCharacterGround3D ProbeCharacterGround(const FPhysicsWorld3D& World, Toolbox::F
 	FBudget_Internal Budget;
 	Budget.Limit = Settings.MaxQueries;
 	bool bQueryLimit = false;
-	return GroundCore_Internal<F3D_Internal>(World, Center, Settings, Checked, ExcludedBody, Filter, Budget,
-	                                         bQueryLimit);
+	return GroundCore_Internal<F3D_Internal>(World, Center, Settings, Checked, ExcludedBody, SolidOnly_Internal(Filter),
+	                                         Budget, bQueryLimit);
 }
 FCharacterStepResult2D StepCharacter(const FPhysicsWorld2D& World, const FCharacterMoveSettings2D& Settings,
                                      const FCharacterState2D& State, const FCharacterMoveInput2D& Input,
                                      Toolbox::f64 DeltaSeconds, Toolbox::TOptional<FBodyId2D> ExcludedBody,
                                      const FWorldQueryFilter& Filter)
 {
-	return StepCore_Internal<F2D_Internal>(World, Settings, State, Input, DeltaSeconds, ExcludedBody, Filter);
+	return StepCore_Internal<F2D_Internal>(World, Settings, State, Input, DeltaSeconds, ExcludedBody,
+	                                       SolidOnly_Internal(Filter));
 }
 FCharacterStepResult3D StepCharacter(const FPhysicsWorld3D& World, const FCharacterMoveSettings3D& Settings,
                                      const FCharacterState3D& State, const FCharacterMoveInput3D& Input,
                                      Toolbox::f64 DeltaSeconds, Toolbox::TOptional<FBodyId3D> ExcludedBody,
                                      const FWorldQueryFilter& Filter)
 {
-	return StepCore_Internal<F3D_Internal>(World, Settings, State, Input, DeltaSeconds, ExcludedBody, Filter);
+	return StepCore_Internal<F3D_Internal>(World, Settings, State, Input, DeltaSeconds, ExcludedBody,
+	                                       SolidOnly_Internal(Filter));
 }
 } // namespace Dxf

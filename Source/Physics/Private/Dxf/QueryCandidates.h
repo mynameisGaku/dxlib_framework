@@ -2,6 +2,7 @@
 #ifndef DXF_PRIVATE_PHYSICS_QUERY_CANDIDATES_H
 #define DXF_PRIVATE_PHYSICS_QUERY_CANDIDATES_H
 #include "QueryIndex.h"
+#include "Dxf/ColliderResponse.h"
 #include "Dxf/WorldQueryDiagnostics.h"
 #include "Dxf/WorldQueryFilter.h"
 #include "Toolbox/Optional.h"
@@ -80,6 +81,11 @@ bool VisitQueryCandidates_Internal(const TQuerySource<Dimension, TRecord>& Sourc
 	auto Eligible = [&](const TRecord& Record)
 	{
 		if ((Record.QueryCategory & Filter.IncludeCategories) == 0)
+		{
+			return false;
+		}
+		// Solid／Sensorの区分で対象外なら、形状を変換・計算しない。
+		if (!(Record.Response == EColliderResponse::Sensor ? Filter.bIncludeSensors : Filter.bIncludeSolid))
 		{
 			return false;
 		}

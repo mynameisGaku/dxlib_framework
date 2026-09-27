@@ -15,6 +15,7 @@ function(dxf_add_physics_tests Target CoreTarget)
         "${_root}/Tests/Physics/WorldQueryTests.cpp"
         "${_root}/Tests/Physics/WorldQuery2DTests.cpp"
         "${_root}/Tests/Physics/WorldQueryFilterTests.cpp"
+        "${_root}/Tests/Physics/ColliderResponseTests.cpp"
         "${_root}/Tests/Physics/WorldOverlapTests.cpp"
         "${_root}/Tests/Physics/WorldSweepTests.cpp"
         "${_root}/Tests/Physics/WorldSweepNormalTests.cpp"
