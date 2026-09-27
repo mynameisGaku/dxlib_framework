@@ -47,6 +47,11 @@ struct FCase2D
 	{
 		Description.Shape = Toolbox::FOrientedBox2D{Center, {HalfX, HalfY}, 0};
 	}
+	// 押す箱（2Dは正方形）。
+	static void Cube(FColliderDescription& Description, f32 Half)
+	{
+		Description.Shape = Toolbox::FOrientedBox2D{{}, {Half, Half}, 0};
+	}
 	static auto& World(FScene& Scene)
 	{
 		return Scene.GetPhysicsWorld();
@@ -54,6 +59,11 @@ struct FCase2D
 	static auto Probe(FVector Center, f32 Radius)
 	{
 		return Toolbox::FCircle2D{Center, Radius};
+	}
+	// 中心線が上向きのカプセル（半高・半径）。
+	static auto Capsule(FVector Center, f32 Half, f32 Radius)
+	{
+		return Toolbox::FCapsule2D{{Center.X, Center.Y - Half}, {Center.X, Center.Y + Half}, Radius};
 	}
 };
 // 3Dの型と配置（Z=0の平面に2Dと同じ配置を作る）。
@@ -83,6 +93,11 @@ struct FCase3D
 	{
 		Description.Shape = Toolbox::FOBB{Center, {HalfX, HalfY, 50}};
 	}
+	// 押す箱（3Dは立方体。奥行き100の棒に既定の慣性を与えると物理的でない）。
+	static void Cube(FColliderDescription& Description, f32 Half)
+	{
+		Description.Shape = Toolbox::FOBB{{}, {Half, Half, Half}};
+	}
 	static auto& World(FScene& Scene)
 	{
 		return Scene.GetPhysicsWorld();
@@ -90,6 +105,11 @@ struct FCase3D
 	static auto Probe(FVector Center, f32 Radius)
 	{
 		return Toolbox::FSphere{Center, Radius};
+	}
+	// 中心線が上向きのカプセル（半高・半径）。
+	static auto Capsule(FVector Center, f32 Half, f32 Radius)
+	{
+		return Toolbox::FCapsule{{Center.X, Center.Y - Half, Center.Z}, {Center.X, Center.Y + Half, Center.Z}, Radius};
 	}
 };
 
@@ -132,12 +152,12 @@ private:
 	f32 m_HalfY;
 };
 
-// 床に置くDynamicの箱（半幅0.5、質量1）。
+// 床に置くDynamicの箱（半幅0.5、既定の質量1）。
 template <typename T> class TCrateObject : public DGameObject
 {
 public:
-	// 箱の中心を受け取る。
-	explicit TCrateObject(typename T::FVector Center) : m_Center(Center)
+	// 箱の中心と質量を受け取る。
+	explicit TCrateObject(typename T::FVector Center, f32 Mass = 1) : m_Center(Center), m_Mass(Mass)
 	{
 	}
 	// 登録した剛体のID。
@@ -155,13 +175,14 @@ protected:
 		typename T::FBodyDescription Body;
 		Body.Type = EBodyType::Dynamic;
 		Body.Position = m_Center;
+		Body.Mass = m_Mass;
 		auto Rigid = AddComponent<typename T::FRigidBody>(Body);
 		if (!Rigid)
 		{
 			return TResult<void>::Failure(Rigid.Error());
 		}
 		typename T::FColliderDescription Collider;
-		T::Box(Collider, T::At(0, 0), 0.5f, 0.5f);
+		T::Cube(Collider, 0.5f);
 		auto Attached = AddComponent<typename T::FCollider>(Collider);
 		if (!Attached)
 		{
@@ -173,6 +194,8 @@ protected:
 private:
 	// 箱の中心。
 	typename T::FVector m_Center;
+	// 箱の質量。
+	f32 m_Mass;
 };
 
 // キャラクター（必要なら同じオブジェクトに剛体も付ける）。
@@ -447,21 +470,24 @@ template <typename T> void CapsuleHeight_Internal()
 }
 
 // 押し合い: 押す設定のキャラクターは、押す要求を同じ固定更新の物理Stepの前に箱へ適用する（要求を出した固定更新の後に
-// 箱は既に速度を持ち、進んでいる）。既定の設定では押さず、箱はKinematicのキャラクターのBodyに当たって止まるだけ。
+// 箱は既に速度を持ち、進んでいる）。既定の設定では押さない。押しても動かない重い箱（質量200）を押し続けても、
+// 押した箱を障害物から外さず（自分のBodyとして除外しない）、キャラクターは箱へめり込まない。
 template <typename T> void Push_Internal()
 {
-	for (int32 Case = 0; Case < 2; ++Case)
+	for (int32 Case = 0; Case < 3; ++Case)
 	{
 		FFixture Fixture;
 		typename T::FScene Scene;
 		auto Description = Description_Internal<T>(T::At(0, 0.92f));
 		Description.Settings.Shape = ECharacterShape::Capsule;
 		Description.Settings.HalfHeight = 0.4;
-		Description.Settings.bPushDynamicBodies = Case == 0;
+		Description.Settings.bPushDynamicBodies = Case != 1;
+		// 自分のBodyを登録しない（箱を動かすのは押す要求のImpulseだけにし、物理の押し戻しで結果を隠さない）。
+		Description.bRegisterBody = false;
 		auto Character = Scene.template Spawn<TCharacterObject<T>>(Description);
 		REQUIRE(Character);
 		REQUIRE(Scene.template Spawn<TBoxObject<T>>(T::At(0, -1), 50.0f, 1.0f));
-		auto Crate = Scene.template Spawn<TCrateObject<T>>(T::At(2, 0.5f));
+		auto Crate = Scene.template Spawn<TCrateObject<T>>(T::At(2, 0.5f), Case == 2 ? 200.0f : 1.0f);
 		REQUIRE(Crate);
 		REQUIRE(Scene.Initialize_Internal(Fixture.Init()));
 		auto& Mover = Character.Value().Get()->Character();
@@ -475,11 +501,19 @@ template <typename T> void Push_Internal()
 		{
 			const auto Before = World.GetPosition(Box);
 			REQUIRE(Scene.Tick_Internal(Fixture.Tick(1.0 / 60.0)));
-			if (Mover.GetLastStep().Pushes.Count > 0 && !bSameTick)
+			if (Case == 0 && Mover.GetLastStep().Pushes.Count > 0 && !bSameTick)
 			{
 				// 要求を出した固定更新のStepで、箱は既に動いた。
 				bSameTick = T::X(World.GetPosition(Box)) > T::X(Before) && T::X(World.GetVelocity(Box)) > 0;
 				REQUIRE(bSameTick);
+			}
+			// 押した箱も障害物のまま（自分のBodyとして除外しない）:
+			// キャラクターのカプセルは箱から接触余裕（0.02）を保つ （箱の向きによらない。丸めの分だけ緩めて0.015）。
+			const auto Contacts =
+			    World.QueryCapsuleContacts(T::Capsule(Mover.GetCenter(), 0.4f, 0.5f), 0.1, Mover.GetBodyId());
+			for (Toolbox::uint32 Index = 0; Index < Contacts.Count; ++Index)
+			{
+				REQUIRE(!(Contacts.Items[Index].Collider.Body == Box) || Contacts.Items[Index].Separation > 0.015);
 			}
 		}
 		if (Case == 0)
@@ -489,6 +523,7 @@ template <typename T> void Push_Internal()
 		else
 		{
 			REQUIRE(!bSameTick && Abs(T::X(World.GetPosition(Box)) - 2) < 0.05);
+			REQUIRE(Case == 1 || Mover.GetLastStep().Pushes.Count > 0);
 		}
 		Scene.Shutdown_Internal();
 	}

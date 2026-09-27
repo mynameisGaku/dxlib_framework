@@ -78,8 +78,38 @@ void BoxWall3D_Internal()
 	}
 }
 
+// 3D: 奥行きの半幅が同じ（0.5／5／50）箱と床（側面が同じ平面に揃う）。慣性は棒の寸法から与える（既定の(1,1,1)では
+// 長い棒の腕50mに対して回転が効きすぎ、速度の反復が収束せずに沈む）。箱は床の上（中心y=0.5）に留まる。
+void DeepBoxRests3D_Internal()
+{
+	for (f32 Depth : {0.5f, 5.0f, 50.0f})
+	{
+		FPhysicsWorld3D World;
+		FBodyDescription3D Static;
+		Static.Type = EBodyType::Static;
+		Static.Position = {0, -1, 0};
+		const auto Floor = World.CreateBody(Static);
+		FColliderDescription3D FloorShape;
+		FloorShape.Shape = FOBB{{0, 0, 0}, {50, 1, Depth}};
+		World.AttachCollider(Floor, FloorShape);
+		FBodyDescription3D Dynamic;
+		Dynamic.Position = {2, 0.5f, 0};
+		Dynamic.DiagonalInertia = {(0.25f + Depth * Depth) / 3, (0.25f + Depth * Depth) / 3, 0.5f / 3};
+		const auto Box = World.CreateBody(Dynamic);
+		FColliderDescription3D BoxShape;
+		BoxShape.Shape = FOBB{{0, 0, 0}, {0.5f, 0.5f, Depth}};
+		World.AttachCollider(Box, BoxShape);
+		for (int32 Index = 0; Index < 90; ++Index)
+		{
+			World.Step(StepSeconds);
+		}
+		PHYSICS_REQUIRE(Abs(f64(World.GetPosition(Box).Y) - 0.5) < 0.02);
+	}
+}
+
 const PhysicsTest::FCase Cases_Internal[] = {{"2D box stops at a wall face", &BoxWall2D_Internal},
-                                             {"3D box stops at a wall face", &BoxWall3D_Internal}};
+                                             {"3D box stops at a wall face", &BoxWall3D_Internal},
+                                             {"3D box rests on a floor of the same depth", &DeepBoxRests3D_Internal}};
 } // namespace
 const PhysicsTest::FCase* PhysicsTest::GetBoxWallContactCases(size_t& Count) noexcept
 {
