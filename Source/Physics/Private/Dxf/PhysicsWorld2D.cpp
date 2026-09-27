@@ -2963,6 +2963,44 @@ void FPhysicsWorld2D::SetEventSettings(const FWorldEventSettings& Settings)
 		m_pImpl->EventHits.Reserve(8);
 	}
 }
+// Bodyの運動区分を返す。
+EBodyType FPhysicsWorld2D::GetBodyType(FBodyId2D Id) const
+{
+	return m_pImpl->Resolve_Internal(Id).Type;
+}
+// Bodyに固定した点の、次のStepの後の位置を返す。
+Toolbox::FVector2 FPhysicsWorld2D::PredictBodyPoint(FBodyId2D Id, Toolbox::FVector2 WorldPoint,
+                                                    Toolbox::f64 DeltaSeconds) const
+{
+	m_pImpl->RequireQueryState_Internal();
+	const FBodyRecord2D& Record = m_pImpl->Resolve_Internal(Id);
+	if (!WorldPoint.IsValid() || !Toolbox::IsFinite(DeltaSeconds) || DeltaSeconds <= 0)
+	{
+		throw Toolbox::FException("Invalid 2D body point prediction");
+	}
+	if (Record.Type == EBodyType::Dynamic)
+	{
+		throw Toolbox::FException("Dynamic 2D body motion is not predictable before Step");
+	}
+	if (Record.Type == EBodyType::Static)
+	{
+		return WorldPoint;
+	}
+	// 現在の姿勢でのローカル位置（Stepの前後で同じ）。
+	const Toolbox::f64 Cosine = Toolbox::Cos(Toolbox::f64(Record.Angle));
+	const Toolbox::f64 Sine = Toolbox::Sin(Toolbox::f64(Record.Angle));
+	const Toolbox::f64 DeltaX = Toolbox::f64(WorldPoint.X) - Record.Position.X;
+	const Toolbox::f64 DeltaY = Toolbox::f64(WorldPoint.Y) - Record.Position.Y;
+	const Toolbox::f64 LocalX = Cosine * DeltaX + Sine * DeltaY;
+	const Toolbox::f64 LocalY = -Sine * DeltaX + Cosine * DeltaY;
+	// Stepと同じ積分（位置と角度）で次の姿勢を作る。
+	FBodyRecord2D Next = Record;
+	IntegratePosition_Internal(Next, DeltaSeconds);
+	const Toolbox::f64 NextCosine = Toolbox::Cos(Toolbox::f64(Next.Angle));
+	const Toolbox::f64 NextSine = Toolbox::Sin(Toolbox::f64(Next.Angle));
+	return {static_cast<Toolbox::f32>(Toolbox::f64(Next.Position.X) + NextCosine * LocalX - NextSine * LocalY),
+	        static_cast<Toolbox::f32>(Toolbox::f64(Next.Position.Y) + NextSine * LocalX + NextCosine * LocalY)};
+}
 // 接触・Triggerのイベントの設定を返す。
 FWorldEventSettings FPhysicsWorld2D::GetEventSettings() const noexcept
 {

@@ -519,6 +519,21 @@ public:
 	 */
 	void SetEventSettings(const FWorldEventSettings& Settings);
 	/**
+	 * Bodyの運動区分を返す。期限切れIDは例外で通知する。
+	 * @param Id 登録を識別する世代付きID。
+	 */
+	EBodyType GetBodyType(FBodyId3D Id) const;
+	/**
+	 * Bodyに固定した点が、次のStep(DeltaSeconds)（分割数1）の後にどこにあるかを、Stepと同じ積分で返す。
+	 * 動く床に乗るキャラクターの追従など、Stepの前に床の運動を参照する場合に使う（Worldを変更しない）。
+	 * Kinematicは現在の速度・角速度で進めた位置、Staticは同じ位置。Dynamicは力・接触で変わるため例外で拒否する。
+	 * 期限切れID、非有限の点、非有限・非正の秒数、Step中/途中失敗後はFExceptionで拒否する。
+	 * @param Id 対象のBody。
+	 * @param WorldPoint 現在の姿勢でのワールド位置。
+	 * @param DeltaSeconds 次のStepの秒数。
+	 */
+	Toolbox::FVector3 PredictBodyPoint(FBodyId3D Id, Toolbox::FVector3 WorldPoint, Toolbox::f64 DeltaSeconds) const;
+	/**
 	 * 接触・Triggerのイベントの設定を返す。
 	 */
 	FWorldEventSettings GetEventSettings() const noexcept;

@@ -3465,6 +3465,40 @@ void FPhysicsWorld3D::SetEventSettings(const FWorldEventSettings& Settings)
 		m_pImpl->EventHits.Reserve(8);
 	}
 }
+// Bodyの運動区分を返す。
+EBodyType FPhysicsWorld3D::GetBodyType(FBodyId3D Id) const
+{
+	return m_pImpl->Resolve_Internal(Id).Type;
+}
+// Bodyに固定した点の、次のStepの後の位置を返す。
+Toolbox::FVector3 FPhysicsWorld3D::PredictBodyPoint(FBodyId3D Id, Toolbox::FVector3 WorldPoint,
+                                                    Toolbox::f64 DeltaSeconds) const
+{
+	m_pImpl->RequireQueryState_Internal();
+	const FBodyRecord3D& Record = m_pImpl->Resolve_Internal(Id);
+	if (!WorldPoint.IsValid() || !Toolbox::IsFinite(DeltaSeconds) || DeltaSeconds <= 0)
+	{
+		throw Toolbox::FException("Invalid 3D body point prediction");
+	}
+	if (Record.Type == EBodyType::Dynamic)
+	{
+		throw Toolbox::FException("Dynamic 3D body motion is not predictable before Step");
+	}
+	if (Record.Type == EBodyType::Static)
+	{
+		return WorldPoint;
+	}
+	// 現在の姿勢でのローカル位置（Stepの前後で同じ）。
+	const Toolbox::FVector3 Local = Record.Orientation.Conjugate().Rotate(
+	    {WorldPoint.X - Record.Position.X, WorldPoint.Y - Record.Position.Y, WorldPoint.Z - Record.Position.Z});
+	// Stepと同じ積分で次の姿勢を作る。
+	FBodyRecord3D Next = Record;
+	IntegratePosition_Internal(Next, DeltaSeconds);
+	const FVector3D Angular = {Record.AngularVelocity.X, Record.AngularVelocity.Y, Record.AngularVelocity.Z};
+	IntegrateOrientation_Internal(Next.Orientation, Angular, DeltaSeconds);
+	const Toolbox::FVector3 Offset = Next.Orientation.Rotate(Local);
+	return {Next.Position.X + Offset.X, Next.Position.Y + Offset.Y, Next.Position.Z + Offset.Z};
+}
 // 接触・Triggerのイベントの設定を返す。
 FWorldEventSettings FPhysicsWorld3D::GetEventSettings() const noexcept
 {

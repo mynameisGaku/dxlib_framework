@@ -279,6 +279,15 @@ FORCEINLINE f64 Cos(f64 Value)
 	return cos(Value);
 }
 /**
+ * 点(X, Y)の偏角（-π〜π、ラジアン）を返す。
+ * @param Y Y成分。
+ * @param X X成分。
+ */
+FORCEINLINE f64 Atan2(f64 Y, f64 X)
+{
+	return atan2(Y, X);
+}
+/**
  * 最も近い整数へ丸める。中間値はゼロから遠い方へ丸める。
  * @param Value 処理または保持する値。
  */
