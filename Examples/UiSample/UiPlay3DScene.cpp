@@ -47,7 +47,7 @@ void DUiPlay3DScene::OnDraw(FRenderContext& Render) const
 	const bool Split = m_Ui.GetState()->Split.Get();
 	m_Ui.SetWorldMarker(Center);
 	Require_Internal(m_Ui.PreparePanels(Render));
-	for (const auto& View : MakeSampleViews(Split))
+	for (const auto& View : MakeSampleViews(Split, Render.GetTargetWidth(), Render.GetTargetHeight()))
 	{
 		Require_Internal(Render.Get3D().SetView(View));
 		FDrawStyle3D Style;

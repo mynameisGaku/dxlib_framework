@@ -269,9 +269,14 @@ void FUiSampleShell::ExecuteAction(const FTickContext& Context)
 FInputSnapshot FUiSampleShell::RouteInput(const FTickContext& Context)
 {
 	RefreshDisplays();
+	if (Context.Window.bKnown && Context.Window.RenderWidth > 0 && Context.Window.RenderHeight > 0)
+	{
+		m_RenderWidth = Context.Window.RenderWidth;
+		m_RenderHeight = Context.Window.RenderHeight;
+	}
 	if (m_b3D)
 	{
-		m_Host.SetWorldViews3D(MakeSampleViews(m_pState->Split.Get()));
+		m_Host.SetWorldViews3D(MakeSampleViews(m_pState->Split.Get(), m_RenderWidth, m_RenderHeight));
 	}
 	if (m_ReadStatus)
 	{
@@ -307,7 +312,7 @@ TResult<void> FUiSampleShell::Draw(FRenderContext& Render)
 void FUiSampleShell::SetWorldMarker(Toolbox::FVector3 Center)
 {
 	const bool Split = m_pState->Split.Get();
-	const auto Views = MakeSampleViews(Split);
+	const auto Views = MakeSampleViews(Split, m_RenderWidth, m_RenderHeight);
 	const auto Surface = m_Host.GetSurface(m_Screen);
 	for (Toolbox::size_t I = 0; I < 2; ++I)
 	{
@@ -324,7 +329,7 @@ void FUiSampleShell::SetWorldMarker(Toolbox::FVector3 Center)
 		FVector2 Screen;
 		if (m_b3D)
 		{
-			auto P = ProjectWorldToScreen(Views[I], 1280, 720, Center);
+			auto P = ProjectWorldToScreen(Views[I], m_RenderWidth, m_RenderHeight, Center);
 			if (!P || !P.Value().bInsideView)
 			{
 				Marker->SetVisibility(EUiVisibility::Collapsed);

@@ -12,6 +12,11 @@
 #include "Dxf/Application.h"
 #include "Dxf/NativeBackends.h"
 #include "Dxf/UiSlider.h"
+#include "DxLib.h"
+// Windowsの文字種選択マクロが、Toolboxの同名の関数を書き換えるのを防ぐ。
+#ifdef CreateDirectory
+#undef CreateDirectory
+#endif
 #include "Toolbox/Platform.h"
 namespace
 {
@@ -185,9 +190,35 @@ int main(int Count, char** Args)
 			Check(!State->Split.Get(), "split toggle off");
 			Click(App, Input, Frame, "Split");
 			Check(State->Split.Get(), "split toggle on");
+			// 拡縮の扱い（2回で「描画先を合わせる」）と透明なワールドのパネルを、設定の実部品で選ぶ。
+			Click(App, Input, Frame, "ResizeMode");
+			Click(App, Input, Frame, "ResizeMode");
+			Click(App, Input, Frame, "TransparentPanel");
+			Check(State->ResizeMode.Get() == 2 && State->TransparentPanel.Get(), "resize and transparency settings");
 			Click(App, Input, Frame, "CloseSettings");
 			Click(App, Input, Frame, "Resume");
 			Check(!App.GetScenes().GetCurrent()->GetClock().IsPaused(), "resume");
+			// 自アプリのウィンドウを拡縮し、同じ寸法で描き・操作できる（透明なワールドのパネルも実描画する）。
+			Check(DxLib::SetWindowSize(1001, 501) == 0, "sample window resize");
+			for (Toolbox::int32 I = 0; I < 3; ++I)
+			{
+				Step(App, Frame);
+			}
+			Check(Shell(App).GetRoot().GetSurface().GetPixelRect().Right == 1001, "sample UI follows the render size");
+			Click(App, Input, Frame, "Pause");
+			Check(App.GetScenes().GetCurrent()->GetClock().IsPaused(), "pause after resize");
+			Click(App, Input, Frame, "Resume");
+			// 最小化・復帰の後も同じ流れを続ける。
+			(void)ShowWindow(DxLib::GetMainWindowHandle(), SW_MINIMIZE);
+			for (Toolbox::int32 I = 0; I < 5; ++I)
+			{
+				Step(App, Frame);
+			}
+			(void)ShowWindow(DxLib::GetMainWindowHandle(), SW_RESTORE);
+			for (Toolbox::int32 I = 0; I < 3; ++I)
+			{
+				Step(App, Frame);
+			}
 			Click(App, Input, Frame, "Pause");
 			// タイトルへ戻る前の確認：いいえで一時停止へ戻り、はいでタイトルへ戻る。
 			Click(App, Input, Frame, "Title");

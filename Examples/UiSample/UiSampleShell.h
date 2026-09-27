@@ -90,6 +90,9 @@ private:
 	bool m_bPaused = false;
 	bool m_bLastSplit = false;
 	bool m_bLastTransparent = false;
+	// このフレームの描画先の寸法（ウィンドウの状態から。取得できなければ起動時の寸法）。
+	Toolbox::int32 m_RenderWidth = 1280;
+	Toolbox::int32 m_RenderHeight = 720;
 	FUiDisplayId m_WorldDisplay = 0;
 	FUiWorldPanel2D m_WorldPanel2D;
 	FUiWorldPanel3D m_WorldPanel3D;

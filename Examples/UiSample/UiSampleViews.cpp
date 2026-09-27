@@ -2,7 +2,7 @@
 #include "UiSampleViews.h"
 namespace Dxf::UiSample
 {
-Toolbox::TVector<FRenderView3D> MakeSampleViews(bool bSplit)
+Toolbox::TVector<FRenderView3D> MakeSampleViews(bool bSplit, Toolbox::int32 Width, Toolbox::int32 Height)
 {
 	Toolbox::TVector<FRenderView3D> Views;
 	for (Toolbox::int32 I = 0; I < (bSplit ? 2 : 1); ++I)
@@ -12,7 +12,7 @@ Toolbox::TVector<FRenderView3D> MakeSampleViews(bool bSplit)
 		View.Target = {6, 1, 0};
 		View.Id = 1;
 		View.bViewport = bSplit;
-		View.Viewport = {I * 640, 0, (I + 1) * 640, 720};
+		View.Viewport = {I * Width / 2, 0, (I + 1) * Width / 2, Height};
 		View.LightDirection = {0, -1, 1};
 		Views.PushBack(View);
 	}

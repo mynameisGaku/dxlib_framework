@@ -9,7 +9,8 @@ namespace Dxf::UiSample
 /**
  * 入力と描画が共用する、当該フレームの明示ビュー。
  */
-Toolbox::TVector<FRenderView3D> MakeSampleViews(bool bSplit);
+// Width・Heightはこのフレームの描画先の寸法（2画面では左右へ等分する）。
+Toolbox::TVector<FRenderView3D> MakeSampleViews(bool bSplit, Toolbox::int32 Width = 1280, Toolbox::int32 Height = 720);
 /**
  * 2Dゲームのワールド→画面変換。
  */
