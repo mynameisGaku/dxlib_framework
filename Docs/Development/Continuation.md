@@ -2,7 +2,9 @@
 
 # 開発継続記録
 
-## 現在地（2026-09-22更新）
+## 現在地（2026-09-27更新）
+
+### 実装済み・このSHAで検証済み
 
 - P0完了：`/showIncludes`接頭辞の文字化け注入を廃止し、CMake自動検出へ。
   fixtureと実ツリー＋隔離worktreeで増分再ビルドを検証。
@@ -15,10 +17,33 @@
   残りは起床伝播の追加回帰とCCD方針の明文化。
 - P5完了：Application共有Task基盤（Dispatcher・Scope・Step反映・終了順序）。
 - P6完了：非同期Asset（CPU検証・メモリ取込・期限切れチケット）。
-- P7進行中：並列描画命令生成（入力順一括反映・失敗時不変）。
-- 残り：P8 最終検証。
+- P7完了：並列描画命令生成（入力順一括反映・失敗時不変）。
+- S1〜S4完了：カプセル幾何・World統合・キャラクターカプセル・Dynamic押し合い
+  （`fa2c762`、`e33577e`、`2fa6043`、`b2f8e3c`、`e4ba140`）。
+- S5完了（`fafaee9`）：Solverとイベントの組の候補を問い合わせの索引から集める経路。
+  総当たり参照との一致（2D／3D）、疎な1024個での候補削減、索引不可座標でのフォールバックを検証。
+- 3Dの箱どうしの接触喪失を修正（`fafaee9`）。SATの2本目の箱の投影半径が1本目の箱の値になっていた。
+  詳細は[Physicsの進捗記録](../Physics/Progress.md)の「個別記録(KD)」。
 
-## 開始位置
+### 検証結果（SHA `fafaee9`）
+
+- `dxf_physics_tests.exe`（Release）: 27群すべて成功。3回連続で同じ結果（終了コード0）。
+- `dxf_physics_tests.exe`（Debug）: 終了コード0。
+- `dxf_tests.exe`（Release）: 364/364。
+- `python Tools/CheckNoStl.py`: 645ファイル、違反0。
+
+### 未実施（この指令書の残り）
+
+- S6: GameplaySampleへカプセル・低い通路・しゃがみ／天井・押せる箱・圧力板・扉・移動床＋箱・
+  Trigger・Checkpoint・Round／Capsule切替・Push ON／OFFのゲーム経路を追加。
+- S7: Benchmark系列（capsule-static／dense／trigger、push-1／16／64、broadphase-off／on／
+  sparse／dense、capsule-moving-floor）、配送予約の1 allocation／Step、故障注入、変異。
+- S8: 最終回帰（Debug／ReleaseのCTest全群、ValidateDebug、NoSTL、Python、公開ヘッダー単独、
+  通常／Development solution、Package Native 4構成、Benchmark、IDE filterの自動検査）。
+- このSHAは未push。`origin/main`は`385bd96`、ローカルは6コミット先行。
+  backup参照: `refs/backup/main-20260927-e4ba140`（S5着手前）。
+
+## 開始位置（P0系 multipliers の開始時）
 
 - 開始HEAD: `68b4456e4686af7f33f3be54f35615c03fb94dd6`（main、origin/mainと一致、作業前クリーン）
 - 作業前backup参照: `refs/backup/main-20260921-68b4456`
