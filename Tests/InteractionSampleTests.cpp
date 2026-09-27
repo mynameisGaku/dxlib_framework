@@ -338,8 +338,161 @@ template <typename T> void Window_Internal()
 		REQUIRE(Original.Scene().GetGameRules().GetCrateStays() == Changed.Scene().GetGameRules().GetCrateStays());
 	}
 }
+// 箱の物理の位置（描画の補間ではない）。
+template <typename T, typename TScene> typename T::FVector CratePosition_Internal(TScene& Scene, const auto& Handle)
+{
+	const auto* Crate = Handle.Get();
+	REQUIRE(Crate != nullptr && Crate->GetRigid() != nullptr);
+	return Scene.GetPhysicsWorld().GetPosition(Crate->GetRigid()->GetBodyId());
+}
+// カプセル: 立つと低い天井の手前で止まり、しゃがむと通れ、天井の下では立てず、出てから立つ（足元は同じ高さ）。
+template <typename T> void CapsuleCrouch_Internal()
+{
+	TSampleApp<typename T::FScene> App;
+	auto& Scene = App.Scene();
+	Scene.ToggleShape();
+	App.Step(3);
+	auto& Character = Scene.GetPlayer()->GetCharacter();
+	REQUIRE(Character.GetSettings().Shape == ECharacterShape::Capsule);
+	REQUIRE(Character.GetSettings().HalfHeight == InteractionLayout::StandHalfHeight);
+	// 中心は0.52f+0.4をf32へ丸めた値（0.92fと1ulp違い得る）。
+	REQUIRE(Toolbox::Abs(Character.GetCenter().Y - 0.92) < 1e-6 && Character.GetCenter().X == 0 &&
+	        Character.IsGrounded());
+	Character.Teleport(T::At(40, 3.92f));
+	App.Hold(EKey::D, true);
+	App.Step(60);
+	// 上端の球（中心y=4.32）と天井の角(41.5, 4.5)の距離が0.52で止まる。
+	const Toolbox::f64 Blocked = 41.5 - Toolbox::Sqrt(0.52 * 0.52 - 0.18 * 0.18);
+	REQUIRE(Toolbox::Abs(Character.GetCenter().X - Blocked) < 0.01);
+	App.Hold(EKey::C, true);
+	for (Toolbox::int32 Frame = 0; Frame < 120 && Character.GetCenter().X < 42.5f; ++Frame)
+	{
+		App.Step();
+	}
+	REQUIRE(Character.GetCenter().X >= 42.5f &&
+	        Character.GetSettings().HalfHeight == InteractionLayout::CrouchHalfHeight);
+	REQUIRE(Toolbox::Abs(Character.GetCenter().Y - 3.62) < 1e-4);
+	// 天井の下では、しゃがむ入力を離しても立ち上がれない。
+	App.Hold(EKey::D, false);
+	App.Hold(EKey::C, false);
+	App.Step(10);
+	REQUIRE(Character.GetSettings().HalfHeight == InteractionLayout::CrouchHalfHeight);
+	// 天井の角(41.5, 4.5)から0.47（√(0.5²−0.18²)）より左へ出ると立ち上がれる。
+	App.Hold(EKey::A, true);
+	for (Toolbox::int32 Frame = 0; Frame < 90 && Character.GetCenter().X > 40.9f; ++Frame)
+	{
+		App.Step();
+	}
+	App.Hold(EKey::A, false);
+	App.Step(3);
+	REQUIRE(Character.GetSettings().HalfHeight == InteractionLayout::StandHalfHeight);
+	REQUIRE(Toolbox::Abs(Character.GetCenter().Y - 3.92) < 1e-4 && Character.IsGrounded());
+	// 円／球へ戻すと足元を保って中心が下がる。
+	Scene.ToggleShape();
+	App.Step(3);
+	REQUIRE(Character.GetSettings().Shape == ECharacterShape::Round);
+	REQUIRE(Toolbox::Abs(Character.GetCenter().Y - 3.52) < 1e-4);
+}
+// 押し合い:
+// 触れる箱を圧力板まで押すと扉が開き（プレイヤーは板に乗っていない）、重い箱は動かない。昇降床の箱は一緒に上がる。
+template <typename T> void Push_Internal()
+{
+	TSampleApp<typename T::FScene> App;
+	auto& Scene = App.Scene();
+	Scene.TogglePush();
+	auto& Character = Scene.GetPlayer()->GetCharacter();
+	Character.Teleport(T::At(1.5f, 0.52f));
+	App.Hold(EKey::D, true);
+	for (Toolbox::int32 Frame = 0; Frame < 600 && CratePosition_Internal<T>(Scene, Scene.GetCourse().Crate).X < 9.3f;
+	     ++Frame)
+	{
+		App.Step();
+	}
+	App.Hold(EKey::D, false);
+	App.Step(10);
+	REQUIRE(CratePosition_Internal<T>(Scene, Scene.GetCourse().Crate).X >= 9.3f);
+	REQUIRE(Character.GetCenter().X + 0.5f < InteractionLayout::PlateX - InteractionLayout::PlateHalfX);
+	REQUIRE(Scene.GetGameRules().GetPlateOccupants() >= 1 && Scene.GetGameRules().IsDoorOpen());
+	// 重い箱。
+	Character.Teleport(T::At(-1, 0.52f));
+	App.Hold(EKey::A, true);
+	App.Step(90);
+	App.Hold(EKey::A, false);
+	REQUIRE(Toolbox::Abs(CratePosition_Internal<T>(Scene, Scene.GetCourse().HeavyCrate).X -
+	                     InteractionLayout::HeavyCrateX) < 0.05);
+	REQUIRE(Character.GetCenter().X > InteractionLayout::HeavyCrateX + 0.9f);
+	// 昇降床の箱: 一周期（約12.6秒）の間、床に載ったまま上面3の近くまで上がる。
+	Toolbox::f32 Highest = 0;
+	for (Toolbox::int32 Frame = 0; Frame < 760; ++Frame)
+	{
+		App.Step();
+		const auto Lift = CratePosition_Internal<T>(Scene, Scene.GetCourse().LiftCrate);
+		REQUIRE(Toolbox::Abs(Lift.X - InteractionLayout::LiftX) < InteractionLayout::LiftHalfX);
+		Highest = Toolbox::Max(Highest, Lift.Y);
+	}
+	REQUIRE(Highest > 3.0f);
+}
+// カプセル・押し合いでも、表示数だけを変えた二つのサンプルは同じに進む。一時停止中の切り替えは固定更新を増やさない。
+template <typename T> void ModeViews_Internal()
+{
+	TSampleApp<typename T::FScene> Left;
+	TSampleApp<typename T::FScene> Right;
+	for (auto* App : {&Left, &Right})
+	{
+		App->Scene().ToggleShape();
+		App->Scene().TogglePush();
+		App->Hold(EKey::D, true);
+	}
+	Right.Scene().ToggleSplit();
+	for (Toolbox::int32 Frame = 0; Frame < 150; ++Frame)
+	{
+		Left.Step();
+		Right.Step();
+		REQUIRE(Left.Scene().GetPlayer()->GetCharacter().GetCenter() ==
+		        Right.Scene().GetPlayer()->GetCharacter().GetCenter());
+		REQUIRE(CratePosition_Internal<T>(Left.Scene(), Left.Scene().GetCourse().Crate) ==
+		        CratePosition_Internal<T>(Right.Scene(), Right.Scene().GetCourse().Crate));
+	}
+	Left.Hold(EKey::D, false);
+	Left.Press(EKey::F1);
+	REQUIRE(Left.Scene().GetClock().IsPaused());
+	const auto Steps = Left.Scene().GetPlayer()->GetCharacter().GetStepCount();
+	Left.Scene().ToggleShape();
+	Left.Scene().TogglePush();
+	Left.Step(10);
+	REQUIRE(Left.Scene().GetPlayer()->GetCharacter().GetStepCount() == Steps);
+	REQUIRE(Left.Scene().GetPlayer()->GetCharacter().GetSettings().Shape == ECharacterShape::Capsule);
+	Left.Press(EKey::F1);
+	Left.Step(3);
+	REQUIRE(Left.Scene().GetPlayer()->GetCharacter().GetSettings().Shape == ECharacterShape::Round);
+	REQUIRE(!Left.Scene().GetPlayer()->GetCharacter().GetSettings().bPushDynamicBodies);
+}
 
 } // namespace
+TEST("Interaction 2D capsule crouches under the low ceiling")
+{
+	CapsuleCrouch_Internal<FSample2D>();
+}
+TEST("Interaction 3D capsule crouches under the low ceiling")
+{
+	CapsuleCrouch_Internal<FSample3D>();
+}
+TEST("Interaction 2D pushes a crate onto the plate and not the heavy crate")
+{
+	Push_Internal<FSample2D>();
+}
+TEST("Interaction 3D pushes a crate onto the plate and not the heavy crate")
+{
+	Push_Internal<FSample3D>();
+}
+TEST("Interaction 2D capsule and push keep views and pause independent")
+{
+	ModeViews_Internal<FSample2D>();
+}
+TEST("Interaction 3D capsule and push keep views and pause independent")
+{
+	ModeViews_Internal<FSample3D>();
+}
 TEST("Interaction 2D starts on its course")
 {
 	Start_Internal<FSample2D>();

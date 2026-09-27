@@ -68,6 +68,27 @@ public:
 	{
 		return m_bSplit;
 	}
+	/**
+	 * キャラクターの遊び方（形状・押し合い）。
+	 */
+	FORCEINLINE const FInteractionMode& GetMode() const noexcept override
+	{
+		return m_Mode;
+	}
+	/**
+	 * 円／球とカプセルを切り替える（設定画面のボタンと同じ）。
+	 */
+	FORCEINLINE void ToggleShape() noexcept
+	{
+		m_Mode.ToggleShape();
+	}
+	/**
+	 * 押し合いの有無を切り替える（設定画面のボタンと同じ）。
+	 */
+	FORCEINLINE void TogglePush() noexcept
+	{
+		m_Mode.TogglePush();
+	}
 
 protected:
 	/**
@@ -90,6 +111,10 @@ private:
 	void RespawnPlayer() override
 	{
 		Respawn();
+	}
+	DPlayer2D* GetPlayerObject() const noexcept override
+	{
+		return GetPlayer();
 	}
 	/**
 	 * 一つの画面を描く。
@@ -117,6 +142,10 @@ private:
 	 * 2画面表示か。
 	 */
 	bool m_bSplit = false;
+	/**
+	 * キャラクターの遊び方。
+	 */
+	FInteractionMode m_Mode;
 };
 } // namespace Dxf::GameplaySample
 #endif

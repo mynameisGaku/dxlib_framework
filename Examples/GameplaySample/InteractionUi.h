@@ -14,9 +14,11 @@ class FInteractionUi final : public IInputRouter
 {
 public:
 	/**
-	 * Sceneと文字資源へ接続する。ToggleSplitは表示設定だけを変更する。
+	 * Sceneと文字資源へ接続する。ToggleSplitは表示設定だけを、ToggleShape／TogglePushは遊び方だけを変更する
+	 * （物理の状態は変えず、一時停止中の切り替えは再開後の固定更新から反映される）。
 	 */
-	void Initialize(DScene& Scene, FAssetService& Assets, Toolbox::TFunction<void()> ToggleSplit);
+	void Initialize(DScene& Scene, FAssetService& Assets, Toolbox::TFunction<void()> ToggleSplit,
+	                Toolbox::TFunction<void()> ToggleShape, Toolbox::TFunction<void()> TogglePush);
 	/**
 	 * Sceneが生存している間に入力の接続を外す。
 	 */

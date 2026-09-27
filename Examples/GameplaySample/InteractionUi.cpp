@@ -4,7 +4,8 @@
 #include "Dxf/UiButton.h"
 namespace Dxf::GameplaySample
 {
-void FInteractionUi::Initialize(DScene& Scene, FAssetService& Assets, Toolbox::TFunction<void()> ToggleSplit)
+void FInteractionUi::Initialize(DScene& Scene, FAssetService& Assets, Toolbox::TFunction<void()> ToggleSplit,
+                                Toolbox::TFunction<void()> ToggleShape, Toolbox::TFunction<void()> TogglePush)
 {
 	m_pScene = &Scene;
 	m_pText = Toolbox::MakeUnique<FUiAssetTextService>(Assets);
@@ -26,9 +27,15 @@ void FInteractionUi::Initialize(DScene& Scene, FAssetService& Assets, Toolbox::T
 	Panel.Get()->CreateChild<DUiLabel>("Settings / physics paused");
 	auto Split = Panel.Get()->CreateChild<DUiButton>("Toggle 1 / 2 views");
 	Split.Get()->SetHeight(FUiLength::Fixed(40));
+	auto Shape = Panel.Get()->CreateChild<DUiButton>("Character: Round / Capsule");
+	Shape.Get()->SetHeight(FUiLength::Fixed(40));
+	auto Push = Panel.Get()->CreateChild<DUiButton>("Push boxes: On / Off");
+	Push.Get()->SetHeight(FUiLength::Fixed(40));
 	auto Close = Panel.Get()->CreateChild<DUiButton>("Resume / F1");
 	Close.Get()->SetHeight(FUiLength::Fixed(40));
 	m_Scope.Add(Split.Get()->OnClicked().Subscribe(Toolbox::Move(ToggleSplit)));
+	m_Scope.Add(Shape.Get()->OnClicked().Subscribe(Toolbox::Move(ToggleShape)));
+	m_Scope.Add(Push.Get()->OnClicked().Subscribe(Toolbox::Move(TogglePush)));
 	m_Scope.Add(Close.Get()->OnClicked().Subscribe(
 	    [this]()
 	    {

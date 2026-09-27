@@ -239,6 +239,7 @@ set(DXF_GAMEPLAY_SAMPLE_SOURCES
     Examples/GameplaySample/CharacterSample2DScene.cpp
     Examples/GameplaySample/CharacterSample3DScene.cpp
     Examples/GameplaySample/InteractionLayout.cpp
+    Examples/GameplaySample/InteractionMode.cpp
     Examples/GameplaySample/InteractionRules.cpp
     Examples/GameplaySample/InteractionUi.cpp
     Examples/GameplaySample/InteractionHud.cpp

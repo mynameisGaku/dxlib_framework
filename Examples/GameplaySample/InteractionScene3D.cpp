@@ -78,8 +78,11 @@ void DInteraction3DScene::Respawn()
 	if (DPlayer3D* Player = GetPlayer())
 	{
 		const Toolbox::int32 Index = m_Rules.GetCheckpoint();
-		Player->GetCharacter().Teleport(
-		    {InteractionLayout::CheckpointX[Index], InteractionLayout::CheckpointY[Index], 0});
+		// 記録した中心は円／球の高さなので、カプセルでは半高だけ上げて足元を合わせる。
+		const auto& Settings = Player->GetCharacter().GetSettings();
+		const Toolbox::f64 Lift = Settings.Shape == ECharacterShape::Capsule ? Settings.HalfHeight : 0;
+		Player->GetCharacter().Teleport({InteractionLayout::CheckpointX[Index],
+		                                 static_cast<Toolbox::f32>(InteractionLayout::CheckpointY[Index] + Lift), 0});
 		m_Rules.Respawned();
 	}
 }
@@ -156,11 +159,20 @@ TResult<void> DInteraction3DScene::OnInitialize(const FInitContext& Context)
 		return TResult<void>::Failure(Font.Error());
 	}
 	m_Font = Font.Value();
-	m_Ui.Initialize(*this, Context.Assets,
-	                [this]()
-	                {
-		                ToggleSplit();
-	                });
+	m_Ui.Initialize(
+	    *this, Context.Assets,
+	    [this]()
+	    {
+		    ToggleSplit();
+	    },
+	    [this]()
+	    {
+		    ToggleShape();
+	    },
+	    [this]()
+	    {
+		    TogglePush();
+	    });
 	if (auto Spawned = SpawnInteractionCourse<FInteraction3D>(*this, *this, m_Course); !Spawned)
 	{
 		return Spawned;
@@ -245,11 +257,41 @@ void DInteraction3DScene::OnDraw(FRenderContext& Render) const
 			                                          Crate->GetRigid()->GetRenderOrientation(), {Half, Half, Half}),
 			                             Style));
 		}
+		// 重い箱と、昇降床に載せた箱。
+		const TObjectHandle<TInteractionCrate<FInteraction3D>> Extra[2] = {m_Course.HeavyCrate, m_Course.LiftCrate};
+		for (const auto& Handle : Extra)
+		{
+			if (const auto* Extra3D = Handle.Get(); Extra3D != nullptr && Extra3D->GetRigid() != nullptr)
+			{
+				Style.Color = Extra3D->GetRole() == EInteractionCrate::Heavy ? FColor{90, 70, 60, 255}
+				                                                             : FColor{200, 150, 90, 255};
+				const Toolbox::f32 Half = Extra3D->GetHalf();
+				RequireSample(
+				    Draw3D.DrawBox(Box_Internal(Extra3D->GetRigid()->GetRenderPosition(),
+				                                Extra3D->GetRigid()->GetRenderOrientation(), {Half, Half, Half}),
+				                   Style));
+			}
+		}
+		Style.Color = {60, 70, 90, 255};
+		RequireSample(Draw3D.DrawBox(Box_Internal(TInteractionLowCeiling<FInteraction3D>::Center(), {},
+		                                          {InteractionLayout::LowCeilingHalfX,
+		                                           InteractionLayout::LowCeilingHalfY, InteractionLayout::DepthHalf}),
+		                             Style));
 		if (const DPlayer3D* Player = GetPlayer(); Player != nullptr && Player->IsInitialized())
 		{
 			Style.Color = PlayerColor;
 			const DCharacterMovement3DComponent& Character = Player->GetCharacter();
-			RequireSample(Draw3D.DrawSphere({Character.GetRenderCenter(), Character.GetSettings().Radius}, Style, 20));
+			const FCharacterMoveSettings3D& Settings = Character.GetSettings();
+			const Toolbox::FVector3 Center = Character.GetRenderCenter();
+			if (Settings.Shape == ECharacterShape::Capsule)
+			{
+				// 中心線はUpに沿う。両端の球と、その間を埋める球で示す。
+				const Toolbox::FVector3 Axis =
+				    Toolbox::Normalize(Settings.Up) * static_cast<Toolbox::f32>(Settings.HalfHeight);
+				RequireSample(Draw3D.DrawSphere({Center - Axis, Settings.Radius}, Style, 20));
+				RequireSample(Draw3D.DrawSphere({Center + Axis, Settings.Radius}, Style, 20));
+			}
+			RequireSample(Draw3D.DrawSphere({Center, Settings.Radius}, Style, 20));
 		}
 	}
 	auto& Draw = Render.Get2D();
@@ -277,5 +319,7 @@ void DInteraction3DScene::OnDraw(FRenderContext& Render) const
 	         MoveStopName(Character.GetLastStep().Horizontal.Stop), MoveStopName(Character.GetLastStep().Vertical.Stop),
 	         GetClock().IsPaused() ? "[PAUSED]" : "");
 	RequireSample(Draw.DrawText(m_Font, Line, {16, 96}, Text));
+	InteractionModeText(m_Mode, Line);
+	RequireSample(Draw.DrawText(m_Font, Line, {16, 124}, Text));
 }
 } // namespace Dxf::GameplaySample

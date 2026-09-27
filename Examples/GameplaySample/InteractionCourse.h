@@ -5,9 +5,11 @@
 #include "InteractionCrate.h"
 #include "InteractionDoor.h"
 #include "InteractionHazard.h"
+#include "InteractionLowCeiling.h"
 #include "InteractionPickup.h"
 #include "InteractionPlatform.h"
 #include "InteractionPressurePlate.h"
+#include "InteractionStance.h"
 #include "Toolbox/Array.h"
 namespace Dxf::GameplaySample
 {
@@ -72,6 +74,19 @@ template <typename T> struct TInteractionCourse
 	 * 危険領域。
 	 */
 	TObjectHandle<TInteractionHazard<T>> Hazard;
+	/**
+	 * 重い箱と、昇降床に載せた箱。
+	 */
+	TObjectHandle<TInteractionCrate<T>> HeavyCrate;
+	TObjectHandle<TInteractionCrate<T>> LiftCrate;
+	/**
+	 * 上の段の低い天井。
+	 */
+	TObjectHandle<TInteractionLowCeiling<T>> LowCeiling;
+	/**
+	 * 遊び方としゃがむ入力の反映。
+	 */
+	TObjectHandle<TInteractionStance<T>> Stance;
 };
 /**
  * 生成の結果を検査して、ハンドルを返す。
@@ -141,6 +156,26 @@ TResult<void> SpawnInteractionCourse(TScene& Scene, IInteractionHost<T>& Host, T
 		}
 	}
 	if (auto Kept = Keep_Internal(Scene.template Spawn<TInteractionHazard<T>>(Host), Course.Hazard); !Kept)
+	{
+		return Kept;
+	}
+	if (auto Kept = Keep_Internal(Scene.template Spawn<TInteractionCrate<T>>(Host, EInteractionCrate::Heavy),
+	                              Course.HeavyCrate);
+	    !Kept)
+	{
+		return Kept;
+	}
+	if (auto Kept =
+	        Keep_Internal(Scene.template Spawn<TInteractionCrate<T>>(Host, EInteractionCrate::Lift), Course.LiftCrate);
+	    !Kept)
+	{
+		return Kept;
+	}
+	if (auto Kept = Keep_Internal(Scene.template Spawn<TInteractionLowCeiling<T>>(), Course.LowCeiling); !Kept)
+	{
+		return Kept;
+	}
+	if (auto Kept = Keep_Internal(Scene.template Spawn<TInteractionStance<T>>(Host), Course.Stance); !Kept)
 	{
 		return Kept;
 	}

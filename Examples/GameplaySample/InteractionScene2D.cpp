@@ -88,7 +88,11 @@ void DInteraction2DScene::Respawn()
 	if (DPlayer2D* Player = GetPlayer())
 	{
 		const Toolbox::int32 Index = m_Rules.GetCheckpoint();
-		Player->GetCharacter().Teleport({InteractionLayout::CheckpointX[Index], InteractionLayout::CheckpointY[Index]});
+		// 記録した中心は円／球の高さなので、カプセルでは半高だけ上げて足元を合わせる。
+		const auto& Settings = Player->GetCharacter().GetSettings();
+		const Toolbox::f64 Lift = Settings.Shape == ECharacterShape::Capsule ? Settings.HalfHeight : 0;
+		Player->GetCharacter().Teleport({InteractionLayout::CheckpointX[Index],
+		                                 static_cast<Toolbox::f32>(InteractionLayout::CheckpointY[Index] + Lift)});
 		m_Rules.Respawned();
 	}
 }
@@ -141,11 +145,20 @@ TResult<void> DInteraction2DScene::OnInitialize(const FInitContext& Context)
 		return TResult<void>::Failure(Font.Error());
 	}
 	m_Font = Font.Value();
-	m_Ui.Initialize(*this, Context.Assets,
-	                [this]()
-	                {
-		                ToggleSplit();
-	                });
+	m_Ui.Initialize(
+	    *this, Context.Assets,
+	    [this]()
+	    {
+		    ToggleSplit();
+	    },
+	    [this]()
+	    {
+		    ToggleShape();
+	    },
+	    [this]()
+	    {
+		    TogglePush();
+	    });
 	if (auto Spawned = SpawnInteractionCourse<FInteraction2D>(*this, *this, m_Course); !Spawned)
 	{
 		return Spawned;
@@ -252,10 +265,37 @@ void DInteraction2DScene::DrawView_Internal(FRenderContext& Render, Toolbox::int
 		    Crate->GetRigid()->GetRenderAngle(),
 		    m_Rules.IsTouchingCrate() ? FColor{230, 130, 90, 255} : FColor{160, 110, 80, 255}, 5);
 	}
+	// 重い箱と、昇降床に載せた箱。
+	const TObjectHandle<TInteractionCrate<FInteraction2D>> Extra[2] = {m_Course.HeavyCrate, m_Course.LiftCrate};
+	for (const auto& Handle : Extra)
+	{
+		if (const auto* Extra2D = Handle.Get(); Extra2D != nullptr && Extra2D->GetRigid() != nullptr)
+		{
+			Box(Extra2D->GetRigid()->GetRenderPosition(), {Extra2D->GetHalf(), Extra2D->GetHalf()},
+			    Extra2D->GetRigid()->GetRenderAngle(),
+			    Extra2D->GetRole() == EInteractionCrate::Heavy ? FColor{90, 70, 60, 255} : FColor{200, 150, 90, 255},
+			    5);
+		}
+	}
+	Box(TInteractionLowCeiling<FInteraction2D>::Center(),
+	    {InteractionLayout::LowCeilingHalfX, InteractionLayout::LowCeilingHalfY}, 0, {60, 70, 90, 255}, 0);
 	if (const DPlayer2D* Player = GetPlayer(); Player != nullptr && Player->IsInitialized())
 	{
 		const DCharacterMovement2DComponent& Character = Player->GetCharacter();
-		Circle(Character.GetRenderCenter(), Character.GetSettings().Radius, PlayerColor, 10);
+		const FCharacterMoveSettings2D& Settings = Character.GetSettings();
+		const Toolbox::FVector2 Center = Character.GetRenderCenter();
+		if (Settings.Shape == ECharacterShape::Capsule)
+		{
+			// 中心線は上向き（Up）。両端の円と、その間の矩形で示す。
+			const Toolbox::f32 Half = static_cast<Toolbox::f32>(Settings.HalfHeight);
+			Circle(Center + Toolbox::FVector2{0, -Half}, Settings.Radius, PlayerColor, 10);
+			Circle(Center + Toolbox::FVector2{0, Half}, Settings.Radius, PlayerColor, 10);
+			Box(Center, {Settings.Radius, Half}, 0, PlayerColor, 10);
+		}
+		else
+		{
+			Circle(Center, Settings.Radius, PlayerColor, 10);
+		}
 	}
 }
 void DInteraction2DScene::OnDraw(FRenderContext& Render) const
@@ -298,5 +338,7 @@ void DInteraction2DScene::OnDraw(FRenderContext& Render) const
 	         GroundName(Character.GetGround().State), MoveStopName(Character.GetLastStep().Horizontal.Stop),
 	         MoveStopName(Character.GetLastStep().Vertical.Stop), GetClock().IsPaused() ? "[PAUSED]" : "");
 	RequireSample(Draw.DrawText(m_Font, Line, {16, 96}, Text));
+	InteractionModeText(m_Mode, Line);
+	RequireSample(Draw.DrawText(m_Font, Line, {16, 124}, Text));
 }
 } // namespace Dxf::GameplaySample

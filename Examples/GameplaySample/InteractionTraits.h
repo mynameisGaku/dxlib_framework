@@ -2,6 +2,7 @@
 #ifndef DXF_GAMEPLAY_SAMPLE_INTERACTION_TRAITS_H
 #define DXF_GAMEPLAY_SAMPLE_INTERACTION_TRAITS_H
 #include "InteractionLayout.h"
+#include "InteractionMode.h"
 #include "InteractionRules.h"
 #include "SampleCharacters.h"
 #include "Dxf/ContactListenerComponent2D.h"
@@ -168,6 +169,14 @@ public:
 	 * プレイヤーを最後のチェックポイントへ戻す（支持・速度・補間の履歴を初期化する）。
 	 */
 	virtual void RespawnPlayer() = 0;
+	/**
+	 * キャラクターの遊び方（形状・押し合い）。
+	 */
+	virtual const FInteractionMode& GetMode() const noexcept = 0;
+	/**
+	 * プレイヤー（初期化前・破棄後はnullptr）。
+	 */
+	virtual typename T::FPlayer* GetPlayerObject() const noexcept = 0;
 
 protected:
 	/**

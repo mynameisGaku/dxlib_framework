@@ -109,6 +109,33 @@ constexpr Toolbox::f32 HazardHalfY = 1;
  * 3Dの奥行きの半幅（地形・床）。
  */
 constexpr Toolbox::f32 DepthHalf = 2;
+/**
+ * 押しても動かない重い箱（Dynamic、質量50、開始点の左）。
+ */
+constexpr Toolbox::f32 HeavyCrateX = -2.5f;
+constexpr Toolbox::f32 HeavyCrateHalf = 0.5f;
+constexpr Toolbox::f32 HeavyCrateMass = 50;
+/**
+ * 昇降床に載せた箱（Dynamic、半幅0.3）。
+ */
+constexpr Toolbox::f32 LiftCrateHalf = 0.3f;
+/**
+ * 上の段C2の低い天井（x∈[41.5,43.5]、下面y=4.5）。立ったカプセル（高さ1.8）は通れず、しゃがむ（高さ1.2）と通れる。
+ * 円／球（高さ1.0）は立ったまま通れる。
+ */
+constexpr Toolbox::f32 LowCeilingX = 42.5f;
+constexpr Toolbox::f32 LowCeilingHalfX = 1;
+constexpr Toolbox::f32 LowCeilingBottom = 4.5f;
+constexpr Toolbox::f32 LowCeilingHalfY = 0.5f;
+/**
+ * カプセルのキャラクターの立った／しゃがんだ半高（半径0.5）。
+ */
+constexpr Toolbox::f64 StandHalfHeight = 0.4;
+constexpr Toolbox::f64 CrouchHalfHeight = 0.1;
+/**
+ * 押し合いを有効にしたときの、1回の固定更新で1つの箱へ与えるImpulseの上限。
+ */
+constexpr Toolbox::f64 PushImpulse = 0.5;
 } // namespace InteractionLayout
 } // namespace Dxf::GameplaySample
 #endif
