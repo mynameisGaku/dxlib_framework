@@ -3,6 +3,7 @@
 #define DXF_PHYSICS_RIGID_BODY_3D_H
 #include "Dxf/BodyType.h"
 #include "Dxf/ColliderResponse.h"
+#include "Dxf/WorldEvent.h"
 #include "Dxf/WorldSegmentHit3D.h"
 #include "Dxf/WorldQueryFilter.h"
 #include "Dxf/WorldQueryDiagnostics.h"
@@ -208,6 +209,14 @@ using FPhysicsSnapshot3D = TPhysicsSnapshot<FBodyId3D, FColliderId3D,
  * 力・重力・Impulseで動く立体剛体を所有し、接触拘束を解く。
  * 単一スレッドで使用し、DxLibや描画を知らない。
  */
+/**
+ * 3Dの接触・Triggerの状態遷移。ColliderAはスロット番号が小さい方。
+ */
+using FWorldEvent3D = TWorldEvent<FColliderId3D, Toolbox::FVector3>;
+/**
+ * 3Dの一回の成功したStepのイベントの集まり。
+ */
+using FWorldEventBatch3D = TWorldEventBatch<FWorldEvent3D>;
 class FPhysicsWorld3D
 {
 public:
@@ -501,6 +510,23 @@ public:
 	 * @param Id 対象Collider。
 	 */
 	FColliderCollisionFilter GetColliderCollisionFilter(FColliderId3D Id) const;
+	/**
+	 * 接触・Triggerのイベントの生成を設定する。有効化・設定の変更では以前の組の記録を捨て、次に成功したStepのバッチを
+	 * bReset（今ある組がすべてBegin）にする。無効化では保持している領域を解放する。有効化の時点でMaxPairsの領域を確保する。
+	 * イベントは成功したStepの完了時点の形状で決める離散的な集合の差で、1回のStepの間に通過した重なりは通知しない。
+	 * 不正な値、Step中はFExceptionで拒否し、設定を変更しない。無効な間は判定・保持の費用を持たない。
+	 * @param Settings 新しい設定。
+	 */
+	void SetEventSettings(const FWorldEventSettings& Settings);
+	/**
+	 * 接触・Triggerのイベントの設定を返す。
+	 */
+	FWorldEventSettings GetEventSettings() const noexcept;
+	/**
+	 * 直前に成功したStepのイベントのバッチを返す。参照は次のStep・SetEventSettings・Worldの破棄まで有効。
+	 * 読んでも消費しない。途中で失敗したStepの後と無効な間はbPublishedがfalseで、Eventsは空。
+	 */
+	const FWorldEventBatch3D& GetEventBatch() const noexcept;
 	/**
 	 * 半径一定の球を、StartShape.CenterからEndCenterまで直線移動させたときに最初に接触する（許容距離0）Colliderを返す。
 	 * 対象は問い合わせ時点の姿勢で固定し、相手の速度で未来位置を予測しない。非交差は空、異常はFException。

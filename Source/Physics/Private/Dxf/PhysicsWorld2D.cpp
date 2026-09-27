@@ -5,6 +5,7 @@
 #include "QueryCandidates.h"
 #include "QueryResultOrder.h"
 #include "WorldQueryShapes2D.h"
+#include "WorldEventTracker.h"
 #include "Toolbox/ContinuousCollision.h"
 #include "Toolbox/SegmentIntersection2D.h"
 #include "Toolbox/ShapeSweep2D.h"
@@ -472,6 +473,12 @@ struct FPhysicsWorld2D::FImpl
 	FPhysicsExecutionDiagnostics ExecutionDiagnostics;
 	// 明示的なSnapshot採取に渡すStep完了情報。
 	PhysicsPrivate::FSnapshotStepState SnapshotState;
+	// 接触・Triggerのイベントの記録（無効な間は領域を持たない）。
+	PhysicsPrivate::TWorldEventTracker<FColliderId2D, Toolbox::FVector2> Events;
+	// イベントの組の候補を作る作業領域（Stepをまたいで容量を使い回す）。
+	Toolbox::TVector<PhysicsPrivate::FBroadPhaseEntry> EventEntries;
+	Toolbox::TVector<PhysicsPrivate::FBroadPhasePair> EventPairs;
+	Toolbox::TVector<Toolbox::FContactPoint2D> EventHits;
 	// 休止の条件。
 	FSleepSettings2D Sleep;
 	// World問い合わせの索引（Colliderの検索用の派生情報。形状・Bodyの所有者はこのWorld）。
@@ -606,6 +613,153 @@ struct FPhysicsWorld2D::FImpl
 				Record.SleepTimer = 0;
 			}
 		}
+	}
+	// イベントの組の種類。Sensorを含む組はTrigger（一方がStatic以外）、Solid同士はContact（一方がDynamic）。
+	// 衝突フィルターが許さない組・対象外の組は空。
+	static Toolbox::TOptional<EWorldEventKind> EventKind_Internal(const FColliderRecord2D& A,
+	                                                              const FBodyRecord2D& BodyA,
+	                                                              const FColliderRecord2D& B,
+	                                                              const FBodyRecord2D& BodyB) noexcept
+	{
+		if (!AllowsCollisionPair(A.Collision, B.Collision))
+		{
+			return {};
+		}
+		if (A.Response == EColliderResponse::Sensor || B.Response == EColliderResponse::Sensor)
+		{
+			if (BodyA.Type == EBodyType::Static && BodyB.Type == EBodyType::Static)
+			{
+				return {};
+			}
+			return EWorldEventKind::Trigger;
+		}
+		if (BodyA.Type != EBodyType::Dynamic && BodyB.Type != EBodyType::Dynamic)
+		{
+			return {};
+		}
+		return EWorldEventKind::Contact;
+	}
+	// 現在の形状の距離がMargin以下か。求められた場合はBからAへ向く法線を返す。
+	bool EventTouch_Internal(const FColliderRecord2D& A, const FBodyRecord2D& BodyA, const FColliderRecord2D& B,
+	                         const FBodyRecord2D& BodyB, Toolbox::f32 Margin,
+	                         Toolbox::TOptional<Toolbox::FVector2>& Normal)
+	{
+		const Toolbox::size_t IndexA = A.Shape.Index();
+		const Toolbox::size_t IndexB = B.Shape.Index();
+		Toolbox::FContactPoint2D Hit;
+		if (IndexA == 0 && IndexB == 0)
+		{
+			Hit = Toolbox::FindContact(ToWorld_Internal(BodyA, A.Shape.template Get<0>()),
+			                           ToWorld_Internal(BodyB, B.Shape.template Get<0>()));
+		}
+		else if (IndexA == 0 && IndexB == 1)
+		{
+			Hit = Toolbox::FindContact(ToWorld_Internal(BodyA, A.Shape.template Get<0>()),
+			                           ToWorld_Internal(BodyB, B.Shape.template Get<1>()));
+		}
+		else if (IndexA == 1 && IndexB == 0)
+		{
+			Hit = Toolbox::FindContact(ToWorld_Internal(BodyA, A.Shape.template Get<1>()),
+			                           ToWorld_Internal(BodyB, B.Shape.template Get<0>()));
+		}
+		else
+		{
+			EventHits.Clear();
+			FindBoxContacts_Internal(ToWorld_Internal(BodyA, A.Shape.template Get<1>()),
+			                         ToWorld_Internal(BodyB, B.Shape.template Get<1>()), Margin, EventHits);
+			if (EventHits.IsEmpty())
+			{
+				return false;
+			}
+			Hit = EventHits[0];
+		}
+		if (!(Hit.Separation <= Margin))
+		{
+			return false;
+		}
+		if (Hit.Normal.IsValid())
+		{
+			Normal = Hit.Normal;
+		}
+		return true;
+	}
+	// 成功したStepの完了時点の姿勢で、接触・Triggerの組を集める。組はスロット番号の辞書順（BroadPhaseの順）。
+	void CollectEvents_Internal()
+	{
+		EventEntries.Clear();
+		for (Toolbox::size_t Index = 0; Index < Colliders.Size(); ++Index)
+		{
+			const FColliderRecord2D& Record = Colliders[Index];
+			if (!Record.bAlive)
+			{
+				continue;
+			}
+			const FBodyRecord2D* Body = Find_Internal(Record.Body);
+			if (Body == nullptr)
+			{
+				continue;
+			}
+			PhysicsPrivate::FBroadPhaseEntry Entry;
+			Entry.ColliderIndex = Index;
+			Entry.BodyIndex = Record.Body.Index;
+			Entry.BodyGeneration = Record.Body.Generation;
+			// Static同士の組は動かないため調べない（BroadPhaseの「動く側」の印に使う）。
+			Entry.bDynamic = Body->Type != EBodyType::Static;
+			Entry.Bounds = ToBounds_Internal(*Body, Record);
+			EventEntries.PushBack(Entry);
+		}
+		const Toolbox::f32 Margin = Events.GetSettings().ContactMargin;
+		PhysicsPrivate::FBroadPhase::Generate(EventEntries, Margin, nullptr, EventPairs);
+		for (Toolbox::size_t Index = 0; Index < EventPairs.Size(); ++Index)
+		{
+			const Toolbox::size_t First = EventPairs[Index].FirstColliderIndex;
+			const Toolbox::size_t Second = EventPairs[Index].SecondColliderIndex;
+			const FColliderRecord2D& RecordA = Colliders[First];
+			const FColliderRecord2D& RecordB = Colliders[Second];
+			const FBodyRecord2D* BodyA = Find_Internal(RecordA.Body);
+			const FBodyRecord2D* BodyB = Find_Internal(RecordB.Body);
+			if (BodyA == nullptr || BodyB == nullptr)
+			{
+				continue;
+			}
+			const Toolbox::TOptional<EWorldEventKind> Kind = EventKind_Internal(RecordA, *BodyA, RecordB, *BodyB);
+			if (!Kind)
+			{
+				continue;
+			}
+			typename decltype(Events)::FPair Pair;
+			Pair.A = {RecordA.Body, First, RecordA.Generation};
+			Pair.B = {RecordB.Body, Second, RecordB.Generation};
+			Pair.Kind = *Kind;
+			if (!EventTouch_Internal(RecordA, *BodyA, RecordB, *BodyB,
+			                         *Kind == EWorldEventKind::Trigger ? 0.0f : Margin, Pair.Normal))
+			{
+				continue;
+			}
+			if (*Kind == EWorldEventKind::Trigger)
+			{
+				Pair.Normal.Reset();
+			}
+			Events.Add(Pair);
+		}
+	}
+	// 前回の組が今回ない理由。
+	EWorldEventEndReason EndReason_Internal(const typename decltype(Events)::FPair& Pair) const noexcept
+	{
+		const FColliderRecord2D* A = FindCollider_Internal(Pair.A);
+		const FColliderRecord2D* B = FindCollider_Internal(Pair.B);
+		const FBodyRecord2D* BodyA = A != nullptr ? Find_Internal(A->Body) : nullptr;
+		const FBodyRecord2D* BodyB = B != nullptr ? Find_Internal(B->Body) : nullptr;
+		if (BodyA == nullptr || BodyB == nullptr)
+		{
+			return EWorldEventEndReason::Removed;
+		}
+		const Toolbox::TOptional<EWorldEventKind> Kind = EventKind_Internal(*A, *BodyA, *B, *BodyB);
+		if (!Kind || *Kind != Pair.Kind)
+		{
+			return EWorldEventEndReason::FilterChanged;
+		}
+		return EWorldEventEndReason::Separated;
 	}
 	// 正準順序が小さい方か調べる。
 	static bool ColliderLess_Internal(const FColliderId2D& A, const FColliderId2D& B) noexcept
@@ -2796,6 +2950,29 @@ void FPhysicsWorld2D::SetColliderResponse(FColliderId2D Id, EColliderResponse Re
 	m_pImpl->Colliders[Id.Index].Response = Response;
 	m_pImpl->AfterResponseChange_Internal();
 }
+// 接触・Triggerのイベントの生成を設定する。
+void FPhysicsWorld2D::SetEventSettings(const FWorldEventSettings& Settings)
+{
+	if (m_pImpl->SnapshotState.bInStep)
+	{
+		throw Toolbox::FException("2D world event settings cannot change during Step");
+	}
+	m_pImpl->Events.Configure(Settings);
+	if (Settings.bEnabled)
+	{
+		m_pImpl->EventHits.Reserve(8);
+	}
+}
+// 接触・Triggerのイベントの設定を返す。
+FWorldEventSettings FPhysicsWorld2D::GetEventSettings() const noexcept
+{
+	return m_pImpl->Events.GetSettings();
+}
+// 直前に成功したStepのイベントのバッチを返す。
+const FWorldEventBatch2D& FPhysicsWorld2D::GetEventBatch() const noexcept
+{
+	return m_pImpl->Events.GetBatch();
+}
 // ColliderのSolid／Sensorの区分を返す。
 EColliderResponse FPhysicsWorld2D::GetColliderResponse(FColliderId2D Id) const
 {
@@ -2857,6 +3034,8 @@ void FPhysicsWorld2D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 	}
 	// 引数検証後に観測を開始し、更新途中の例外では採取を禁止する。
 	PhysicsPrivate::FSnapshotStepGuard SnapshotStep(m_pImpl->SnapshotState, DeltaSeconds, SubSteps);
+	// 前回のバッチを未発行にする（途中で失敗したStepの後に、古いバッチを今回のものに見せない）。
+	m_pImpl->Events.BeginStep();
 	// 一回の更新を等分割し、蓄積力は全分割で保持する。
 	const Toolbox::f64 Slice = DeltaSeconds / static_cast<Toolbox::f64>(SubSteps);
 	// 診断は更新ごとに作り直す。
@@ -2982,6 +3161,17 @@ void FPhysicsWorld2D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 	// 積分・接触補正・連続衝突を含む最終姿勢へ問い合わせの索引を合わせてから、問い合わせを受け付ける状態へ戻す。
 	// 途中で失敗したStepでは合わせないが、問い合わせは拒否され、次の正常なStepの完了時に全員を合わせ直す。
 	m_pImpl->RefreshMovingColliders_Internal();
+	// 最終姿勢で接触・Triggerの組を確定し、前回との差を発行する（このStepが成功として完了する直前）。
+	if (m_pImpl->Events.IsEnabled())
+	{
+		m_pImpl->CollectEvents_Internal();
+		const FImpl& Impl = *m_pImpl;
+		m_pImpl->Events.Publish(m_pImpl->SnapshotState.StepIndex + 1,
+		                        [&Impl](const auto& Pair)
+		                        {
+			                        return Impl.EndReason_Internal(Pair);
+		                        });
+	}
 	SnapshotStep.Complete();
 }
 } // namespace Dxf
