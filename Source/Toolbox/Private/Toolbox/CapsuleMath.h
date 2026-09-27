@@ -93,14 +93,16 @@ inline void ClosestParams(const FPoint& P1, const FPoint& Q1, const FPoint& P2, 
 	}
 }
 /**
- * 凸な関数の0〜1での最小のパラメーター。両端と黄金分割探索（48回）の結果のうち、値が最小のもの（同じ値は小さい方）。
+ * 凸な関数のFrom〜Toでの最小のパラメーター。両端と黄金分割探索（48回）の結果のうち、値が最小のもの（同じ値は小さい方）。
  * @param Value パラメーターから値を返す関数。
+ * @param From 範囲の始め。
+ * @param To 範囲の終わり。
  */
-template <typename F> f64 MinimizeConvex(F&& Value)
+template <typename F> f64 MinimizeConvex(F&& Value, f64 From, f64 To)
 {
 	constexpr f64 Ratio = 0.6180339887498949;
-	f64 Low = 0;
-	f64 High = 1;
+	f64 Low = From;
+	f64 High = To;
 	f64 X1 = High - Ratio * (High - Low);
 	f64 X2 = Low + Ratio * (High - Low);
 	f64 V1 = Value(X1);
@@ -124,8 +126,8 @@ template <typename F> f64 MinimizeConvex(F&& Value)
 			V2 = Value(X2);
 		}
 	}
-	f64 Best = 0;
-	f64 BestValue = Value(0.0);
+	f64 Best = From;
+	f64 BestValue = Value(From);
 	const f64 Middle = V1 <= V2 ? X1 : X2;
 	const f64 MiddleValue = V1 <= V2 ? V1 : V2;
 	if (MiddleValue < BestValue)
@@ -133,11 +135,19 @@ template <typename F> f64 MinimizeConvex(F&& Value)
 		Best = Middle;
 		BestValue = MiddleValue;
 	}
-	if (Value(1.0) < BestValue)
+	if (Value(To) < BestValue)
 	{
-		Best = 1;
+		Best = To;
 	}
 	return Best;
+}
+/**
+ * 凸な関数の0〜1での最小のパラメーター。
+ * @param Value パラメーターから値を返す関数。
+ */
+template <typename F> f64 MinimizeConvex(F&& Value)
+{
+	return MinimizeConvex(Value, 0.0, 1.0);
 }
 /**
  * 線分Start〜Endと、中心線A〜B・半径Rのカプセルの胴体（円柱面、両端の球を除く）の最初の交点の割合（Ericson 5.3.7）。
@@ -195,9 +205,11 @@ inline TOptional<f64> SegmentBody(const FPoint& Start, const FPoint& End, const 
 	return Time;
 }
 /**
- * 距離の下限を使う保守的な前進。Distance(t)は時刻tの表面間の符号付き距離、LengthはTime 0〜1の移動量。
- * 接触（距離≦Tolerance）の時刻を返し、Time 1まで接触しなければ空。開始時の接触は呼出し側で判定する。
- * 64回で収束しない場合は、到達した時刻（接触の前）を返す。
+ * 最初の接触の時刻。Distance(t)は時刻tの表面間の符号付き距離（凸な形状の平行移動なのでtについて凸）、LengthはTime
+ * 0〜1の 移動量（距離の変化の速さの上限）。開始時は離れている（Distance(0)>0）こと。 距離の下限による前進でTime
+ * 1を越えれば当たらない。前進が許容距離に届いた（または64回で終わった）場合は、残りの区間の
+ * 距離の最小を凸性から求め、正なら当たらない（面に沿う移動・かすめる移動）。0以下なら、距離が減る区間を二分して、
+ * 距離が0以上Tolerance以下になる時刻（見つからなければ直前の時刻）を返す。接触の手前で止まり、貫通させない。
  */
 template <typename F> TOptional<f64> AdvanceConservatively(F&& Distance, f64 Length, f64 Tolerance)
 {
@@ -211,20 +223,51 @@ template <typename F> TOptional<f64> AdvanceConservatively(F&& Distance, f64 Len
 		const f64 Gap = Distance(Time);
 		if (Gap <= Tolerance)
 		{
-			return Time;
+			break;
 		}
 		Time += Gap / Length;
 		if (Time > 1)
 		{
-			// 終点でも接触していなければ当たらない。
-			if (Distance(1.0) <= Tolerance)
+			// 距離の下限で進んだ区間には接触がなく、終点でも接触していなければ当たらない。
+			if (Distance(1.0) <= 0)
 			{
-				return 1.0;
+				Time = 1;
+				break;
 			}
 			return {};
 		}
 	}
-	return Time;
+	// 残りの区間で最も近づく時刻。そこでも離れていれば当たらない。
+	const f64 Nearest = MinimizeConvex(Distance, Time, 1.0);
+	if (Distance(Nearest) > 0)
+	{
+		return {};
+	}
+	// Time〜Nearestでは距離が減る。距離が0以上Tolerance以下の時刻を二分で探す。
+	f64 Low = Time;
+	f64 High = Nearest;
+	if (Distance(Low) <= Tolerance)
+	{
+		return Low;
+	}
+	for (int32 Iteration = 0; Iteration < 64; ++Iteration)
+	{
+		const f64 Middle = (Low + High) * 0.5;
+		const f64 Gap = Distance(Middle);
+		if (Gap > Tolerance)
+		{
+			Low = Middle;
+		}
+		else if (Gap >= 0)
+		{
+			return Middle;
+		}
+		else
+		{
+			High = Middle;
+		}
+	}
+	return Low;
 }
 } // namespace Toolbox::CapsulePrivate
 #endif

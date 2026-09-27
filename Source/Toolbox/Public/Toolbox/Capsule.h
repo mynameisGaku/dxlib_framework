@@ -40,5 +40,11 @@ FAABB CapsuleBounds(const FCapsule& Capsule) noexcept;
  * @param Point 点。
  */
 FVector3 ClosestPointOnCapsuleAxis(const FCapsule& Capsule, FVector3 Point) noexcept;
+/**
+ * 中心線の中点（両端の平均をf64で求めてf32へ丸めた値）。カプセルの移動の問い合わせは、この点からEndCenterへの差を移動量とする。
+ * 中点を別の値（丸める前の中心など）で持つ呼出し側は、その差を終点にも加えると移動量を保てる。
+ * @param Capsule 有効なカプセル。
+ */
+FVector3 CapsuleCenter(const FCapsule& Capsule) noexcept;
 } // namespace Toolbox
 #endif

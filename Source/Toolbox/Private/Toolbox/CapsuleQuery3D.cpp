@@ -27,13 +27,6 @@ TOptional<f64> Earliest_Internal(const TOptional<f64>& A, const TOptional<f64>& 
 	}
 	return *A < *B ? A : B;
 }
-// 中心線の中点。
-FVector3 Middle_Internal(const FCapsule& Capsule) noexcept
-{
-	return {static_cast<f32>((f64(Capsule.Start.X) + Capsule.End.X) * 0.5),
-	        static_cast<f32>((f64(Capsule.Start.Y) + Capsule.End.Y) * 0.5),
-	        static_cast<f32>((f64(Capsule.Start.Z) + Capsule.End.Z) * 0.5)};
-}
 // 中心線の中点を指定の割合だけ移動したカプセル。
 FCapsule Moved_Internal(const FCapsule& Capsule, const FPoint& Move, f64 Time) noexcept
 {
@@ -60,7 +53,7 @@ TOptional<FShapeSweepHit3D> SweepCapsule_Internal(const FCapsule& Moving, FVecto
 	{
 		throw FException("Invalid 3D capsule sweep");
 	}
-	const FVector3 Center = Middle_Internal(Moving);
+	const FVector3 Center = CapsuleCenter(Moving);
 	const FPoint Move{f64(EndCenter.X) - Center.X, f64(EndCenter.Y) - Center.Y, f64(EndCenter.Z) - Center.Z};
 	const f64 Length = Sqrt(CapsulePrivate::Dot(Move, Move));
 	if (!IsFinite(Length))

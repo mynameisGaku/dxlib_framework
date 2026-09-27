@@ -31,4 +31,9 @@ FVector2 ClosestPointOnCapsuleAxis(const FCapsule2D& Capsule, FVector2 Point) no
 	const FPoint Q = Add(A, Scale(Sub(B, A), ClosestParam(A, B, P)));
 	return {static_cast<f32>(Q.X), static_cast<f32>(Q.Y)};
 }
+FVector2 CapsuleCenter(const FCapsule2D& Capsule) noexcept
+{
+	return {static_cast<f32>((f64(Capsule.Start.X) + Capsule.End.X) * 0.5),
+	        static_cast<f32>((f64(Capsule.Start.Y) + Capsule.End.Y) * 0.5)};
+}
 } // namespace Toolbox

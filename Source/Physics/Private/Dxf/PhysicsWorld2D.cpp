@@ -2245,8 +2245,7 @@ static Toolbox::FVector2 QueryCenter_Internal(const Toolbox::FCircle2D& Shape) n
 }
 static Toolbox::FVector2 QueryCenter_Internal(const Toolbox::FCapsule2D& Shape) noexcept
 {
-	return {static_cast<Toolbox::f32>((Toolbox::f64(Shape.Start.X) + Shape.End.X) * 0.5),
-	        static_cast<Toolbox::f32>((Toolbox::f64(Shape.Start.Y) + Shape.End.Y) * 0.5)};
+	return Toolbox::CapsuleCenter(Shape);
 }
 // 問い合わせ形状を中心から覆う距離（円は半径、カプセルは中心線の半分の長さと半径の和）。
 static Toolbox::f64 QueryReach_Internal(const Toolbox::FCircle2D& Shape) noexcept

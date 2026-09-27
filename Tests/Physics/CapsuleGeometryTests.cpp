@@ -159,6 +159,15 @@ void Capsule3DQueries_Internal()
 	PHYSICS_REQUIRE(Side && Near_Internal(Side->Time, 0.0, 1e-4));
 	const auto Gap = SweepToCenter(Axis, FVector3{4, 0, 0}, FCapsule{{3, -1, 0}, {3, 1, 0}, 0.5f});
 	PHYSICS_REQUIRE(Gap && Near_Internal(Gap->Time, 1.0 / 4.0, 1e-4) && Near_Internal(*Gap->Normal, {-1, 0, 0}, 1e-4));
+	// 面に沿う移動（床の上1e-7、平行）は当たらない。床から0.02の距離で長く滑る移動（前進の反復が64回を超える）も当たらない。
+	const FOBB Wide{{0, -1, 0}, {500, 1, 500}};
+	const FCapsule Grazing{{0, 0.5000001f, 0}, {0, 1.5f, 0}, 0.5f};
+	PHYSICS_REQUIRE(FindShapeContact(Grazing, Wide).Separation > 0);
+	PHYSICS_REQUIRE(!SweepToCenter(Grazing, CapsuleCenter(Grazing) + FVector3{3, 0, 0}, Wide));
+	const FCapsule Sliding{{0, 0.52f, 0}, {0, 1.52f, 0}, 0.5f};
+	PHYSICS_REQUIRE(!SweepToCenter(Sliding, CapsuleCenter(Sliding) + FVector3{100, 0, 0}, Wide));
+	// 中点は両端の平均をf32へ丸めた値。
+	PHYSICS_REQUIRE(CapsuleCenter(FCapsule{{-1, 2, 3}, {1, -2, 5}, 0.5f}) == FVector3(0, 0, 4));
 	// 境界は半径を含む。
 	const FAABB Bounds = CapsuleBounds(FCapsule{{-1, 2, 3}, {1, -2, 3}, 0.5f});
 	PHYSICS_REQUIRE(Near_Internal(Bounds.Min, {-1.5f, -2.5f, 2.5f}) && Near_Internal(Bounds.Max, {1.5f, 2.5f, 3.5f}));
@@ -207,6 +216,12 @@ void Capsule2D_Internal()
 	const auto Drop =
 	    SweepToCenter(FCapsule2D{{0, 1}, {0, 2}, 0.5f}, FVector2{0, -5}, FOrientedBox2D{{0, -1}, {5, 1}, 0});
 	PHYSICS_REQUIRE(Drop && Near_Internal(Drop->Time, 0.5 / 6.5, 1e-4));
+	const FOrientedBox2D Wide{{0, -1}, {500, 1}, 0};
+	const FCapsule2D Grazing{{0, 0.5000001f}, {0, 1.5f}, 0.5f};
+	PHYSICS_REQUIRE(!SweepToCenter(Grazing, CapsuleCenter(Grazing) + FVector2{3, 0}, Wide));
+	const FCapsule2D Sliding{{0, 0.52f}, {0, 1.52f}, 0.5f};
+	PHYSICS_REQUIRE(!SweepToCenter(Sliding, CapsuleCenter(Sliding) + FVector2{100, 0}, Wide));
+	PHYSICS_REQUIRE(CapsuleCenter(FCapsule2D{{-1, 2}, {1, -2}, 0.5f}) == FVector2(0, 0));
 	const FAABB2D Bounds = CapsuleBounds(FCapsule2D{{-1, 2}, {1, -2}, 0.5f});
 	PHYSICS_REQUIRE(Near_Internal(Bounds.Min, {-1.5f, -2.5f}) && Near_Internal(Bounds.Max, {1.5f, 2.5f}));
 	PHYSICS_REQUIRE(!FindShapeContact(FCircle2D{{0.3f, 0}, 0.1f}, Axis).Normal);

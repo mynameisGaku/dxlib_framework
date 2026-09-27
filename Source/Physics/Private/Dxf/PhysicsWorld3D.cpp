@@ -2667,9 +2667,7 @@ static Toolbox::FVector3 QueryCenter_Internal(const Toolbox::FSphere& Shape) noe
 }
 static Toolbox::FVector3 QueryCenter_Internal(const Toolbox::FCapsule& Shape) noexcept
 {
-	return {static_cast<Toolbox::f32>((Toolbox::f64(Shape.Start.X) + Shape.End.X) * 0.5),
-	        static_cast<Toolbox::f32>((Toolbox::f64(Shape.Start.Y) + Shape.End.Y) * 0.5),
-	        static_cast<Toolbox::f32>((Toolbox::f64(Shape.Start.Z) + Shape.End.Z) * 0.5)};
+	return Toolbox::CapsuleCenter(Shape);
 }
 // 問い合わせ形状を中心から覆う距離（球は半径、カプセルは中心線の半分の長さと半径の和）。
 static Toolbox::f64 QueryReach_Internal(const Toolbox::FSphere& Shape) noexcept
