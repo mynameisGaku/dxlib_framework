@@ -25,6 +25,36 @@ struct FWorldQueryFilter
 	 * キャラクター移動（StepCharacter等）は指定にかかわらずSensorを対象にしない。
 	 */
 	bool bIncludeSensors = true;
+	/**
+	 * 自己除外（ExcludedBody）とは別に、もう一つのBodyの全Colliderを対象から外すか。ExcludeSecondBodyで設定する。
+	 * World・スロット・世代が一致するBodyだけを外し、削除済み・旧世代のBodyの指定は何も外さない（例外にしない）。
+	 * キャラクター移動が、乗っている動く床の追従の移動で、その床自身を障害物にしないために使う。
+	 */
+	bool bExcludeSecondBody = false;
+	/**
+	 * 外すBodyのWorldの識別子。
+	 */
+	Toolbox::uint64 SecondBodyWorld = 0;
+	/**
+	 * 外すBodyのスロット番号。
+	 */
+	Toolbox::size_t SecondBodyIndex = 0;
+	/**
+	 * 外すBodyの世代。
+	 */
+	Toolbox::uint64 SecondBodyGeneration = 0;
 };
+/**
+ * 問い合わせの条件へ、もう一つ外すBodyを設定する（2D／3DのBodyのIDに使える）。
+ * @param Filter 設定する条件。
+ * @param Body 外すBody。
+ */
+template <typename TBodyId> void ExcludeSecondBody(FWorldQueryFilter& Filter, const TBodyId& Body) noexcept
+{
+	Filter.bExcludeSecondBody = true;
+	Filter.SecondBodyWorld = Body.World;
+	Filter.SecondBodyIndex = Body.Index;
+	Filter.SecondBodyGeneration = Body.Generation;
+}
 } // namespace Dxf
 #endif

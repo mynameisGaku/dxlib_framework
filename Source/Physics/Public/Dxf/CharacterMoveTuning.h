@@ -79,6 +79,19 @@ struct FCharacterMoveTuning
 	 * 落下速度の上限（距離毎秒、有限の正の値）。
 	 */
 	Toolbox::f64 MaxFallSpeed = 30;
+	/**
+	 * 固定更新の開始時に歩ける床がKinematicのBodyなら、その物理Stepでの床の運動（並進・回転）に中心を追従させるか。
+	 * 追従は床に固定した中心の点の移動（FPhysicsWorld::PredictBodyPoint）で、床以外のSolidとの経路を検査する。
+	 */
+	bool bFollowMovingGround = true;
+	/**
+	 * 動く床を離れた固定更新（ジャンプ・歩いて降りる）で、床の中心の点の速度を一度だけ速度へ加えるか。
+	 */
+	bool bInheritGroundVelocity = true;
+	/**
+	 * 追従する床の点の最大の速さ（距離毎秒、有限の正の値）。超える運動は瞬間移動とみなして追従しない。
+	 */
+	Toolbox::f64 MaxGroundCarrySpeed = 50;
 };
 } // namespace Dxf
 #endif

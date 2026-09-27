@@ -52,6 +52,34 @@ struct FCharacterStepResult3D
 	 */
 	bool bSnapped = false;
 	/**
+	 * 固定更新の開始時に乗っていた動く床（KinematicのBody）のCollider。追従を試みなかった場合は空。
+	 */
+	Toolbox::TOptional<FColliderId3D> Carrier;
+	/**
+	 * 床の運動が求めた中心の移動量（物理Step1回分）。
+	 */
+	Toolbox::FVector3 CarryRequested;
+	/**
+	 * 床の運動の追従の移動（床以外のSolidとの経路を検査した結果）。
+	 */
+	FCharacterMoveResult3D Carry;
+	/**
+	 * 床の運動に追従した。
+	 */
+	bool bCarried = false;
+	/**
+	 * 追従の途中で床以外のSolid（壁・天井）に止められ、床の運動の一部を追従できなかった（挟まれ）。
+	 */
+	bool bCarryBlocked = false;
+	/**
+	 * 床の運動が上限の速さを超えたため、瞬間移動とみなして追従しなかった。
+	 */
+	bool bCarryRejected = false;
+	/**
+	 * 床を離れた固定更新で、床の点の速度を速度へ加えた。
+	 */
+	bool bInheritedGroundVelocity = false;
+	/**
 	 * 行ったWorld問い合わせの合計回数。
 	 */
 	Toolbox::int32 Queries = 0;

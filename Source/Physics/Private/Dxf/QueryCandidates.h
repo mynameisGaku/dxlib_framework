@@ -89,6 +89,12 @@ bool VisitQueryCandidates_Internal(const TQuerySource<Dimension, TRecord>& Sourc
 		{
 			return false;
 		}
+		// 追加で外すBody（乗っている動く床など）。
+		if (Filter.bExcludeSecondBody && Record.Body.World == Filter.SecondBodyWorld &&
+		    Record.Body.Index == Filter.SecondBodyIndex && Record.Body.Generation == Filter.SecondBodyGeneration)
+		{
+			return false;
+		}
 		return !(ExcludedBody && Record.Body == *ExcludedBody);
 	};
 	// 索引を使えるか。

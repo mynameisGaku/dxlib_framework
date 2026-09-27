@@ -171,7 +171,7 @@ template <typename T> FCheckedSettings_Internal CheckSettings_Internal(const typ
 	    Finite_Internal(Settings.AirControl) && Settings.AirControl >= 0 && Settings.AirControl <= 1 &&
 	    Finite_Internal(Settings.JumpSpeed) && Settings.JumpSpeed >= 0 && Finite_Internal(Settings.Gravity) &&
 	    Settings.Gravity >= 0 && Finite_Internal(Settings.MaxFallSpeed) && Settings.MaxFallSpeed > 0 &&
-	    Settings.Up.IsValid();
+	    Finite_Internal(Settings.MaxGroundCarrySpeed) && Settings.MaxGroundCarrySpeed > 0 && Settings.Up.IsValid();
 	if (!bValid)
 	{
 		throw Toolbox::FException("Invalid character move settings");
@@ -941,8 +941,46 @@ typename T::FStepResult StepCore_Internal(const typename T::FWorld& World, const
 	}
 	Result.bLanded = !bWasGrounded && bGrounded;
 	Result.bLeftGround = bWasGrounded && !bGrounded;
+	FVec_Internal FinalVelocity = Add_Internal(Horizontal, Scale_Internal(Up, Vertical));
+	// 8. 動く床の追従。ここまでの移動は、固定更新の開始時の床の姿勢に対して決めた（床の上を歩いた）もの。
+	// 開始時に乗っていたKinematicの床に固定した中心の点が、この物理Stepで動く量だけ運ぶ（登録順・描画に依存しない）。
+	// 乗った直後（開始時に接地していない）には過去の床の移動を遡って加えない。
+	if (Settings.bFollowMovingGround && bWasGrounded && Before.Collider && World.IsColliderAlive(*Before.Collider) &&
+	    World.GetBodyType(Before.Collider->Body) == EBodyType::Kinematic)
+	{
+		const typename T::FBodyId Carrier = Before.Collider->Body;
+		Result.Carrier = *Before.Collider;
+		const FVec_Internal Moved =
+		    Sub_Internal(T::Load(World.PredictBodyPoint(Carrier, Center, DeltaSeconds)), T::Load(Center));
+		Result.CarryRequested = T::Store(Moved);
+		if (!(Length_Internal(Moved) <= Settings.MaxGroundCarrySpeed * DeltaSeconds))
+		{
+			Result.bCarryRejected = true;
+		}
+		else
+		{
+			// 床自身は（床と一緒に動くため）障害物にせず、壁・天井などの他のSolidとの経路だけを検査する。
+			FWorldQueryFilter CarryFilter = Filter;
+			ExcludeSecondBody(CarryFilter, Carrier);
+			FMoveMode_Internal Carry;
+			Carry.Up = Up;
+			Carry.CosMaxSlope = Checked.CosMaxSlope;
+			Result.Carry = MoveCore_Internal<T>(World, Center, Moved, Settings, Carry, Excluded, CarryFilter, Budget);
+			Center = Result.Carry.EndCenter;
+			Result.bCarried = true;
+			// 止められた量＝床の運動が求めた量と、実際に動いた量の差。
+			Result.bCarryBlocked =
+			    Length_Internal(Sub_Internal(Moved, T::Load(Result.Carry.Applied))) > Settings.MinMoveDistance;
+			// 床を離れた固定更新だけ、床の点の速度を一度加える（空中で毎回は加えない）。
+			if (Settings.bInheritGroundVelocity && (Result.bJumped || !bGrounded))
+			{
+				FinalVelocity = Add_Internal(FinalVelocity, Scale_Internal(Moved, 1 / DeltaSeconds));
+				Result.bInheritedGroundVelocity = true;
+			}
+		}
+	}
 	Result.State.Center = Center;
-	Result.State.Velocity = T::Store(Add_Internal(Horizontal, Scale_Internal(Up, Vertical)));
+	Result.State.Velocity = T::Store(FinalVelocity);
 	Result.State.Ground = After;
 	Result.Queries = Budget.Used;
 	return Result;
