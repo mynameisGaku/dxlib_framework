@@ -2,6 +2,7 @@
 #ifndef DXF_CHARACTER_STEP_RESULT_2D_H
 #define DXF_CHARACTER_STEP_RESULT_2D_H
 #include "Dxf/CharacterMoveResult2D.h"
+#include "Dxf/CharacterPushSet2D.h"
 #include "Dxf/CharacterRecovery2D.h"
 #include "Dxf/CharacterState2D.h"
 namespace Dxf
@@ -83,6 +84,18 @@ struct FCharacterStepResult2D
 	 * 行ったWorld問い合わせの合計回数。
 	 */
 	Toolbox::int32 Queries = 0;
+	/**
+	 * Dynamicの剛体を押す要求（bPushDynamicBodiesの場合）。呼出し側が物理Stepの前に適用する。
+	 */
+	FCharacterPushSet2D Pushes;
+	/**
+	 * 近づく剛体に押されて退いた移動（bReceiveDynamicPushの場合。押されなければNoMovement）。
+	 */
+	FCharacterMoveResult2D Received;
+	/**
+	 * 押されて退いたか。
+	 */
+	bool bPushedByBody = false;
 };
 } // namespace Dxf
 #endif

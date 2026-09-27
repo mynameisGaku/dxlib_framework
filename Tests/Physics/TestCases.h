@@ -140,6 +140,11 @@ const FCase* GetCapsuleWorldCases(Toolbox::size_t& Count) noexcept;
  * @param Count 返す配列の要素数。
  */
 const FCase* GetCharacterCapsuleCases(Toolbox::size_t& Count) noexcept;
+/**
+ * キャラクター ⇔ Dynamicの剛体の押し合い（押す要求・押されて退く）の2D／3D回帰を返す。
+ * @param Count 返す配列の要素数。
+ */
+const FCase* GetCharacterPushCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryTreeCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryIndexEquivalenceCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryIndexContractCases(Toolbox::size_t& Count) noexcept;

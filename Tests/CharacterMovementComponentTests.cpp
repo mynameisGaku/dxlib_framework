@@ -132,6 +132,49 @@ private:
 	f32 m_HalfY;
 };
 
+// 床に置くDynamicの箱（半幅0.5、質量1）。
+template <typename T> class TCrateObject : public DGameObject
+{
+public:
+	// 箱の中心を受け取る。
+	explicit TCrateObject(typename T::FVector Center) : m_Center(Center)
+	{
+	}
+	// 登録した剛体のID。
+	auto Body()
+	{
+		auto Found = FindComponent<typename T::FRigidBody>();
+		REQUIRE(Found.Get() != nullptr);
+		return Found.Get()->GetBodyId();
+	}
+
+protected:
+	// Dynamicの剛体と箱のコライダーを追加する。
+	TResult<void> OnInitialize(const FInitContext&) override
+	{
+		typename T::FBodyDescription Body;
+		Body.Type = EBodyType::Dynamic;
+		Body.Position = m_Center;
+		auto Rigid = AddComponent<typename T::FRigidBody>(Body);
+		if (!Rigid)
+		{
+			return TResult<void>::Failure(Rigid.Error());
+		}
+		typename T::FColliderDescription Collider;
+		T::Box(Collider, T::At(0, 0), 0.5f, 0.5f);
+		auto Attached = AddComponent<typename T::FCollider>(Collider);
+		if (!Attached)
+		{
+			return TResult<void>::Failure(Attached.Error());
+		}
+		return {};
+	}
+
+private:
+	// 箱の中心。
+	typename T::FVector m_Center;
+};
+
 // キャラクター（必要なら同じオブジェクトに剛体も付ける）。
 template <typename T> class TCharacterObject : public DGameObject
 {
@@ -403,6 +446,54 @@ template <typename T> void CapsuleHeight_Internal()
 	Scene.Shutdown_Internal();
 }
 
+// 押し合い: 押す設定のキャラクターは、押す要求を同じ固定更新の物理Stepの前に箱へ適用する（要求を出した固定更新の後に
+// 箱は既に速度を持ち、進んでいる）。既定の設定では押さず、箱はKinematicのキャラクターのBodyに当たって止まるだけ。
+template <typename T> void Push_Internal()
+{
+	for (int32 Case = 0; Case < 2; ++Case)
+	{
+		FFixture Fixture;
+		typename T::FScene Scene;
+		auto Description = Description_Internal<T>(T::At(0, 0.92f));
+		Description.Settings.Shape = ECharacterShape::Capsule;
+		Description.Settings.HalfHeight = 0.4;
+		Description.Settings.bPushDynamicBodies = Case == 0;
+		auto Character = Scene.template Spawn<TCharacterObject<T>>(Description);
+		REQUIRE(Character);
+		REQUIRE(Scene.template Spawn<TBoxObject<T>>(T::At(0, -1), 50.0f, 1.0f));
+		auto Crate = Scene.template Spawn<TCrateObject<T>>(T::At(2, 0.5f));
+		REQUIRE(Crate);
+		REQUIRE(Scene.Initialize_Internal(Fixture.Init()));
+		auto& Mover = Character.Value().Get()->Character();
+		// 剛体は最初の固定更新で登録される。
+		REQUIRE(Scene.Tick_Internal(Fixture.Tick(1.0 / 60.0)));
+		const auto Box = Crate.Value().Get()->Body();
+		auto& World = T::World(Scene);
+		Mover.SetMoveInput(T::At(1));
+		bool bSameTick = false;
+		for (int32 Frame = 0; Frame < 90; ++Frame)
+		{
+			const auto Before = World.GetPosition(Box);
+			REQUIRE(Scene.Tick_Internal(Fixture.Tick(1.0 / 60.0)));
+			if (Mover.GetLastStep().Pushes.Count > 0 && !bSameTick)
+			{
+				// 要求を出した固定更新のStepで、箱は既に動いた。
+				bSameTick = T::X(World.GetPosition(Box)) > T::X(Before) && T::X(World.GetVelocity(Box)) > 0;
+				REQUIRE(bSameTick);
+			}
+		}
+		if (Case == 0)
+		{
+			REQUIRE(bSameTick && T::X(World.GetPosition(Box)) > 3.5);
+		}
+		else
+		{
+			REQUIRE(!bSameTick && Abs(T::X(World.GetPosition(Box)) - 2) < 0.05);
+		}
+		Scene.Shutdown_Internal();
+	}
+}
+
 // Teleport・破棄・登録前の破棄。
 template <typename T> void Lifetime_Internal()
 {
@@ -545,6 +636,14 @@ TEST("2D character component changes its capsule height safely")
 TEST("3D character component changes its capsule height safely")
 {
 	CapsuleHeight_Internal<FCase3D>();
+}
+TEST("2D character component pushes dynamic bodies before the physics step")
+{
+	Push_Internal<FCase2D>();
+}
+TEST("3D character component pushes dynamic bodies before the physics step")
+{
+	Push_Internal<FCase3D>();
 }
 TEST("2D character component rejects a rigid body on the same object")
 {

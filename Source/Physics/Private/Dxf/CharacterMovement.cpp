@@ -197,6 +197,9 @@ template <typename T> FCheckedSettings_Internal CheckSettings_Internal(const typ
 	    Finite_Internal(Settings.JumpSpeed) && Settings.JumpSpeed >= 0 && Finite_Internal(Settings.Gravity) &&
 	    Settings.Gravity >= 0 && Finite_Internal(Settings.MaxFallSpeed) && Settings.MaxFallSpeed > 0 &&
 	    Finite_Internal(Settings.MaxGroundCarrySpeed) && Settings.MaxGroundCarrySpeed > 0 && Settings.Up.IsValid() &&
+	    Finite_Internal(Settings.PushForceScale) && Settings.PushForceScale >= 0 &&
+	    Finite_Internal(Settings.MaxPushImpulse) && Settings.MaxPushImpulse >= 0 &&
+	    Finite_Internal(Settings.MaxReceivedPushSpeed) && Settings.MaxReceivedPushSpeed >= 0 &&
 	    (Settings.Shape == ECharacterShape::Round ||
 	     (Settings.Shape == ECharacterShape::Capsule && Finite_Internal(Settings.HalfHeight) &&
 	      Settings.HalfHeight >= 0));
@@ -969,6 +972,116 @@ typename T::FMoveResult CarryCurve_Internal(const typename T::FWorld& World, typ
 	return Finish(ECharacterMoveStop::Completed);
 }
 
+// 水平の移動を止めたDynamicの剛体を押す要求を集める。同じ剛体は1件にまとめ、大きさをMaxPushImpulseで制限する。
+template <typename T>
+void CollectPushes_Internal(const typename T::FWorld& World, const typename T::FMoveResult& Move,
+                            const FVec_Internal& Wish, const typename T::FSettings& Settings, const FVec_Internal& Up,
+                            f64 DeltaSeconds, typename T::FStepResult& Result)
+{
+	auto& Pushes = Result.Pushes;
+	for (uint32 Index = 0; Index < Move.ContactCount; ++Index)
+	{
+		const auto& Contact = Move.Contacts[Index];
+		if (!World.IsColliderAlive(Contact.Collider) || World.GetBodyType(Contact.Collider.Body) != EBodyType::Dynamic)
+		{
+			continue;
+		}
+		// 剛体からキャラクターへ向く法線の、Upに直交する方向（真上・真下の面は押さない）。
+		FVec_Internal Away;
+		if (!Horizontal_Internal(T::Load(Contact.Normal), Up, Away))
+		{
+			continue;
+		}
+		const f64 Speed = -Dot_Internal(Wish, Away);
+		if (!(Speed > 0))
+		{
+			continue;
+		}
+		const f64 Size = Toolbox::Min(Settings.MaxPushImpulse, Settings.PushForceScale * Speed * DeltaSeconds);
+		const FVec_Internal Impulse = Scale_Internal(Away, -Size);
+		uint32 Slot = 0;
+		while (Slot < Pushes.Count && !(Pushes.Items[Slot].Body == Contact.Collider.Body))
+		{
+			++Slot;
+		}
+		if (Slot == Pushes.Count)
+		{
+			++Pushes.TotalFound;
+			if (Pushes.Count >= Pushes.Items.Size())
+			{
+				continue;
+			}
+			Pushes.Items[Slot].Body = Contact.Collider.Body;
+			Pushes.Items[Slot].Collider = Contact.Collider;
+			Pushes.Items[Slot].Impulse = T::Store(Impulse);
+			++Pushes.Count;
+			continue;
+		}
+		// 同じ剛体の別の面は合わせてから、上限の大きさへ縮める。
+		FVec_Internal Total = Add_Internal(T::Load(Pushes.Items[Slot].Impulse), Impulse);
+		const f64 Length = Length_Internal(Total);
+		if (Length > Settings.MaxPushImpulse && Length > 0)
+		{
+			Total = Scale_Internal(Total, Settings.MaxPushImpulse / Length);
+		}
+		Pushes.Items[Slot].Impulse = T::Store(Total);
+	}
+}
+
+// 近づくDynamicの剛体に押されて退く移動。表面が接触余裕より近づく量だけ、Upに直交する方向へ滑る移動で退く。
+template <typename T>
+bool ReceivePush_Internal(const typename T::FWorld& World, typename T::FVector& Center,
+                          const typename T::FSettings& Settings, const FCheckedSettings_Internal& Checked,
+                          f64 DeltaSeconds, const Toolbox::TOptional<typename T::FBodyId>& Excluded,
+                          const FWorldQueryFilter& Filter, FBudget_Internal& Budget, typename T::FMoveResult& Received)
+{
+	if (!Budget.Take())
+	{
+		return false;
+	}
+	const f64 Reach = Settings.SkinWidth * 2 + Settings.MaxReceivedPushSpeed * DeltaSeconds;
+	const auto Contacts = ShapeContacts_Internal<T>(World, Settings, Center, Settings.Radius, Reach, Excluded, Filter);
+	FVec_Internal Push;
+	for (uint32 Index = 0; Index < Contacts.Count; ++Index)
+	{
+		const auto& Contact = Contacts.Items[Index];
+		if (!Contact.Normal || World.GetBodyType(Contact.Collider.Body) != EBodyType::Dynamic)
+		{
+			continue;
+		}
+		FVec_Internal Away;
+		if (!Horizontal_Internal(T::Load(*Contact.Normal), Checked.Up, Away))
+		{
+			continue;
+		}
+		const f64 Approach = Toolbox::Min(Dot_Internal(T::Load(World.GetVelocity(Contact.Collider.Body)), Away),
+		                                  Settings.MaxReceivedPushSpeed);
+		// この固定更新で、表面が接触余裕より近づく量。
+		const f64 Closing = Approach * DeltaSeconds - Toolbox::Max(0.0, Contact.Separation - Settings.SkinWidth);
+		if (Closing > 0)
+		{
+			Push = Add_Internal(Push, Scale_Internal(Away, Closing));
+		}
+	}
+	const f64 Limit = Settings.MaxReceivedPushSpeed * DeltaSeconds;
+	const f64 Length = Length_Internal(Push);
+	if (!(Length >= Settings.MinMoveDistance))
+	{
+		return false;
+	}
+	if (Length > Limit)
+	{
+		Push = Scale_Internal(Push, Limit / Length);
+	}
+	FMoveMode_Internal Flat;
+	Flat.bHorizontal = true;
+	Flat.Up = Checked.Up;
+	Flat.CosMaxSlope = Checked.CosMaxSlope;
+	Received = MoveCore_Internal<T>(World, Center, Push, Settings, Flat, Excluded, Filter, Budget);
+	Center = Received.EndCenter;
+	return Length_Internal(T::Load(Received.Applied)) > 0;
+}
+
 // 1回の固定更新の計算。
 template <typename T>
 typename T::FStepResult StepCore_Internal(const typename T::FWorld& World, const typename T::FSettings& Settings,
@@ -996,6 +1109,12 @@ typename T::FStepResult StepCore_Internal(const typename T::FWorld& World, const
 		return Result;
 	}
 	typename T::FVector Center = Result.Recovery.Center;
+	// 近づくDynamicの剛体に押されて退く（自分の移動の前）。
+	if (Settings.bReceiveDynamicPush)
+	{
+		Result.bPushedByBody = ReceivePush_Internal<T>(World, Center, Settings, Checked, DeltaSeconds, Excluded, Filter,
+		                                               Budget, Result.Received);
+	}
 	// 2. 足元の確認。
 	bool bQueryLimit = false;
 	const typename T::FGround Before =
@@ -1048,6 +1167,11 @@ typename T::FStepResult StepCore_Internal(const typename T::FWorld& World, const
 		}
 	}
 	Center = Result.Horizontal.EndCenter;
+	// 移動を止めたDynamicの剛体を押す要求（段差を上った場合は押していない）。
+	if (Settings.bPushDynamicBodies && !Result.bSteppedUp)
+	{
+		CollectPushes_Internal<T>(World, Result.Horizontal, Target, Settings, Up, DeltaSeconds, Result);
+	}
 	// 壁に止められた内向きの水平速度は失う（歩ける斜面に沿う場合は保つ）。
 	if (!Result.bSteppedUp)
 	{

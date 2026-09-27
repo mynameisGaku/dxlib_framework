@@ -15,7 +15,8 @@ namespace Dxf
  * Upに沿うカプセル）のColliderを作り、破棄時に解放する。形状の設定を変えると、次の固定更新でColliderの形状を合わせる
  * （IDは変えない）。高さを安全に変える場合はTrySetCapsuleHalfHeightを使う。
  * 同じオブジェクトのDRigidBody2DComponentとは位置の決定権が重なるため、同時には使えない（最初の固定更新で例外）。
- * 動く床への追従や、剛体との押し合いは扱わない（現在の姿勢を障害物として扱うだけ）。
+ * 動く床への追従はSettingsのbFollowMovingGroundで行う。Dynamicの剛体との押し合いは、SettingsのbPushDynamicBodies
+ * （押す要求を、同じ固定更新の物理Stepの前に剛体へ適用する）とbReceiveDynamicPush（近づく剛体に押されて退く）で行う。
  */
 class DCharacterMovement2DComponent : public DGameObjectComponent, private IPrePhysicsStep
 {
@@ -299,6 +300,15 @@ private:
 		if (m_bHasBody)
 		{
 			m_pWorld->SetBodyTransform(m_Body, m_State.Center, 0);
+		}
+		// 押す要求を、この固定更新の物理Stepの前に適用する（生存するDynamicの剛体だけ）。
+		for (Toolbox::uint32 Index = 0; Index < Result.Pushes.Count; ++Index)
+		{
+			const auto& Push = Result.Pushes.Items[Index];
+			if (m_pWorld->IsAlive(Push.Body) && m_pWorld->GetBodyType(Push.Body) == EBodyType::Dynamic)
+			{
+				m_pWorld->ApplyLinearImpulse(Push.Body, Push.Impulse);
+			}
 		}
 	}
 	/**

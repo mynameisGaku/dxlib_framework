@@ -106,6 +106,31 @@ struct FCharacterMoveTuning
 	 * 拒否した床の変位・速度はキャラクターへ加えず、通常の歩行・ジャンプの結果とbCarryRejectedを返す。
 	 */
 	Toolbox::f64 MaxGroundCarrySpeed = 50;
+	/**
+	 * 水平の移動を止めたDynamicの剛体を押す要求（FCharacterStepResult::Pushes）を出すか。既定false（従来どおり押さない）。
+	 * 要求はUpに直交する並進のImpulseで、呼出し側（CharacterMovementComponent）が物理Stepの前に適用する。
+	 * 大きさは PushForceScale ×（希望の水平速度の、剛体へ向かう成分）× 固定秒数 を MaxPushImpulse で制限した値。
+	 * 重い剛体は同じImpulseでも動きにくく、摩擦に負ければ動かない。上に乗った剛体を下へ押すことはない。
+	 */
+	bool bPushDynamicBodies = false;
+	/**
+	 * 押す力の係数（力／速さ、有限・非負）。
+	 */
+	Toolbox::f64 PushForceScale = 40;
+	/**
+	 * 1回の固定更新で1つの剛体へ与えるImpulseの上限（有限・非負）。
+	 */
+	Toolbox::f64 MaxPushImpulse = 2;
+	/**
+	 * 近づくDynamicの剛体に押されて動くか。既定false（従来どおり、キャラクターは剛体に押されない）。
+	 * 固定更新の開始時に、接触余裕の2倍＋（MaxReceivedPushSpeed×固定秒数）以内で近づく剛体の速度のUpに直交する成分から、
+	 * この固定更新で表面が接触余裕より近づく量だけ、自分の移動の前に滑る移動で退く（FCharacterStepResult::Received）。
+	 */
+	bool bReceiveDynamicPush = false;
+	/**
+	 * 押されて退く速さの上限（距離毎秒、有限・非負）。
+	 */
+	Toolbox::f64 MaxReceivedPushSpeed = 10;
 };
 } // namespace Dxf
 #endif
