@@ -4,6 +4,7 @@
 #include "Dxf/GameScene.h"
 #include "Dxf/AssetService.h"
 #include "Dxf/AudioPlayer.h"
+#include "CapsuleConsumer.h"
 #include "InteractionConsumer.h"
 #include "Dxf/CharacterMovementComponent2D.h"
 #include "Dxf/CharacterMovementComponent3D.h"
@@ -169,6 +170,11 @@ int main()
 	if (InteractionCode != 0)
 	{
 		return InteractionCode;
+	}
+	const Toolbox::int32 CapsuleCode = RunCapsuleConsumer(InteractionAssets, InteractionAudio);
+	if (CapsuleCode != 0)
+	{
+		return CapsuleCode;
 	}
 	const int Walk2D = Walk<Dxf::DPhysicsScene2D, Dxf::DCharacterMovement2DComponent,
 	                        DFloor<Dxf::DRigidBody2DComponent, Dxf::DCollider2DComponent, Dxf::FBodyDescription2D,
