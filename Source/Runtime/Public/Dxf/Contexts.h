@@ -14,6 +14,7 @@ class DGameInstance;
 class FPhysicsWorld2D;
 class FPhysicsWorld3D;
 class FPrePhysicsStepQueue;
+class FPostPhysicsStepQueue;
 /**
  * 準備中は有効なシーンやゲームの状態を変更せず、音声再生も開始しない。
  */
@@ -126,6 +127,10 @@ struct FFixedTickContext
 	 * 物理Stepの直前に行う処理の予約先。物理シーン以外ではnullptr。予約は同じ固定更新の中だけで有効。
 	 */
 	FPrePhysicsStepQueue* PrePhysicsStep = nullptr;
+	/**
+	 * 物理Stepの直後に行う処理（接触イベントの配送など）の予約先。物理シーン以外ではnullptr。予約は同じ固定更新の中だけで有効。
+	 */
+	FPostPhysicsStepQueue* PostPhysicsStep = nullptr;
 	/**
 	 * 今回の固定更新で押されたかを調べる。未配達分も一度だけ有効。
 	 * @param Key 検索または入力のキー。
