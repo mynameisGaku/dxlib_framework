@@ -424,6 +424,28 @@ template <typename T> void SparseReduction_Internal()
 	                Worlds.Reference.GetExecutionDiagnostics().ManifoldCount == 0);
 }
 
+// 重なり合うStatic・Kinematicだけの組（とDynamicを含まない組）は、どちらの経路でも詳細判定へ送らない。
+// 離れたDynamicの球を一つ置き、Solverの経路自体は動かす。
+template <typename T> void StaticPairs_Internal()
+{
+	TPairWorlds<T> Worlds;
+	for (int32 Index = 0; Index < 12; ++Index)
+	{
+		Worlds.Add(T::At(static_cast<f32>(Index) * 0.5f, 0), EBodyType::Static, T::Shape(1, 0.6f));
+	}
+	for (int32 Index = 0; Index < 4; ++Index)
+	{
+		Worlds.Add(T::At(static_cast<f32>(Index) * 0.5f, 0.5f), EBodyType::Kinematic, T::Shape(2, 0.5f));
+	}
+	Worlds.Add(T::At(50, 50), EBodyType::Dynamic, T::Shape(0, 0.5f));
+	PHYSICS_REQUIRE(Worlds.Step());
+	// 総当たりはDynamicの球と他の16個の組だけを調べ（Static・Kinematic同士の120組は入れない）、索引は離れた球の組も調べない。
+	PHYSICS_REQUIRE(Worlds.Indexed.GetExecutionDiagnostics().CandidatePairCount == 0 &&
+	                Worlds.Reference.GetExecutionDiagnostics().CandidatePairCount == 16);
+	PHYSICS_REQUIRE(Worlds.Indexed.GetExecutionDiagnostics().ManifoldCount == 0 &&
+	                Worlds.Reference.GetExecutionDiagnostics().ManifoldCount == 0);
+}
+
 void Mixed2D_Internal()
 {
 	MixedScene_Internal<F2D>(1);
@@ -443,7 +465,9 @@ const PhysicsTest::FCase Cases_Internal[] = {
     {"2D solver broad phase falls back for far coordinates", &FarFallback_Internal<F2D>},
     {"3D solver broad phase falls back for far coordinates", &FarFallback_Internal<F3D>},
     {"2D solver broad phase reduces sparse narrow-phase pairs", &SparseReduction_Internal<F2D>},
-    {"3D solver broad phase reduces sparse narrow-phase pairs", &SparseReduction_Internal<F3D>}};
+    {"3D solver broad phase reduces sparse narrow-phase pairs", &SparseReduction_Internal<F3D>},
+    {"2D solver broad phase never sends static or kinematic pairs", &StaticPairs_Internal<F2D>},
+    {"3D solver broad phase never sends static or kinematic pairs", &StaticPairs_Internal<F3D>}};
 } // namespace
 const PhysicsTest::FCase* PhysicsTest::GetSolverBroadPhaseCases(size_t& Count) noexcept
 {

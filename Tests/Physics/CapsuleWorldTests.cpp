@@ -351,6 +351,17 @@ template <typename T> void KinematicSensorEvents_Internal()
 	PHYSICS_REQUIRE(World.GetPosition(Crate).X > 1.5f);
 	PHYSICS_REQUIRE(Abs(f64(World.GetVelocity(Ball).X) - 3) < 1e-4);
 	PHYSICS_REQUIRE(bContact && bBegin && bStay && bEnd);
+	// Dynamicの球はSensorのカプセル（横倒し、中心y=3）を押し返されずに通り抜け、床に落ちる。
+	typename T::FWorld Fall;
+	Floor_Internal<T>(Fall);
+	const auto SensorBody = T::Body(Fall, T::At(0, 3), EBodyType::Static);
+	auto SensorShape = T::Capsule(T::Lying(1, 0.5f));
+	SensorShape.Response = EColliderResponse::Sensor;
+	Fall.AttachCollider(SensorBody, SensorShape);
+	const auto Dropped = T::Body(Fall, T::At(0, 5), EBodyType::Dynamic);
+	Fall.AttachCollider(Dropped, T::Ball(0.25f));
+	Run_Internal<T>(Fall, 120);
+	PHYSICS_REQUIRE(Abs(f64(Fall.GetPosition(Dropped).Y) - (FloorTop + 0.25)) < 0.02);
 }
 
 // 問い合わせ：線分・範囲・接触・移動（球とカプセル）。索引を使わない総当たりと結果が一致する。
