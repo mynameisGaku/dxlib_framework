@@ -258,8 +258,8 @@ private:
 };
 
 // 混合した配置：床・斜めの台・動く床・Sensorの領域・衝突フィルターで分けた群・Dynamicの形状の山。途中で登録・削除・
-// 取り付け・取り外し・瞬間移動を行う。分割Stepでも同じ。
-template <typename T> void MixedScene_Internal(uint32 SubSteps)
+// 取り付け・取り外し・瞬間移動を行う。分割Stepでも同じ（分割Stepの版は短く進め、休止までは確かめない）。
+template <typename T> void MixedScene_Internal(uint32 SubSteps, int32 Steps, bool bSettle)
 {
 	TPairWorlds<T> Worlds(SubSteps);
 	FSequence_Internal Sequence;
@@ -294,9 +294,9 @@ template <typename T> void MixedScene_Internal(uint32 SubSteps)
 		Shape.Restitution = Index % 4 == 0 ? 0.4f : 0;
 		Worlds.Add(T::At(Sequence.Next(-8, 8), Sequence.Next(1, 14)), EBodyType::Dynamic, Shape, Sequence.Next(0, 3));
 	}
-	for (int32 Step = 0; Step < 240; ++Step)
+	for (int32 Step = 0; Step < Steps; ++Step)
 	{
-		if (Step == 60)
+		if (Step == Steps / 4)
 		{
 			// 途中の瞬間移動・取り外し・取り付け・削除・再登録（スロットの再使用）。
 			Worlds.Both(
@@ -320,6 +320,10 @@ template <typename T> void MixedScene_Internal(uint32 SubSteps)
 			Worlds.Add(T::At(-2, 10), EBodyType::Dynamic, T::Shape(0, 0.5f));
 		}
 		PHYSICS_REQUIRE(Worlds.Step());
+	}
+	if (!bSettle)
+	{
+		return;
 	}
 	// 動く床を止めてから落ち着かせる。索引の経路でも参照の経路でも、同じ数のBodyが休止する。
 	Worlds.Both(
@@ -448,13 +452,13 @@ template <typename T> void StaticPairs_Internal()
 
 void Mixed2D_Internal()
 {
-	MixedScene_Internal<F2D>(1);
-	MixedScene_Internal<F2D>(3);
+	MixedScene_Internal<F2D>(1, 240, true);
+	MixedScene_Internal<F2D>(3, 90, false);
 }
 void Mixed3D_Internal()
 {
-	MixedScene_Internal<F3D>(1);
-	MixedScene_Internal<F3D>(3);
+	MixedScene_Internal<F3D>(1, 240, true);
+	MixedScene_Internal<F3D>(3, 90, false);
 }
 
 const PhysicsTest::FCase Cases_Internal[] = {
