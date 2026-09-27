@@ -103,6 +103,12 @@ add_library(dxf_toolbox STATIC
     Source/Toolbox/Private/Toolbox/SegmentIntersection.cpp
     Source/Toolbox/Private/Toolbox/ContinuousCollision.cpp
     Source/Toolbox/Private/Toolbox/ShapeContact.cpp
+    Source/Toolbox/Private/Toolbox/Capsule.cpp
+    Source/Toolbox/Private/Toolbox/Capsule2D.cpp
+    Source/Toolbox/Private/Toolbox/CapsuleContact2D.cpp
+    Source/Toolbox/Private/Toolbox/CapsuleContact3D.cpp
+    Source/Toolbox/Private/Toolbox/CapsuleQuery2D.cpp
+    Source/Toolbox/Private/Toolbox/CapsuleQuery3D.cpp
     Source/Toolbox/Private/Toolbox/FixedStepScheduler.cpp
     Source/Toolbox/Private/Toolbox/Mesh.cpp
     Source/Toolbox/Private/Toolbox/CollisionWorld.cpp)

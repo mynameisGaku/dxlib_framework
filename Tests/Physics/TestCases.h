@@ -125,6 +125,11 @@ const FCase* GetColliderResponseCases(Toolbox::size_t& Count) noexcept;
  * @param Count 返す配列の要素数。
  */
 const FCase* GetWorldEventCases(Toolbox::size_t& Count) noexcept;
+/**
+ * 2D／3Dのカプセルの幾何（接触・形状の距離・線分・移動・境界）の解析値の回帰を返す。
+ * @param Count 返す配列の要素数。
+ */
+const FCase* GetCapsuleGeometryCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryTreeCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryIndexEquivalenceCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryIndexContractCases(Toolbox::size_t& Count) noexcept;
