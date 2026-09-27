@@ -185,7 +185,8 @@ class RunDirectoryTests(unittest.TestCase):
 
     def test_structured_checks_are_recorded_from_successful_output(self):
         logs = self.root / 'Logs'
-        output = 'DXF_CHECK os_pointer_capture=verified\nDXF_CHECK window_focus=not_exercised\nother\n'
+        # The second line is how "ctest -V" relays a test's output (test number prefix).
+        output = 'DXF_CHECK os_pointer_capture=verified\n32: DXF_CHECK window_focus=not_exercised\nother\n'
         with patch.object(subprocess, 'run', return_value=subprocess.CompletedProcess(['x'], 0, output)):
             with self.support.validation_report(logs, {}):
                 self.support.run_logged(logs, 'device', ['x'], cwd=self.root)

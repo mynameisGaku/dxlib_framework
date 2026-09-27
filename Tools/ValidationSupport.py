@@ -22,7 +22,8 @@ FINGERPRINT_DIRECTORIES = ('Source', 'Tests', 'Examples', 'Tools', 'CMake', 'Ext
 FINGERPRINT_ROOT_FILES = ('CMakeLists.txt', '.clang-format', 'GenerateProjectFiles.bat', 'BuildWindows.ps1')
 FINGERPRINT_EXCLUDED_PARTS = {'__pycache__', '.pytest_cache'}
 # Structured check lines printed by device programs: "DXF_CHECK <name>=<verified|not_exercised|failed>".
-CHECK_LINE = re.compile(r'^DXF_CHECK ([A-Za-z0-9_.-]+)=(verified|not_exercised|failed)\s*$', re.MULTILINE)
+# "ctest -V" prefixes each line of a test's output with "<test number>: ", which is accepted.
+CHECK_LINE = re.compile(r'^(?:\d+: )?DXF_CHECK ([A-Za-z0-9_.-]+)=(verified|not_exercised|failed)\s*$', re.MULTILINE)
 
 # Summary of each open run, keyed by its resolved log directory (run_logged appends its steps there).
 _ACTIVE: dict[Path, tuple[Path, dict[str, object]]] = {}
