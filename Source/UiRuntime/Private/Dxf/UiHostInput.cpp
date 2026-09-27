@@ -110,10 +110,15 @@ FInputSnapshot FUiHostState::RouteInput(const FTickContext& Context)
 		                    return A->Id > B->Id;
 	                    });
 	// 失焦・マウスの捕捉の喪失は、通常の解放と区別して押下中の操作を決定せずに取り消す（CaptureLost）。
-	// 捕捉の喪失は、Platformが捕捉に対応し、前のフレームで求めたのに取得していない場合だけ。
+	// 捕捉の喪失は、Platformが捕捉に対応し、求めている間に一度取得した捕捉を今は持っていない場合だけ。
+	// 前面でないウィンドウなどで一度も取得できなかった捕捉は失っていない（押下はウィンドウ内の座標で続く）。
 	const bool bFocused = Raw.bFocused && (!Context.Window.bKnown || Context.Window.bFocused);
-	const bool bCaptureLost =
-	    m_bRequestedCapture && Context.Window.bPointerCaptureSupported && !Context.Window.bPointerCaptured;
+	const bool bCaptureLost = m_bRequestedCapture && m_bCaptureAcquired && Context.Window.bPointerCaptureSupported &&
+	                          !Context.Window.bPointerCaptured;
+	if (m_bRequestedCapture && Context.Window.bPointerCaptured)
+	{
+		m_bCaptureAcquired = true;
+	}
 	const bool bCancelPointer = !bFocused || bCaptureLost;
 	if (bCancelPointer)
 	{
@@ -573,6 +578,11 @@ FInputSnapshot FUiHostState::RouteInput(const FTickContext& Context)
 		Cursor = Target->Root.Get()->GetCursorIntent();
 	}
 	m_bRequestedCapture = bWantsCapture;
+	// 捕捉を求めなくなった（解放・取り消し）ら、次の押下では取得の有無を数え直す。
+	if (!bWantsCapture || bCancelPointer)
+	{
+		m_bCaptureAcquired = false;
+	}
 	Routing.bWantsPointerCapture = bWantsCapture;
 	Routing.Cursor = Cursor;
 	if (Context.Requests != nullptr)

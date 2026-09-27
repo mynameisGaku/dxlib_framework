@@ -105,6 +105,7 @@ void RunMode_Internal(const char* ProjectRoot, const Toolbox::FPath& Out, EWindo
 	auto Owned = Toolbox::MakeUnique<DWindowScene>();
 	DWindowScene* Scene = Owned.Get();
 	Require_Internal(static_cast<bool>(App.Start(Toolbox::Move(Owned))), "window scene start");
+	(void)RequestForegroundAtStartup(Mode == EWindowResizeMode::Resizable ? "window-resizable" : "window-stretch");
 	Toolbox::uint64 Frame = 0;
 	Step_Internal(App, Frame);
 	FScreenCapture Capture;
@@ -192,6 +193,25 @@ void RunMode_Internal(const char* ProjectRoot, const Toolbox::FPath& Out, EWindo
 	App.Shutdown();
 }
 } // namespace
+
+bool RequestForegroundAtStartup(const char* Scenario)
+{
+	// DxLibが作った自プロセスのウィンドウだけを対象にする。
+	const HWND Window = DxLib::GetMainWindowHandle();
+	Require_Internal(Window != nullptr, "UI startup window unavailable");
+	DWORD ProcessId = 0;
+	(void)GetWindowThreadProcessId(Window, &ProcessId);
+	Require_Internal(ProcessId == GetCurrentProcessId(), "UI startup window is not owned by this process");
+	// Windowsの前面化の制限をそのまま受け入れ、再試行や入力の偽装は行わない。
+	const bool bAccepted = SetForegroundWindow(Window) != FALSE;
+	const bool bForeground = GetForegroundWindow() == Window;
+	Toolbox::Out << "UI_WINDOW_START scenario=" << Scenario << " accepted=" << bAccepted
+	             << " foreground=" << bForeground << "\n";
+	// 前面でなくてもUIの操作は成立する（取得できなかった捕捉は失っていない）。OS捕捉の確認だけが行えない。
+	Toolbox::Out << "DXF_CHECK window_foreground." << Scenario << "=" << (bForeground ? "verified" : "not_exercised")
+	             << "\n";
+	return bForeground;
+}
 
 void RunWindowScenario(const char* ProjectRoot, const Toolbox::FPath& Out)
 {

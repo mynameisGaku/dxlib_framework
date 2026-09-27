@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: NOASSERTION
 // 表示先ごとの実画素の検査。期待値は定数と投影から独立に求め、許容差は検査の前に固定する（緩めない）。
 #include "DisplayScenario.h"
+#include "WindowScenario.h"
 #include "DisplayScene.h"
 #include "FixedInput.h"
 #include "ForwardRenderer.h"
@@ -344,6 +345,7 @@ void RunDisplayScenario(const char* ProjectRoot, const Toolbox::FPath& Out)
 	auto Owned = Toolbox::MakeUnique<DDisplayScene>();
 	DDisplayScene* Scene = Owned.Get();
 	Require_Internal(static_cast<bool>(App.Start(Toolbox::Move(Owned))), "display scene start");
+	(void)RequestForegroundAtStartup("displays");
 	Toolbox::uint64 Frame = 0;
 	Step_Internal(App, Frame);
 	// 基準（3Dのパネルなし）と実際のフレームを、同じ内容の連続したフレームで読む。

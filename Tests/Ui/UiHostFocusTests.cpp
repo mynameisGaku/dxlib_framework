@@ -194,3 +194,40 @@ TEST("UI cursor intent follows the front element and capture support is optional
 	(void)Input.Send(Host);
 	REQUIRE(!Input.Requests.bPointerCapture);
 }
+
+TEST("UI press in a window that never acquired OS capture still commits its click")
+{
+	FUiRoot Root;
+	auto Button = FullButton(Root);
+	FClicks Clicks(*Button.Get());
+	FUiSceneHost Host;
+	Host.AddScreen(Root, PixelOptions());
+	FHostInput Input;
+	// 捕捉に対応するPlatformだが、前面でないため一度も取得できない（bPointerCapturedは常にfalse）。
+	Input.Window.bKnown = true;
+	Input.Window.RenderWidth = 1280;
+	Input.Window.RenderHeight = 720;
+	Input.Window.bPointerCaptureSupported = true;
+	Input.Raw.MouseX = 100;
+	Input.Raw.MouseY = 100;
+	(void)Input.Send(Host);
+	Input.Raw.MouseButtons[0] = true;
+	(void)Input.Send(Host);
+	REQUIRE(Input.Requests.bPointerCapture && Root.GetCaptured() == Button.Get());
+	(void)Input.Send(Host);
+	REQUIRE(!Host.GetLastRouting().bPointerCancelled && Root.GetCaptured() == Button.Get());
+	Input.Raw.MouseButtons[0] = false;
+	(void)Input.Send(Host);
+	REQUIRE(Clicks.Count == 1);
+	// 取得した後に失った場合だけ取り消す（次の押下で取得の有無を数え直す）。
+	Input.Raw.MouseButtons[0] = true;
+	(void)Input.Send(Host);
+	Input.Window.bPointerCaptured = true;
+	(void)Input.Send(Host);
+	Input.Window.bPointerCaptured = false;
+	(void)Input.Send(Host);
+	REQUIRE(Host.GetLastRouting().bPointerCancelled && Root.GetCaptured() == nullptr);
+	Input.Raw.MouseButtons[0] = false;
+	(void)Input.Send(Host);
+	REQUIRE(Clicks.Count == 1);
+}

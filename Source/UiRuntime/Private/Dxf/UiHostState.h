@@ -300,6 +300,10 @@ private:
 	 */
 	bool m_bRequestedCapture = false;
 	/**
+	 * 求めている間に、Platformが実際に捕捉を取得したことがあるか（取得したことがない捕捉は失っていない）。
+	 */
+	bool m_bCaptureAcquired = false;
+	/**
 	 * UIが持っているキー。
 	 */
 	Toolbox::TArray<bool, static_cast<Toolbox::size_t>(EKey::Count)> m_OwnedKeys{};

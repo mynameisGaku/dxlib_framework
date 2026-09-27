@@ -69,6 +69,42 @@ FUiSampleShell& Shell(FApplication& App)
 	throw Toolbox::FException("UI sample has no active scene");
 }
 
+// 診断時点のSceneを、型の識別値だけで記録する。
+const char* SceneName(FApplication& App)
+{
+	const auto* Scene = App.GetScenes().GetCurrent();
+	if (dynamic_cast<const DUiTitleScene*>(Scene) != nullptr)
+	{
+		return "Title";
+	}
+	if (dynamic_cast<const DUiPlay2DScene*>(Scene) != nullptr)
+	{
+		return "Play2D";
+	}
+	if (dynamic_cast<const DUiPlay3DScene*>(Scene) != nullptr)
+	{
+		return "Play3D";
+	}
+	return Scene != nullptr ? "Other" : "None";
+}
+
+// 固定入力だけでは置き換わらない実ウィンドウの状態と、現在のRootの入力対象を読む。取得・再試行は行わない。
+void TraceClick(FApplication& App, Toolbox::uint64 Frame, const char* Name, const char* Phase)
+{
+	// StepでSceneが切り替わる可能性があるため、その都度現在のRootを解決する。
+	auto& Root = Shell(App).GetRoot();
+	const auto* Captured = Root.GetCaptured();
+	const auto* Focused = Root.GetFocused();
+	const auto Window = DxLib::GetMainWindowHandle();
+	Toolbox::Out << "UI_CLICK name=" << Name << " frame=" << Frame << " phase=" << Phase << " scene=" << SceneName(App)
+	             << " active=" << DxLib::GetWindowActiveFlag()
+	             << " foreground=" << (Window != nullptr && GetForegroundWindow() == Window)
+	             << " capture=" << (Window != nullptr && GetCapture() == Window)
+	             << " root_captured=" << (Captured != nullptr) << ":"
+	             << (Captured != nullptr ? Captured->GetName().CStr() : "-") << " root_focused=" << (Focused != nullptr)
+	             << ":" << (Focused != nullptr ? Focused->GetName().CStr() : "-") << "\n";
+}
+
 void Step(FApplication& App, Toolbox::uint64& Frame)
 {
 	const auto Result = App.Step(static_cast<Toolbox::f64>(Frame++) / 60.0);
@@ -81,6 +117,7 @@ void Step(FApplication& App, Toolbox::uint64& Frame)
 
 void Click(FApplication& App, FFixedInput& Input, Toolbox::uint64& Frame, const char* Name)
 {
+	TraceClick(App, Frame, Name, "find");
 	auto& Root = Shell(App).GetRoot();
 	DUiElement* Element = nullptr;
 	if (auto* Modal = Root.GetTopModal())
@@ -103,10 +140,17 @@ void Click(FApplication& App, FFixedInput& Input, Toolbox::uint64& Frame, const 
 	const auto Pixel = Root.GetSurface().ToPixel(FVector2{Rect.X + Rect.Width * 0.5f, Rect.Y + Rect.Height * 0.5f});
 	Input.Raw.MouseX = static_cast<Toolbox::int32>(Pixel.X);
 	Input.Raw.MouseY = static_cast<Toolbox::int32>(Pixel.Y);
+	// 押下・解放の前後は同じフレーム番号で記録する。
+	const Toolbox::uint64 DownFrame = Frame;
 	Input.Raw.MouseButtons[0] = true;
+	TraceClick(App, DownFrame, Name, "down.before");
 	Step(App, Frame);
+	TraceClick(App, DownFrame, Name, "down.after");
+	const Toolbox::uint64 UpFrame = Frame;
 	Input.Raw.MouseButtons[0] = false;
+	TraceClick(App, UpFrame, Name, "up.before");
 	Step(App, Frame);
+	TraceClick(App, UpFrame, Name, "up.after");
 }
 // スライダーのつまみを、範囲の割合の位置まで実際のポインター操作で動かす。
 void DragSlider(FApplication& App, FFixedInput& Input, Toolbox::uint64& Frame, const char* Name, Toolbox::f64 Fraction)
@@ -161,6 +205,7 @@ int main(int Count, char** Args)
 			auto State = Toolbox::MakeShared<FUiSampleState>();
 			FApplication App(Services, Settings);
 			Check(static_cast<bool>(App.Start(MakeTitleScene(State))), "UI sample start");
+			(void)RequestForegroundAtStartup(ThreeD ? "sample-3D" : "sample-2D");
 			Toolbox::uint64 Frame = 0;
 			Step(App, Frame);
 			InstallPixelFixture(Shell(App).GetRoot());
@@ -172,6 +217,11 @@ int main(int Count, char** Args)
 			Render.BeforePresent = {};
 			Click(App, Input, Frame, ThreeD ? "Start3D" : "Start2D");
 			Step(App, Frame);
+			// クリックによる切替要求を、既存の次フレーム境界で確定した直後に検査する。
+			TraceClick(App, Frame - 1, ThreeD ? "Start3D" : "Start2D", "committed");
+			Check(ThreeD ? dynamic_cast<DUiPlay3DScene*>(App.GetScenes().GetCurrent()) != nullptr
+			             : dynamic_cast<DUiPlay2DScene*>(App.GetScenes().GetCurrent()) != nullptr,
+			      "UI start click did not activate requested play scene");
 			State->Split.Set(true);
 			Step(App, Frame);
 			Input.Raw.Keys[static_cast<Toolbox::size_t>(EKey::D)] = true;

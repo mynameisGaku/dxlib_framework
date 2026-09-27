@@ -323,6 +323,14 @@ int wmain(int Count, wchar_t** Args)
 		    {Services.Platform, Input, Services.Textures, Services.Sounds, Services.Fonts, Services.Renderer},
 		    Settings);
 		Check(static_cast<bool>(App.Start(Toolbox::MakeUnique<DUiScene2D>(Style))), "start failed");
+		// 前面ならOS捕捉まで確かめるため、試験開始時だけ自分のウィンドウを前面へ要求する。
+		const HWND Window = DxLib::GetMainWindowHandle();
+		Check(Window != nullptr, "native UI consumer window missing");
+		// 再試行や強制取得は行わない。OSが拒否した場合もUIの操作は成立し、OS捕捉の確認だけを行わない。
+		const bool bForegroundRequested = SetForegroundWindow(Window) != FALSE;
+		const bool bForeground = GetForegroundWindow() == Window;
+		Toolbox::Out << "NATIVE_UI_FOREGROUND requested=" << bForegroundRequested << " actual=" << bForeground << '\n';
+		Toolbox::Out << "DXF_CHECK native_ui_os_capture=" << (bForeground ? "verified" : "not_exercised") << '\n';
 		Toolbox::f64 Time = 0;
 		auto Step = [&]
 		{
@@ -396,6 +404,8 @@ int wmain(int Count, wchar_t** Args)
 		Step();
 		Input.Raw.MouseButtons[0] = true;
 		Step();
+		// 前面なら、押下のStepで実際に捕捉できたことを、解放によるクリック決定の前に確かめる。
+		Check(!bForeground || GetCapture() == DxLib::GetMainWindowHandle(), "2D UI OS pointer capture");
 		Input.Raw.MouseButtons[0] = false;
 		for (Toolbox::int32 Frame = 0; Frame < 4; ++Frame)
 		{
@@ -415,6 +425,8 @@ int wmain(int Count, wchar_t** Args)
 		Step();
 		Input.Raw.MouseButtons[0] = true;
 		Step();
+		// 前面なら、押下のStepで実際に捕捉できたことを、解放によるクリック決定の前に確かめる。
+		Check(!bForeground || GetCapture() == DxLib::GetMainWindowHandle(), "3D UI OS pointer capture");
 		Input.Raw.MouseButtons[0] = false;
 		Step();
 		Check(Scene3D->GetClicks() == 1, "3D panel UI click");
