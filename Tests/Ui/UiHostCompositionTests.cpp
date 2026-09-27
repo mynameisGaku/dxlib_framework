@@ -2,6 +2,7 @@
 // W3: 3Dのパネルの透明な合成（乗算済みアルファの中間画像）と、不透明・透明のパネルの描く順。
 #include "Ui/UiRuntimeTestSupport.h"
 #include "Dxf/UiAssetTextService.h"
+#include "Dxf/UiImage.h"
 #include "Dxf/UiLabel.h"
 #include "Dxf/UiPanel.h"
 using namespace UiTest;
@@ -305,6 +306,75 @@ TEST("UI offscreen 2D panel checks its own requirements and skips empty rectangl
 	REQUIRE(Host.Draw(Renderer.GetContext()));
 	REQUIRE(Renderer.EndFrame());
 	REQUIRE(Backend.Sprites.IsEmpty() && Backend.Assets.GetTrace().Textures.IsEmpty());
+}
+
+TEST("UI offscreen panel reuses its texture across frames and recreates it only when the pixel size changes")
+{
+	FRecordingRenderer Backend;
+	Backend.Declared = TransparentCapabilities();
+	FAssetService Assets(Backend.Assets, Backend.Assets, Backend.Assets);
+	FUiRoot Root;
+	AddFill(Root, {255, 0, 0, 128});
+	FUiSceneHost Host;
+	FUiWorldPanel2D Panel = OffscreenPanel(EUiPanelComposition::Transparent);
+	const auto Id = Host.AddWorldPanel2D(Root, Panel, Assets, PixelOptions());
+	FRenderSystem Renderer(Backend);
+	auto DrawFrame = [&]()
+	{
+		Backend.Sprites.Clear();
+		REQUIRE(Renderer.BeginFrame(800, 600, {}));
+		REQUIRE(Host.Draw(Renderer.GetContext()));
+		REQUIRE(Renderer.EndFrame());
+		REQUIRE(Backend.Sprites.Size() == 1);
+		return Backend.Sprites[0].Texture;
+	};
+	const FTexture First = DrawFrame();
+	for (Toolbox::int32 Frame = 0; Frame < 3; ++Frame)
+	{
+		// 同じ寸法・合成の間は、毎フレーム作り直さずに同じ中間画像を使う。
+		REQUIRE(DrawFrame().GetNativeHandle_Internal() == First.GetNativeHandle_Internal());
+	}
+	REQUIRE(Backend.Assets.GetTrace().DeletedTextures.IsEmpty());
+	// 画面の画素の寸法が変わった時だけ、その寸法で作り直す。
+	Panel.Transform.PixelsPerUnit = 10;
+	REQUIRE(Host.SetWorldPanel2D(Id, Panel));
+	const FTexture Resized = DrawFrame();
+	REQUIRE(Resized.GetNativeHandle_Internal() != First.GetNativeHandle_Internal());
+	REQUIRE(Resized.GetWidth() == 80 && Resized.GetHeight() == 40);
+	REQUIRE(DrawFrame().GetNativeHandle_Internal() == Resized.GetNativeHandle_Internal());
+}
+
+TEST("UI panel texture drawing keeps the first failure when restoring the previous target also fails")
+{
+	FRecordingRenderer Backend;
+	Backend.Declared = TransparentCapabilities();
+	FAssetService Assets(Backend.Assets, Backend.Assets, Backend.Assets);
+	FUiRoot Root;
+	auto Image = Root.Create<DUiImage>();
+	Image.Get()->SetWidth(FUiLength::Fill());
+	Image.Get()->SetHeight(FUiLength::Fill());
+	REQUIRE(Root.AddToLayer(EUiLayer::Normal, Image.Cast<DUiElement>()));
+	FUiSceneHost Host;
+	const auto Id = Host.AddWorldPanel3D(Root, PanelAt(0, 0, EUiPanelComposition::Transparent), Assets, PixelOptions());
+	FRenderSystem Renderer(Backend);
+	REQUIRE(Renderer.BeginFrame(800, 600, {}));
+	REQUIRE(Host.RenderWorldPanelTextures(Renderer.GetContext()));
+	REQUIRE(Renderer.EndFrame());
+	// パネルの中間画像を自身の内容へ描く（描画先の自己参照で受け付けない）。呼出し前の描画先への復帰も失敗する。
+	Image.Get()->SetTexture(Host.GetWorldPanelTexture(Id).AsTexture());
+	REQUIRE(Renderer.BeginFrame(800, 600, {}));
+	Backend.FailRestoreScreen = true;
+	const auto Result = Host.RenderWorldPanelTextures(Renderer.GetContext());
+	Backend.FailRestoreScreen = false;
+	// 結果は最初の失敗（自己参照）で、後の復帰の失敗で上書きしない。
+	REQUIRE(!Result && Result.Error().Message == "Render target feedback is forbidden");
+	(void)Renderer.EndFrame();
+	// 次のフレームは通常どおり描ける。
+	Image.Get()->SetTexture({});
+	REQUIRE(Renderer.BeginFrame(800, 600, {}));
+	REQUIRE(Host.RenderWorldPanelTextures(Renderer.GetContext()));
+	REQUIRE(Backend.CurrentTarget < 0);
+	REQUIRE(Renderer.EndFrame());
 }
 
 TEST("UI same root drawn as 2D offscreen and 3D transparent panels keeps separate textures and one input pass")

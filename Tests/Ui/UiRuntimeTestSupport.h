@@ -28,6 +28,7 @@ public:
 	bool ThrowReset = false;
 	bool ThrowDraw = false;
 	bool FailDraw = false;
+	bool FailRestoreScreen = false;
 	Toolbox::int32 ClipResets = 0;
 	Toolbox::int32 CurrentTarget = -1;
 	Toolbox::int32 Presents = 0;
@@ -108,6 +109,10 @@ public:
 
 	TResult<void> SetTarget(Toolbox::int32 Handle, Toolbox::int32, Toolbox::int32) override
 	{
+		if (FailRestoreScreen && Handle < 0)
+		{
+			return TResult<void>::Failure(EErrorCode::BackendFailure, "screen restore failure");
+		}
 		CurrentTarget = Handle;
 		return {};
 	}
