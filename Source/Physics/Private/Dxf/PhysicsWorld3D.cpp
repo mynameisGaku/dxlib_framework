@@ -6,6 +6,10 @@
 #include "QueryResultOrder.h"
 #include "WorldQueryShapes3D.h"
 #include "WorldEventTracker.h"
+#include "WorldEventCandidates.h"
+#if defined(DXF_INTERACTION_BENCHMARK_PROBES)
+#include "WorldInteractionProbe.h"
+#endif
 #include "Toolbox/ContinuousCollision.h"
 #include "Toolbox/SegmentIntersection.h"
 #include "Toolbox/ShapeSweep3D.h"
@@ -740,7 +744,7 @@ struct FPhysicsWorld3D::FImpl
 	PhysicsPrivate::TWorldEventTracker<FColliderId3D, Toolbox::FVector3> Events;
 	// イベントの組の候補を作る作業領域（Stepをまたいで容量を使い回す）。
 	Toolbox::TVector<PhysicsPrivate::FBroadPhaseEntry> EventEntries;
-	Toolbox::TVector<PhysicsPrivate::FBroadPhasePair> EventPairs;
+	// 接触の詳細判定に使う固定上限の作業領域。
 	Toolbox::TVector<Toolbox::FContactPoint3D> EventHits;
 	// 休止の条件。
 	FSleepSettings3D Sleep;
@@ -907,6 +911,11 @@ struct FPhysicsWorld3D::FImpl
 	                         const FBodyRecord3D& BodyB, Toolbox::f32 Margin,
 	                         Toolbox::TOptional<Toolbox::FVector3>& Normal)
 	{
+#if defined(DXF_INTERACTION_BENCHMARK_PROBES)
+		// 実形状の判定中は候補側の計測を止め、別の区間へ記録する。
+		PhysicsPrivate::FWorldInteractionProbe::FRegion ExactProbe(
+		    PhysicsPrivate::FWorldInteractionProbe::EPhase::Exact);
+#endif
 		const Toolbox::size_t IndexA = A.Shape.Index();
 		const Toolbox::size_t IndexB = B.Shape.Index();
 		Toolbox::FContactPoint3D Hit;
@@ -946,9 +955,14 @@ struct FPhysicsWorld3D::FImpl
 		}
 		return true;
 	}
-	// 成功したStepの完了時点の姿勢で、接触・Triggerの組を集める。組はスロット番号の辞書順（BroadPhaseの順）。
+	// 成功したStepの完了姿勢から接触・Triggerの組を集める。正準順への整列は発行時に行う。
 	void CollectEvents_Internal()
 	{
+#if defined(DXF_INTERACTION_BENCHMARK_PROBES)
+		// 境界の作成・並べ替え・走査・絞り込み。入れ子のEventTouchだけは別集計。
+		PhysicsPrivate::FWorldInteractionProbe::FRegion CandidateProbe(
+		    PhysicsPrivate::FWorldInteractionProbe::EPhase::Candidate);
+#endif
 		EventEntries.Clear();
 		for (Toolbox::size_t Index = 0; Index < Colliders.Size(); ++Index)
 		{
@@ -972,39 +986,41 @@ struct FPhysicsWorld3D::FImpl
 			EventEntries.PushBack(Entry);
 		}
 		const Toolbox::f32 Margin = Events.GetSettings().ContactMargin;
-		PhysicsPrivate::FBroadPhase::Generate(EventEntries, Margin, nullptr, EventPairs);
-		for (Toolbox::size_t Index = 0; Index < EventPairs.Size(); ++Index)
-		{
-			const Toolbox::size_t First = EventPairs[Index].FirstColliderIndex;
-			const Toolbox::size_t Second = EventPairs[Index].SecondColliderIndex;
-			const FColliderRecord3D& RecordA = Colliders[First];
-			const FColliderRecord3D& RecordB = Colliders[Second];
-			const FBodyRecord3D* BodyA = Find_Internal(RecordA.Body);
-			const FBodyRecord3D* BodyB = Find_Internal(RecordB.Body);
-			if (BodyA == nullptr || BodyB == nullptr)
-			{
-				continue;
-			}
-			const Toolbox::TOptional<EWorldEventKind> Kind = EventKind_Internal(RecordA, *BodyA, RecordB, *BodyB);
-			if (!Kind)
-			{
-				continue;
-			}
-			typename decltype(Events)::FPair Pair;
-			Pair.A = {RecordA.Body, First, RecordA.Generation};
-			Pair.B = {RecordB.Body, Second, RecordB.Generation};
-			Pair.Kind = *Kind;
-			if (!EventTouch_Internal(RecordA, *BodyA, RecordB, *BodyB,
-			                         *Kind == EWorldEventKind::Trigger ? 0.0f : Margin, Pair.Normal))
-			{
-				continue;
-			}
-			if (*Kind == EWorldEventKind::Trigger)
-			{
-				Pair.Normal.Reset();
-			}
-			Events.Add(Pair);
-		}
+		PhysicsPrivate::VisitWorldEventCandidates_Internal(
+		    EventEntries, Margin,
+		    [&](Toolbox::size_t First, Toolbox::size_t Second)
+		    {
+#if defined(DXF_INTERACTION_BENCHMARK_PROBES)
+			    PhysicsPrivate::FWorldInteractionProbe::CountCandidate_Internal();
+#endif
+			    const FColliderRecord3D& RecordA = Colliders[First];
+			    const FColliderRecord3D& RecordB = Colliders[Second];
+			    const FBodyRecord3D* BodyA = Find_Internal(RecordA.Body);
+			    const FBodyRecord3D* BodyB = Find_Internal(RecordB.Body);
+			    if (BodyA == nullptr || BodyB == nullptr)
+			    {
+				    return;
+			    }
+			    const Toolbox::TOptional<EWorldEventKind> Kind = EventKind_Internal(RecordA, *BodyA, RecordB, *BodyB);
+			    if (!Kind)
+			    {
+				    return;
+			    }
+			    typename decltype(Events)::FPair Pair;
+			    Pair.A = {RecordA.Body, First, RecordA.Generation};
+			    Pair.B = {RecordB.Body, Second, RecordB.Generation};
+			    Pair.Kind = *Kind;
+			    if (!EventTouch_Internal(RecordA, *BodyA, RecordB, *BodyB,
+			                             *Kind == EWorldEventKind::Trigger ? 0.0f : Margin, Pair.Normal))
+			    {
+				    return;
+			    }
+			    if (*Kind == EWorldEventKind::Trigger)
+			    {
+				    Pair.Normal.Reset();
+			    }
+			    Events.Add(Pair);
+		    });
 	}
 	// 前回の組が今回ない理由。
 	EWorldEventEndReason EndReason_Internal(const typename decltype(Events)::FPair& Pair) const noexcept
@@ -2821,6 +2837,11 @@ FColliderId3D FPhysicsWorld3D::AttachCollider(FBodyId3D Body, const FColliderDes
 		m_pImpl->QueryWorldShapes.Resize(
 		    Toolbox::Max<Toolbox::size_t>(m_pImpl->Colliders.Size() + 1, m_pImpl->QueryWorldShapes.Size() * 2));
 	}
+	// イベント境界列も登録時に確保し、次のStepへ確保を持ち越さない。
+	if (m_pImpl->Events.IsEnabled())
+	{
+		m_pImpl->EventEntries.Reserve(m_pImpl->QueryWorldShapes.Size());
+	}
 	// 空きスロットの再使用または末尾への追加。
 	Toolbox::size_t Index = 0;
 	if (!m_pImpl->ColliderFree.IsEmpty())
@@ -3459,11 +3480,14 @@ void FPhysicsWorld3D::SetEventSettings(const FWorldEventSettings& Settings)
 	{
 		throw Toolbox::FException("3D world event settings cannot change during Step");
 	}
-	m_pImpl->Events.Configure(Settings);
+	// 設定とバッチを変更する前に、イベント境界と詳細判定の作業領域を全て用意する。
+	m_pImpl->Events.Validate(Settings);
 	if (Settings.bEnabled)
 	{
+		m_pImpl->EventEntries.Reserve(m_pImpl->QueryWorldShapes.Size());
 		m_pImpl->EventHits.Reserve(8);
 	}
+	m_pImpl->Events.Configure(Settings);
 }
 // Bodyの運動区分を返す。
 EBodyType FPhysicsWorld3D::GetBodyType(FBodyId3D Id) const

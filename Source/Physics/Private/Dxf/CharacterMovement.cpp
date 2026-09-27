@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: NOASSERTION
 #include "Dxf/CharacterMovement2D.h"
 #include "Dxf/CharacterMovement3D.h"
+#if defined(DXF_INTERACTION_BENCHMARK_PROBES)
+#include "WorldInteractionProbe.h"
+#endif
 namespace Dxf
 {
 namespace
@@ -93,6 +96,11 @@ struct F2D_Internal
 	{
 		return {Center, Radius};
 	}
+	// 2Dの角速度を、共通の外積に使うZ軸回りの値へ移す。
+	static FVec_Internal AngularVelocity(const FWorld& World, FBodyId Body)
+	{
+		return {0, 0, World.GetAngularVelocity(Body)};
+	}
 };
 // 3Dの型と変換。
 struct F3D_Internal
@@ -121,6 +129,11 @@ struct F3D_Internal
 	static FShape Shape(FVector Center, f32 Radius) noexcept
 	{
 		return {Center, Radius};
+	}
+	// 3Dの角速度はWorld座標のまま共通の外積へ渡す。
+	static FVec_Internal AngularVelocity(const FWorld& World, FBodyId Body)
+	{
+		return Load(World.GetAngularVelocity(Body));
 	}
 };
 
@@ -806,6 +819,102 @@ FVec_Internal MoveToward_Internal(const FVec_Internal& Current, const FVec_Inter
 	return Add_Internal(Current, Scale_Internal(Delta, MaxChange / Length));
 }
 
+// 回転床の点の軌道を、曲がりの幅を加えた円・球で覆って検査する。Worldの積分と同じ途中点を使う。
+// 支持床以外との接触で軌道から外れたら、その区間の安全な位置で止め、以後の曲線を継ぎ足さない。
+template <typename T>
+typename T::FMoveResult CarryCurve_Internal(const typename T::FWorld& World, typename T::FBodyId Carrier,
+                                            const typename T::FVector& StartCenter, const FVec_Internal& Displacement,
+                                            const typename T::FSettings& Settings, const FMoveMode_Internal& Mode,
+                                            const Toolbox::TOptional<typename T::FBodyId>& Excluded,
+                                            const FWorldQueryFilter& Filter, FBudget_Internal& Budget, f64 DeltaSeconds,
+                                            f64 AngularDistance, f64 OrbitRadius, bool& bRejected)
+{
+	// 分割を増やし続けず、許容外の運動は追従を始める前に拒否する。
+	constexpr int32 MaxSegments = 32;
+	// 通常追従として扱う角速度×時間の上限。厳密な回転CCDは提供しない。
+	constexpr f64 MaxAngularDistance = 3.141592653589793;
+	// 全区間の弦から曲線までのずれの保守上限。2Dと正規化四元数微分による3Dの加速度の大きさはr*omega^2以下。
+	const f64 FullCurveWidth = OrbitRadius * AngularDistance * AngularDistance * 0.25;
+	// 初期の接触余裕を使い切らない幅まで区間を細かくする。
+	const f64 AllowedWidth = Settings.SkinWidth * 0.25;
+	// 今回に必要な分割数。
+	int32 Segments = 1;
+	while (Segments < MaxSegments && FullCurveWidth / (Segments * Segments) > AllowedWidth)
+	{
+		++Segments;
+	}
+	// 各区間の曲線を覆うために半径へ足す幅。
+	const f64 CurveWidth = FullCurveWidth / (Segments * Segments);
+	// 実際に進めた位置と、全区間で使った回数。
+	typename T::FMoveResult Result;
+	FVec_Internal Center = T::Load(StartCenter);
+	int32 Iterations = 0;
+	int32 Queries = 0;
+	// 部分的に進めた場合も、最初の中心からの合計移動と未処理分を返す。
+	const auto Finish = [&](ECharacterMoveStop Stop)
+	{
+		Result.Stop = Stop;
+		Result.EndCenter = T::Store(Center);
+		Result.Applied = T::Store(Sub_Internal(Center, T::Load(StartCenter)));
+		Result.Remaining = T::Store(Sub_Internal(Displacement, T::Load(Result.Applied)));
+		Result.Iterations = Iterations;
+		Result.Queries = Queries;
+		return Result;
+	};
+	if (!Finite_Internal(FullCurveWidth) || AngularDistance > MaxAngularDistance || CurveWidth > AllowedWidth)
+	{
+		bRejected = true;
+		return Finish(ECharacterMoveStop::IterationLimit);
+	}
+	// 元の半径に曲がりの幅だけを足す。通常の接触余裕・接触面の扱いはMoveCoreを再利用する。
+	typename T::FSettings CurvedSettings = Settings;
+	CurvedSettings.Radius = Inflated_Internal(Settings.Radius, CurveWidth);
+	for (int32 Index = 1; Index <= Segments; ++Index)
+	{
+		if (!Budget.Take())
+		{
+			return Finish(ECharacterMoveStop::QueryLimit);
+		}
+		++Queries;
+		// 膨らませた形状が最初から重なる場合だけ保守的に止める。通常の接触余裕内の近接面はMoveCoreの制約で扱う。
+		const auto Contacts =
+		    World.QueryContacts(T::Shape(T::Store(Center), Settings.Radius), CurveWidth, Excluded, Filter);
+		if (!Contacts.IsComplete())
+		{
+			return Finish(ECharacterMoveStop::ContactLimit);
+		}
+		for (uint32 ContactIndex = 0; ContactIndex < Contacts.Count; ++ContactIndex)
+		{
+			if (Contacts.Items[ContactIndex].Separation < CurveWidth)
+			{
+				Result.ContactCount = 0;
+				if (Contacts.Items[ContactIndex].Normal)
+				{
+					Result.Contacts[0].Collider = Contacts.Items[ContactIndex].Collider;
+					Result.Contacts[0].Normal = *Contacts.Items[ContactIndex].Normal;
+					Result.ContactCount = 1;
+				}
+				return Finish(ECharacterMoveStop::Blocked);
+			}
+		}
+		// 途中点も元の開始姿勢から求め、Worldを仮の姿勢へ書き換えない。
+		const auto Target = World.PredictBodyPoint(Carrier, StartCenter, DeltaSeconds * Index / Segments);
+		// 前に採用した位置から、次の検査済み区間の終点へ進む。
+		const FVec_Internal SegmentMove = Sub_Internal(T::Load(Target), Center);
+		Result =
+		    MoveCore_Internal<T>(World, T::Store(Center), SegmentMove, CurvedSettings, Mode, Excluded, Filter, Budget);
+		Iterations += Result.Iterations;
+		Queries += Result.Queries;
+		Center = T::Load(Result.EndCenter);
+		if (Length_Internal(Sub_Internal(SegmentMove, T::Load(Result.Applied))) > Settings.MinMoveDistance ||
+		    (Result.Stop != ECharacterMoveStop::Completed && Result.Stop != ECharacterMoveStop::NoMovement))
+		{
+			return Finish(Result.Stop);
+		}
+	}
+	return Finish(ECharacterMoveStop::Completed);
+}
+
 // 1回の固定更新の計算。
 template <typename T>
 typename T::FStepResult StepCore_Internal(const typename T::FWorld& World, const typename T::FSettings& Settings,
@@ -942,6 +1051,10 @@ typename T::FStepResult StepCore_Internal(const typename T::FWorld& World, const
 	Result.bLanded = !bWasGrounded && bGrounded;
 	Result.bLeftGround = bWasGrounded && !bGrounded;
 	FVec_Internal FinalVelocity = Add_Internal(Horizontal, Scale_Internal(Up, Vertical));
+#if defined(DXF_INTERACTION_BENCHMARK_PROBES)
+	// 床を追従する条件の確認から、予測・経路検査・離地速度継承までだけを記録する。
+	PhysicsPrivate::FWorldInteractionProbe::FRegion CarryProbe(PhysicsPrivate::FWorldInteractionProbe::EPhase::Carry);
+#endif
 	// 8. 動く床の追従。ここまでの移動は、固定更新の開始時の床の姿勢に対して決めた（床の上を歩いた）もの。
 	// 開始時に乗っていたKinematicの床に固定した中心の点が、この物理Stepで動く量だけ運ぶ（登録順・描画に依存しない）。
 	// 乗った直後（開始時に接地していない）には過去の床の移動を遡って加えない。
@@ -950,10 +1063,21 @@ typename T::FStepResult StepCore_Internal(const typename T::FWorld& World, const
 	{
 		const typename T::FBodyId Carrier = Before.Collider->Body;
 		Result.Carrier = *Before.Collider;
+		// 同じ固定更新の開始時の速度と回転中心。描画補間や終点の差分速度は使わない。
+		const FVec_Internal LinearVelocity = T::Load(World.GetVelocity(Carrier));
+		const FVec_Internal AngularVelocity = T::AngularVelocity(World, Carrier);
+		const FVec_Internal Origin = T::Load(World.GetPosition(Carrier));
+		// 歩行・ジャンプ前の支持点の速度。離地するときに一度だけ引き継ぐ。
+		const FVec_Internal SupportVelocity = Add_Internal(
+		    LinearVelocity, Cross_Internal(AngularVelocity, Sub_Internal(T::Load(Result.Recovery.Center), Origin)));
+		// 実際に追従する中心の回転半径と、曲線全体の速さの保守上限。
+		const f64 Spin = Length_Internal(AngularVelocity);
+		const f64 TangentialSpeed =
+		    Length_Internal(Cross_Internal(AngularVelocity, Sub_Internal(T::Load(Center), Origin)));
 		const FVec_Internal Moved =
 		    Sub_Internal(T::Load(World.PredictBodyPoint(Carrier, Center, DeltaSeconds)), T::Load(Center));
 		Result.CarryRequested = T::Store(Moved);
-		if (!(Length_Internal(Moved) <= Settings.MaxGroundCarrySpeed * DeltaSeconds))
+		if (!(Length_Internal(LinearVelocity) + TangentialSpeed <= Settings.MaxGroundCarrySpeed))
 		{
 			Result.bCarryRejected = true;
 		}
@@ -965,20 +1089,34 @@ typename T::FStepResult StepCore_Internal(const typename T::FWorld& World, const
 			FMoveMode_Internal Carry;
 			Carry.Up = Up;
 			Carry.CosMaxSlope = Checked.CosMaxSlope;
-			Result.Carry = MoveCore_Internal<T>(World, Center, Moved, Settings, Carry, Excluded, CarryFilter, Budget);
+			if (Spin > 0 && TangentialSpeed > 0)
+			{
+				Result.Carry = CarryCurve_Internal<T>(World, Carrier, Center, Moved, Settings, Carry, Excluded,
+				                                      CarryFilter, Budget, DeltaSeconds, Spin * DeltaSeconds,
+				                                      TangentialSpeed / Spin, Result.bCarryRejected);
+			}
+			else
+			{
+				Result.Carry =
+				    MoveCore_Internal<T>(World, Center, Moved, Settings, Carry, Excluded, CarryFilter, Budget);
+			}
 			Center = Result.Carry.EndCenter;
-			Result.bCarried = true;
+			Result.bCarried = !Result.bCarryRejected;
 			// 止められた量＝床の運動が求めた量と、実際に動いた量の差。
 			Result.bCarryBlocked =
+			    !Result.bCarryRejected &&
 			    Length_Internal(Sub_Internal(Moved, T::Load(Result.Carry.Applied))) > Settings.MinMoveDistance;
 			// 床を離れた固定更新だけ、床の点の速度を一度加える（空中で毎回は加えない）。
-			if (Settings.bInheritGroundVelocity && (Result.bJumped || !bGrounded))
+			if (!Result.bCarryRejected && Settings.bInheritGroundVelocity && (Result.bJumped || !bGrounded))
 			{
-				FinalVelocity = Add_Internal(FinalVelocity, Scale_Internal(Moved, 1 / DeltaSeconds));
+				FinalVelocity = Add_Internal(FinalVelocity, SupportVelocity);
 				Result.bInheritedGroundVelocity = true;
 			}
 		}
 	}
+#if defined(DXF_INTERACTION_BENCHMARK_PROBES)
+	CarryProbe.Stop();
+#endif
 	Result.State.Center = Center;
 	Result.State.Velocity = T::Store(FinalVelocity);
 	Result.State.Ground = After;

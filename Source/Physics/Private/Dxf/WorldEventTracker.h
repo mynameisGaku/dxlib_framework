@@ -2,12 +2,16 @@
 #ifndef DXF_PRIVATE_PHYSICS_WORLD_EVENT_TRACKER_H
 #define DXF_PRIVATE_PHYSICS_WORLD_EVENT_TRACKER_H
 #include "Dxf/WorldEvent.h"
+#include "QueryResultOrder.h"
+#if defined(DXF_INTERACTION_BENCHMARK_PROBES)
+#include "WorldInteractionProbe.h"
+#endif
 #include "Toolbox/Utility.h"
 namespace Dxf::PhysicsPrivate
 {
 /**
  * 前回と今回の確定集合からBegin／Stay／Endを作る、2D／3D共通の記録。
- * 組はColliderのスロット番号の昇順（A＜B、辞書順）で追加されることを前提に、線形の併合で差を求める。
+ * 各組のA＜Bを前提に、確定集合を無確保でCollider番号の辞書順へ並べてから、線形の併合で差を求める。
  * 領域は有効化の時点で確保し、Stepごとの追加・差の生成・発行では確保しない。
  */
 template <typename TColliderId, typename TVector> class TWorldEventTracker
@@ -118,7 +122,7 @@ public:
 		m_Required = 0;
 	}
 	/**
-	 * 今回の確定集合へ組を追加する。組はスロット番号の辞書順で渡す。上限を超えた組は数だけ数える。
+	 * 今回の確定集合へ重複しない組を追加する。各組はA＜Bとし、組同士の順序は問わない。上限を超えた組は数だけ数える。
 	 * @param Pair 追加する組。
 	 */
 	void Add(const FPair& Pair) noexcept
@@ -137,6 +141,10 @@ public:
 	 */
 	template <typename TReason> void Publish(Toolbox::uint64 StepIndex, TReason&& EndReason) noexcept
 	{
+#if defined(DXF_INTERACTION_BENCHMARK_PROBES)
+		// 確定組の整列から差分バッチの発行までを一つの区間にする。
+		FWorldInteractionProbe::FRegion DifferenceProbe(FWorldInteractionProbe::EPhase::Difference);
+#endif
 		m_Batch.bPublished = true;
 		m_Batch.StepIndex = StepIndex;
 		m_Batch.BatchId += 1;
@@ -148,6 +156,12 @@ public:
 			m_Batch.PairCount = static_cast<Toolbox::uint32>(m_Previous.Size());
 			return;
 		}
+		// 候補の走査順に依存しない正準順へ、予約済み領域の中だけで並べる。
+		HeapSort_Internal(m_Current.Data(), m_Current.Size(),
+		                  [](const FPair& A, const FPair& B)
+		                  {
+			                  return Compare_Internal(A, B) < 0;
+		                  });
 		m_bResetPending = false;
 		m_Batch.PairCount = static_cast<Toolbox::uint32>(m_Current.Size());
 		Toolbox::size_t Old = 0;

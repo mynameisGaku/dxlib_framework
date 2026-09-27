@@ -42,6 +42,7 @@ function(dxf_add_physics_tests Target CoreTarget)
     set_tests_properties(PhysicsContinuation PROPERTIES TIMEOUT 180 LABELS "portable;physics")
     # 範囲問い合わせの結果確保の故障注入。確保置換はこの隔離した実行ファイルだけにリンクする。
     add_executable(${Target}_overlap_fault
+        "${_root}/Tests/Physics/WorldEventAllocationFaultTests.cpp"
         "${_root}/Tests/Physics/OverlapAllocationFaultTests.cpp"
         "${_root}/Tests/Physics/QueryIndexAllocationFaultTests.cpp"
         "${_root}/Source/Toolbox/Private/Toolbox/Testing/AllocationFault.cpp")

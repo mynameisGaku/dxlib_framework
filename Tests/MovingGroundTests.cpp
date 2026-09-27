@@ -434,6 +434,260 @@ template <typename T> void TeleportAndRemoval_Internal()
 	REQUIRE(!World.Character->IsGrounded() && T::Y(World.Character->GetCenter()) < T::Y(Before) - 0.5);
 	REQUIRE(Abs(T::X(World.Character->GetCenter()) - T::X(Before)) < 1e-4);
 }
+
+// 公開Worldの回転速度と支持点を、2Dの解析式へつなぐ。
+struct FDirect2D : FCase2D
+{
+	using FWorld = FPhysicsWorld2D;
+	using FBody = FBodyDescription2D;
+	using FBodyId = FBodyId2D;
+	using FSettings = FCharacterMoveSettings2D;
+	using FState = FCharacterState2D;
+	using FInput = FCharacterMoveInput2D;
+	static void Spin(FWorld& World, FBodyId Body, f32 Speed)
+	{
+		World.SetAngularVelocity(Body, Speed);
+	}
+	static FVector Turn(FVector Point, f64 Angle)
+	{
+		return {static_cast<f32>(Cos(Angle) * Point.X - Sin(Angle) * Point.Y),
+		        static_cast<f32>(Sin(Angle) * Point.X + Cos(Angle) * Point.Y)};
+	}
+	static FVector JumpVelocity()
+	{
+		return {1 - 2 * StandY, 6.2f + 4};
+	}
+	static FColliderDescription Ball(f32 Radius)
+	{
+		FColliderDescription Description;
+		Description.Shape = FCircle2D{{}, Radius};
+		return Description;
+	}
+	// 0.6radの傾きは45度以内。半径20の点の速さは48m/sで追従上限50以内。
+	static constexpr f32 ArcRadius = 20;
+	static constexpr f32 ArcSpin = 2.4f;
+	static constexpr f64 ArcAngle = 0.6;
+};
+
+// 3DはUp軸回りの回転。角速度と開始時の支持点から接線速度を独立に求める。
+struct FDirect3D : FCase3D
+{
+	using FWorld = FPhysicsWorld3D;
+	using FBody = FBodyDescription3D;
+	using FBodyId = FBodyId3D;
+	using FSettings = FCharacterMoveSettings3D;
+	using FState = FCharacterState3D;
+	using FInput = FCharacterMoveInput3D;
+	static void Spin(FWorld& World, FBodyId Body, f32 Speed)
+	{
+		World.SetAngularVelocity(Body, {0, Speed, 0});
+	}
+	static FVector Turn(FVector Point, f64 Angle)
+	{
+		return {static_cast<f32>(Cos(Angle) * Point.X + Sin(Angle) * Point.Z), Point.Y,
+		        static_cast<f32>(-Sin(Angle) * Point.X + Cos(Angle) * Point.Z)};
+	}
+	static FVector JumpVelocity()
+	{
+		return {1, 6.2f, -4};
+	}
+	static FColliderDescription Ball(f32 Radius)
+	{
+		FColliderDescription Description;
+		Description.Shape = FSphere{{}, Radius};
+		return Description;
+	}
+	// 角速度8を0.25秒積分すると、既存の正規化した四元数微分の積分では2atan(1)=π/2だけ回る。
+	static constexpr f32 ArcRadius = 3;
+	static constexpr f32 ArcSpin = 8;
+	static constexpr f64 ArcAngle = 1.5707963267948966;
+};
+
+// ジャンプで得る速度は開始時の支持点のv+omega×rで、有限差分の弦の速度ではない。
+template <typename T> void RotatingJumpVelocity_Internal()
+{
+	// 歩ける水平のKinematic床と、その中心から2m離れた支持点。
+	typename T::FWorld World;
+	typename T::FBody Description;
+	Description.Type = EBodyType::Kinematic;
+	// 運動する支持Body。
+	const auto Floor = World.CreateBody(Description);
+	(void)World.AttachCollider(Floor, T::Box(4, 0.25f));
+	World.SetVelocity(Floor, T::At(1, 0.2f));
+	T::Spin(World, Floor, 2);
+	// 開始時のキャラクター。歩行速度はなく、ジャンプの速度だけを加える。
+	typename T::FState State;
+	State.Center = T::At(2, StandY);
+	// 既存の半径・ジャンプ速度・余裕を使う。
+	typename T::FSettings Settings;
+	// 一度だけ消費するジャンプ要求。
+	typename T::FInput Input;
+	Input.bJump = true;
+	// v=(1,0.2), omega=2と開始位置から独立に求めた期待値。
+	const auto Expected = T::JumpVelocity();
+	// Worldを書き換えない候補計算。
+	const auto Jump = StepCharacter(World, Settings, State, Input, StepSeconds);
+	REQUIRE(Jump.bJumped && Jump.bInheritedGroundVelocity);
+	// 第3成分も含め、すべての成分を検査する。
+	const auto Difference = Jump.State.Velocity - Expected;
+	REQUIRE(Dot(Difference, Difference) < 1e-8f);
+}
+
+// 始点と終点を結ぶ弦から離れ、実際の回転軌道の中央にだけある障害物を見逃さない。
+template <typename T> void CurvedCarryObstacle_Internal()
+{
+	// 1回の区間は0.25秒。2Dは34度の傾き、3DはUp軸回りの90度。
+	constexpr f64 Seconds = 0.25;
+	// 広い床と静止した小球を持つWorld。
+	typename T::FWorld World;
+	typename T::FBody Description;
+	Description.Type = EBodyType::Kinematic;
+	// 開始時は水平で、キャラクターの足元を支える。
+	const auto Floor = World.CreateBody(Description);
+	(void)World.AttachCollider(Floor, T::Box(30, 0.25f));
+	T::Spin(World, Floor, T::ArcSpin);
+	// 障害物は角度の中央に置く。期待配置は三角関数の式で作る。
+	typename T::FState State;
+	State.Center = T::At(T::ArcRadius, StandY);
+	typename T::FBody Obstacle;
+	Obstacle.Type = EBodyType::Static;
+	Obstacle.Position = T::Turn(State.Center, T::ArcAngle * 0.5);
+	(void)World.AttachCollider(World.CreateBody(Obstacle), T::Ball(0.05f));
+	// 既存の接触余裕と上限速度で許される回転。
+	typename T::FSettings Settings;
+	// 歩行・ジャンプを要求せず、床の運動だけを確認する。
+	typename T::FInput Input;
+	// 弦だけなら小球から離れており、実際の回転軌道は小球の中心を通る。
+	const auto End = T::Turn(State.Center, T::ArcAngle);
+	// 始点を合わせ、支持床だけを除いた円・球の直線経路。
+	auto ChordShape = T::Ball(Settings.Radius).Shape.template Get<0>();
+	ChordShape.Center = State.Center;
+	REQUIRE(!World.SweepClosest(ChordShape, End, Floor));
+	// 経路を検査した追従の結果。
+	const auto Result = StepCharacter(World, Settings, State, Input, Seconds);
+	REQUIRE(!Result.bCarryRejected);
+	REQUIRE(Result.bCarried && Result.bCarryBlocked);
+	REQUIRE(Result.State.Center.IsValid());
+	// 終点まで通過した成功として返さない。
+	const auto Remaining = End - Result.State.Center;
+	REQUIRE(Dot(Remaining, Remaining) > 0.01f);
+}
+
+// 支持Bodyを削除し同じスロットへ別の床を作っても、前の支持IDの運動を引き継がない。
+template <typename T> void RemovedCarrierGeneration_Internal()
+{
+	// まず開始位置に支持床を作る。
+	typename T::FWorld World;
+	typename T::FBody Description;
+	Description.Type = EBodyType::Kinematic;
+	const auto Floor = World.CreateBody(Description);
+	const auto Collider = World.AttachCollider(Floor, T::Box(4, 0.25f));
+	// 以前の支持を含む入力状態。
+	typename T::FState State;
+	State.Center = T::At(0, StandY);
+	typename T::FSettings Settings;
+	State.Ground = ProbeCharacterGround(World, State.Center, Settings);
+	REQUIRE(State.Ground.Collider && *State.Ground.Collider == Collider);
+	REQUIRE(World.DestroyBody(Floor));
+	// 同じBody・Colliderスロットを再利用するが、新しい床は遠くに置く。
+	Description.Position = T::At(30);
+	const auto Replacement = World.CreateBody(Description);
+	const auto NewCollider = World.AttachCollider(Replacement, T::Box(4, 0.25f));
+	REQUIRE(Floor.Index == Replacement.Index && Floor.Generation != Replacement.Generation);
+	REQUIRE(Collider.Index == NewCollider.Index && Collider.Generation != NewCollider.Generation);
+	World.SetVelocity(Replacement, T::At(5));
+	// 古い支持を持つ入力でも、現在の完全なIDと配置から空中だと判定する。
+	typename T::FInput Input;
+	const auto Result = StepCharacter(World, Settings, State, Input, StepSeconds);
+	REQUIRE(!Result.Carrier && !Result.bCarried && !Result.bInheritedGroundVelocity);
+	REQUIRE(Result.State.Ground.State == ECharacterGroundState::Airborne);
+	REQUIRE(Abs(T::X(Result.State.Center)) < 1e-6 && T::Y(Result.State.Center) < StandY);
+}
+// 支持床と同じ高さに静止床が近接しても、接触余裕を保つ回転は不必要に止めない。
+template <typename T> void CurvedCarryNearGround_Internal()
+{
+	// 同じ上面を持つKinematic床とStatic床。支持の優先順位は先に登録したKinematic。
+	typename T::FWorld World;
+	typename T::FBody Description;
+	Description.Type = EBodyType::Kinematic;
+	const auto Floor = World.CreateBody(Description);
+	(void)World.AttachCollider(Floor, T::Box(30, 0.25f));
+	Description.Type = EBodyType::Static;
+	(void)World.AttachCollider(World.CreateBody(Description), T::Box(30, 0.25f));
+	T::Spin(World, Floor, 2);
+	// 2Dでは床から上向きに離れ、3Dでは上面と平行に回る。
+	typename T::FState State;
+	State.Center = T::At(2, StandY);
+	typename T::FSettings Settings;
+	typename T::FInput Input;
+	const auto Result = StepCharacter(World, Settings, State, Input, StepSeconds);
+	REQUIRE(Result.bCarried && !Result.bCarryBlocked && !Result.bCarryRejected);
+	REQUIRE(Result.State.Center.IsValid());
+	REQUIRE(T::Y(Result.State.Center) >= StandY - 1e-5);
+}
+
+// 速さ・角度・分割数の上限で拒否した追従は、床の変位や速度を部分的に加えない。
+template <typename T> void RejectedCarryPreservesMotion_Internal()
+{
+	for (int32 Limit = 0; Limit < 3; ++Limit)
+	{
+		// 一つの水平なKinematic床。
+		typename T::FWorld World;
+		typename T::FBody Description;
+		Description.Type = EBodyType::Kinematic;
+		const auto Floor = World.CreateBody(Description);
+		(void)World.AttachCollider(Floor, T::Box(30, 0.25f));
+		// 通常の接触余裕。分割数の試験だけ細かい余裕を要求する。
+		typename T::FSettings Settings;
+		if (Limit == 2)
+		{
+			Settings.SkinWidth = 1e-5;
+		}
+		// 開始時に必ず歩ける床の上に置く。
+		typename T::FState State;
+		State.Center = T::At(2, static_cast<f32>(0.75 + Settings.SkinWidth));
+		if (Limit == 0)
+		{
+			Settings.MaxGroundCarrySpeed = 1;
+			World.SetVelocity(Floor, T::At(2));
+		}
+		else
+		{
+			T::Spin(World, Floor, Limit == 1 ? 20.0f : 2.0f);
+		}
+		// 歩行・ジャンプは要求しない。床以外の移動が混ざらない。
+		typename T::FInput Input;
+		const auto Result = StepCharacter(World, Settings, State, Input, 0.25);
+		REQUIRE(Result.bCarryRejected && !Result.bCarried && !Result.bCarryBlocked && !Result.bInheritedGroundVelocity);
+		REQUIRE(Result.State.Center == State.Center && Result.State.Velocity == State.Velocity);
+		REQUIRE(World.GetPosition(Floor) == T::At(0));
+	}
+}
+
+// 曲線を一部進んだ後に問い合わせ上限へ達した場合、最後に確認した位置と残りの変位を返す。
+template <typename T> void CurvedCarryQueryLimit_Internal()
+{
+	// 障害物のない回転床。予算の不足だけを検査する。
+	typename T::FWorld World;
+	typename T::FBody Description;
+	Description.Type = EBodyType::Kinematic;
+	const auto Floor = World.CreateBody(Description);
+	(void)World.AttachCollider(Floor, T::Box(30, 0.25f));
+	T::Spin(World, Floor, T::ArcSpin);
+	// 最初の区間は通せるが、全区間には足りない問い合わせ回数。
+	typename T::FSettings Settings;
+	Settings.MaxQueries = 8;
+	typename T::FState State;
+	State.Center = T::At(T::ArcRadius, StandY);
+	typename T::FInput Input;
+	const auto Result = StepCharacter(World, Settings, State, Input, 0.25);
+	REQUIRE(Result.bCarried && Result.bCarryBlocked && !Result.bCarryRejected);
+	REQUIRE(Result.Carry.Stop == ECharacterMoveStop::QueryLimit && Result.Queries == Settings.MaxQueries);
+	REQUIRE(Result.State.Center.IsValid());
+	REQUIRE(Dot(Result.Carry.Applied, Result.Carry.Applied) > 1e-5f);
+	REQUIRE(Dot(Result.Carry.Remaining, Result.Carry.Remaining) > 1e-5f);
+	REQUIRE(World.GetPosition(Floor) == T::At(0));
+}
 } // namespace
 
 TEST("2D character rides translating platforms")
@@ -499,4 +753,52 @@ TEST("2D platform teleport does not carry and the rider falls")
 TEST("3D platform teleport does not carry and the rider falls")
 {
 	TeleportAndRemoval_Internal<FCase3D>();
+}
+TEST("2D rotating platform jump inherits the instantaneous support velocity")
+{
+	RotatingJumpVelocity_Internal<FDirect2D>();
+}
+TEST("3D rotating platform jump inherits the instantaneous support velocity")
+{
+	RotatingJumpVelocity_Internal<FDirect3D>();
+}
+TEST("2D rotating platform carry checks obstacles on the curved path")
+{
+	CurvedCarryObstacle_Internal<FDirect2D>();
+}
+TEST("3D rotating platform carry checks obstacles on the curved path")
+{
+	CurvedCarryObstacle_Internal<FDirect3D>();
+}
+TEST("2D removed platform support does not follow a reused body slot")
+{
+	RemovedCarrierGeneration_Internal<FDirect2D>();
+}
+TEST("3D removed platform support does not follow a reused body slot")
+{
+	RemovedCarrierGeneration_Internal<FDirect3D>();
+}
+TEST("2D curved platform carry keeps clear of nearby static ground")
+{
+	CurvedCarryNearGround_Internal<FDirect2D>();
+}
+TEST("3D curved platform carry keeps clear of nearby static ground")
+{
+	CurvedCarryNearGround_Internal<FDirect3D>();
+}
+TEST("2D rejected platform carry preserves character motion")
+{
+	RejectedCarryPreservesMotion_Internal<FDirect2D>();
+}
+TEST("3D rejected platform carry preserves character motion")
+{
+	RejectedCarryPreservesMotion_Internal<FDirect3D>();
+}
+TEST("2D curved platform carry stops at the query budget")
+{
+	CurvedCarryQueryLimit_Internal<FDirect2D>();
+}
+TEST("3D curved platform carry stops at the query budget")
+{
+	CurvedCarryQueryLimit_Internal<FDirect3D>();
 }

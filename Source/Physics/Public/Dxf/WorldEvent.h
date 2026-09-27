@@ -58,7 +58,11 @@ enum class EWorldEventEndReason : Toolbox::uint8
 	/**
 	 * Solid／Sensorの区分・衝突フィルターの変更で、組でなくなったか種類が変わった（種類が変わる場合は直後に新しい種類のBegin）。
 	 */
-	FilterChanged
+	FilterChanged,
+	/**
+	 * Gameplayの領域監視を再同期した結果、以前の占有集合にだけ残った。観測が途切れた間の物理的な離脱理由は特定しない。
+	 */
+	ObservationReset
 };
 /**
  * Worldの接触イベントの生成の設定。既定は無効（生成・保持の費用を持たない）。

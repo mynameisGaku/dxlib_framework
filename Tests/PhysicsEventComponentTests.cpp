@@ -15,6 +15,7 @@
 #include "Dxf/SceneNavigator.h"
 #include "Dxf/TriggerVolumeComponent2D.h"
 #include "Dxf/TriggerVolumeComponent3D.h"
+#include "Toolbox/SharedPtr.h"
 using namespace Dxf;
 using namespace Dxf::Testing;
 using namespace Toolbox;
@@ -495,6 +496,217 @@ template <typename T> void OccupancyPerBody_Internal()
 	REQUIRE(Zone.Scene.Tick_Internal(Zone.Fixture.Tick(1.0 / 60.0)));
 	REQUIRE(Zone.Zone->Exited.Size() == 2 && Zone.Zone->Reasons[1] == EWorldEventEndReason::Removed);
 }
+
+// 観測設定を変更して全てがBeginへ戻っても、同じBodyのCollider数を重ねて数えない。
+template <typename T> void ResetOccupancy_Internal()
+{
+	// 同じBodyの二つのColliderが入る領域。
+	FZoneScene<T> Zone;
+	(void)Zone.Scene.GetPhysicsWorld().AttachCollider(Zone.Mover, T::Ball(0.2f, T::At(0.1f)));
+	T::Place(Zone.Scene, Zone.Mover, T::At(0));
+	REQUIRE(Zone.Scene.Tick_Internal(Zone.Fixture.Tick(1.0 / 60.0)));
+	REQUIRE(Zone.Zone->Trigger().GetOccupantCount() == 1);
+	// 有効なまま容量を変更すると、次の完全なバッチで現在の組を読み直す。
+	FWorldEventSettings Settings = Events_Internal();
+	Settings.MaxPairs = 32;
+	Zone.Scene.GetPhysicsWorld().SetEventSettings(Settings);
+	REQUIRE(Zone.Scene.Tick_Internal(Zone.Fixture.Tick(1.0 / 60.0)));
+	REQUIRE(Zone.Scene.GetPhysicsWorld().GetEventBatch().bReset);
+	REQUIRE(Zone.Zone->Trigger().GetOccupantCount() == 1);
+	REQUIRE(Zone.Zone->Entered.Size() == 1 && Zone.Zone->Exited.IsEmpty());
+	T::Place(Zone.Scene, Zone.Mover, T::At(5));
+	REQUIRE(Zone.Scene.Tick_Internal(Zone.Fixture.Tick(1.0 / 60.0)));
+	REQUIRE(Zone.Zone->Trigger().GetOccupantCount() == 0);
+	REQUIRE(!Zone.Zone->Trigger().Contains(Zone.Mover));
+	REQUIRE(Zone.Zone->Exited.Size() == 1);
+}
+
+// 観測を無効・有効へ切り替えた間に全員が出た場合、空の再同期バッチで古い占有を残さない。
+template <typename T> void ReenabledOccupancy_Internal()
+{
+	// 一人が入っている領域。
+	FZoneScene<T> Zone;
+	T::Place(Zone.Scene, Zone.Mover, T::At(0));
+	REQUIRE(Zone.Scene.Tick_Internal(Zone.Fixture.Tick(1.0 / 60.0)));
+	REQUIRE(Zone.Zone->Trigger().Contains(Zone.Mover));
+	Zone.Scene.GetPhysicsWorld().SetEventSettings({});
+	T::Place(Zone.Scene, Zone.Mover, T::At(5));
+	Zone.Scene.GetPhysicsWorld().SetEventSettings(Events_Internal());
+	REQUIRE(Zone.Scene.Tick_Internal(Zone.Fixture.Tick(1.0 / 60.0)));
+	REQUIRE(Zone.Scene.GetPhysicsWorld().GetEventBatch().bReset);
+	REQUIRE(Zone.Scene.GetPhysicsWorld().GetEventBatch().Events.IsEmpty());
+	REQUIRE(Zone.Zone->Trigger().GetOccupantCount() == 0);
+	REQUIRE(!Zone.Zone->Trigger().Contains(Zone.Mover));
+	REQUIRE(Zone.Zone->Exited.Size() == 1 && Zone.Zone->Exited[0] == Zone.Mover);
+	// 再観測の間に消えた理由を、接触の分離・削除・フィルター変更だと断定しない。
+	REQUIRE(Zone.Zone->Reasons[0] == EWorldEventEndReason::ObservationReset);
+	T::Place(Zone.Scene, Zone.Mover, T::At(0));
+	REQUIRE(Zone.Scene.Tick_Internal(Zone.Fixture.Tick(1.0 / 60.0)));
+	REQUIRE(Zone.Zone->Trigger().GetOccupantCount() == 1);
+	T::Place(Zone.Scene, Zone.Mover, T::At(5));
+	REQUIRE(Zone.Scene.Tick_Internal(Zone.Fixture.Tick(1.0 / 60.0)));
+	REQUIRE(Zone.Zone->Trigger().GetOccupantCount() == 0);
+}
+
+// 再同期中の容量超過では以前の表を保ち、最初の完全なバッチで新しい占有集合へ置き換える。
+template <typename T> void ResetOverflowOccupancy_Internal()
+{
+	// 以前の確定集合には一人だけが入っている。
+	FZoneScene<T> Zone;
+	T::Place(Zone.Scene, Zone.Mover, T::At(0));
+	REQUIRE(Zone.Scene.Tick_Internal(Zone.Fixture.Tick(1.0 / 60.0)));
+	REQUIRE(Zone.Zone->Trigger().Contains(Zone.Mover));
+	// 次の観測では二人のうち一組しか保持できない。
+	typename T::FBodyDescription Body;
+	Body.Type = EBodyType::Kinematic;
+	Body.Position = T::At(0.5f);
+	// 再同期後に領域へ残る別のBody。
+	const auto Replacement = Zone.Scene.GetPhysicsWorld().CreateBody(Body);
+	(void)Zone.Scene.GetPhysicsWorld().AttachCollider(Replacement, T::Ball(0.2f));
+	// 容量変更で履歴がリセットされる。
+	FWorldEventSettings Settings = Events_Internal();
+	Settings.MaxPairs = 1;
+	Zone.Scene.GetPhysicsWorld().SetEventSettings(Settings);
+	REQUIRE(Zone.Scene.Tick_Internal(Zone.Fixture.Tick(1.0 / 60.0)));
+	REQUIRE(Zone.Scene.GetPhysicsWorld().GetEventBatch().bReset);
+	REQUIRE(Zone.Scene.GetPhysicsWorld().GetEventBatch().bOverflowed);
+	REQUIRE(Zone.Zone->Trigger().GetOccupantCount() == 1);
+	REQUIRE(Zone.Zone->Trigger().Contains(Zone.Mover));
+	REQUIRE(!Zone.Zone->Trigger().Contains(Replacement));
+	REQUIRE(Zone.Zone->Entered.Size() == 1 && Zone.Zone->Exited.IsEmpty());
+	T::Place(Zone.Scene, Zone.Mover, T::At(5));
+	REQUIRE(Zone.Scene.Tick_Internal(Zone.Fixture.Tick(1.0 / 60.0)));
+	REQUIRE(Zone.Scene.GetPhysicsWorld().GetEventBatch().bReset);
+	REQUIRE(!Zone.Scene.GetPhysicsWorld().GetEventBatch().bOverflowed);
+	REQUIRE(Zone.Zone->Trigger().GetOccupantCount() == 1);
+	REQUIRE(!Zone.Zone->Trigger().Contains(Zone.Mover));
+	REQUIRE(Zone.Zone->Trigger().Contains(Replacement));
+	REQUIRE(Zone.Zone->Entered.Size() == 2 && Zone.Zone->Entered[1] == Replacement);
+	REQUIRE(Zone.Zone->Exited.Size() == 1 && Zone.Zone->Exited[0] == Zone.Mover);
+	T::Place(Zone.Scene, Replacement, T::At(5));
+	REQUIRE(Zone.Scene.Tick_Internal(Zone.Fixture.Tick(1.0 / 60.0)));
+	REQUIRE(Zone.Zone->Trigger().GetOccupantCount() == 0);
+}
+
+// 通知中の捕捉資源の破棄と、解除後の追加呼び出しを記録する。
+struct FHandlerLifetimeState
+{
+	// 通知の本体を実行しているか。
+	bool bInside = false;
+	// 通知の本体が戻る前に捕捉資源が破棄されたか。
+	bool bDestroyedInside = false;
+	// 捕捉資源が破棄された回数。
+	int32 Destroyed = 0;
+	// 最初に設定した通知の呼び出し回数。
+	int32 Calls = 0;
+	// 通知中に置き換えた関数の呼び出し回数。
+	int32 ReplacementCalls = 0;
+};
+
+// 通知だけが所有する資源。破棄時に通知がまだ実行中かを外部の記録へ残す。
+struct FHandlerLifetimeResource
+{
+	// 記録先を受け取る。記録先は通知と資源より長く生存する。
+	explicit FHandlerLifetimeResource(FHandlerLifetimeState& State) : m_pState(&State)
+	{
+	}
+	// 解放が通知の終了後だったかを記録する。
+	~FHandlerLifetimeResource()
+	{
+		m_pState->bDestroyedInside = m_pState->bDestroyedInside || m_pState->bInside;
+		++m_pState->Destroyed;
+	}
+	// 資源を所有しない試験側の記録先。
+	FHandlerLifetimeState* m_pState;
+};
+
+// 接触の通知が自身を解除・置換しても、その呼び出しが戻るまでは捕捉資源を破棄しない。
+template <typename T> void ContactHandlerLifetime_Internal()
+{
+	for (int32 Replace = 0; Replace < 2; ++Replace)
+	{
+		// 関数より長く残す記録。
+		FHandlerLifetimeState State;
+		// 領域の中でBegin、その次にStayが出る場面。
+		FZoneScene<T> Zone;
+		// 設定後は通知だけが資源を所有する。
+		auto Resource = MakeShared<FHandlerLifetimeResource>(State);
+		Zone.Watcher->Listener().SetHandler(
+		    [Resource, &State, &Zone, Replace](const typename T::FNotice&)
+		    {
+			    // 解除後に破棄済みのラムダの捕捉値へ触れず、外部記録だけを読む。
+			    FHandlerLifetimeState* Observed = &State;
+			    ++Observed->Calls;
+			    Observed->bInside = true;
+			    if (Replace != 0)
+			    {
+				    Zone.Watcher->Listener().SetHandler(
+				        [Observed](const typename T::FNotice&)
+				        {
+					        ++Observed->ReplacementCalls;
+				        });
+			    }
+			    else
+			    {
+				    Zone.Watcher->Listener().SetHandler({});
+			    }
+			    Observed->bInside = false;
+		    });
+		Resource.Reset();
+		T::Place(Zone.Scene, Zone.Mover, T::At(0));
+		REQUIRE(Zone.Scene.Tick_Internal(Zone.Fixture.Tick(1.0 / 60.0)));
+		REQUIRE(State.Calls == 1 && State.Destroyed == 1 && !State.bDestroyedInside);
+		REQUIRE(Zone.Scene.Tick_Internal(Zone.Fixture.Tick(1.0 / 60.0)));
+		REQUIRE(State.Calls == 1 && State.ReplacementCalls == Replace);
+	}
+}
+
+// Triggerの入場・退場の通知も、自身の解除で実行中の捕捉資源を破棄しない。
+template <typename T> void TriggerHandlerLifetime_Internal()
+{
+	// 各通知より長く残す記録。
+	FHandlerLifetimeState EnterState;
+	FHandlerLifetimeState ExitState;
+	// 一回ずつ入場・退場する場面。
+	FZoneScene<T> Zone;
+	// 設定後は入場の通知だけが資源を所有する。
+	auto EnterResource = MakeShared<FHandlerLifetimeResource>(EnterState);
+	Zone.Zone->Trigger().SetEnterHandler(
+	    [EnterResource, &EnterState, &Zone](typename T::FBodyId)
+	    {
+		    // 解除後も有効な外部記録。
+		    FHandlerLifetimeState* Observed = &EnterState;
+		    ++Observed->Calls;
+		    Observed->bInside = true;
+		    Zone.Zone->Trigger().SetEnterHandler({});
+		    Observed->bInside = false;
+	    });
+	EnterResource.Reset();
+	// 設定後は退場の通知だけが資源を所有する。
+	auto ExitResource = MakeShared<FHandlerLifetimeResource>(ExitState);
+	Zone.Zone->Trigger().SetExitHandler(
+	    [ExitResource, &ExitState, &Zone](typename T::FBodyId, EWorldEventEndReason)
+	    {
+		    // 解除後も有効な外部記録。
+		    FHandlerLifetimeState* Observed = &ExitState;
+		    ++Observed->Calls;
+		    Observed->bInside = true;
+		    Zone.Zone->Trigger().SetExitHandler({});
+		    Observed->bInside = false;
+	    });
+	ExitResource.Reset();
+	T::Place(Zone.Scene, Zone.Mover, T::At(0));
+	REQUIRE(Zone.Scene.Tick_Internal(Zone.Fixture.Tick(1.0 / 60.0)));
+	REQUIRE(EnterState.Calls == 1 && EnterState.Destroyed == 1 && !EnterState.bDestroyedInside);
+	T::Place(Zone.Scene, Zone.Mover, T::At(5));
+	REQUIRE(Zone.Scene.Tick_Internal(Zone.Fixture.Tick(1.0 / 60.0)));
+	REQUIRE(ExitState.Calls == 1 && ExitState.Destroyed == 1 && !ExitState.bDestroyedInside);
+	T::Place(Zone.Scene, Zone.Mover, T::At(0));
+	REQUIRE(Zone.Scene.Tick_Internal(Zone.Fixture.Tick(1.0 / 60.0)));
+	T::Place(Zone.Scene, Zone.Mover, T::At(5));
+	REQUIRE(Zone.Scene.Tick_Internal(Zone.Fixture.Tick(1.0 / 60.0)));
+	REQUIRE(EnterState.Calls == 1 && ExitState.Calls == 1);
+}
 } // namespace
 
 TEST("2D contact listener delivers one batch per fixed step")
@@ -560,4 +772,44 @@ TEST("2D trigger volume counts a body once for many colliders")
 TEST("3D trigger volume counts a body once for many colliders")
 {
 	OccupancyPerBody_Internal<FCase3D>();
+}
+TEST("2D trigger volume resynchronizes occupancy after event settings change")
+{
+	ResetOccupancy_Internal<FCase2D>();
+}
+TEST("3D trigger volume resynchronizes occupancy after event settings change")
+{
+	ResetOccupancy_Internal<FCase3D>();
+}
+TEST("2D trigger volume forgets old occupancy when events are reenabled")
+{
+	ReenabledOccupancy_Internal<FCase2D>();
+}
+TEST("3D trigger volume forgets old occupancy when events are reenabled")
+{
+	ReenabledOccupancy_Internal<FCase3D>();
+}
+TEST("2D trigger volume waits for a complete reset batch after overflow")
+{
+	ResetOverflowOccupancy_Internal<FCase2D>();
+}
+TEST("3D trigger volume waits for a complete reset batch after overflow")
+{
+	ResetOverflowOccupancy_Internal<FCase3D>();
+}
+TEST("2D contact handler keeps captured resources alive during self removal")
+{
+	ContactHandlerLifetime_Internal<FCase2D>();
+}
+TEST("3D contact handler keeps captured resources alive during self removal")
+{
+	ContactHandlerLifetime_Internal<FCase3D>();
+}
+TEST("2D trigger handlers keep captured resources alive during self removal")
+{
+	TriggerHandlerLifetime_Internal<FCase2D>();
+}
+TEST("3D trigger handlers keep captured resources alive during self removal")
+{
+	TriggerHandlerLifetime_Internal<FCase3D>();
 }

@@ -72,7 +72,7 @@ struct FCharacterStepResult2D
 	 */
 	bool bCarryBlocked = false;
 	/**
-	 * 床の運動が上限の速さを超えたため、瞬間移動とみなして追従しなかった。
+	 * 床の速さ・一回の回転量・曲線分割の上限を超え、追従を始めずに拒否した。床の変位・速度を加えていない。
 	 */
 	bool bCarryRejected = false;
 	/**

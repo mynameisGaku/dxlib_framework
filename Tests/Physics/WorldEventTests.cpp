@@ -65,6 +65,11 @@ struct F2D
 	{
 		World.SetBodyTransform(Body, Position, 0);
 	}
+	// 数値比較で角速度が常に0になることを避ける初期回転。
+	static void Spin(FWorld& World, FBodyId Body)
+	{
+		World.SetAngularVelocity(Body, 0.3f);
+	}
 };
 
 // 3D Worldの型と登録操作（Yが上）。
@@ -108,6 +113,11 @@ struct F3D
 	{
 		World.SetBodyTransform(Body, Position, FQuaternion{});
 	}
+	// 数値比較で角速度が常に0になることを避ける初期回転。
+	static void Spin(FWorld& World, FBodyId Body)
+	{
+		World.SetAngularVelocity(Body, {0, 0.2f, 0.3f});
+	}
 };
 
 // 有効化した設定。
@@ -128,6 +138,38 @@ template <typename TBatch> int32 Count_Internal(const TBatch& Batch, EWorldEvent
 		Count += Event.Kind == Kind && Event.Phase == Phase ? 1 : 0;
 	}
 	return Count;
+}
+
+// 同じ入力の独立Worldを比較する。World識別子だけ対応付け、Body・Colliderの番号と世代、通知順と全内容を保つ。
+template <typename TBatch>
+void RequireSameBatch_Internal(const TBatch& Actual, const TBatch& Reference, uint64 ActualWorld, uint64 ReferenceWorld)
+{
+	PHYSICS_REQUIRE(Actual.bPublished == Reference.bPublished && Actual.bReset == Reference.bReset &&
+	                Actual.bOverflowed == Reference.bOverflowed);
+	PHYSICS_REQUIRE(Actual.StepIndex == Reference.StepIndex && Actual.BatchId == Reference.BatchId);
+	PHYSICS_REQUIRE(Actual.PairCount == Reference.PairCount && Actual.RequiredPairs == Reference.RequiredPairs);
+	PHYSICS_REQUIRE(Actual.Events.Size() == Reference.Events.Size());
+	for (size_t Index = 0; Index < Actual.Events.Size(); ++Index)
+	{
+		// それぞれのWorldに属する値であることを確認してから、識別子を対応付ける。
+		const auto& Event = Actual.Events[Index];
+		const auto& Expected = Reference.Events[Index];
+		PHYSICS_REQUIRE(Event.ColliderA.Body.World == ActualWorld && Event.ColliderB.Body.World == ActualWorld);
+		PHYSICS_REQUIRE(Expected.ColliderA.Body.World == ReferenceWorld &&
+		                Expected.ColliderB.Body.World == ReferenceWorld);
+		auto ColliderA = Expected.ColliderA;
+		auto ColliderB = Expected.ColliderB;
+		ColliderA.Body.World = ActualWorld;
+		ColliderB.Body.World = ActualWorld;
+		PHYSICS_REQUIRE(Event.ColliderA == ColliderA && Event.ColliderB == ColliderB);
+		PHYSICS_REQUIRE(Event.Kind == Expected.Kind && Event.Phase == Expected.Phase &&
+		                Event.EndReason == Expected.EndReason);
+		PHYSICS_REQUIRE(static_cast<bool>(Event.Normal) == static_cast<bool>(Expected.Normal));
+		if (Event.Normal)
+		{
+			PHYSICS_REQUIRE(*Event.Normal == *Expected.Normal);
+		}
+	}
 }
 
 // 静止したSensorの箱へ、Kinematicの球を固定更新ごとに置き直して出入りさせる。Begin→Stay→Endは各1回。
@@ -183,13 +225,24 @@ template <typename T> void ContactOnce_Internal()
 	(void)World.AttachCollider(Ball, T::Ball(0.5f));
 	const auto Crate = T::Body(World, T::At(3, 2), EBodyType::Dynamic);
 	(void)World.AttachCollider(Crate, T::Box(0.4f, 0.4f));
+	// 同じ入力の対照。候補索引の切替ではなく、IDを含む配送内容の再現性を比べる。
+	typename T::FWorld Reference;
+	Reference.SetEventSettings(Enabled_Internal());
+	const auto ReferenceFloor = T::Body(Reference, T::At(0, 0), EBodyType::Static);
+	(void)Reference.AttachCollider(ReferenceFloor, T::Box(10, 0.5f));
+	const auto ReferenceBall = T::Body(Reference, T::At(-3, 2), EBodyType::Dynamic);
+	(void)Reference.AttachCollider(ReferenceBall, T::Ball(0.5f));
+	const auto ReferenceCrate = T::Body(Reference, T::At(3, 2), EBodyType::Dynamic);
+	(void)Reference.AttachCollider(ReferenceCrate, T::Box(0.4f, 0.4f));
 	int32 Begins = 0;
 	int32 Ends = 0;
 	int32 Stays = 0;
 	for (int32 Index = 0; Index < 240; ++Index)
 	{
 		World.Step(StepSeconds);
+		Reference.Step(StepSeconds);
 		const auto& Batch = World.GetEventBatch();
+		RequireSameBatch_Internal(Batch, Reference.GetEventBatch(), Floor.World, ReferenceFloor.World);
 		Begins += Count_Internal(Batch, EWorldEventKind::Contact, EWorldEventPhase::Begin);
 		Ends += Count_Internal(Batch, EWorldEventKind::Contact, EWorldEventPhase::End);
 		Stays += Count_Internal(Batch, EWorldEventKind::Contact, EWorldEventPhase::Stay);
@@ -206,7 +259,7 @@ template <typename T> void ContactOnce_Internal()
 	PHYSICS_REQUIRE(Count_Internal(World.GetEventBatch(), EWorldEventKind::Contact, EWorldEventPhase::Stay) == 2);
 }
 
-// イベントの有効化は物理の数値経過を変えない（無効のWorldと位置・速度・休止がビット単位で一致）。
+// イベントの有効化は物理の数値経過を変えない（無効のWorldと位置・速度・角速度・休止・成功Step数が一致）。
 template <typename T> void NoNumericChange_Internal()
 {
 	typename T::FWorld On;
@@ -222,6 +275,7 @@ template <typename T> void NoNumericChange_Internal()
 		(void)World.AttachCollider(Floor, T::Box(1, 1, EColliderResponse::Sensor));
 		Bodies[Index] = T::Body(World, T::At(0.3f, 3), EBodyType::Dynamic);
 		(void)World.AttachCollider(Bodies[Index], T::Box(0.4f, 0.3f));
+		T::Spin(World, Bodies[Index]);
 	}
 	for (int32 Step = 0; Step < 200; ++Step)
 	{
@@ -229,7 +283,14 @@ template <typename T> void NoNumericChange_Internal()
 		Off.Step(StepSeconds);
 		PHYSICS_REQUIRE(On.GetPosition(Bodies[0]) == Off.GetPosition(Bodies[1]));
 		PHYSICS_REQUIRE(On.GetVelocity(Bodies[0]) == Off.GetVelocity(Bodies[1]));
+		PHYSICS_REQUIRE(On.GetAngularVelocity(Bodies[0]) == Off.GetAngularVelocity(Bodies[1]));
 		PHYSICS_REQUIRE(On.IsSleeping(Bodies[0]) == Off.IsSleeping(Bodies[1]));
+		// イベント無効時も進むWorld本体の通算番号を明示採取し、発行番号とは区別する。
+		const auto OnSnapshot = On.CaptureSnapshot();
+		const auto OffSnapshot = Off.CaptureSnapshot();
+		PHYSICS_REQUIRE(OnSnapshot.StepIndex == static_cast<uint64>(Step + 1) &&
+		                OnSnapshot.StepIndex == OffSnapshot.StepIndex);
+		PHYSICS_REQUIRE(On.GetEventBatch().StepIndex == OnSnapshot.StepIndex);
 	}
 	PHYSICS_REQUIRE(!Off.GetEventBatch().bPublished && Off.GetEventBatch().Events.IsEmpty());
 	PHYSICS_REQUIRE(On.GetEventBatch().bPublished);
@@ -412,6 +473,8 @@ template <typename T> void MatchesBruteForce_Internal()
 	typename T::FBodyId Bodies[Count];
 	typename T::FColliderId Colliders[Count];
 	f32 Radius[Count];
+	// 前回の解析集合。今回との差から通知を求め、実装の前回集合やイベントを期待値に使わない。
+	bool Previous[Count][Count]{};
 	uint32 Seed = 12345u;
 	auto Next = [&Seed]()
 	{
@@ -428,6 +491,9 @@ template <typename T> void MatchesBruteForce_Internal()
 	{
 		World.Step(StepSeconds);
 		int32 Expected = 0;
+		// スロット番号の昇順で期待通知を取り出し、組の順序違い・欠落・重複も検出する。
+		size_t EventIndex = 0;
+		const auto& Batch = World.GetEventBatch();
 		for (int32 First = 0; First < Count; ++First)
 		{
 			for (int32 Second = First + 1; Second < Count; ++Second)
@@ -436,10 +502,27 @@ template <typename T> void MatchesBruteForce_Internal()
 				const f64 Distance = Sqrt(static_cast<f64>(Dot(Delta, Delta)));
 				const f64 Gap = Distance - (static_cast<f64>(Radius[First]) + Radius[Second]);
 				PHYSICS_REQUIRE(Abs(Gap) > 1e-4);
-				Expected += Gap < 0 ? 1 : 0;
+				const bool bCurrent = Gap < 0;
+				Expected += bCurrent ? 1 : 0;
+				if (bCurrent || Previous[First][Second])
+				{
+					PHYSICS_REQUIRE(EventIndex < Batch.Events.Size());
+					const auto& Event = Batch.Events[EventIndex++];
+					// 同じWorldの解析値なので、World・Body・Colliderの番号と世代を全て照合する。
+					PHYSICS_REQUIRE(Event.ColliderA == Colliders[First] && Event.ColliderB == Colliders[Second]);
+					PHYSICS_REQUIRE(Event.Kind == EWorldEventKind::Trigger && !Event.Normal);
+					PHYSICS_REQUIRE(Event.Phase == (bCurrent ? (Previous[First][Second] ? EWorldEventPhase::Stay
+					                                                                    : EWorldEventPhase::Begin)
+					                                         : EWorldEventPhase::End));
+					PHYSICS_REQUIRE(Event.EndReason ==
+					                (bCurrent ? EWorldEventEndReason::None : EWorldEventEndReason::Separated));
+				}
+				Previous[First][Second] = bCurrent;
 			}
 		}
 		PHYSICS_REQUIRE(World.GetEventBatch().PairCount == static_cast<uint32>(Expected));
+		PHYSICS_REQUIRE(Batch.RequiredPairs == static_cast<uint32>(Expected) && EventIndex == Batch.Events.Size());
+		PHYSICS_REQUIRE(Batch.StepIndex == static_cast<uint64>(Round + 1) && Batch.bReset == (Round == 0));
 		int32 Seen = 0;
 		for (const auto& Event : World.GetEventBatch().Events)
 		{
@@ -453,7 +536,6 @@ template <typename T> void MatchesBruteForce_Internal()
 			T::Place(World, Bodies[Index], T::At(Next() * 10, Next() * 10));
 		}
 	}
-	(void)Colliders;
 }
 
 const PhysicsTest::FCase Cases_Internal[] = {

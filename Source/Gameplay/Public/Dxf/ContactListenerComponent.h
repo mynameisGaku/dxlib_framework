@@ -3,6 +3,7 @@
 #include "Dxf/GameObjectComponent.h"
 #include "Dxf/PostPhysicsStep.h"
 #include "Toolbox/Function.h"
+#include "Toolbox/SharedPtr.h"
 #include "Toolbox/Vector.h"
 namespace Dxf
 {
@@ -34,11 +35,19 @@ public:
 	}
 	/**
 	 * 状態遷移を受け取る関数を設定する。空の関数で解除する。例外は固定更新の失敗として伝わる。
+	 * 実行中に解除・置換しても、その呼び出しが戻るまで元の関数と捕捉した資源を保つ。
 	 * @param Handler 受け取る関数。
 	 */
 	void SetHandler(Toolbox::TFunction<void(const FNotice&)> Handler)
 	{
-		m_Handler = Toolbox::Move(Handler);
+		if (Handler)
+		{
+			m_Handler = Toolbox::MakeShared<Toolbox::TFunction<void(const FNotice&)>>(Toolbox::Move(Handler));
+		}
+		else
+		{
+			m_Handler.Reset();
+		}
 	}
 	/**
 	 * 指定のBodyを対象に加える。通知の中で加えた場合、同じバッチの以降のイベントから対象になる。
@@ -181,9 +190,11 @@ private:
 	{
 		++m_Delivered;
 		OnContact(Notice);
-		if (m_Handler && IsPostPhysicsStepAlive_Internal())
+		// 実行中に関数を解除・置換しても、現在の捕捉状態を呼び出し終了まで保つ。
+		const auto Handler = m_Handler;
+		if (Handler && IsPostPhysicsStepAlive_Internal())
 		{
-			m_Handler(Notice);
+			(*Handler)(Notice);
 		}
 	}
 	static bool Contains_Internal(const Toolbox::TVector<FBodyId>& Bodies, FBodyId Body) noexcept
@@ -210,9 +221,9 @@ private:
 	 */
 	Toolbox::TVector<FBodyId> m_OwnerBodies;
 	/**
-	 * 受け取る関数。
+	 * 受け取る関数。実行中だけ呼び出し側と所有を共有する。
 	 */
-	Toolbox::TFunction<void(const FNotice&)> m_Handler;
+	Toolbox::TSharedPtr<Toolbox::TFunction<void(const FNotice&)>> m_Handler;
 	/**
 	 * 参照するWorld（所有しない）。
 	 */
