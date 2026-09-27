@@ -489,10 +489,7 @@ static Toolbox::f64 HalfExtent_Internal(const Toolbox::FOBB& Box, Toolbox::int32
 	                 : (Axis == 1 ? static_cast<Toolbox::f64>(Box.HalfExtents.Y)
 	                              : static_cast<Toolbox::f64>(Box.HalfExtents.Z));
 }
-// 世界箱同士の接触を最大四点求める。分離時は空。法線はB→A。
-// 分離軸と最深部の方向は、両箱の面の法線（十二軸）だけで決める。凸多面体どうしの最短押し出し方向は
-// 一方の面法線に必ずbqるため、辺と辺の外積（九軸）を調べても結果は変わらない。実際には重なり合った箱で
-// 外積の軸が正の分離を報告し、接触ごと失って箱が壁を貫通することがあった（法線方向の決定に使わない）。
+// 世界箱同士の接触を最大四点求める。分離時は空。法線はB→A。辺同士は近似一点。
 static void FindBoxBoxContacts_Internal(const Toolbox::FOBB& A, const Toolbox::FOBB& B, Toolbox::f32 Slop,
                                         Toolbox::TVector<Toolbox::FContactPoint3D>& Out)
 {
@@ -556,15 +553,11 @@ static void FindBoxBoxContacts_Internal(const Toolbox::FOBB& A, const Toolbox::F
 			const FVector3D RawB = AxisD_Internal(B.Axes[AxisB]);
 			FVector3D Cross = {RawA.Y * RawB.Z - RawA.Z * RawB.Y, RawA.Z * RawB.X - RawA.X * RawB.Z,
 			                   RawA.X * RawB.Y - RawA.Y * RawB.X};
-			const Toolbox::f64 LengthSq = Cross.X * Cross.X + Cross.Y * Cross.Y + Cross.Z * Cross.Z;
-			// 平行に近い2本の辺の外積は方向が定まらない。軸の長さと外積の長さの比で判定し、ほぼ平行な組は使わない。
-			const Toolbox::f64 SelfSq = RawA.X * RawA.X + RawA.Y * RawA.Y + RawA.Z * RawA.Z;
-			const Toolbox::f64 OtherSq = RawB.X * RawB.X + RawB.Y * RawB.Y + RawB.Z * RawB.Z;
-			if (!(LengthSq > 1e-8 * SelfSq * OtherSq))
+			const Toolbox::f64 Length = Toolbox::Sqrt(Cross.X * Cross.X + Cross.Y * Cross.Y + Cross.Z * Cross.Z);
+			if (!(Length > 1e-9))
 			{
 				continue;
 			}
-			const Toolbox::f64 Length = Toolbox::Sqrt(LengthSq);
 			Cross.X /= Length;
 			Cross.Y /= Length;
 			Cross.Z /= Length;
