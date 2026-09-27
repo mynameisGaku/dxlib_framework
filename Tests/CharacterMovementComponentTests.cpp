@@ -324,6 +324,85 @@ template <typename T> void JumpRequests_Internal()
 	Scene.Shutdown_Internal();
 }
 
+// カプセルの高さの変更: 足元を保って縮み、低い通路の下では伸ばせず（形状・中心・Colliderは元のまま）、出てから伸ばす。
+// ColliderのIDは変わらず、形状・Bodyの位置・補間の両端・足元の状態を同時に合わせる。形状の設定の変更は次の固定更新で反映する。
+template <typename T> void CapsuleHeight_Internal()
+{
+	FFixture Fixture;
+	typename T::FScene Scene;
+	auto Description = Description_Internal<T>(T::At(0, 0.92f));
+	Description.Settings.Shape = ECharacterShape::Capsule;
+	Description.Settings.HalfHeight = 0.4;
+	auto Character = Scene.template Spawn<TCharacterObject<T>>(Description);
+	REQUIRE(Character);
+	REQUIRE(Scene.template Spawn<TBoxObject<T>>(T::At(0, -1), 50.0f, 1.0f));
+	REQUIRE(Scene.template Spawn<TBoxObject<T>>(T::At(10, 2.5f), 7.0f, 1.0f));
+	REQUIRE(Scene.Initialize_Internal(Fixture.Init()));
+	// 固定更新の前はWorldを確かめられないので変えない。
+	auto& Mover = Character.Value().Get()->Character();
+	REQUIRE(!Mover.TrySetCapsuleHalfHeight(0));
+	REQUIRE(Mover.GetSettings().HalfHeight == 0.4);
+	REQUIRE(Scene.Tick_Internal(Fixture.Tick(1.0 / 60.0)));
+	auto& World = T::World(Scene);
+	const auto Body = *Mover.GetBodyId();
+	const auto Found = World.OverlapAll(T::Probe(Mover.GetCenter(), 0.1f));
+	REQUIRE(Found.Size() == 1 && Found[0].Body == Body);
+	const auto Collider = Found[0];
+	REQUIRE(World.GetColliderShape(Collider).Index() == 2);
+	Mover.SetMoveInput(T::At(1));
+	for (int32 Frame = 0; Frame < 90; ++Frame)
+	{
+		REQUIRE(Scene.Tick_Internal(Fixture.Tick(1.0 / 60.0)));
+	}
+	REQUIRE(T::X(Mover.GetCenter()) < 2.52 && Abs(T::Y(Mover.GetCenter()) - 0.92) < 1e-4);
+	// しゃがむ: 中心・Body・補間の両端が0.4下がり、ColliderのIDは同じで半高0の形状になる。
+	const auto RenderBefore = Mover.GetRenderCenter();
+	REQUIRE(Mover.TrySetCapsuleHalfHeight(0));
+	REQUIRE(Abs(T::Y(Mover.GetCenter()) - 0.52) < 1e-6 && Mover.GetSettings().HalfHeight == 0);
+	REQUIRE(Abs(T::Y(Mover.GetRenderCenter()) - (T::Y(RenderBefore) - 0.4)) < 1e-6);
+	REQUIRE(World.GetPosition(Body) == Mover.GetCenter() && World.IsColliderAlive(Collider));
+	const auto Crouched = World.GetColliderShape(Collider);
+	REQUIRE(Crouched.Index() == 2 && Crouched.template Get<2>().Start == Crouched.template Get<2>().End);
+	REQUIRE(Mover.IsGrounded());
+	for (int32 Frame = 0; Frame < 90; ++Frame)
+	{
+		REQUIRE(Scene.Tick_Internal(Fixture.Tick(1.0 / 60.0)));
+	}
+	REQUIRE(T::X(Mover.GetCenter()) > 5 && T::X(Mover.GetCenter()) < 17);
+	// 通路の下では伸ばせない。
+	const auto Under = Mover.GetCenter();
+	REQUIRE(!Mover.TrySetCapsuleHalfHeight(0.4));
+	REQUIRE(Mover.GetCenter() == Under && Mover.GetSettings().HalfHeight == 0 && World.GetPosition(Body) == Under);
+	REQUIRE(World.GetColliderShape(Collider).template Get<2>().Start == Crouched.template Get<2>().Start);
+	for (int32 Frame = 0; Frame < 360 && T::X(Mover.GetCenter()) < 18.5; ++Frame)
+	{
+		REQUIRE(Scene.Tick_Internal(Fixture.Tick(1.0 / 60.0)));
+	}
+	REQUIRE(Mover.TrySetCapsuleHalfHeight(0.4));
+	REQUIRE(Abs(T::Y(Mover.GetCenter()) - 0.92) < 1e-6 && World.IsColliderAlive(Collider));
+	// 形状の設定の変更（半径）は次の固定更新でColliderへ反映し、IDは変えない。
+	auto Settings = Mover.GetSettings();
+	Settings.Radius = 0.4f;
+	Mover.SetSettings(Settings);
+	Mover.SetMoveInput(T::At(0));
+	REQUIRE(Scene.Tick_Internal(Fixture.Tick(1.0 / 60.0)));
+	REQUIRE(World.IsColliderAlive(Collider) && World.GetColliderShape(Collider).template Get<2>().Radius == 0.4f);
+	// 円／球の設定では高さを変えられない。
+	Settings.Shape = ECharacterShape::Round;
+	Mover.SetSettings(Settings);
+	bool bThrown = false;
+	try
+	{
+		(void)Mover.TrySetCapsuleHalfHeight(0.2);
+	}
+	catch (const FException&)
+	{
+		bThrown = true;
+	}
+	REQUIRE(bThrown);
+	Scene.Shutdown_Internal();
+}
+
 // Teleport・破棄・登録前の破棄。
 template <typename T> void Lifetime_Internal()
 {
@@ -458,6 +537,14 @@ TEST("2D character component teleports, releases its body and handles early dest
 TEST("3D character component teleports, releases its body and handles early destruction")
 {
 	Lifetime_Internal<FCase3D>();
+}
+TEST("2D character component changes its capsule height safely")
+{
+	CapsuleHeight_Internal<FCase2D>();
+}
+TEST("3D character component changes its capsule height safely")
+{
+	CapsuleHeight_Internal<FCase3D>();
 }
 TEST("2D character component rejects a rigid body on the same object")
 {

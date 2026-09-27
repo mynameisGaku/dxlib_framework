@@ -135,6 +135,11 @@ const FCase* GetCapsuleGeometryCases(Toolbox::size_t& Count) noexcept;
  * @param Count 返す配列の要素数。
  */
 const FCase* GetCapsuleWorldCases(Toolbox::size_t& Count) noexcept;
+/**
+ * カプセルのキャラクター移動（立ち・歩行・天井・低い通路・高さの変更・段差・坂・Sensor・動く床・Up）の2D／3D回帰を返す。
+ * @param Count 返す配列の要素数。
+ */
+const FCase* GetCharacterCapsuleCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryTreeCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryIndexEquivalenceCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryIndexContractCases(Toolbox::size_t& Count) noexcept;

@@ -11,7 +11,9 @@ namespace Dxf
  * 3Dキャラクターの移動（反復滑り・接地・坂・段差・重力・ジャンプ）をDPhysicsScene3Dの固定更新へ接続する。
  * 入力はデバイスに依存しない要求（SetMoveInput・RequestJump）で受け、同じ固定更新のすべての登録の後、物理Stepの直前に
  * StepCharacterで1回だけ進める。位置はこのComponentだけが決める（Worldの速度積分やSolverでは動かさない）。
- * 自分のBodyを登録する場合は、所有オブジェクトに一つのKinematicのBodyと球のColliderを作り、破棄時に解放する。
+ * 自分のBodyを登録する場合は、所有オブジェクトに一つのKinematicのBodyと、Settings.Shapeの形（球、または中心線が
+ * Upに沿うカプセル）のColliderを作り、破棄時に解放する。形状の設定を変えると、次の固定更新でColliderの形状を合わせる
+ * （IDは変えない）。高さを安全に変える場合はTrySetCapsuleHalfHeightを使う。
  * 同じオブジェクトのDRigidBody3DComponentとは位置の決定権が重なるため、同時には使えない（最初の固定更新で例外）。
  * 動く床への追従や、剛体との押し合いは扱わない（現在の姿勢を障害物として扱うだけ）。
  */
@@ -70,6 +72,52 @@ public:
 		{
 			m_pWorld->SetBodyTransform(m_Body, Center, Toolbox::FQuaternion{});
 		}
+	}
+	/**
+	 * カプセルの半高を、足元（中心線の下端の球の底）を保って変える。伸ばした形状がSolidのColliderと重なる（低い天井の
+	 * 下など）場合と、まだ固定更新でWorldを受け取っていない場合は変えずにfalseを返す（形状・中心・Colliderは元のまま）。
+	 * 変えた場合は、中心・補間の両端（同じ量だけずらし、足元の描画を連続させる）・登録したBodyの位置とColliderの形状
+	 * （ID・世代は同じで、接触・Triggerの組は続く）を同時に更新する。足元の状態は足元が動かないため保つ。
+	 * Settings.ShapeがCapsuleでない、または半高が有限・非負でない場合はToolbox::FException。
+	 * @param HalfHeight 新しい半高。
+	 */
+	bool TrySetCapsuleHalfHeight(Toolbox::f64 HalfHeight)
+	{
+		if (m_Description.Settings.Shape != ECharacterShape::Capsule || !Toolbox::IsFinite(HalfHeight) ||
+		    HalfHeight < 0)
+		{
+			throw Toolbox::FException("Invalid 3D character capsule half height");
+		}
+		if (m_pWorld == nullptr)
+		{
+			return false;
+		}
+		Toolbox::TOptional<FBodyId3D> Self;
+		if (m_bHasBody)
+		{
+			Self = m_Body;
+		}
+		const FCharacterResize3D Result = ResizeCharacterCapsule(*m_pWorld, m_State.Center, m_Description.Settings,
+		                                                         HalfHeight, Self, m_Description.Filter);
+		if (!Result.bResized)
+		{
+			return false;
+		}
+		FCharacterMoveSettings3D Settings = m_Description.Settings;
+		Settings.HalfHeight = HalfHeight;
+		// Worldの形状と位置を先に更新し、成功してからComponentの状態を変える。
+		if (m_bHasBody)
+		{
+			m_pWorld->SetColliderShape(m_Collider, LocalShape_Internal(Settings));
+			m_pWorld->SetBodyTransform(m_Body, Result.Center, Toolbox::FQuaternion{});
+			m_ColliderSettings = Settings;
+		}
+		const Toolbox::FVector3 Shift = Result.Center - m_State.Center;
+		m_Description.Settings = Settings;
+		m_State.Center = Result.Center;
+		m_PrevCenter = m_PrevCenter + Shift;
+		m_CurrentCenter = m_CurrentCenter + Shift;
+		return true;
 	}
 	/**
 	 * 設定を変更する（次の固定更新で検査して使う）。
@@ -182,9 +230,10 @@ protected:
 			m_Body = m_pWorld->CreateBody(Body);
 			m_bHasBody = true;
 			FColliderDescription3D Collider;
-			Collider.Shape = Toolbox::FSphere{{}, m_Description.Settings.Radius};
+			Collider.Shape = LocalShape_Internal(m_Description.Settings);
 			Collider.QueryCategory = m_Description.BodyQueryCategory;
-			(void)m_pWorld->AttachCollider(m_Body, Collider);
+			m_Collider = m_pWorld->AttachCollider(m_Body, Collider);
+			m_ColliderSettings = m_Description.Settings;
 		}
 		Context.PrePhysicsStep->Enqueue(*this);
 	}
@@ -230,6 +279,12 @@ private:
 		if (m_bHasBody)
 		{
 			Self = m_Body;
+			// 形状の設定が変わっていれば、Colliderの形状を合わせる（IDは変えない）。
+			if (!SameShape_Internal(m_ColliderSettings, m_Description.Settings))
+			{
+				m_pWorld->SetColliderShape(m_Collider, LocalShape_Internal(m_Description.Settings));
+				m_ColliderSettings = m_Description.Settings;
+			}
 		}
 		const FCharacterStepResult3D Result = StepCharacter(*m_pWorld, m_Description.Settings, m_State, Input,
 		                                                    Context.DeltaSeconds, Self, m_Description.Filter);
@@ -245,6 +300,34 @@ private:
 		{
 			m_pWorld->SetBodyTransform(m_Body, m_State.Center, Toolbox::FQuaternion{});
 		}
+	}
+	/**
+	 * 設定の形（Round／Capsule・半径・半高・Up）に合う、Body相対のColliderの形状。Bodyの姿勢は常に単位なので、
+	 * カプセルの中心線はUpに沿う。
+	 * @param Settings 形状を決める設定。
+	 */
+	static decltype(FColliderDescription3D::Shape) LocalShape_Internal(const FCharacterMoveSettings3D& Settings)
+	{
+		if (Settings.Shape != ECharacterShape::Capsule)
+		{
+			return Toolbox::FSphere{{}, Settings.Radius};
+		}
+		const Toolbox::f64 Length = Toolbox::Sqrt(Toolbox::f64(Toolbox::Dot(Settings.Up, Settings.Up)));
+		if (!(Length > 0) || !Toolbox::IsFinite(Settings.HalfHeight) || Settings.HalfHeight < 0)
+		{
+			throw Toolbox::FException("Invalid 3D character capsule");
+		}
+		const Toolbox::FVector3 Axis = Settings.Up * static_cast<Toolbox::f32>(Settings.HalfHeight / Length);
+		return Toolbox::FCapsule{-Axis, Axis, Settings.Radius};
+	}
+	/**
+	 * 二つの設定のColliderの形が同じか（Round／Capsule・半径・半高・Up）。
+	 * @param A 一つ目。
+	 * @param B 二つ目。
+	 */
+	static bool SameShape_Internal(const FCharacterMoveSettings3D& A, const FCharacterMoveSettings3D& B) noexcept
+	{
+		return A.Shape == B.Shape && A.Radius == B.Radius && A.HalfHeight == B.HalfHeight && A.Up == B.Up;
 	}
 	/**
 	 * 初期条件と設定。
@@ -282,6 +365,14 @@ private:
 	 * 登録したBody。
 	 */
 	FBodyId3D m_Body;
+	/**
+	 * 登録したCollider。
+	 */
+	FColliderId3D m_Collider;
+	/**
+	 * 登録したColliderの形を決めた設定（形が変わったかの比較に使う）。
+	 */
+	FCharacterMoveSettings3D m_ColliderSettings;
 	/**
 	 * 参照する物理ワールド。所有しない。
 	 */

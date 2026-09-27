@@ -73,6 +73,8 @@ struct F2D_Internal
 {
 	using FWorld = FPhysicsWorld2D;
 	using FShape = Toolbox::FCircle2D;
+	using FCapsuleShape = Toolbox::FCapsule2D;
+	using FResize = FCharacterResize2D;
 	using FVector = Toolbox::FVector2;
 	using FBodyId = FBodyId2D;
 	using FColliderId = FColliderId2D;
@@ -96,6 +98,10 @@ struct F2D_Internal
 	{
 		return {Center, Radius};
 	}
+	static FCapsuleShape Capsule(const FVec_Internal& Start, const FVec_Internal& End, f32 Radius)
+	{
+		return {Store(Start), Store(End), Radius};
+	}
 	// 2Dの角速度を、共通の外積に使うZ軸回りの値へ移す。
 	static FVec_Internal AngularVelocity(const FWorld& World, FBodyId Body)
 	{
@@ -107,6 +113,8 @@ struct F3D_Internal
 {
 	using FWorld = FPhysicsWorld3D;
 	using FShape = Toolbox::FSphere;
+	using FCapsuleShape = Toolbox::FCapsule;
+	using FResize = FCharacterResize3D;
 	using FVector = Toolbox::FVector3;
 	using FBodyId = FBodyId3D;
 	using FColliderId = FColliderId3D;
@@ -129,6 +137,10 @@ struct F3D_Internal
 	static FShape Shape(FVector Center, f32 Radius) noexcept
 	{
 		return {Center, Radius};
+	}
+	static FCapsuleShape Capsule(const FVec_Internal& Start, const FVec_Internal& End, f32 Radius)
+	{
+		return {Store(Start), Store(End), Radius};
 	}
 	// 3Dの角速度はWorld座標のまま共通の外積へ渡す。
 	static FVec_Internal AngularVelocity(const FWorld& World, FBodyId Body)
@@ -184,7 +196,10 @@ template <typename T> FCheckedSettings_Internal CheckSettings_Internal(const typ
 	    Finite_Internal(Settings.AirControl) && Settings.AirControl >= 0 && Settings.AirControl <= 1 &&
 	    Finite_Internal(Settings.JumpSpeed) && Settings.JumpSpeed >= 0 && Finite_Internal(Settings.Gravity) &&
 	    Settings.Gravity >= 0 && Finite_Internal(Settings.MaxFallSpeed) && Settings.MaxFallSpeed > 0 &&
-	    Finite_Internal(Settings.MaxGroundCarrySpeed) && Settings.MaxGroundCarrySpeed > 0 && Settings.Up.IsValid();
+	    Finite_Internal(Settings.MaxGroundCarrySpeed) && Settings.MaxGroundCarrySpeed > 0 && Settings.Up.IsValid() &&
+	    (Settings.Shape == ECharacterShape::Round ||
+	     (Settings.Shape == ECharacterShape::Capsule && Finite_Internal(Settings.HalfHeight) &&
+	      Settings.HalfHeight >= 0));
 	if (!bValid)
 	{
 		throw Toolbox::FException("Invalid character move settings");
@@ -201,6 +216,45 @@ template <typename T> FCheckedSettings_Internal CheckSettings_Internal(const typ
 	return Checked;
 }
 
+// Capsuleの形状：中心線はUpに沿い、中心は中心線の中点。設定は検査済み。
+template <typename T>
+typename T::FCapsuleShape CapsuleAt_Internal(const typename T::FSettings& Settings, const typename T::FVector& Center,
+                                             f32 Radius)
+{
+	const FVec_Internal Up = T::Load(Settings.Up);
+	const FVec_Internal Axis = Scale_Internal(Up, Settings.HalfHeight / Length_Internal(Up));
+	const FVec_Internal Middle = T::Load(Center);
+	return T::Capsule(Sub_Internal(Middle, Axis), Add_Internal(Middle, Axis), Radius);
+}
+// 形状の選択に応じた接触の問い合わせ。Roundは従来どおり円／球で調べる。
+template <typename T>
+auto ShapeContacts_Internal(const typename T::FWorld& World, const typename T::FSettings& Settings,
+                            const typename T::FVector& Center, f32 Radius, f64 Margin,
+                            const Toolbox::TOptional<typename T::FBodyId>& Excluded, const FWorldQueryFilter& Filter)
+{
+	if (Settings.Shape == ECharacterShape::Capsule)
+	{
+		return World.QueryCapsuleContacts(CapsuleAt_Internal<T>(Settings, Center, Radius), Margin, Excluded, Filter);
+	}
+	return World.QueryContacts(T::Shape(Center, Radius), Margin, Excluded, Filter);
+}
+// 形状の選択に応じた移動の問い合わせ（開始時の接触を除く）。CapsuleのTargetは中心線の中点の終点。
+template <typename T>
+auto ShapeSweep_Internal(const typename T::FWorld& World, const typename T::FSettings& Settings,
+                         const typename T::FVector& From, f32 Radius, const typename T::FVector& Target,
+                         const Toolbox::TOptional<typename T::FBodyId>& Excluded, const FWorldQueryFilter& Filter)
+{
+	if (Settings.Shape == ECharacterShape::Capsule)
+	{
+		// 問い合わせの移動の基準はカプセルの中点（丸めでFromと1ulpほど違い得る）。その差を終点にも加え、移動量をTarget−From
+		// に保つ（面に沿う移動が、丸めの差で面へ近づく移動にならない）。
+		const auto Capsule = CapsuleAt_Internal<T>(Settings, From, Radius);
+		const FVec_Internal Offset = Sub_Internal(T::Load(Toolbox::CapsuleCenter(Capsule)), T::Load(From));
+		return World.SweepCapsuleClosestIgnoringInitialContacts(
+		    Capsule, T::Store(Add_Internal(T::Load(Target), Offset)), Excluded, Filter);
+	}
+	return World.SweepClosestIgnoringInitialContacts(T::Shape(From, Radius), Target, Excluded, Filter);
+}
 // 移動の問い合わせに使う、接触余裕を含めた半径。これで当たった中心は、対象の表面から接触余裕の距離にある。
 f32 Inflated_Internal(f32 Radius, f64 SkinWidth)
 {
@@ -386,8 +440,8 @@ typename T::FMoveResult MoveCore_Internal(const typename T::FWorld& World, const
 			return false;
 		}
 		++Result.Queries;
-		const auto Contacts =
-		    World.QueryContacts(T::Shape(T::Store(Center), Settings.Radius), Settings.SkinWidth, Excluded, Filter);
+		const auto Contacts = ShapeContacts_Internal<T>(World, Settings, T::Store(Center), Settings.Radius,
+		                                                Settings.SkinWidth, Excluded, Filter);
 		if (!Contacts.IsComplete())
 		{
 			Failure = ECharacterMoveStop::ContactLimit;
@@ -447,7 +501,7 @@ typename T::FMoveResult MoveCore_Internal(const typename T::FWorld& World, const
 		++Result.Queries;
 		const typename T::FVector From = T::Store(Center);
 		// 接触余裕を含めた半径で調べる。開始時に接触余裕以内の面は、この問い合わせでは初期接触として除かれ、制約で扱う。
-		const auto Hit = World.SweepClosestIgnoringInitialContacts(T::Shape(From, Inflated), Target, Excluded, Filter);
+		const auto Hit = ShapeSweep_Internal<T>(World, Settings, From, Inflated, Target, Excluded, Filter);
 		const FVec_Internal Path = Sub_Internal(TargetValue, Center);
 		if (!Hit)
 		{
@@ -472,7 +526,7 @@ typename T::FMoveResult MoveCore_Internal(const typename T::FWorld& World, const
 				return false;
 			}
 			++Result.Queries;
-			if (World.SweepClosestIgnoringInitialContacts(T::Shape(From, Settings.Radius), Rounded, Excluded, Filter))
+			if (ShapeSweep_Internal<T>(World, Settings, From, Settings.Radius, Rounded, Excluded, Filter))
 			{
 				return false;
 			}
@@ -542,7 +596,7 @@ typename T::FRecovery RecoverCore_Internal(const typename T::FWorld& World, cons
 		}
 		++Result.Queries;
 		const typename T::FVector Current = T::Store(Center);
-		const auto Contacts = World.QueryContacts(T::Shape(Current, Settings.Radius), 0, Excluded, Filter);
+		const auto Contacts = ShapeContacts_Internal<T>(World, Settings, Current, Settings.Radius, 0, Excluded, Filter);
 		if (!Contacts.IsComplete())
 		{
 			return Fail(ECharacterRecoveryStatus::ContactLimit);
@@ -592,7 +646,7 @@ typename T::FRecovery RecoverCore_Internal(const typename T::FWorld& World, cons
 		}
 		++Result.Queries;
 		const auto Blocking =
-		    World.SweepClosestIgnoringInitialContacts(T::Shape(Current, Settings.Radius), Candidate, Excluded, Filter);
+		    ShapeSweep_Internal<T>(World, Settings, Current, Settings.Radius, Candidate, Excluded, Filter);
 		if (Blocking)
 		{
 			Result.Collider = Blocking->Collider;
@@ -618,7 +672,7 @@ typename T::FGround GroundCore_Internal(const typename T::FWorld& World, const t
 		return Ground;
 	}
 	const auto Contacts =
-	    World.QueryContacts(T::Shape(Center, Settings.Radius), Settings.SkinWidth * 2, Excluded, Filter);
+	    ShapeContacts_Internal<T>(World, Settings, Center, Settings.Radius, Settings.SkinWidth * 2, Excluded, Filter);
 	Ground.bComplete = Contacts.IsComplete();
 	int32 Best = -1;
 	bool bBestWalkable = false;
@@ -674,8 +728,8 @@ bool SnapCore_Internal(const typename T::FWorld& World, FVec_Internal& Center, f
 	{
 		return false;
 	}
-	const auto Hit = World.SweepClosestIgnoringInitialContacts(
-	    T::Shape(From, Inflated_Internal(Settings.Radius, Settings.SkinWidth)), Target, Excluded, Filter);
+	const auto Hit = ShapeSweep_Internal<T>(
+	    World, Settings, From, Inflated_Internal(Settings.Radius, Settings.SkinWidth), Target, Excluded, Filter);
 	if (!Hit || !Hit->Normal)
 	{
 		return false;
@@ -701,7 +755,7 @@ bool SnapCore_Internal(const typename T::FWorld& World, FVec_Internal& Center, f
 	{
 		return false;
 	}
-	if (World.SweepClosestIgnoringInitialContacts(T::Shape(From, Settings.Radius), Landing, Excluded, Filter))
+	if (ShapeSweep_Internal<T>(World, Settings, From, Settings.Radius, Landing, Excluded, Filter))
 	{
 		return false;
 	}
@@ -743,8 +797,8 @@ bool StepUpCore_Internal(const typename T::FWorld& World, const typename T::FVec
 	{
 		return false;
 	}
-	if (World.SweepClosestIgnoringInitialContacts(
-	        T::Shape(Start, Inflated_Internal(Settings.Radius, Settings.SkinWidth)), Raised, Excluded, Filter))
+	if (ShapeSweep_Internal<T>(World, Settings, Start, Inflated_Internal(Settings.Radius, Settings.SkinWidth), Raised,
+	                           Excluded, Filter))
 	{
 		return false;
 	}
@@ -878,7 +932,7 @@ typename T::FMoveResult CarryCurve_Internal(const typename T::FWorld& World, typ
 		++Queries;
 		// 膨らませた形状が最初から重なる場合だけ保守的に止める。通常の接触余裕内の近接面はMoveCoreの制約で扱う。
 		const auto Contacts =
-		    World.QueryContacts(T::Shape(T::Store(Center), Settings.Radius), CurveWidth, Excluded, Filter);
+		    ShapeContacts_Internal<T>(World, Settings, T::Store(Center), Settings.Radius, CurveWidth, Excluded, Filter);
 		if (!Contacts.IsComplete())
 		{
 			return Finish(ECharacterMoveStop::ContactLimit);
@@ -1124,6 +1178,51 @@ typename T::FStepResult StepCore_Internal(const typename T::FWorld& World, const
 	return Result;
 }
 
+// カプセルの半高の変更。足元を保った中心で、伸ばす場合だけ新しい形状の重なりを調べる。
+template <typename T>
+typename T::FResize ResizeCore_Internal(const typename T::FWorld& World, const typename T::FVector& Center,
+                                        const typename T::FSettings& Settings, f64 NewHalfHeight,
+                                        const Toolbox::TOptional<typename T::FBodyId>& Excluded,
+                                        const FWorldQueryFilter& Filter)
+{
+	const FCheckedSettings_Internal Checked = CheckSettings_Internal<T>(Settings);
+	if (Settings.Shape != ECharacterShape::Capsule)
+	{
+		throw Toolbox::FException("Character resize requires a capsule shape");
+	}
+	if (!Finite_Internal(NewHalfHeight) || NewHalfHeight < 0)
+	{
+		throw Toolbox::FException("Invalid character capsule half height");
+	}
+	typename T::FResize Result;
+	Result.Center = Center;
+	// 足元（中心からUpの逆向きにHalfHeight＋Radius）を保つ中心。
+	const typename T::FVector Moved =
+	    T::Store(Add_Internal(T::Load(Center), Scale_Internal(Checked.Up, NewHalfHeight - Settings.HalfHeight)));
+	if (NewHalfHeight > Settings.HalfHeight)
+	{
+		// 伸ばした形状は途中の高さの形状をすべて含むため、最終の形状の重なりだけを調べる。
+		typename T::FSettings Taller = Settings;
+		Taller.HalfHeight = NewHalfHeight;
+		const auto Contacts = ShapeContacts_Internal<T>(World, Taller, Moved, Settings.Radius, 0, Excluded, Filter);
+		for (uint32 Index = 0; Index < Contacts.Count; ++Index)
+		{
+			if (Contacts.Items[Index].Separation < 0)
+			{
+				Result.Blocker = Contacts.Items[Index].Collider;
+				return Result;
+			}
+		}
+		if (!Contacts.IsComplete())
+		{
+			// 全件を確かめられない場合は変更しない。
+			return Result;
+		}
+	}
+	Result.bResized = true;
+	Result.Center = Moved;
+	return Result;
+}
 // 公開関数の共通の入力検査。
 template <typename T> void CheckCenter_Internal(const typename T::FVector& Center)
 {
@@ -1240,5 +1339,21 @@ FCharacterStepResult3D StepCharacter(const FPhysicsWorld3D& World, const FCharac
 {
 	return StepCore_Internal<F3D_Internal>(World, Settings, State, Input, DeltaSeconds, ExcludedBody,
 	                                       SolidOnly_Internal(Filter));
+}
+FCharacterResize2D ResizeCharacterCapsule(const FPhysicsWorld2D& World, Toolbox::FVector2 Center,
+                                          const FCharacterMoveSettings2D& Settings, Toolbox::f64 NewHalfHeight,
+                                          Toolbox::TOptional<FBodyId2D> ExcludedBody, const FWorldQueryFilter& Filter)
+{
+	CheckCenter_Internal<F2D_Internal>(Center);
+	return ResizeCore_Internal<F2D_Internal>(World, Center, Settings, NewHalfHeight, ExcludedBody,
+	                                         SolidOnly_Internal(Filter));
+}
+FCharacterResize3D ResizeCharacterCapsule(const FPhysicsWorld3D& World, Toolbox::FVector3 Center,
+                                          const FCharacterMoveSettings3D& Settings, Toolbox::f64 NewHalfHeight,
+                                          Toolbox::TOptional<FBodyId3D> ExcludedBody, const FWorldQueryFilter& Filter)
+{
+	CheckCenter_Internal<F3D_Internal>(Center);
+	return ResizeCore_Internal<F3D_Internal>(World, Center, Settings, NewHalfHeight, ExcludedBody,
+	                                         SolidOnly_Internal(Filter));
 }
 } // namespace Dxf

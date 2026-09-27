@@ -6,11 +6,17 @@
 #include "Dxf/CharacterMoveResult3D.h"
 #include "Dxf/CharacterMoveSettings3D.h"
 #include "Dxf/CharacterRecovery3D.h"
+#include "Dxf/CharacterResize3D.h"
 #include "Dxf/CharacterState3D.h"
 #include "Dxf/CharacterStepResult3D.h"
 #include "Dxf/RigidBody3D.h"
 namespace Dxf
 {
+/*
+ * 形状：Settings.ShapeがRound（既定）なら中心と半径の球、Capsuleなら中心線がSettings.Upに沿うカプセル
+ * （中心は中心線の中点、両端は中心からUpの向きに±HalfHeight、半径はRadius）で、すべての問い合わせを行う。
+ * 各関数の「球の中心」は、Capsuleでは中心線の中点を指す。
+ */
 /**
  * 現在の中心で重なっている（符号付き距離が負の）Colliderから、球を押し出す候補を求める（Worldは変更しない）。
  * 最も深い重なりから順に、その法線方向へ接触余裕（SkinWidth）の位置まで動かし、丸めた位置で接触を取り直す。
@@ -77,5 +83,22 @@ FCharacterStepResult3D StepCharacter(const FPhysicsWorld3D& World, const FCharac
                                      const FCharacterState3D& State, const FCharacterMoveInput3D& Input,
                                      Toolbox::f64 DeltaSeconds, Toolbox::TOptional<FBodyId3D> ExcludedBody = {},
                                      const FWorldQueryFilter& Filter = {});
+/**
+ * カプセルのキャラクターの半高を、足元（中心線の下端の球の底）を保って変えられるか調べる（Worldは変更しない）。
+ * 縮める変更は常にできる。伸ばす変更は、新しい形状がSolidのColliderと重なる（低い天井の下など）場合はできず、
+ * 元の中心と妨げたColliderを返す（伸ばした形状は途中の高さの形状をすべて含むため、最終の形状だけを調べる）。
+ * 結果を採用する場合は、呼出し側が中心とSettings.HalfHeight（と登録したColliderの形状）を同時に更新する。
+ * Settings.ShapeがCapsuleでない、NewHalfHeightが有限・非負でない、設定・中心が不正な場合はToolbox::FException。
+ * @param World 問い合わせるWorld。
+ * @param Center 現在の中心（中心線の中点）。
+ * @param Settings 現在の設定（HalfHeightは変更前の値）。
+ * @param NewHalfHeight 新しい半高。
+ * @param ExcludedBody 任意の自己Body。除外しない場合は空Optional。
+ * @param Filter 対象にする問い合わせカテゴリ（Sensorは妨げにしない）。
+ */
+FCharacterResize3D ResizeCharacterCapsule(const FPhysicsWorld3D& World, Toolbox::FVector3 Center,
+                                          const FCharacterMoveSettings3D& Settings, Toolbox::f64 NewHalfHeight,
+                                          Toolbox::TOptional<FBodyId3D> ExcludedBody = {},
+                                          const FWorldQueryFilter& Filter = {});
 } // namespace Dxf
 #endif

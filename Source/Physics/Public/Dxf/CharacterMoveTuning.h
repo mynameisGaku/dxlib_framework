@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: NOASSERTION
 #ifndef DXF_CHARACTER_MOVE_TUNING_H
 #define DXF_CHARACTER_MOVE_TUNING_H
+#include "Dxf/CharacterShape.h"
 #include "Toolbox/Utility.h"
 namespace Dxf
 {
@@ -11,9 +12,18 @@ namespace Dxf
 struct FCharacterMoveTuning
 {
 	/**
-	 * 問い合わせる円／球の半径（有限の正の値）。
+	 * 問い合わせる円／球の半径（有限の正の値）。カプセルでは両端の円／球と胴体の半径。
 	 */
 	Toolbox::f32 Radius = 0.5f;
+	/**
+	 * 問い合わせの形状。既定はRound（従来の円／球）。Capsuleは中心線がUpに沿うカプセルで、中心は中心線の中点。
+	 */
+	ECharacterShape Shape = ECharacterShape::Round;
+	/**
+	 * Capsuleの中心線の半分の長さ（有限・非負。0は円／球と同じ形）。足元は中心からUpの逆向きにHalfHeight＋Radius。
+	 * Roundでは使わない。
+	 */
+	Toolbox::f64 HalfHeight = 0;
 	/**
 	 * 対象の表面から保つ接触余裕（表面の法線方向の距離、有限の正の値）。移動は表面へこの距離まで近づいて止まる。
 	 * SweepClosestのCenterAtHitや、ComputeSlideMoveの経路上の後退距離とは別の意味。
