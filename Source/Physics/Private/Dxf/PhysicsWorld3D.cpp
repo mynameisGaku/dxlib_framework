@@ -4,6 +4,7 @@
 #include "ParallelPhysicsCore.h"
 #include "QueryCandidates.h"
 #include "QueryResultOrder.h"
+#include "SolverPairs.h"
 #include "WorldQueryShapes3D.h"
 #include "WorldEventTracker.h"
 #include "WorldEventCandidates.h"
@@ -441,22 +442,6 @@ static FVector3D AxisD_Internal(Toolbox::FVector3 Axis) noexcept
 	Result.Z = Axis.Z;
 	return Result;
 }
-// 箱の支持点を求める。方向へ最も進んだ頂点。
-static FVector3D Support_Internal(const Toolbox::FOBB& Box, FVector3D Direction) noexcept
-{
-	FVector3D Point = {Box.Center.X, Box.Center.Y, Box.Center.Z};
-	const Toolbox::f64 Half[3] = {Box.HalfExtents.X, Box.HalfExtents.Y, Box.HalfExtents.Z};
-	for (Toolbox::int32 Axis = 0; Axis < 3; ++Axis)
-	{
-		const FVector3D AxisVector = AxisD_Internal(Box.Axes[Axis]);
-		const Toolbox::f64 Sign =
-		    AxisVector.X * Direction.X + AxisVector.Y * Direction.Y + AxisVector.Z * Direction.Z >= 0 ? 1 : -1;
-		Point.X += AxisVector.X * Sign * Half[Axis];
-		Point.Y += AxisVector.Y * Sign * Half[Axis];
-		Point.Z += AxisVector.Z * Sign * Half[Axis];
-	}
-	return Point;
-}
 // 箱の指定面の四隅を求める。面番号は軸*2に正方向で1を足す。
 static void FaceVertices_Internal(const Toolbox::FOBB& Box, Toolbox::int32 Face, FVector3D Vertices[4]) noexcept
 {
@@ -481,7 +466,33 @@ static void FaceVertices_Internal(const Toolbox::FOBB& Box, Toolbox::int32 Face,
 		Vertices[Corner].Z = Box.Center.Z + AxisN.Z * Sign * HalfN + AxisA.Z * SignA * HalfA + AxisB.Z * SignB * HalfB;
 	}
 }
-// 世界箱同士の接触を最大四点求める。分離時は空。法線はB→A。辺同士は近似一点。
+// 箱の支持点を求める。方向へ最も進んだ頂点。
+static FVector3D Support_Internal(const Toolbox::FOBB& Box, FVector3D Direction) noexcept
+{
+	FVector3D Point = {Box.Center.X, Box.Center.Y, Box.Center.Z};
+	const Toolbox::f64 Half[3] = {Box.HalfExtents.X, Box.HalfExtents.Y, Box.HalfExtents.Z};
+	for (Toolbox::int32 Axis = 0; Axis < 3; ++Axis)
+	{
+		const FVector3D AxisVector = AxisD_Internal(Box.Axes[Axis]);
+		const Toolbox::f64 Sign =
+		    AxisVector.X * Direction.X + AxisVector.Y * Direction.Y + AxisVector.Z * Direction.Z >= 0 ? 1 : -1;
+		Point.X += AxisVector.X * Sign * Half[Axis];
+		Point.Y += AxisVector.Y * Sign * Half[Axis];
+		Point.Z += AxisVector.Z * Sign * Half[Axis];
+	}
+	return Point;
+}
+// 箱の指定した軸の半径を返す。SATの投影半径の計算で使う。
+static Toolbox::f64 HalfExtent_Internal(const Toolbox::FOBB& Box, Toolbox::int32 Axis) noexcept
+{
+	return Axis == 0 ? static_cast<Toolbox::f64>(Box.HalfExtents.X)
+	                 : (Axis == 1 ? static_cast<Toolbox::f64>(Box.HalfExtents.Y)
+	                              : static_cast<Toolbox::f64>(Box.HalfExtents.Z));
+}
+// 世界箱同士の接触を最大四点求める。分離時は空。法線はB→A。
+// 分離軸と最深部の方向は、両箱の面の法線（十二軸）だけで決める。凸多面体どうしの最短押し出し方向は
+// 一方の面法線に必ずbqるため、辺と辺の外積（九軸）を調べても結果は変わらない。実際には重なり合った箱で
+// 外積の軸が正の分離を報告し、接触ごと失って箱が壁を貫通することがあった（法線方向の決定に使わない）。
 static void FindBoxBoxContacts_Internal(const Toolbox::FOBB& A, const Toolbox::FOBB& B, Toolbox::f32 Slop,
                                         Toolbox::TVector<Toolbox::FContactPoint3D>& Out)
 {
@@ -518,10 +529,8 @@ static void FindBoxBoxContacts_Internal(const Toolbox::FOBB& A, const Toolbox::F
 			{
 				const FVector3D AxisA = AxisD_Internal(A.Axes[Other]);
 				const FVector3D AxisB = AxisD_Internal(B.Axes[Other]);
-				const Toolbox::f64 HalfA =
-				    Other == 0 ? A.HalfExtents.X : (Other == 1 ? A.HalfExtents.Y : A.HalfExtents.Z);
-				const Toolbox::f64 HalfB =
-				    Other == 0 ? B.HalfExtents.X : (Other == 1 ? B.HalfExtents.Y : B.HalfExtents.Z);
+				const Toolbox::f64 HalfA = HalfExtent_Internal(A, Other);
+				const Toolbox::f64 HalfB = HalfExtent_Internal(B, Other);
 				ProjectA += HalfA * Toolbox::Abs(AxisA.X * Raw.X + AxisA.Y * Raw.Y + AxisA.Z * Raw.Z);
 				ProjectB += HalfB * Toolbox::Abs(AxisB.X * Raw.X + AxisB.Y * Raw.Y + AxisB.Z * Raw.Z);
 			}
@@ -547,11 +556,15 @@ static void FindBoxBoxContacts_Internal(const Toolbox::FOBB& A, const Toolbox::F
 			const FVector3D RawB = AxisD_Internal(B.Axes[AxisB]);
 			FVector3D Cross = {RawA.Y * RawB.Z - RawA.Z * RawB.Y, RawA.Z * RawB.X - RawA.X * RawB.Z,
 			                   RawA.X * RawB.Y - RawA.Y * RawB.X};
-			const Toolbox::f64 Length = Toolbox::Sqrt(Cross.X * Cross.X + Cross.Y * Cross.Y + Cross.Z * Cross.Z);
-			if (!(Length > 1e-9))
+			const Toolbox::f64 LengthSq = Cross.X * Cross.X + Cross.Y * Cross.Y + Cross.Z * Cross.Z;
+			// 平行に近い2本の辺の外積は方向が定まらない。軸の長さと外積の長さの比で判定し、ほぼ平行な組は使わない。
+			const Toolbox::f64 SelfSq = RawA.X * RawA.X + RawA.Y * RawA.Y + RawA.Z * RawA.Z;
+			const Toolbox::f64 OtherSq = RawB.X * RawB.X + RawB.Y * RawB.Y + RawB.Z * RawB.Z;
+			if (!(LengthSq > 1e-8 * SelfSq * OtherSq))
 			{
 				continue;
 			}
+			const Toolbox::f64 Length = Toolbox::Sqrt(LengthSq);
 			Cross.X /= Length;
 			Cross.Y /= Length;
 			Cross.Z /= Length;
@@ -564,10 +577,8 @@ static void FindBoxBoxContacts_Internal(const Toolbox::FOBB& A, const Toolbox::F
 			{
 				const FVector3D AxisA = AxisD_Internal(A.Axes[Other]);
 				const FVector3D AxisB = AxisD_Internal(B.Axes[Other]);
-				const Toolbox::f64 HalfA =
-				    Other == 0 ? A.HalfExtents.X : (Other == 1 ? A.HalfExtents.Y : A.HalfExtents.Z);
-				const Toolbox::f64 HalfB =
-				    Other == 0 ? B.HalfExtents.X : (Other == 1 ? B.HalfExtents.Y : B.HalfExtents.Z);
+				const Toolbox::f64 HalfA = HalfExtent_Internal(A, Other);
+				const Toolbox::f64 HalfB = HalfExtent_Internal(B, Other);
 				ProjectA += HalfA * Toolbox::Abs(AxisA.X * Cross.X + AxisA.Y * Cross.Y + AxisA.Z * Cross.Z);
 				ProjectB += HalfB * Toolbox::Abs(AxisB.X * Cross.X + AxisB.Y * Cross.Y + AxisB.Z * Cross.Z);
 			}
@@ -648,7 +659,6 @@ static void FindBoxBoxContacts_Internal(const Toolbox::FOBB& A, const Toolbox::F
 			IncidentFace = Face;
 		}
 	}
-	(void)IncidentFace;
 	FVector3D Quad[4];
 	FaceVertices_Internal(Incident, IncidentFace, Quad);
 	// 基準面の四つの側方平面で切り取る。頂点の環状順序を保つ単一走査。
@@ -835,6 +845,10 @@ struct FPhysicsWorld3D::FImpl
 	Toolbox::TVector<decltype(FColliderRecord3D::Shape)> QueryWorldShapes;
 	// 問い合わせで索引を使うか（検証用に総当たりの参照経路へ切り替えられる）。
 	bool bQueryIndexEnabled = true;
+	// Solverとイベントの組の候補に索引を使うか（検証用に総当たりの参照経路へ切り替えられる）。
+	bool bSolverIndexEnabled = true;
+	// 索引から集めた組の候補（Stepをまたいで容量を使い回す）。
+	Toolbox::TVector<PhysicsPrivate::FColliderPair> SolverPairs;
 	// 問い合わせの集計を加算するか。
 	bool bQueryDiagnostics = false;
 	// 問い合わせの集計（診断が有効な間だけconstの問い合わせから加算する）。
@@ -1058,6 +1072,23 @@ struct FPhysicsWorld3D::FImpl
 		PhysicsPrivate::FWorldInteractionProbe::FRegion CandidateProbe(
 		    PhysicsPrivate::FWorldInteractionProbe::EPhase::Candidate);
 #endif
+		const Toolbox::f32 Margin = Events.GetSettings().ContactMargin;
+		// Static以外のBodyのColliderを「動く側」として、索引から組の候補を確保なしで通知する（Static同士は調べない）。
+		// 発行時に正準順へ並べるため、候補の通知順は結果に影響しない。
+		if (bSolverIndexEnabled && PhysicsPrivate::VisitIndexedPairs_Internal(
+		                               QueryIndex, Colliders, Margin,
+		                               [&](Toolbox::size_t Slot)
+		                               {
+			                               const FBodyRecord3D* Body = Find_Internal(Colliders[Slot].Body);
+			                               return Body != nullptr && Body->Type != EBodyType::Static;
+		                               },
+		                               [&](Toolbox::size_t First, Toolbox::size_t Second)
+		                               {
+			                               ConsiderEventPair_Internal(First, Second, Margin);
+		                               }))
+		{
+			return;
+		}
 		EventEntries.Clear();
 		for (Toolbox::size_t Index = 0; Index < Colliders.Size(); ++Index)
 		{
@@ -1080,42 +1111,45 @@ struct FPhysicsWorld3D::FImpl
 			Entry.Bounds = ToBounds_Internal(*Body, Record);
 			EventEntries.PushBack(Entry);
 		}
-		const Toolbox::f32 Margin = Events.GetSettings().ContactMargin;
-		PhysicsPrivate::VisitWorldEventCandidates_Internal(
-		    EventEntries, Margin,
-		    [&](Toolbox::size_t First, Toolbox::size_t Second)
-		    {
+		PhysicsPrivate::VisitWorldEventCandidates_Internal(EventEntries, Margin,
+		                                                   [&](Toolbox::size_t First, Toolbox::size_t Second)
+		                                                   {
+			                                                   ConsiderEventPair_Internal(First, Second, Margin);
+		                                                   });
+	}
+	// イベントの組の候補（Firstのスロットが小さい方）を調べ、接触・Triggerなら記録する。
+	void ConsiderEventPair_Internal(Toolbox::size_t First, Toolbox::size_t Second, Toolbox::f32 Margin)
+	{
 #if defined(DXF_INTERACTION_BENCHMARK_PROBES)
-			    PhysicsPrivate::FWorldInteractionProbe::CountCandidate_Internal();
+		PhysicsPrivate::FWorldInteractionProbe::CountCandidate_Internal();
 #endif
-			    const FColliderRecord3D& RecordA = Colliders[First];
-			    const FColliderRecord3D& RecordB = Colliders[Second];
-			    const FBodyRecord3D* BodyA = Find_Internal(RecordA.Body);
-			    const FBodyRecord3D* BodyB = Find_Internal(RecordB.Body);
-			    if (BodyA == nullptr || BodyB == nullptr)
-			    {
-				    return;
-			    }
-			    const Toolbox::TOptional<EWorldEventKind> Kind = EventKind_Internal(RecordA, *BodyA, RecordB, *BodyB);
-			    if (!Kind)
-			    {
-				    return;
-			    }
-			    typename decltype(Events)::FPair Pair;
-			    Pair.A = {RecordA.Body, First, RecordA.Generation};
-			    Pair.B = {RecordB.Body, Second, RecordB.Generation};
-			    Pair.Kind = *Kind;
-			    if (!EventTouch_Internal(RecordA, *BodyA, RecordB, *BodyB,
-			                             *Kind == EWorldEventKind::Trigger ? 0.0f : Margin, Pair.Normal))
-			    {
-				    return;
-			    }
-			    if (*Kind == EWorldEventKind::Trigger)
-			    {
-				    Pair.Normal.Reset();
-			    }
-			    Events.Add(Pair);
-		    });
+		const FColliderRecord3D& RecordA = Colliders[First];
+		const FColliderRecord3D& RecordB = Colliders[Second];
+		const FBodyRecord3D* BodyA = Find_Internal(RecordA.Body);
+		const FBodyRecord3D* BodyB = Find_Internal(RecordB.Body);
+		if (BodyA == nullptr || BodyB == nullptr)
+		{
+			return;
+		}
+		const Toolbox::TOptional<EWorldEventKind> Kind = EventKind_Internal(RecordA, *BodyA, RecordB, *BodyB);
+		if (!Kind)
+		{
+			return;
+		}
+		typename decltype(Events)::FPair Pair;
+		Pair.A = {RecordA.Body, First, RecordA.Generation};
+		Pair.B = {RecordB.Body, Second, RecordB.Generation};
+		Pair.Kind = *Kind;
+		if (!EventTouch_Internal(RecordA, *BodyA, RecordB, *BodyB, *Kind == EWorldEventKind::Trigger ? 0.0f : Margin,
+		                         Pair.Normal))
+		{
+			return;
+		}
+		if (*Kind == EWorldEventKind::Trigger)
+		{
+			Pair.Normal.Reset();
+		}
+		Events.Add(Pair);
 	}
 	// 前回の組が今回ない理由。
 	EWorldEventEndReason EndReason_Internal(const typename decltype(Events)::FPair& Pair) const noexcept
@@ -1667,63 +1701,83 @@ struct FPhysicsWorld3D::FImpl
 		}
 		GenerateParallelManifolds_Internal(Out);
 	}
-	// 全コライダー組から多様体列を作る。
+	// コライダー組（First<Secondのスロット）の接触を調べ、接触点があれば多様体を加える。索引の経路と総当たりで共用する。
+	void ConsiderSolverPair_Internal(Toolbox::size_t First, Toolbox::size_t Second, Toolbox::TVector<FManifold3D>& Out)
+	{
+		FColliderRecord3D& RecordA = Colliders[First];
+		FColliderRecord3D& RecordB = Colliders[Second];
+		if (!RecordA.bAlive || !RecordB.bAlive)
+		{
+			return;
+		}
+		FBodyRecord3D* BodyA = Find_Internal(RecordA.Body);
+		FBodyRecord3D* BodyB = Find_Internal(RecordB.Body);
+		if (BodyA == nullptr || BodyB == nullptr)
+		{
+			return;
+		}
+		// 同一剛体の組は自分自身へ接触しない。
+		if (RecordA.Body == RecordB.Body)
+		{
+			return;
+		}
+		// 両方が非Dynamicの組は応答も運動もしない。
+		if (BodyA->Type != EBodyType::Dynamic && BodyB->Type != EBodyType::Dynamic)
+		{
+			return;
+		}
+		// Sensorを含む組と、衝突フィルターが許さない組は物理応答をしない。
+		if (!RespondsTogether_Internal(RecordA, RecordB))
+		{
+			return;
+		}
+		++ExecutionDiagnostics.CandidatePairCount;
+		const FColliderId3D IdA = {RecordA.Body, First, RecordA.Generation};
+		const FColliderId3D IdB = {RecordB.Body, Second, RecordB.Generation};
+		FManifold3D Manifold;
+		if (ColliderLess_Internal(IdB, IdA))
+		{
+			AppendPairManifold_Internal(RecordB, IdB, RecordA, IdA, *BodyB, *BodyA, Manifold);
+		}
+		else
+		{
+			AppendPairManifold_Internal(RecordA, IdA, RecordB, IdB, *BodyA, *BodyB, Manifold);
+		}
+		if (!Manifold.Points.IsEmpty())
+		{
+			++ExecutionDiagnostics.ManifoldCount;
+			Out.PushBack(Manifold);
+		}
+	}
+	// 接触する組から多様体列を作る。索引の経路は、索引を現在の姿勢へ合わせてから候補の組を集め、総当たりと同じ
+	// (First, Second)の昇順で同じ組の関数を呼ぶ（結果は総当たりとビット単位で同じ）。索引を使えない場合は総当たり。
 	void GenerateManifolds_Internal(Toolbox::TVector<FManifold3D>& Out)
 	{
+		if (bSolverIndexEnabled)
+		{
+			RefreshMovingColliders_Internal();
+			const bool bIndexed = PhysicsPrivate::CollectIndexedPairs_Internal(
+			    QueryIndex, Colliders, Contact.ContactSlop,
+			    [&](Toolbox::size_t Slot)
+			    {
+				    const FBodyRecord3D* Body = Find_Internal(Colliders[Slot].Body);
+				    return Body != nullptr && Body->Type == EBodyType::Dynamic;
+			    },
+			    SolverPairs);
+			if (bIndexed)
+			{
+				for (Toolbox::size_t Index = 0; Index < SolverPairs.Size(); ++Index)
+				{
+					ConsiderSolverPair_Internal(SolverPairs[Index].First, SolverPairs[Index].Second, Out);
+				}
+				return;
+			}
+		}
 		for (Toolbox::size_t First = 0; First < Colliders.Size(); ++First)
 		{
-			FColliderRecord3D& RecordA = Colliders[First];
-			if (!RecordA.bAlive)
-			{
-				continue;
-			}
-			FBodyRecord3D* BodyA = Find_Internal(RecordA.Body);
-			if (BodyA == nullptr)
-			{
-				continue;
-			}
 			for (Toolbox::size_t Second = First + 1; Second < Colliders.Size(); ++Second)
 			{
-				FColliderRecord3D& RecordB = Colliders[Second];
-				if (!RecordB.bAlive)
-				{
-					continue;
-				}
-				FBodyRecord3D* BodyB = Find_Internal(RecordB.Body);
-				if (BodyB == nullptr)
-				{
-					continue;
-				}
-				// 同一剛体の組は自分自身へ接触しない。
-				if (RecordA.Body == RecordB.Body)
-				{
-					continue;
-				}
-				// 両方が非Dynamicの組は応答も運動もしない。
-				if (BodyA->Type != EBodyType::Dynamic && BodyB->Type != EBodyType::Dynamic)
-				{
-					continue;
-				}
-				// Sensorを含む組と、衝突フィルターが許さない組は物理応答をしない。
-				if (!RespondsTogether_Internal(RecordA, RecordB))
-				{
-					continue;
-				}
-				const FColliderId3D IdA = {RecordA.Body, First, RecordA.Generation};
-				const FColliderId3D IdB = {RecordB.Body, Second, RecordB.Generation};
-				FManifold3D Manifold;
-				if (ColliderLess_Internal(IdB, IdA))
-				{
-					AppendPairManifold_Internal(RecordB, IdB, RecordA, IdA, *BodyB, *BodyA, Manifold);
-				}
-				else
-				{
-					AppendPairManifold_Internal(RecordA, IdA, RecordB, IdB, *BodyA, *BodyB, Manifold);
-				}
-				if (!Manifold.Points.IsEmpty())
-				{
-					Out.PushBack(Manifold);
-				}
+				ConsiderSolverPair_Internal(First, Second, Out);
 			}
 		}
 	}
@@ -3889,6 +3943,11 @@ void FPhysicsWorld3D::ResetQueryDiagnostics() noexcept
 void FPhysicsWorld3D::SetQueryIndexEnabled_Internal(bool bEnabled) noexcept
 {
 	m_pImpl->bQueryIndexEnabled = bEnabled;
+}
+// 検証用に、Solverとイベントの組の候補を総当たりの参照経路へ切り替える。
+void FPhysicsWorld3D::SetSolverBroadPhaseEnabled_Internal(bool bEnabled) noexcept
+{
+	m_pImpl->bSolverIndexEnabled = bEnabled;
 }
 // 登録配列から直接採取する。外部の観察登録一覧は使用しない。
 FPhysicsSnapshot3D FPhysicsWorld3D::CaptureSnapshot(const FPhysicsSnapshotLimits& Limits) const

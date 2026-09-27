@@ -145,6 +145,11 @@ const FCase* GetCharacterCapsuleCases(Toolbox::size_t& Count) noexcept;
  * @param Count 返す配列の要素数。
  */
 const FCase* GetCharacterPushCases(Toolbox::size_t& Count) noexcept;
+/**
+ * Solver・イベントの組の候補を索引から集める経路と、総当たりの参照経路の一致（2D／3D）を返す。
+ * @param Count 返す配列の要素数。
+ */
+const FCase* GetSolverBroadPhaseCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryTreeCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryIndexEquivalenceCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryIndexContractCases(Toolbox::size_t& Count) noexcept;

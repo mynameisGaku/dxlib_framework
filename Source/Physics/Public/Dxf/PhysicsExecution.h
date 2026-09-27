@@ -41,7 +41,7 @@ struct FPhysicsExecutionDiagnostics
 	 */
 	Toolbox::uint32 ExecutionThreadCount = 1;
 	/**
-	 * BroadPhaseがNarrowPhaseへ渡した候補組数。
+	 * BroadPhaseがNarrowPhaseへ渡した候補組数（直列の経路では、区分・衝突フィルターを通って接触を調べた組の数）。
 	 */
 	Toolbox::uint64 CandidatePairCount = 0;
 	/**

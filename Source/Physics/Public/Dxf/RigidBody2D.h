@@ -678,6 +678,13 @@ public:
 	 * @param bEnabled 索引を使うか（既定true）。
 	 */
 	void SetQueryIndexEnabled_Internal(bool bEnabled) noexcept;
+	/**
+	 * 検証用。falseにすると、Solver（直列の経路）とイベントの組の候補を、索引を使わない参照経路（Solverは全Colliderの組の
+	 * 総当たり、イベントは境界の並べ替え）で作る。trueでは問い合わせと同じ索引（AABB木）から候補を集め、総当たりと同じ順で
+	 * 同じ組の判定を行う。姿勢・速度・休止・イベントの結果はどちらでも同じ。並列の経路・連続衝突の候補は切り替えない。
+	 * @param bEnabled 索引を使うか（既定true）。
+	 */
+	void SetSolverBroadPhaseEnabled_Internal(bool bEnabled) noexcept;
 
 private:
 	/**

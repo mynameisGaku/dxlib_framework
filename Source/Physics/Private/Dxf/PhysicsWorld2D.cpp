@@ -4,6 +4,7 @@
 #include "ParallelPhysicsCore.h"
 #include "QueryCandidates.h"
 #include "QueryResultOrder.h"
+#include "SolverPairs.h"
 #include "WorldQueryShapes2D.h"
 #include "WorldEventTracker.h"
 #include "WorldEventCandidates.h"
@@ -574,6 +575,10 @@ struct FPhysicsWorld2D::FImpl
 	Toolbox::TVector<decltype(FColliderRecord2D::Shape)> QueryWorldShapes;
 	// 問い合わせで索引を使うか（検証用に総当たりの参照経路へ切り替えられる）。
 	bool bQueryIndexEnabled = true;
+	// Solverとイベントの組の候補に索引を使うか（検証用に総当たりの参照経路へ切り替えられる）。
+	bool bSolverIndexEnabled = true;
+	// 索引から集めた組の候補（Stepをまたいで容量を使い回す）。
+	Toolbox::TVector<PhysicsPrivate::FColliderPair> SolverPairs;
 	// 問い合わせの集計を加算するか。
 	bool bQueryDiagnostics = false;
 	// 問い合わせの集計（診断が有効な間だけconstの問い合わせから加算する）。
@@ -797,6 +802,23 @@ struct FPhysicsWorld2D::FImpl
 		PhysicsPrivate::FWorldInteractionProbe::FRegion CandidateProbe(
 		    PhysicsPrivate::FWorldInteractionProbe::EPhase::Candidate);
 #endif
+		const Toolbox::f32 Margin = Events.GetSettings().ContactMargin;
+		// Static以外のBodyのColliderを「動く側」として、索引から組の候補を確保なしで通知する（Static同士は調べない）。
+		// 発行時に正準順へ並べるため、候補の通知順は結果に影響しない。
+		if (bSolverIndexEnabled && PhysicsPrivate::VisitIndexedPairs_Internal(
+		                               QueryIndex, Colliders, Margin,
+		                               [&](Toolbox::size_t Slot)
+		                               {
+			                               const FBodyRecord2D* Body = Find_Internal(Colliders[Slot].Body);
+			                               return Body != nullptr && Body->Type != EBodyType::Static;
+		                               },
+		                               [&](Toolbox::size_t First, Toolbox::size_t Second)
+		                               {
+			                               ConsiderEventPair_Internal(First, Second, Margin);
+		                               }))
+		{
+			return;
+		}
 		EventEntries.Clear();
 		for (Toolbox::size_t Index = 0; Index < Colliders.Size(); ++Index)
 		{
@@ -819,42 +841,45 @@ struct FPhysicsWorld2D::FImpl
 			Entry.Bounds = ToBounds_Internal(*Body, Record);
 			EventEntries.PushBack(Entry);
 		}
-		const Toolbox::f32 Margin = Events.GetSettings().ContactMargin;
-		PhysicsPrivate::VisitWorldEventCandidates_Internal(
-		    EventEntries, Margin,
-		    [&](Toolbox::size_t First, Toolbox::size_t Second)
-		    {
+		PhysicsPrivate::VisitWorldEventCandidates_Internal(EventEntries, Margin,
+		                                                   [&](Toolbox::size_t First, Toolbox::size_t Second)
+		                                                   {
+			                                                   ConsiderEventPair_Internal(First, Second, Margin);
+		                                                   });
+	}
+	// イベントの組の候補（Firstのスロットが小さい方）を調べ、接触・Triggerなら記録する。
+	void ConsiderEventPair_Internal(Toolbox::size_t First, Toolbox::size_t Second, Toolbox::f32 Margin)
+	{
 #if defined(DXF_INTERACTION_BENCHMARK_PROBES)
-			    PhysicsPrivate::FWorldInteractionProbe::CountCandidate_Internal();
+		PhysicsPrivate::FWorldInteractionProbe::CountCandidate_Internal();
 #endif
-			    const FColliderRecord2D& RecordA = Colliders[First];
-			    const FColliderRecord2D& RecordB = Colliders[Second];
-			    const FBodyRecord2D* BodyA = Find_Internal(RecordA.Body);
-			    const FBodyRecord2D* BodyB = Find_Internal(RecordB.Body);
-			    if (BodyA == nullptr || BodyB == nullptr)
-			    {
-				    return;
-			    }
-			    const Toolbox::TOptional<EWorldEventKind> Kind = EventKind_Internal(RecordA, *BodyA, RecordB, *BodyB);
-			    if (!Kind)
-			    {
-				    return;
-			    }
-			    typename decltype(Events)::FPair Pair;
-			    Pair.A = {RecordA.Body, First, RecordA.Generation};
-			    Pair.B = {RecordB.Body, Second, RecordB.Generation};
-			    Pair.Kind = *Kind;
-			    if (!EventTouch_Internal(RecordA, *BodyA, RecordB, *BodyB,
-			                             *Kind == EWorldEventKind::Trigger ? 0.0f : Margin, Pair.Normal))
-			    {
-				    return;
-			    }
-			    if (*Kind == EWorldEventKind::Trigger)
-			    {
-				    Pair.Normal.Reset();
-			    }
-			    Events.Add(Pair);
-		    });
+		const FColliderRecord2D& RecordA = Colliders[First];
+		const FColliderRecord2D& RecordB = Colliders[Second];
+		const FBodyRecord2D* BodyA = Find_Internal(RecordA.Body);
+		const FBodyRecord2D* BodyB = Find_Internal(RecordB.Body);
+		if (BodyA == nullptr || BodyB == nullptr)
+		{
+			return;
+		}
+		const Toolbox::TOptional<EWorldEventKind> Kind = EventKind_Internal(RecordA, *BodyA, RecordB, *BodyB);
+		if (!Kind)
+		{
+			return;
+		}
+		typename decltype(Events)::FPair Pair;
+		Pair.A = {RecordA.Body, First, RecordA.Generation};
+		Pair.B = {RecordB.Body, Second, RecordB.Generation};
+		Pair.Kind = *Kind;
+		if (!EventTouch_Internal(RecordA, *BodyA, RecordB, *BodyB, *Kind == EWorldEventKind::Trigger ? 0.0f : Margin,
+		                         Pair.Normal))
+		{
+			return;
+		}
+		if (*Kind == EWorldEventKind::Trigger)
+		{
+			Pair.Normal.Reset();
+		}
+		Events.Add(Pair);
 	}
 	// 前回の組が今回ない理由。
 	EWorldEventEndReason EndReason_Internal(const typename decltype(Events)::FPair& Pair) const noexcept
@@ -1311,63 +1336,83 @@ struct FPhysicsWorld2D::FImpl
 		}
 		GenerateParallelManifolds_Internal(Out);
 	}
-	// 全コライダー組から多様体列を作る。
+	// コライダー組（First<Secondのスロット）の接触を調べ、接触点があれば多様体を加える。索引の経路と総当たりで共用する。
+	void ConsiderSolverPair_Internal(Toolbox::size_t First, Toolbox::size_t Second, Toolbox::TVector<FManifold2D>& Out)
+	{
+		FColliderRecord2D& RecordA = Colliders[First];
+		FColliderRecord2D& RecordB = Colliders[Second];
+		if (!RecordA.bAlive || !RecordB.bAlive)
+		{
+			return;
+		}
+		FBodyRecord2D* BodyA = Find_Internal(RecordA.Body);
+		FBodyRecord2D* BodyB = Find_Internal(RecordB.Body);
+		if (BodyA == nullptr || BodyB == nullptr)
+		{
+			return;
+		}
+		// 同一剛体の組は自分自身へ接触しない。
+		if (RecordA.Body == RecordB.Body)
+		{
+			return;
+		}
+		// 両方が非Dynamicの組は応答も運動もしない。
+		if (BodyA->Type != EBodyType::Dynamic && BodyB->Type != EBodyType::Dynamic)
+		{
+			return;
+		}
+		// Sensorを含む組と、衝突フィルターが許さない組は物理応答をしない。
+		if (!RespondsTogether_Internal(RecordA, RecordB))
+		{
+			return;
+		}
+		++ExecutionDiagnostics.CandidatePairCount;
+		const FColliderId2D IdA = {RecordA.Body, First, RecordA.Generation};
+		const FColliderId2D IdB = {RecordB.Body, Second, RecordB.Generation};
+		FManifold2D Manifold;
+		if (ColliderLess_Internal(IdB, IdA))
+		{
+			AppendPairManifold_Internal(RecordB, IdB, RecordA, IdA, *BodyB, *BodyA, Manifold);
+		}
+		else
+		{
+			AppendPairManifold_Internal(RecordA, IdA, RecordB, IdB, *BodyA, *BodyB, Manifold);
+		}
+		if (!Manifold.Points.IsEmpty())
+		{
+			++ExecutionDiagnostics.ManifoldCount;
+			Out.PushBack(Manifold);
+		}
+	}
+	// 接触する組から多様体列を作る。索引の経路は、索引を現在の姿勢へ合わせてから候補の組を集め、総当たりと同じ
+	// (First, Second)の昇順で同じ組の関数を呼ぶ（結果は総当たりとビット単位で同じ）。索引を使えない場合は総当たり。
 	void GenerateManifolds_Internal(Toolbox::TVector<FManifold2D>& Out)
 	{
+		if (bSolverIndexEnabled)
+		{
+			RefreshMovingColliders_Internal();
+			const bool bIndexed = PhysicsPrivate::CollectIndexedPairs_Internal(
+			    QueryIndex, Colliders, Contact.ContactSlop,
+			    [&](Toolbox::size_t Slot)
+			    {
+				    const FBodyRecord2D* Body = Find_Internal(Colliders[Slot].Body);
+				    return Body != nullptr && Body->Type == EBodyType::Dynamic;
+			    },
+			    SolverPairs);
+			if (bIndexed)
+			{
+				for (Toolbox::size_t Index = 0; Index < SolverPairs.Size(); ++Index)
+				{
+					ConsiderSolverPair_Internal(SolverPairs[Index].First, SolverPairs[Index].Second, Out);
+				}
+				return;
+			}
+		}
 		for (Toolbox::size_t First = 0; First < Colliders.Size(); ++First)
 		{
-			FColliderRecord2D& RecordA = Colliders[First];
-			if (!RecordA.bAlive)
-			{
-				continue;
-			}
-			FBodyRecord2D* BodyA = Find_Internal(RecordA.Body);
-			if (BodyA == nullptr)
-			{
-				continue;
-			}
 			for (Toolbox::size_t Second = First + 1; Second < Colliders.Size(); ++Second)
 			{
-				FColliderRecord2D& RecordB = Colliders[Second];
-				if (!RecordB.bAlive)
-				{
-					continue;
-				}
-				FBodyRecord2D* BodyB = Find_Internal(RecordB.Body);
-				if (BodyB == nullptr)
-				{
-					continue;
-				}
-				// 同一剛体の組は自分自身へ接触しない。
-				if (RecordA.Body == RecordB.Body)
-				{
-					continue;
-				}
-				// 両方が非Dynamicの組は応答も運動もしない。
-				if (BodyA->Type != EBodyType::Dynamic && BodyB->Type != EBodyType::Dynamic)
-				{
-					continue;
-				}
-				// Sensorを含む組と、衝突フィルターが許さない組は物理応答をしない。
-				if (!RespondsTogether_Internal(RecordA, RecordB))
-				{
-					continue;
-				}
-				const FColliderId2D IdA = {RecordA.Body, First, RecordA.Generation};
-				const FColliderId2D IdB = {RecordB.Body, Second, RecordB.Generation};
-				FManifold2D Manifold;
-				if (ColliderLess_Internal(IdB, IdA))
-				{
-					AppendPairManifold_Internal(RecordB, IdB, RecordA, IdA, *BodyB, *BodyA, Manifold);
-				}
-				else
-				{
-					AppendPairManifold_Internal(RecordA, IdA, RecordB, IdB, *BodyA, *BodyB, Manifold);
-				}
-				if (!Manifold.Points.IsEmpty())
-				{
-					Out.PushBack(Manifold);
-				}
+				ConsiderSolverPair_Internal(First, Second, Out);
 			}
 		}
 	}
@@ -3393,6 +3438,11 @@ void FPhysicsWorld2D::ResetQueryDiagnostics() noexcept
 void FPhysicsWorld2D::SetQueryIndexEnabled_Internal(bool bEnabled) noexcept
 {
 	m_pImpl->bQueryIndexEnabled = bEnabled;
+}
+// 検証用に、Solverとイベントの組の候補を総当たりの参照経路へ切り替える。
+void FPhysicsWorld2D::SetSolverBroadPhaseEnabled_Internal(bool bEnabled) noexcept
+{
+	m_pImpl->bSolverIndexEnabled = bEnabled;
 }
 FPhysicsSnapshot2D FPhysicsWorld2D::CaptureSnapshot(const FPhysicsSnapshotLimits& Limits) const
 {

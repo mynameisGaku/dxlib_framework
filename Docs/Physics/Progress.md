@@ -229,6 +229,48 @@ TDD記録は Docs/Tdd/Physics/D-*.log。複数接触の失敗はテストの初�
 - 回転CCDの明示的拒否と候補抽出の責務分離
 - ContactとTriggerの区別、Begin／Stay／Endの通知方針
 
+## 実装単位(M〜P: カプセル・Dynamic押し合い・Solver BroadPhase)
+
+| 段階 | 内容 | 場所 | 試験 |
+|---|---|---|---|
+| M. カプセルの幾何 | 完了 | `FCapsule`／`FCapsule2D`（`Toolbox/Capsule.h`／`Capsule2D.h`）、`CapsuleContact2D/3D.h`、`CapsuleQuery2D/3D.h` | `CapsuleGeometryTests` |
+| N. Worldへの統合 | 完了 | `FPhysicsWorld2D`／`3D`のColliderと問い合わせ（`ColliderId2D/3D.h`の`FCapsule`／`FCapsule2D`） | `CapsuleWorldTests` |
+| O. キャラクターのカプセル | 完了 | `CharacterMovement2D/3D`（`ECharacterShape::Capsule`、`HalfHeight`、足元を保つ高さ変更） | `CharacterCapsuleTests` |
+| P. Dynamicの押し合い | 完了 | `StepCharacter`の押す／押される要求（`CharacterPushSet2D/3D.h`） | `CharacterPushTests` |
+| P'. Solver BroadPhase | 完了 | `SolverPairs.h`、`FPhysicsWorld2D/3D::SetSolverBroadPhaseEnabled_Internal` | `SolverBroadPhaseTests` |
+
+### Solver BroadPhaseの契約
+
+- Solverとイベントの組の候補を、Worldが保つ問い合わせの索引（AABB木）から集める。別の木は作らない。
+- 候補は「動く側」（Solverは`Dynamic`、イベントは`Static`以外）のColliderから、葉の境界を
+  Marginと丸めの余白だけ広げた範囲で探す。範囲の重なりは対称なので同じ組を二度数えない。
+- 索引の候補は`(First, Second)`の昇順に並べ直してから詳細判定する。总当たりと同じ順で同じ組を調べる。
+- 索引に入れられないColliderや、座標が大きすぎる場合は総当たりへ戻る（結果は同じ）。
+- 並列の経路と連続衝突の候補は切り替えない。
+
+### 検証（このSHA: e4ba140 + 未commitのS5）
+
+- `dxf_physics_tests.exe`（Release）: 27群すべて成功。3回連続で同じ結果（終了コード0）。
+- `dxf_physics_tests.exe`（Debug）: 終了コード0。
+- `dxf_tests.exe`: 364/364。
+- `python Tools/CheckNoStl.py`: 645ファイル、違反0。
+
+## 個別記録(KD): 3Dの箱と箱の接触が失われる不具合
+
+- 症状: 3Dで、Zの厚さが同じ箱と壁の組（1m箱が2m×4m×1mの壁のXの負の面へ向かって進むとき）だけ接触が失われ、
+  箱が壁を貫通して反対側（遠方の面）で止まった。2Dは正常。`WallAndTwoBoxes_Internal`の3Dだけ失敗した。
+- 最小再現: 床（50×1×50）＋`Dynamic`の1m箱（x=2）＋壁（1×2×1、x=3.5）をこの順に作り、箱へ+Xの速度を
+  与えて60回Stepする。2Dはx=2.0で止まり、3Dは壁の中（x=3.22）に取り残る。
+- 原因: `FindBoxBoxContacts_Internal`のSATで、2本目の箱の投影半径を求める際、入れ子の三項演算で
+  選んだ半径が1本目の箱の値になっていた（Bの半径がAの値になる）。结果是、重なり合った組に対して
+  軸の分離が正に評価され、`BestSeparation > Slop`で接触を生成せず、箱が壁的中へ入り込んだ。
+  同じ三項演算は辺同士の軸の計算にもあり、こちらでは外積の軸が正の分離（+0.51）を報告していた。
+- 修正: 軸ごとの半径を`HalfExtent_Internal`という関数にまとめ、2箇所（面同士・辺同士）から使う。
+  併せて、辺の外積は軸の長さと外積の長さの比で判定し、ほぼ平行な組を辺同士の軸として使らないようにした。
+- 検証: 上記の最小再現で2D／3Dともx=2.0で止まる。`WallAndTwoBoxes_Internal`の3Dと、
+  Solver BroadPhaseの索引／総当たり一致（2D／3D）が通る。S5の回帰（Physics 27群、Debug、NoSTL）も通る。
+- 注意点: 面同士の軸だけで測ると外積の軸に隠れて気づけない。この不具合は3Dの箱どうしだけで現れる。
+
 ## 残課題
 
 - 接触イベント（Begin／Stay／End）とTriggerの実装は未着手
