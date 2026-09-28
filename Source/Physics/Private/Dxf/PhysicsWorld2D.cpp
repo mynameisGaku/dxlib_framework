@@ -529,6 +529,23 @@ struct FIndexedPose2D
 	Toolbox::f32 Angle = 0;
 	bool bValid = false;
 };
+// 距離拘束の登録スロット。Colliderとは独立で、Body同士の拘束だけを保持する。
+struct FJointRecord2D
+{
+	// スロットを破棄して再使用するたびに増える世代。
+	Toolbox::uint64 Generation = 0;
+	// 登録中か。
+	bool bAlive = false;
+	// 拘束する二つのBodyの完全なID。
+	FBodyId2D BodyA;
+	FBodyId2D BodyB;
+	// BodyA側のLocal Anchor（重心基準）。
+	Toolbox::FVector2 LocalAnchorA;
+	// BodyB側のLocal Anchor（重心基準）。
+	Toolbox::FVector2 LocalAnchorB;
+	// 維持するAnchor間距離。
+	Toolbox::f64 Length = 0;
+};
 struct FPhysicsWorld2D::FImpl
 {
 	// 別ワールドのID混入を検出する識別子。
@@ -543,6 +560,10 @@ struct FPhysicsWorld2D::FImpl
 	Toolbox::TVector<Toolbox::size_t> ColliderFree;
 	// 前回Impulseの再利用記録。
 	Toolbox::TVector<FCachedImpulse2D> Cache;
+	// スロット番号で直接参照する距離拘束の領域。
+	Toolbox::TVector<FJointRecord2D> Joints;
+	// 再使用可能な空き拘束スロット番号。
+	Toolbox::TVector<Toolbox::size_t> JointFree;
 	// ワールド全体の重力加速度。
 	Toolbox::FVector2 Gravity{0, -9.8f};
 	// 接触拘束の解決設定。
@@ -609,8 +630,7 @@ struct FPhysicsWorld2D::FImpl
 	}
 	// IDが有効な登録を指す場合だけ記録を返す。
 	const FBodyRecord2D* Find_Internal(FBodyId2D Id) const noexcept
-	{
-		if (Id.World != World)
+	{		if (Id.World != World)
 		{
 			return nullptr;
 		}
@@ -621,6 +641,46 @@ struct FPhysicsWorld2D::FImpl
 		// 世代が一致する有効な登録。
 		const FBodyRecord2D& Record = Slots[Id.Index];
 		return (Record.bAlive && Record.Generation == Id.Generation) ? &Record : nullptr;
+	}
+	// IDが有効な拘束を指す場合だけ記録を返す。別World・世代違いはnullptr。
+	FJointRecord2D* FindJoint_Internal(FJointId2D Id) noexcept
+	{
+		if (Id.World != World || Id.Index >= Joints.Size())
+		{
+			return nullptr;
+		}
+		FJointRecord2D& Record = Joints[Id.Index];
+		return (Record.bAlive && Record.Generation == Id.Generation) ? &Record : nullptr;
+	}
+	// IDが有効な拘束を指す場合だけ記録を返す。別World・世代違いはnullptr。
+	const FJointRecord2D* FindJoint_Internal(FJointId2D Id) const noexcept
+	{
+		if (Id.World != World || Id.Index >= Joints.Size())
+		{
+			return nullptr;
+		}
+		const FJointRecord2D& Record = Joints[Id.Index];
+		return (Record.bAlive && Record.Generation == Id.Generation) ? &Record : nullptr;
+	}
+	// 有効な拘束の記録を返す。期限切れIDは例外で通知する。
+	FJointRecord2D& ResolveJoint_Internal(FJointId2D Id)
+	{
+		FJointRecord2D* Record = FindJoint_Internal(Id);
+		if (Record == nullptr)
+		{
+			throw Toolbox::FException("Invalid 2D joint id");
+		}
+		return *Record;
+	}
+	// Bodyの重心と回転から、Local AnchorのWorld位置を出す。
+	static Toolbox::FVector2 AnchorWorld_Internal(const FBodyRecord2D& Body, const Toolbox::FVector2& Local) noexcept
+	{
+		const Toolbox::f64 Cosine = Toolbox::Cos(Toolbox::f64(Body.Angle));
+		const Toolbox::f64 Sine = Toolbox::Sin(Toolbox::f64(Body.Angle));
+		return {static_cast<Toolbox::f32>(Toolbox::f64(Body.Position.X) + Cosine * Toolbox::f64(Local.X) -
+		                                  Sine * Toolbox::f64(Local.Y)),
+		        static_cast<Toolbox::f32>(Toolbox::f64(Body.Position.Y) + Sine * Toolbox::f64(Local.X) +
+		                                  Cosine * Toolbox::f64(Local.Y))};
 	}
 	// 有効な記録を返す。期限切れIDは例外で通知する。
 	FBodyRecord2D& Resolve_Internal(FBodyId2D Id)
@@ -2430,6 +2490,18 @@ bool FPhysicsWorld2D::DestroyBody(FBodyId2D Id) noexcept
 	Record->Force = {};
 	Record->Torque = 0;
 	m_pImpl->Free.PushBack(Id.Index);
+	// このBodyに接続される距離拘束は残さない（利用者にDestroyJointの順序を要求しない）。
+	for (Toolbox::size_t Index = 0; Index < m_pImpl->Joints.Size(); ++Index)
+	{
+		FJointRecord2D& Joint = m_pImpl->Joints[Index];
+		if (!Joint.bAlive || (Joint.BodyA != Id && Joint.BodyB != Id))
+		{
+			continue;
+		}
+		Joint.bAlive = false;
+		Joint.Generation += 1;
+		m_pImpl->JointFree.PushBack(Index);
+	}
 	// 取り付け済みのコライダーも、スロット昇順で失効させて索引から外す（Bodyごとの一覧をたどる）。
 	Toolbox::int32 Current = m_pImpl->QueryIndex.GetFirstCollider(Id.Index);
 	while (Current != PhysicsPrivate::TQueryIndex<2>::None)
@@ -2450,6 +2522,84 @@ bool FPhysicsWorld2D::DestroyBody(FBodyId2D Id) noexcept
 bool FPhysicsWorld2D::IsAlive(FBodyId2D Id) const noexcept
 {
 	return m_pImpl->Find_Internal(Id) != nullptr;
+}
+FJointId2D FPhysicsWorld2D::CreateDistanceJoint(FBodyId2D BodyA, FBodyId2D BodyB,
+                                               const FDistanceJointDescription2D& Description)
+{
+	const FBodyRecord2D* RecordA = m_pImpl->Find_Internal(BodyA);
+	const FBodyRecord2D* RecordB = m_pImpl->Find_Internal(BodyB);
+	if (RecordA == nullptr || RecordB == nullptr)
+	{
+		throw Toolbox::FException("Invalid 2D joint body");
+	}
+	if (BodyA == BodyB)
+	{
+		throw Toolbox::FException("A 2D joint needs two different bodies");
+	}
+	if (RecordA->Type != EBodyType::Dynamic && RecordB->Type != EBodyType::Dynamic)
+	{
+		throw Toolbox::FException("A 2D joint needs at least one dynamic body");
+	}
+	if (!Description.LocalAnchorA.IsValid() || !Description.LocalAnchorB.IsValid() ||
+	    !Toolbox::IsFinite(Description.Length) || Description.Length < 0)
+	{
+		throw Toolbox::FException("Invalid 2D distance joint");
+	}
+	FJointRecord2D Record;
+	Record.bAlive = true;
+	Record.BodyA = BodyA;
+	Record.BodyB = BodyB;
+	Record.LocalAnchorA = Description.LocalAnchorA;
+	Record.LocalAnchorB = Description.LocalAnchorB;
+	Record.Length = Description.Length;
+	// 空きスロットの再使用または末尾への追加。破棄時に進めた世代を引き継ぐ。
+	Toolbox::size_t Index = 0;
+	if (!m_pImpl->JointFree.IsEmpty())
+	{
+		Index = m_pImpl->JointFree.Back();
+		m_pImpl->JointFree.PopBack();
+		FJointRecord2D& Slot = m_pImpl->Joints[Index];
+		const Toolbox::uint64 NextGeneration = Slot.Generation + 1;
+		Slot = Record;
+		Slot.Generation = NextGeneration;
+	}
+	else
+	{
+		Index = m_pImpl->Joints.Size();
+		Record.Generation = 1;
+		m_pImpl->Joints.PushBack(Record);
+	}
+	return {m_pImpl->World, Index, m_pImpl->Joints[Index].Generation};
+}
+bool FPhysicsWorld2D::DestroyJoint(FJointId2D Id) noexcept
+{
+	FJointRecord2D* Record = m_pImpl->FindJoint_Internal(Id);
+	if (Record == nullptr)
+	{
+		return false;
+	}
+	Record->bAlive = false;
+	Record->Generation += 1;
+	m_pImpl->JointFree.PushBack(Id.Index);
+	return true;
+}
+bool FPhysicsWorld2D::IsJointAlive(FJointId2D Id) const noexcept
+{
+	return m_pImpl->FindJoint_Internal(Id) != nullptr;
+}
+FDistanceJointState2D FPhysicsWorld2D::GetDistanceJoint(FJointId2D Id) const
+{
+	const FJointRecord2D& Record = m_pImpl->ResolveJoint_Internal(Id);
+	const FBodyRecord2D& BodyA = m_pImpl->Resolve_Internal(Record.BodyA);
+	const FBodyRecord2D& BodyB = m_pImpl->Resolve_Internal(Record.BodyB);
+	const Toolbox::FVector2 AnchorA = m_pImpl->AnchorWorld_Internal(BodyA, Record.LocalAnchorA);
+	const Toolbox::FVector2 AnchorB = m_pImpl->AnchorWorld_Internal(BodyB, Record.LocalAnchorB);
+	const Toolbox::f64 Dx = Toolbox::f64(AnchorB.X) - Toolbox::f64(AnchorA.X);
+	const Toolbox::f64 Dy = Toolbox::f64(AnchorB.Y) - Toolbox::f64(AnchorA.Y);
+	FDistanceJointState2D State;
+	State.CurrentLength = Toolbox::Sqrt(Dx * Dx + Dy * Dy);
+	State.Error = State.CurrentLength - Record.Length;
+	return State;
 }
 Toolbox::FVector2 FPhysicsWorld2D::GetPosition(FBodyId2D Id) const
 {

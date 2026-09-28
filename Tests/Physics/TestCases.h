@@ -155,7 +155,11 @@ const FCase* GetSolverBroadPhaseCases(Toolbox::size_t& Count) noexcept;
  * @param Count 返す配列の要素数。
  */
 const FCase* GetBoxWallContactCases(Toolbox::size_t& Count) noexcept;
-const FCase* GetQueryTreeCases(Toolbox::size_t& Count) noexcept;
+/**
+ * 距離拘束の所有と寿命の試験（2D／3D）を返す。
+ * @param Count 返す配列の要素数。
+ */
+const FCase* GetJointLifetimeCases(Toolbox::size_t& Count) noexcept;const FCase* GetQueryTreeCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryIndexEquivalenceCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryIndexContractCases(Toolbox::size_t& Count) noexcept;
 } // namespace PhysicsTest

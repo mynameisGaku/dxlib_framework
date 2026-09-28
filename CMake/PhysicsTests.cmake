@@ -22,6 +22,7 @@ function(dxf_add_physics_tests Target CoreTarget)
         "${_root}/Tests/Physics/CharacterCapsuleTests.cpp"
         "${_root}/Tests/Physics/CharacterPushTests.cpp"
         "${_root}/Tests/Physics/SolverBroadPhaseTests.cpp"
+        "${_root}/Tests/Physics/JointLifetimeTests.cpp"
         "${_root}/Tests/Physics/BoxWallContactTests.cpp"
         "${_root}/Tests/Physics/WorldOverlapTests.cpp"
         "${_root}/Tests/Physics/WorldSweepTests.cpp"

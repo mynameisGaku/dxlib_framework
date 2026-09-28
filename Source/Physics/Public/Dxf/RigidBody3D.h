@@ -2,6 +2,8 @@
 #ifndef DXF_PHYSICS_RIGID_BODY_3D_H
 #define DXF_PHYSICS_RIGID_BODY_3D_H
 #include "Dxf/BodyType.h"
+#include "Dxf/DistanceJoint3D.h"
+#include "Dxf/JointId3D.h"
 #include "Dxf/ColliderResponse.h"
 #include "Dxf/WorldEvent.h"
 #include "Dxf/WorldSegmentHit3D.h"
@@ -254,6 +256,34 @@ public:
 	 * @param Id 登録を識別する世代付きID。
 	 */
 	bool IsAlive(FBodyId3D Id) const noexcept;
+	/**
+	 * 2つのBodyのLocal Anchor間の距離を維持する拘束を作る。
+	 * BodyはどちらもこのWorldに生存し、互いに異なり、少なくとも一方がDynamicでなければならない。
+	 * Static同士・Kinematic同士などSolverが何も動かせない組は拒否する。
+	 * Jointで接続してもCollision Filterが許すなら接触はそのまま起こる（接続で自動では無効化しない）。
+	 * @param BodyA 一方のBodyのID。
+	 * @param BodyB 他方のBodyのID。
+	 * @param Description 距離と両側のLocal Anchor。
+	 * @return 拘束の世代付きID。条件を満たさない場合は例外。
+	 */
+	FJointId3D CreateDistanceJoint(FBodyId3D BodyA, FBodyId3D BodyB, const FDistanceJointDescription3D& Description);
+	/**
+	 * 拘束を破棄する。BodyをDestroyBodyしたを知ってすでに失効している拘束も対象。
+	 * @param Id 破棄する拘束のID。
+	 * @return 破棄できたか。存在しないIDや別WorldのIDではfalse。
+	 */
+	bool DestroyJoint(FJointId3D Id) noexcept;
+	/**
+	 * 拘束が生きているか調べる。別のWorldのIDでは常にfalse。
+	 * @param Id 調べる拘束のID。
+	 */
+	bool IsJointAlive(FJointId3D Id) const noexcept;
+	/**
+	 * 距離拘束の現在のAnchor間距離と誤差を読み取る。
+	 * @param Id 読む拘束のID。
+	 * @return 現在の距離とLengthとの差。存在しないIDでは例外。
+	 */
+	FDistanceJointState3D GetDistanceJoint(FJointId3D Id) const;
 	/**
 	 * 重心位置を返す。期限切れIDは例外で通知する。
 	 * @param Id 登録を識別する世代付きID。

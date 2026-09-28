@@ -792,6 +792,23 @@ struct FIndexedPose3D
 	Toolbox::FQuaternion Orientation;
 	bool bValid = false;
 };
+// 距離拘束の登録スロット。Colliderとは独立で、Body同士の拘束だけを保持する。
+struct FJointRecord3D
+{
+	// スロットを破棄して再使用するたびに増える世代。
+	Toolbox::uint64 Generation = 0;
+	// 登録中か。
+	bool bAlive = false;
+	// 拘束する二つのBodyの完全なID。
+	FBodyId3D BodyA;
+	FBodyId3D BodyB;
+	// BodyA側のLocal Anchor（重心基準）。
+	Toolbox::FVector3 LocalAnchorA;
+	// BodyB側のLocal Anchor（重心基準）。
+	Toolbox::FVector3 LocalAnchorB;
+	// 維持するAnchor間距離。
+	Toolbox::f64 Length = 0;
+};
 struct FPhysicsWorld3D::FImpl
 {
 	// 別ワールドのID混入を検出する識別子。
@@ -805,6 +822,10 @@ struct FPhysicsWorld3D::FImpl
 	// 再使用可能な空きコライダー番号。
 	Toolbox::TVector<Toolbox::size_t> ColliderFree;
 	// 前回Impulseの再利用記録。
+	// スロット番号で直接参照する距離拘束の領域。
+	Toolbox::TVector<FJointRecord3D> Joints;
+	// 再使用可能な空き拘束スロット番号。
+	Toolbox::TVector<Toolbox::size_t> JointFree;
 	Toolbox::TVector<FCachedImpulse3D> Cache;
 	// ワールド全体の重力加速度。
 	Toolbox::FVector3 Gravity{0, -9.8f, 0};
@@ -871,6 +892,46 @@ struct FPhysicsWorld3D::FImpl
 		return (Record.bAlive && Record.Generation == Id.Generation) ? &Record : nullptr;
 	}
 	// IDが有効な登録を指す場合だけ記録を返す。
+	// IDが有効な拘束を指す場合だけ記録を返す。別World・世代違いはnullptr。
+	FJointRecord3D* FindJoint_Internal(FJointId3D Id) noexcept
+	{
+		if (Id.World != World || Id.Index >= Joints.Size())
+		{
+			return nullptr;
+		}
+		FJointRecord3D& Record = Joints[Id.Index];
+		return (Record.bAlive && Record.Generation == Id.Generation) ? &Record : nullptr;
+	}
+	// IDが有効な拘束を指す場合だけ記録を返す。別World・世代違いはnullptr。
+	const FJointRecord3D* FindJoint_Internal(FJointId3D Id) const noexcept
+	{
+		if (Id.World != World || Id.Index >= Joints.Size())
+		{
+			return nullptr;
+		}
+		const FJointRecord3D& Record = Joints[Id.Index];
+		return (Record.bAlive && Record.Generation == Id.Generation) ? &Record : nullptr;
+	}
+	// 有効な拘束の記録を返す。期限切れIDは例外で通知する。
+	FJointRecord3D& ResolveJoint_Internal(FJointId3D Id)
+	{
+		FJointRecord3D* Record = FindJoint_Internal(Id);
+		if (Record == nullptr)
+		{
+			throw Toolbox::FException("Invalid 3D joint id");
+		}
+		return *Record;
+	}
+	// Bodyの姿勢から、Local AnchorのWorld位置を出す（Quaternionの回転規約に従う）。
+	static Toolbox::FVector3 AnchorWorld_Internal(const FBodyRecord3D& Body, const Toolbox::FVector3& Local) noexcept
+	{
+		const FQuaternionD Q = ToDouble_Internal(Body.Orientation);
+		const FVector3D Rotated = Rotate_Internal(Q, {Toolbox::f64(Local.X), Toolbox::f64(Local.Y),
+		                                               Toolbox::f64(Local.Z)});
+		return {static_cast<Toolbox::f32>(Toolbox::f64(Body.Position.X) + Rotated.X),
+		        static_cast<Toolbox::f32>(Toolbox::f64(Body.Position.Y) + Rotated.Y),
+		        static_cast<Toolbox::f32>(Toolbox::f64(Body.Position.Z) + Rotated.Z)};
+	}
 	const FBodyRecord3D* Find_Internal(FBodyId3D Id) const noexcept
 	{
 		if (Id.World != World)
@@ -2877,6 +2938,18 @@ bool FPhysicsWorld3D::DestroyBody(FBodyId3D Id) noexcept
 	Record->Force = {};
 	Record->Torque = {};
 	m_pImpl->Free.PushBack(Id.Index);
+	// このBodyに接続される距離拘束は残さない（利用者にDestroyJointの順序を要求しない）。
+	for (Toolbox::size_t Index = 0; Index < m_pImpl->Joints.Size(); ++Index)
+	{
+		FJointRecord3D& Joint = m_pImpl->Joints[Index];
+		if (!Joint.bAlive || (Joint.BodyA != Id && Joint.BodyB != Id))
+		{
+			continue;
+		}
+		Joint.bAlive = false;
+		Joint.Generation += 1;
+		m_pImpl->JointFree.PushBack(Index);
+	}
 	// 取り付け済みのコライダーも、スロット昇順で失効させて索引から外す（Bodyごとの一覧をたどる）。
 	Toolbox::int32 Current = m_pImpl->QueryIndex.GetFirstCollider(Id.Index);
 	while (Current != PhysicsPrivate::TQueryIndex<3>::None)
@@ -2897,6 +2970,85 @@ bool FPhysicsWorld3D::DestroyBody(FBodyId3D Id) noexcept
 bool FPhysicsWorld3D::IsAlive(FBodyId3D Id) const noexcept
 {
 	return m_pImpl->Find_Internal(Id) != nullptr;
+}
+FJointId3D FPhysicsWorld3D::CreateDistanceJoint(FBodyId3D BodyA, FBodyId3D BodyB,
+                                               const FDistanceJointDescription3D& Description)
+{
+	const FBodyRecord3D* RecordA = m_pImpl->Find_Internal(BodyA);
+	const FBodyRecord3D* RecordB = m_pImpl->Find_Internal(BodyB);
+	if (RecordA == nullptr || RecordB == nullptr)
+	{
+		throw Toolbox::FException("Invalid 3D joint body");
+	}
+	if (BodyA == BodyB)
+	{
+		throw Toolbox::FException("A 3D joint needs two different bodies");
+	}
+	if (RecordA->Type != EBodyType::Dynamic && RecordB->Type != EBodyType::Dynamic)
+	{
+		throw Toolbox::FException("A 3D joint needs at least one dynamic body");
+	}
+	if (!Description.LocalAnchorA.IsValid() || !Description.LocalAnchorB.IsValid() ||
+	    !Toolbox::IsFinite(Description.Length) || Description.Length < 0)
+	{
+		throw Toolbox::FException("Invalid 3D distance joint");
+	}
+	FJointRecord3D Record;
+	Record.bAlive = true;
+	Record.BodyA = BodyA;
+	Record.BodyB = BodyB;
+	Record.LocalAnchorA = Description.LocalAnchorA;
+	Record.LocalAnchorB = Description.LocalAnchorB;
+	Record.Length = Description.Length;
+	// 空きスロットの再使用または末尾への追加。破棄時に進めた世代を引き継ぐ。
+	Toolbox::size_t Index = 0;
+	if (!m_pImpl->JointFree.IsEmpty())
+	{
+		Index = m_pImpl->JointFree.Back();
+		m_pImpl->JointFree.PopBack();
+		FJointRecord3D& Slot = m_pImpl->Joints[Index];
+		const Toolbox::uint64 NextGeneration = Slot.Generation + 1;
+		Slot = Record;
+		Slot.Generation = NextGeneration;
+	}
+	else
+	{
+		Index = m_pImpl->Joints.Size();
+		Record.Generation = 1;
+		m_pImpl->Joints.PushBack(Record);
+	}
+	return {m_pImpl->World, Index, m_pImpl->Joints[Index].Generation};
+}
+bool FPhysicsWorld3D::DestroyJoint(FJointId3D Id) noexcept
+{
+	FJointRecord3D* Record = m_pImpl->FindJoint_Internal(Id);
+	if (Record == nullptr)
+	{
+		return false;
+	}
+	Record->bAlive = false;
+	Record->Generation += 1;
+	m_pImpl->JointFree.PushBack(Id.Index);
+	return true;
+}
+bool FPhysicsWorld3D::IsJointAlive(FJointId3D Id) const noexcept
+{
+	return m_pImpl->FindJoint_Internal(Id) != nullptr;
+}
+FDistanceJointState3D FPhysicsWorld3D::GetDistanceJoint(FJointId3D Id) const
+{
+	const FJointRecord3D& Record = m_pImpl->ResolveJoint_Internal(Id);
+	const FBodyRecord3D& BodyA = m_pImpl->Resolve_Internal(Record.BodyA);
+	const FBodyRecord3D& BodyB = m_pImpl->Resolve_Internal(Record.BodyB);
+	const Toolbox::FVector3 AnchorA = m_pImpl->AnchorWorld_Internal(BodyA, Record.LocalAnchorA);
+	const Toolbox::FVector3 AnchorB = m_pImpl->AnchorWorld_Internal(BodyB, Record.LocalAnchorB);
+	const Toolbox::f64 Dx = Toolbox::f64(AnchorB.X) - Toolbox::f64(AnchorA.X);
+	const Toolbox::f64 Dy = Toolbox::f64(AnchorB.Y) - Toolbox::f64(AnchorA.Y);
+	const Toolbox::f64 Dz = Toolbox::f64(AnchorB.Z) - Toolbox::f64(AnchorA.Z);
+	FDistanceJointState3D State;
+	State.CurrentLength = Toolbox::Sqrt(Dx * Dx + Dy * Dy + Dz * Dz);
+	State.Error = State.CurrentLength - Record.Length;
+	return State;
 }
 Toolbox::FVector3 FPhysicsWorld3D::GetPosition(FBodyId3D Id) const
 {
