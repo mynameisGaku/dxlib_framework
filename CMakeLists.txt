@@ -80,7 +80,7 @@ endfunction()
 # ライブラリはプロセスのDPI認識を自分では変えない。配布ではdxlib_frameworkConfig.cmakeの同名の関数を使う。
 function(dxf_enable_dpi_awareness Target)
     if(MSVC)
-        target_sources(${Target} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/CMake/DpiAware.manifest")
+        target_sources(${Target} PRIVATE "${PROJECT_SOURCE_DIR}/CMake/DpiAware.manifest")
     endif()
 endfunction()
 
@@ -457,16 +457,6 @@ if(DXF_BUILD_MODEL_VIEWER)
 endif()
 
 option(DXF_BUILD_GAMEPLAY_SAMPLE "Build the 2D/3D character movement development sample" OFF)
-if(DXF_BUILD_GAMEPLAY_SAMPLE)
-    if(NOT DXF_BUILD_NATIVE)
-        message(FATAL_ERROR "DXF_BUILD_GAMEPLAY_SAMPLE requires DXF_BUILD_NATIVE=ON")
-    endif()
-    # 公開の移動Componentだけで作った、2D／3Dを切り替えて操作できる開発用の例。通常のソリューションには含めない。
-    add_executable(GameplaySample WIN32 Examples/GameplaySample/WindowsMain.cpp)
-    target_link_libraries(GameplaySample PRIVATE dxf_gameplay_sample dxf::native)
-    dxf_warnings(GameplaySample)
-    set_property(TARGET GameplaySample PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-endif()
 
 if(DXF_BUILD_STARTER)
     if(NOT DXF_BUILD_NATIVE)
@@ -484,12 +474,13 @@ endif()
 # The relative ProjectRoot keeps working after moving the whole folder.
 function(dxf_runtime_paths Target ExeName)
     add_custom_command(TARGET ${Target} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -DEXE_DIR="$<TARGET_FILE_DIR:${Target}>" -DROOT="${CMAKE_CURRENT_SOURCE_DIR}"
+        COMMAND ${CMAKE_COMMAND} -DEXE_DIR="$<TARGET_FILE_DIR:${Target}>" -DROOT="${PROJECT_SOURCE_DIR}"
             -DOUTPUT="$<TARGET_FILE_DIR:${Target}>/${ExeName}.dxfpaths"
-            -P "${CMAKE_CURRENT_SOURCE_DIR}/CMake/WriteDxfPaths.cmake"
+            -P "${PROJECT_SOURCE_DIR}/CMake/WriteDxfPaths.cmake"
         COMMENT "Writing ${ExeName}.dxfpaths")
 endfunction()
-foreach(_dxf_pathed_target Sandbox Starter ModelViewer GameplaySample)
+# GameplaySampleは専用ディレクトリで定義されるため、POST_BUILDの書き込みもその中で行う。
+foreach(_dxf_pathed_target Sandbox Starter ModelViewer)
     if(TARGET ${_dxf_pathed_target})
         dxf_runtime_paths(${_dxf_pathed_target} ${_dxf_pathed_target})
     endif()
@@ -516,6 +507,7 @@ endif()
 # 任意のDebug観察層・テスト・RenderDebug。Native・export一覧・実行時パス関数の定義後に読み込む。
 include(CMake/DebugTools.cmake)
 include(CMake/UiSample.cmake)
+include(CMake/GameplaySample.cmake)
 
 if(DXF_INSTALL)
     include(GNUInstallDirs)
