@@ -251,15 +251,133 @@ void BroadPhasePreservesSmallExtentAtLargeCoordinate_Internal()
 void IslandStaticSupportDoesNotMergeDynamics_Internal()
 {
 	TVector<FIslandEdge> Edges;
-	Edges.PushBack({0, 3, 0, true, false});
-	Edges.PushBack({1, 3, 1, true, false});
-	Edges.PushBack({2, 3, 2, true, false});
+	// 共有Static(3)を経由してDynamic同士は結合せず、3島へ分かれる。
+	FIslandEdge First;
+	First.BodyA = 0;
+	First.BodyB = 3;
+	First.Constraint.Kind = EPhysicsConstraintKind::Contact;
+	First.Constraint.Index = 0;
+	First.bDynamicA = true;
+	First.bDynamicB = false;
+	Edges.PushBack(First);
+	FIslandEdge Second;
+	Second.BodyA = 1;
+	Second.BodyB = 3;
+	Second.Constraint.Kind = EPhysicsConstraintKind::Contact;
+	Second.Constraint.Index = 1;
+	Second.bDynamicA = true;
+	Second.bDynamicB = false;
+	Edges.PushBack(Second);
+	FIslandEdge Third;
+	Third.BodyA = 2;
+	Third.BodyB = 3;
+	Third.Constraint.Kind = EPhysicsConstraintKind::Contact;
+	Third.Constraint.Index = 2;
+	Third.bDynamicA = true;
+	Third.bDynamicB = false;
+	Edges.PushBack(Third);
 	TVector<FPhysicsIsland> Islands;
 	FIslandManager::Build(4, Edges, Islands);
 	PHYSICS_REQUIRE(Islands.Size() == 3);
 	PHYSICS_REQUIRE(Islands[0].BodyIndices.Size() == 1);
 	PHYSICS_REQUIRE(Islands[1].BodyIndices.Size() == 1);
 	PHYSICS_REQUIRE(Islands[2].BodyIndices.Size() == 1);
+	// Contact参照の種別と添字が保持されていること。
+	bool bKindPreserved = true;
+	for (size_t IslandIndex = 0; IslandIndex < Islands.Size(); ++IslandIndex)
+	{
+		for (size_t ConstraintSlot = 0; ConstraintSlot < Islands[IslandIndex].Constraints.Size(); ++ConstraintSlot)
+		{
+			if (Islands[IslandIndex].Constraints[ConstraintSlot].Kind != EPhysicsConstraintKind::Contact)
+			{
+				bKindPreserved = false;
+			}
+		}
+	}
+	PHYSICS_REQUIRE(bKindPreserved);
+}
+
+void IslandDistanceJointOnlyFormsDynamicIsland_Internal()
+{
+	// Contactが無くてもDynamic同士をDistanceJointで結べば1島になる。
+	TVector<FIslandEdge> Edges;
+	FIslandEdge Edge;
+	Edge.BodyA = 0;
+	Edge.BodyB = 1;
+	Edge.Constraint.Kind = EPhysicsConstraintKind::DistanceJoint;
+	Edge.Constraint.Index = 7;
+	Edge.bDynamicA = true;
+	Edge.bDynamicB = true;
+	Edges.PushBack(Edge);
+	TVector<FPhysicsIsland> Islands;
+	FIslandManager::Build(2, Edges, Islands);
+	PHYSICS_REQUIRE(Islands.Size() == 1);
+	PHYSICS_REQUIRE(Islands[0].BodyIndices.Size() == 2);
+	PHYSICS_REQUIRE(Islands[0].Constraints.Size() == 1);
+	PHYSICS_REQUIRE(Islands[0].Constraints[0].Kind == EPhysicsConstraintKind::DistanceJoint);
+	PHYSICS_REQUIRE(Islands[0].Constraints[0].Index == 7);
+}
+
+void IslandSortsContactsBeforeJoints_Internal()
+{
+	// 投入順を逆にしてContactがJointより先に並ぶことを保証する。
+	TVector<FIslandEdge> Edges;
+	FIslandEdge Joint;
+	Joint.BodyA = 0;
+	Joint.BodyB = 1;
+	Joint.Constraint.Kind = EPhysicsConstraintKind::DistanceJoint;
+	Joint.Constraint.Index = 0;
+	Joint.bDynamicA = true;
+	Joint.bDynamicB = true;
+	Edges.PushBack(Joint);
+	FIslandEdge SecondContact;
+	SecondContact.BodyA = 0;
+	SecondContact.BodyB = 1;
+	SecondContact.Constraint.Kind = EPhysicsConstraintKind::Contact;
+	SecondContact.Constraint.Index = 5;
+	SecondContact.bDynamicA = true;
+	SecondContact.bDynamicB = true;
+	Edges.PushBack(SecondContact);
+	FIslandEdge FirstContact;
+	FirstContact.BodyA = 1;
+	FirstContact.BodyB = 0;
+	FirstContact.Constraint.Kind = EPhysicsConstraintKind::Contact;
+	FirstContact.Constraint.Index = 2;
+	FirstContact.bDynamicA = true;
+	FirstContact.bDynamicB = true;
+	Edges.PushBack(FirstContact);
+	TVector<FPhysicsIsland> Islands;
+	FIslandManager::Build(2, Edges, Islands);
+	PHYSICS_REQUIRE(Islands.Size() == 1);
+	const TVector<FPhysicsConstraintRef>& Constraints = Islands[0].Constraints;
+	PHYSICS_REQUIRE(Constraints.Size() == 3);
+	// Contact(2), Contact(5), DistanceJoint(0)の順。
+	PHYSICS_REQUIRE(Constraints[0].Kind == EPhysicsConstraintKind::Contact);
+	PHYSICS_REQUIRE(Constraints[0].Index == 2);
+	PHYSICS_REQUIRE(Constraints[1].Kind == EPhysicsConstraintKind::Contact);
+	PHYSICS_REQUIRE(Constraints[1].Index == 5);
+	PHYSICS_REQUIRE(Constraints[2].Kind == EPhysicsConstraintKind::DistanceJoint);
+	PHYSICS_REQUIRE(Constraints[2].Index == 0);
+}
+
+void IslandStaticDistanceJointDoesNotMergeDynamics_Internal()
+{
+	// 共有StaticへのDistanceJointでもDynamic島は結合せない。
+	TVector<FIslandEdge> Edges;
+	for (size_t Body = 0; Body < 3; ++Body)
+	{
+		FIslandEdge Edge;
+		Edge.BodyA = Body;
+		Edge.BodyB = 3;
+		Edge.Constraint.Kind = EPhysicsConstraintKind::DistanceJoint;
+		Edge.Constraint.Index = Body;
+		Edge.bDynamicA = true;
+		Edge.bDynamicB = false;
+		Edges.PushBack(Edge);
+	}
+	TVector<FPhysicsIsland> Islands;
+	FIslandManager::Build(4, Edges, Islands);
+	PHYSICS_REQUIRE(Islands.Size() == 3);
 }
 
 const PhysicsTest::FCase Cases[] = {
@@ -269,6 +387,9 @@ const PhysicsTest::FCase Cases[] = {
     {"broad phase keeps ContactSlop near pair", BroadPhaseSlopKeepsNearPair_Internal},
     {"broad phase preserves small extent at large coordinate", BroadPhasePreservesSmallExtentAtLargeCoordinate_Internal},
     {"shared static support does not merge dynamic islands", IslandStaticSupportDoesNotMergeDynamics_Internal},
+    {"distance joint only still forms a dynamic island", IslandDistanceJointOnlyFormsDynamicIsland_Internal},
+    {"island sorts contacts before distance joints", IslandSortsContactsBeforeJoints_Internal},
+    {"shared static distance joint does not merge dynamics", IslandStaticDistanceJointDoesNotMergeDynamics_Internal},
 };
 } // namespace
 

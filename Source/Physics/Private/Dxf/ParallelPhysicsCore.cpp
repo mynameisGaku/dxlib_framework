@@ -291,7 +291,22 @@ void FIslandManager::Build(Toolbox::size_t BodyCount, const Toolbox::TVector<FIs
 		{
 			throw Toolbox::FException("Island root was not registered");
 		}
-		Out[IslandIndex].ConstraintIndices.PushBack(Edge.ConstraintIndex);
+		Out[IslandIndex].Constraints.PushBack(Edge.Constraint);
+	}
+	// 投入順に依存しない解決順を保証するため(Kind, Index)で安定整列する。
+	// Contactが先、DistanceJointが後になり、種別内はWorldの安定添字順になる。
+	for (Toolbox::size_t IslandIndex = 0; IslandIndex < Out.Size(); ++IslandIndex)
+	{
+		Toolbox::TVector<FPhysicsConstraintRef>& Constraints = Out[IslandIndex].Constraints;
+		Toolbox::StableSort(Constraints.Data(), Constraints.Data() + Constraints.Size(),
+		                    [](const FPhysicsConstraintRef& Left, const FPhysicsConstraintRef& Right) noexcept
+		                    {
+			                if (Left.Kind != Right.Kind)
+			                {
+				                return static_cast<Toolbox::uint8>(Left.Kind) < static_cast<Toolbox::uint8>(Right.Kind);
+			                }
+			                return Left.Index < Right.Index;
+		            });
 	}
 }
 } // namespace Dxf::PhysicsPrivate

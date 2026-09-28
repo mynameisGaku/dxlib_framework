@@ -57,36 +57,53 @@ public:
 	                     Toolbox::FJobSystem* Jobs, Toolbox::TVector<FBroadPhasePair>& Out);
 };
 /**
- * 接触拘束が結ぶBody組。ConstraintIndexはManifoldの安定添字。
+ * Islandが扱う拘束の種類。Contactを先に、DistanceJointを後に解決する。
+ */
+enum class EPhysicsConstraintKind : Toolbox::uint8
+{
+	Contact = 0,
+	DistanceJoint = 1
+};
+/**
+ * 拘束の種別とWorld内の安定添字。ContactとJointの添字を別名前空間で扱う。
+ */
+struct FPhysicsConstraintRef
+{
+	EPhysicsConstraintKind Kind = EPhysicsConstraintKind::Contact;
+	Toolbox::size_t Index = 0;
+};
+/**
+ * 接触またはJointが結ぶBody組。Constraintは種別付きの安定拘束参照。
  */
 struct FIslandEdge
 {
 	Toolbox::size_t BodyA = 0;
 	Toolbox::size_t BodyB = 0;
-	Toolbox::size_t ConstraintIndex = 0;
+	FPhysicsConstraintRef Constraint;
 	bool bDynamicA = false;
 	bool bDynamicB = false;
 };
 /**
  * 同じDynamic Bodyを共有する拘束集合。BodyIndicesは昇順。
+ * Constraintsは(Kind, Index)順でContactがJointより前に並ぶ。
  */
 struct FPhysicsIsland
 {
 	Toolbox::size_t RootBodyIndex = 0;
 	Toolbox::TVector<Toolbox::size_t> BodyIndices;
-	Toolbox::TVector<Toolbox::size_t> ConstraintIndices;
+	Toolbox::TVector<FPhysicsConstraintRef> Constraints;
 };
 /**
- * Dynamic同士の接触グラフから独立Solver Islandを決定的に構築する。
+ * Dynamic同士の接触・Jointグラフから独立Solver Islandを決定的に構築する。
  * Static/Kinematicは島同士を連結せず、Constraintだけを所属Dynamic島へ追加する。
  */
 class FIslandManager
 {
 public:
 	/**
-	 * 接触グラフをIslandへ分解する。
+	 * 接触・JointグラフをIslandへ分解する。
 	 * @param BodyCount Body slot総数。EdgeのBody indexはこの範囲内である必要がある。
-	 * @param Edges Manifold順の接触辺。
+	 * @param Edges 接触辺とJoint辺。投入順は結果に影響しない。
 	 * @param Out 構築結果。呼び出し時の内容は破棄する。
 	 */
 	static void Build(Toolbox::size_t BodyCount, const Toolbox::TVector<FIslandEdge>& Edges,
