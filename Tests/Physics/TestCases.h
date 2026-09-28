@@ -165,6 +165,11 @@ const FCase* GetJointLifetimeCases(Toolbox::size_t& Count) noexcept;
  * @param Count 返す配列の要素数。
  */
 const FCase* GetDistanceJointCases(Toolbox::size_t& Count) noexcept;
+/**
+ * 距離拘束の休止と起床（Sleep／Wake）の試験を返す。
+ * @param Count 返す配列の要素数。
+ */
+const FCase* GetDistanceJointSleepCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryTreeCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryIndexEquivalenceCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryIndexContractCases(Toolbox::size_t& Count) noexcept;

@@ -59,7 +59,8 @@ struct FBodyRecord2D
 	Toolbox::f32 SleepTimer = 0;
 	// 休止しているか。
 	bool bSleeping = false;
-	// 今回分割で接触したか。
+	// 今回分割で、休止判定で支持となるconstraint（ContactまたはJoint）へ
+	// 参加しているか。SensorはSolver拘束ではないので参加を印さない。
 	bool bTouched = false;
 	// 次の更新で使う蓄積力。ニュートン単位。
 	Toolbox::FVector2 Force;
@@ -1767,8 +1768,7 @@ struct FPhysicsWorld2D::FImpl
 	// 現在のBody姿勢からJointのWorld Anchorと軸を組み立てる。
 	// 距離0かつ正のLengthでは保存軸を使い、無ければ軸未確定として扱う。
 	bool BuildJointFrame_Internal(const FJointRecord2D& Joint, const FBodyRecord2D& BodyA, const FBodyRecord2D& BodyB,
-	                              FJointFrame2D& Out) const noexcept
-	{
+	                              FJointFrame2D& Out) const noexcept	{
 		// Local Anchorを各Bodyの姿勢でWorld方向へ回す。World座標として足さない。
 		const Toolbox::f64 CosineA = Toolbox::Cos(Toolbox::f64(BodyA.Angle));
 		const Toolbox::f64 SineA = Toolbox::Sin(Toolbox::f64(BodyA.Angle));
@@ -1923,10 +1923,9 @@ struct FPhysicsWorld2D::FImpl
 		ApplyImpulse_Internal(*BodyA, *BodyB, Frame.PositionA,
 		                      {static_cast<Toolbox::f32>(AxisX * Difference), static_cast<Toolbox::f32>(AxisY * Difference)});
 	}
-	// Anchor点の相対速度をA→B軸へ射影した値を返す。Contactと同じω×r規約を使う。
-	static Toolbox::f64 EffectiveProjectionVelocity_Internal(const FJointFrame2D& Frame, const FBodyRecord2D& BodyA,
-	                                                         const FBodyRecord2D& BodyB, Toolbox::f64 AxisX,
-	                                                         Toolbox::f64 AxisY) noexcept
+	// Anchor点の相対速度（vA - vB）を返す。Contactと同じω×r規約を使う。
+	static Toolbox::FVector2 AnchorRelativeVelocity_Internal(const FJointFrame2D& Frame, const FBodyRecord2D& BodyA,
+	                                                         const FBodyRecord2D& BodyB) noexcept
 	{
 		// ω × r = {-ω*r.y, ω*r.x}。既存ContactのPoint速度と同じ形。
 		const Toolbox::f64 VelocityAX = Toolbox::f64(BodyA.Velocity.X) -
@@ -1937,10 +1936,17 @@ struct FPhysicsWorld2D::FImpl
 		                                 Toolbox::f64(BodyB.AngularVelocity) * Toolbox::f64(Frame.ArmB.Y);
 		const Toolbox::f64 VelocityBY = Toolbox::f64(BodyB.Velocity.Y) +
 		                                 Toolbox::f64(BodyB.AngularVelocity) * Toolbox::f64(Frame.ArmB.X);
-		return (VelocityAX - VelocityBX) * AxisX + (VelocityAY - VelocityBY) * AxisY;
+		return {static_cast<Toolbox::f32>(VelocityAX - VelocityBX), static_cast<Toolbox::f32>(VelocityAY - VelocityBY)};
 	}
-	// 単一Distance Jointの位置誤差をBox2Dの Baumgarte ではなく線形補正で解く。
-	// 位置補正のA/B両方を逆質量で分配し、PositionとAngleを同時に直す。
+	// Anchor点速度をA→B軸へ射影した値を返す。速度拘束と起床判定で共有。
+	static Toolbox::f64 EffectiveProjectionVelocity_Internal(const FJointFrame2D& Frame, const FBodyRecord2D& BodyA,
+	                                                         const FBodyRecord2D& BodyB, Toolbox::f64 AxisX,
+	                                                         Toolbox::f64 AxisY) noexcept
+	{
+		const Toolbox::FVector2 Relative = AnchorRelativeVelocity_Internal(Frame, BodyA, BodyB);
+		return Toolbox::f64(Relative.X) * AxisX + Toolbox::f64(Relative.Y) * AxisY;
+	}
+	// 単一Distance Jointの位置誤差を線形補正で解く。
 	void CorrectDistanceJointPositions_Internal() noexcept
 	{
 		for (Toolbox::size_t Slot = 0; Slot < Joints.Size(); ++Slot)
@@ -2022,34 +2028,6 @@ struct FPhysicsWorld2D::FImpl
 			// 次の反復が古い軸で計算し、誤差が拡大する（実測で確認）。
 		}
 	}
-	// 多様体列とJointの速度拘束を反復して解く。
-	// Job System無しの中枢経路。Contact→DistanceJointの固定順で1回ずつ反復する。
-	void SolveVelocities_Internal(Toolbox::TVector<FManifold2D>& Manifolds)
-	{
-		Toolbox::TVector<PhysicsPrivate::FPhysicsConstraintRef> All;
-		All.Reserve(Manifolds.Size() + Joints.Size());
-		// 全Contactの安定添字。
-		for (Toolbox::size_t Index = 0; Index < Manifolds.Size(); ++Index)
-		{
-			PhysicsPrivate::FPhysicsConstraintRef Ref;
-			Ref.Kind = PhysicsPrivate::EPhysicsConstraintKind::Contact;
-			Ref.Index = Index;
-			All.PushBack(Ref);
-		}
-		// 生存Jointをslot昇順で追加する。Contactが無いWorldでもJointは解かれる。
-		for (Toolbox::size_t Slot = 0; Slot < Joints.Size(); ++Slot)
-		{
-			if (!Joints[Slot].bAlive)
-			{
-				continue;
-			}
-			PhysicsPrivate::FPhysicsConstraintRef Ref;
-			Ref.Kind = PhysicsPrivate::EPhysicsConstraintKind::DistanceJoint;
-			Ref.Index = Slot;
-			All.PushBack(Ref);
-		}
-		SolveConstraints_Internal(Manifolds, All);
-	}
 	// 拘束参照列の速度拘束を1反復内でContact→DistanceJoint順に解く。
 	// 反復ごとに両種類を交互に解くため、Jointを最後にまとめて解かない。
 	void SolveConstraints_Internal(Toolbox::TVector<FManifold2D>& Manifolds,
@@ -2080,10 +2058,11 @@ struct FPhysicsWorld2D::FImpl
 			}
 		}
 	}
-	// 多様体列と生存JointからIslandを構築し、独立Islandごとに拘束を解く。
-	// IslandはDynamic Bodyを共有せず、Static/Kinematicへは書き込まない。
-	// WarmStartは呼び出し側で全多様体とJointへ済ませておく。
-	void SolveIslands_Internal(Toolbox::TVector<FManifold2D>& Manifolds)
+	// 多様体列と生存JointからIslandを構築する。
+	// BodyIndicesはDynamic Bodyのみを保持するため、起床伝播と休止判定の
+	// 対象列としてそのまま利用できる。Static/Kinematicは含まれない。
+	void BuildIslands_Internal(const Toolbox::TVector<FManifold2D>& Manifolds,
+	                           Toolbox::TVector<PhysicsPrivate::FPhysicsIsland>& Out)
 	{
 		Toolbox::TVector<PhysicsPrivate::FIslandEdge> Edges;
 		Edges.Reserve(Manifolds.Size() + Joints.Size());
@@ -2130,9 +2109,21 @@ struct FPhysicsWorld2D::FImpl
 			Edge.bDynamicB = BodyB->Type == EBodyType::Dynamic;
 			Edges.PushBack(Edge);
 		}
-		Toolbox::TVector<PhysicsPrivate::FPhysicsIsland> Islands;
-		PhysicsPrivate::FIslandManager::Build(Slots.Size(), Edges, Islands);
-		ExecutionDiagnostics.IslandCount = Islands.Size();
+		PhysicsPrivate::FIslandManager::Build(Slots.Size(), Edges, Out);
+	}
+	// 構築済みのIsland列を逐次で解く。
+	void SolveIslands_Serial_Internal(Toolbox::TVector<FManifold2D>& Manifolds,
+	                                 const Toolbox::TVector<PhysicsPrivate::FPhysicsIsland>& Islands)
+	{
+		for (Toolbox::size_t IslandIndex = 0; IslandIndex < Islands.Size(); ++IslandIndex)
+		{
+			SolveConstraints_Internal(Manifolds, Islands[IslandIndex].Constraints);
+		}
+	}
+	// 構築済みのIsland列を並列で解く。
+	void SolveIslands_Parallel_Internal(Toolbox::TVector<FManifold2D>& Manifolds,
+	                                    const Toolbox::TVector<PhysicsPrivate::FPhysicsIsland>& Islands)
+	{
 		if (Islands.IsEmpty())
 		{
 			return;
@@ -2141,20 +2132,24 @@ struct FPhysicsWorld2D::FImpl
 		{
 			SolveConstraints_Internal(Manifolds, Islands[IslandIndex].Constraints);
 		};
+		if (!Toolbox::ParallelFor(*Execution.JobSystem, Islands.Size(), SolveOne, 1))
+		{
+			throw Toolbox::FException("Parallel 2D island solver failed");
+		}
+		ExecutionDiagnostics.SolverIslandCount += Islands.Size();
+	}
+	// 構築済みのIsland列で拘束を解く。並列可否をExecution設定で選ぶ。
+	// IslandはDynamic Bodyを共有せず、Static/Kinematicへは書き込まない。
+	void SolveIslands_Internal(Toolbox::TVector<FManifold2D>& Manifolds,
+	                           const Toolbox::TVector<PhysicsPrivate::FPhysicsIsland>& Islands)
+	{
 		if (UseBorrowedJobs_Internal(Execution.bParallelIslandSolver))
 		{
-			if (!Toolbox::ParallelFor(*Execution.JobSystem, Islands.Size(), SolveOne, 1))
-			{
-				throw Toolbox::FException("Parallel 2D island solver failed");
-			}
-			ExecutionDiagnostics.SolverIslandCount += Islands.Size();
+			SolveIslands_Parallel_Internal(Manifolds, Islands);
 		}
 		else
 		{
-			for (Toolbox::size_t IslandIndex = 0; IslandIndex < Islands.Size(); ++IslandIndex)
-			{
-				SolveOne(IslandIndex);
-			}
+			SolveIslands_Serial_Internal(Manifolds, Islands);
 		}
 	}
 	// 解決結果を再利用記録へ保存する。
@@ -2234,60 +2229,365 @@ struct FPhysicsWorld2D::FImpl
 			}
 		}
 	}
-	// 低速接触の継続で休止し、支持を失ったら起こす。
-	void UpdateSleep_Internal(const Toolbox::TVector<FManifold2D>& Manifolds, Toolbox::f64 Slice) noexcept
+	// Jointの起床に必要な距離閾値。速度次元のSleep判定が1固定区間で
+	// 移動できる距離を使い、超える誤差なら拘束解決を必要とする。
+	// 軸判定の縮退閾値を下限にして、非有限や0除算を避ける。
+	Toolbox::f64 JointWakeDistance_Internal(Toolbox::f64 Slice) const noexcept
+	{
+		const Toolbox::f64 Travel = Toolbox::f64(Sleep.LinearSpeedLimit) * Slice;
+		return Travel > JointAxisEpsilon ? Travel : JointAxisEpsilon;
+	}
+	// Island内のDynamic Bodyを起床させる。Static/Kinematicは起こさない。
+	// Island ManagerのBodyIndicesはDynamicのみなのでそのまま使える。
+	void WakeIslandDynamics_Internal(const PhysicsPrivate::FPhysicsIsland& Island) noexcept
+	{
+		for (Toolbox::size_t Index = 0; Index < Island.BodyIndices.Size(); ++Index)
+		{
+			const Toolbox::size_t Slot = Island.BodyIndices[Index];
+			if (Slot >= Slots.Size())
+			{
+				continue;
+			}
+			FBodyRecord2D& Record = Slots[Slot];
+			if (!Record.bAlive || Record.Type != EBodyType::Dynamic)
+			{
+				continue;
+			}
+			Wake_Internal(Record);
+		}
+	}
+	// Island内に既に起きているDynamicがあるか。
+	bool HasAwakeDynamic_Internal(const PhysicsPrivate::FPhysicsIsland& Island) const noexcept
+	{
+		for (Toolbox::size_t Index = 0; Index < Island.BodyIndices.Size(); ++Index)
+		{
+			const Toolbox::size_t Slot = Island.BodyIndices[Index];
+			if (Slot >= Slots.Size())
+			{
+				continue;
+			}
+			const FBodyRecord2D& Record = Slots[Slot];
+			if (Record.bAlive && Record.Type == EBodyType::Dynamic && !Record.bSleeping)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+	// Island内に休止中のDynamicがあるか。
+	bool HasSleepingDynamic_Internal(const PhysicsPrivate::FPhysicsIsland& Island) const noexcept
+	{
+		for (Toolbox::size_t Index = 0; Index < Island.BodyIndices.Size(); ++Index)
+		{
+			const Toolbox::size_t Slot = Island.BodyIndices[Index];
+			if (Slot >= Slots.Size())
+			{
+				continue;
+			}
+			const FBodyRecord2D& Record = Slots[Slot];
+			if (Record.bAlive && Record.Type == EBodyType::Dynamic && Record.bSleeping)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+	// Island内のJointが起床閾値を超える距離誤差を持つか。
+	bool HasJointErrorBeyond_Internal(const PhysicsPrivate::FPhysicsIsland& Island, Toolbox::f64 WakeDistance) const noexcept
+	{
+		for (Toolbox::size_t Slot = 0; Slot < Island.Constraints.Size(); ++Slot)
+		{
+			const PhysicsPrivate::FPhysicsConstraintRef& Constraint = Island.Constraints[Slot];
+			if (Constraint.Kind != PhysicsPrivate::EPhysicsConstraintKind::DistanceJoint || Constraint.Index >= Joints.Size())
+			{
+				continue;
+			}
+			const FJointRecord2D& Joint = Joints[Constraint.Index];
+			if (!Joint.bAlive)
+			{
+				continue;
+			}
+			const FBodyRecord2D* BodyA = Find_Internal(Joint.BodyA);
+			const FBodyRecord2D* BodyB = Find_Internal(Joint.BodyB);
+			if (BodyA == nullptr || BodyB == nullptr)
+			{
+				continue;
+			}
+			FJointFrame2D Frame;
+			if (!BuildJointFrame_Internal(Joint, *BodyA, *BodyB, Frame))
+			{
+				continue;
+			}
+			const Toolbox::f64 Error = Frame.Error < 0 ? -Frame.Error : Frame.Error;
+			if (Error > WakeDistance)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+	// 拘束の運動が起床理由になるか。Contactは既存の接触点相対運動、
+	// JointはAnchor全相対速度と距離誤差を使う。
+	bool ShouldWakeForConstraintMotion_Internal(const Toolbox::TVector<FManifold2D>& Manifolds,
+	                                            const PhysicsPrivate::FPhysicsIsland& Island, Toolbox::f64 Slice) const noexcept
+	{
+		const Toolbox::f64 WakeDistance = JointWakeDistance_Internal(Slice);
+		for (Toolbox::size_t Slot = 0; Slot < Island.Constraints.Size(); ++Slot)
+		{
+			const PhysicsPrivate::FPhysicsConstraintRef& Constraint = Island.Constraints[Slot];
+			if (Constraint.Kind == PhysicsPrivate::EPhysicsConstraintKind::Contact)
+			{
+				if (Constraint.Index >= Manifolds.Size())
+				{
+					continue;
+				}
+				const FManifold2D& Manifold = Manifolds[Constraint.Index];
+				const FBodyRecord2D* BodyA = Find_Internal(Manifold.BodyA);
+				const FBodyRecord2D* BodyB = Find_Internal(Manifold.BodyB);
+				if (BodyA == nullptr || BodyB == nullptr || (BodyA->bSleeping && BodyB->bSleeping))
+				{
+					continue;
+				}
+				for (Toolbox::size_t PointIndex = 0; PointIndex < Manifold.Points.Size(); ++PointIndex)
+				{
+					if (ShouldWakeForMotion_Internal(*BodyA, *BodyB, Manifold.Points[PointIndex].Position))
+					{
+						return true;
+					}
+				}
+				continue;
+			}
+			// DistanceJoint。Solverと同じ解決規則でslotを解決する。
+			if (Constraint.Index >= Joints.Size())
+			{
+				continue;
+			}
+			const FJointRecord2D& Joint = Joints[Constraint.Index];
+			if (!Joint.bAlive)
+			{
+				continue;
+			}
+			const FBodyRecord2D* BodyA = Find_Internal(Joint.BodyA);
+			const FBodyRecord2D* BodyB = Find_Internal(Joint.BodyB);
+			if (BodyA == nullptr || BodyB == nullptr || (!BodyA->bSleeping && !BodyB->bSleeping))
+			{
+				continue;
+			}
+			FJointFrame2D Frame;
+			if (!BuildJointFrame_Internal(Joint, *BodyA, *BodyB, Frame))
+			{
+				// 軸が確定できない退化ケースは方向を捏造せず起こさない。
+				continue;
+			}
+			// Anchor全相対速度の大きさ。軸成分だけだと直交運動を見落とすため、
+			// 既存Contactの接触点判定と同じ速度次元の基準を使う。
+			const Toolbox::FVector2 Relative = AnchorRelativeVelocity_Internal(Frame, *BodyA, *BodyB);
+			const Toolbox::f64 Speed = Toolbox::Sqrt(Toolbox::f64(Relative.X) * Toolbox::f64(Relative.X) +
+			                                        Toolbox::f64(Relative.Y) * Toolbox::f64(Relative.Y));
+			if (Speed > Toolbox::f64(Sleep.LinearSpeedLimit))
+			{
+				return true;
+			}
+			// 拘束誤差が閾値を超えるなら速度0でも拘束解決を必要とする。
+			// sleeping Dynamicは逆質量0なので、起こさないと補正できない。
+			const Toolbox::f64 Error = Frame.Error < 0 ? -Frame.Error : Frame.Error;
+			if (Error > WakeDistance)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+	// Island単位で起床させる。既 awake、拘束運動、Kinematic Anchor運動、
+	// Joint誤差のいずれかがあればIsland全体のDynamicを起こす。
+	// WakeUpやImpulse適用は対象Bodyだけを起こす既存契約で、
+	// Islandへの伝播はここ（Main側）で一度に完了する。
+	void WakeIslands_Internal(const Toolbox::TVector<FManifold2D>& Manifolds,
+	                          const Toolbox::TVector<PhysicsPrivate::FPhysicsIsland>& Islands, Toolbox::f64 Slice) noexcept
+	{
+		for (Toolbox::size_t IslandIndex = 0; IslandIndex < Islands.Size(); ++IslandIndex)
+		{
+			const PhysicsPrivate::FPhysicsIsland& Island = Islands[IslandIndex];
+			// 全て起きているなら何もしない。Wake_InternalはSleepTimerを0へ戻すため、
+			// 起床伝播の条件と休止中の蓄積を打ち消してしまう。
+			if (!HasSleepingDynamic_Internal(Island))
+			{
+				continue;
+			}
+			if (HasAwakeDynamic_Internal(Island) || ShouldWakeForConstraintMotion_Internal(Manifolds, Island, Slice))
+			{
+				WakeIslandDynamics_Internal(Island);
+			}
+		}
+	}
+	// Contact WarmStartが新規接触で起こした起床を、Island全体へもう一度伝播する。
+	// WarmStartはMain側で走っているため、並列Islandの競合は発生しない。
+	void PropagateAwakeDynamics_Internal(const Toolbox::TVector<PhysicsPrivate::FPhysicsIsland>& Islands) noexcept
+	{
+		for (Toolbox::size_t IslandIndex = 0; IslandIndex < Islands.Size(); ++IslandIndex)
+		{
+			const PhysicsPrivate::FPhysicsIsland& Island = Islands[IslandIndex];
+			// 全て起きている島は何もしない。SleepTimerの蓄積を打ち消さないため。
+			if (HasSleepingDynamic_Internal(Island) && HasAwakeDynamic_Internal(Island))
+			{
+				WakeIslandDynamics_Internal(Island);
+			}
+		}
+	}
+	// IslandをSleep単位として評価する。bTouchedは「休止判定で支持となる
+	// constraint（ContactまたはJoint）へ参加している」ことを表す。
+	// SensorはSolver拘束ではないので支持に数えない。
+	void UpdateSleep_Internal(const Toolbox::TVector<FManifold2D>& Manifolds,
+	                          const Toolbox::TVector<PhysicsPrivate::FPhysicsIsland>& Islands, Toolbox::f64 Slice) noexcept
 	{
 		if (!Sleep.bEnabled)
 		{
 			return;
 		}
-		for (Toolbox::size_t ManifoldIndex = 0; ManifoldIndex < Manifolds.Size(); ++ManifoldIndex)
+		const Toolbox::f64 WakeDistance = JointWakeDistance_Internal(Slice);
+		for (Toolbox::size_t Index = 0; Index < Slots.Size(); ++Index)
 		{
-			const FManifold2D& Manifold = Manifolds[ManifoldIndex];
-			FBodyRecord2D* BodyA = Find_Internal(Manifold.BodyA);
-			FBodyRecord2D* BodyB = Find_Internal(Manifold.BodyB);
-			if (BodyA != nullptr)
+			Slots[Index].bTouched = false;
+		}
+		// Islandの拘束から支持を付ける。ContactとJointの両方が参加扱いです。
+		for (Toolbox::size_t IslandIndex = 0; IslandIndex < Islands.Size(); ++IslandIndex)
+		{
+			const PhysicsPrivate::FPhysicsIsland& Island = Islands[IslandIndex];
+			for (Toolbox::size_t ConstraintSlot = 0; ConstraintSlot < Island.Constraints.Size(); ++ConstraintSlot)
 			{
-				BodyA->bTouched = true;
-			}
-			if (BodyB != nullptr)
-			{
-				BodyB->bTouched = true;
+				const PhysicsPrivate::FPhysicsConstraintRef& Constraint = Island.Constraints[ConstraintSlot];
+				if (Constraint.Kind == PhysicsPrivate::EPhysicsConstraintKind::DistanceJoint)
+				{
+					if (Constraint.Index >= Joints.Size())
+					{
+						continue;
+					}
+					const FJointRecord2D& Joint = Joints[Constraint.Index];
+					if (!Joint.bAlive)
+					{
+						continue;
+					}
+					if (Joint.BodyA.Index < Slots.Size())
+					{
+						Slots[Joint.BodyA.Index].bTouched = true;
+					}
+					if (Joint.BodyB.Index < Slots.Size())
+					{
+						Slots[Joint.BodyB.Index].bTouched = true;
+					}
+					continue;
+				}
+				if (Constraint.Index >= Manifolds.Size())
+				{
+					continue;
+				}
+				const FManifold2D& Manifold = Manifolds[Constraint.Index];
+				if (Manifold.BodyA.Index < Slots.Size())
+				{
+					Slots[Manifold.BodyA.Index].bTouched = true;
+				}
+				if (Manifold.BodyB.Index < Slots.Size())
+				{
+					Slots[Manifold.BodyB.Index].bTouched = true;
+				}
 			}
 		}
+		// IslandをSleep単位として評価する。一つでも条件を外れたらIsland全体を止める。
+		for (Toolbox::size_t IslandIndex = 0; IslandIndex < Islands.Size(); ++IslandIndex)
+		{
+			const PhysicsPrivate::FPhysicsIsland& Island = Islands[IslandIndex];
+			if (Island.BodyIndices.IsEmpty())
+			{
+				continue;
+			}
+			bool bCanSleep = true;
+			for (Toolbox::size_t Index = 0; Index < Island.BodyIndices.Size(); ++Index)
+			{
+				const Toolbox::size_t Slot = Island.BodyIndices[Index];
+				if (Slot >= Slots.Size())
+				{
+					bCanSleep = false;
+					break;
+				}
+				const FBodyRecord2D& Record = Slots[Slot];
+				// 速度の大きさと回転の大きさ。
+				const Toolbox::f64 Speed = Toolbox::Sqrt(Toolbox::f64(Record.Velocity.X) * Toolbox::f64(Record.Velocity.X) +
+				                                        Toolbox::f64(Record.Velocity.Y) * Toolbox::f64(Record.Velocity.Y));
+				const Toolbox::f64 Spin =
+				    Record.AngularVelocity < 0 ? -Toolbox::f64(Record.AngularVelocity) : Toolbox::f64(Record.AngularVelocity);
+				// 休止禁止、拘束未参加、速度超過のいずれかならIsland全体を止める。
+				// bAllowSleep=falseが1体でもあればAだけsleepさせることはしない。
+				if (!Record.bAlive || Record.Type != EBodyType::Dynamic || !Record.bAllowSleep || !Record.bTouched ||
+				    Speed > Toolbox::f64(Sleep.LinearSpeedLimit) || Spin > Toolbox::f64(Sleep.AngularSpeedLimit))
+				{
+					bCanSleep = false;
+					break;
+				}
+			}
+			// 大きな拘束誤差を抱えたまま速度0だからsleep、は禁止する。
+			if (bCanSleep && HasJointErrorBeyond_Internal(Island, WakeDistance))
+			{
+				bCanSleep = false;
+			}
+			if (!bCanSleep)
+			{
+				for (Toolbox::size_t Index = 0; Index < Island.BodyIndices.Size(); ++Index)
+				{
+					const Toolbox::size_t Slot = Island.BodyIndices[Index];
+					if (Slot < Slots.Size())
+					{
+						Slots[Slot].SleepTimer = 0;
+					}
+				}
+				continue;
+			}
+			// 全Dynamicが候補なので同じSliceだけ進める。
+			bool bAllReady = true;
+			for (Toolbox::size_t Index = 0; Index < Island.BodyIndices.Size(); ++Index)
+			{
+				const Toolbox::size_t Slot = Island.BodyIndices[Index];
+				if (Slot >= Slots.Size())
+				{
+					continue;
+				}
+				FBodyRecord2D& Record = Slots[Slot];
+				Record.SleepTimer = static_cast<Toolbox::f32>(Toolbox::f64(Record.SleepTimer) + Slice);
+				if (Toolbox::f64(Record.SleepTimer) < Toolbox::f64(Sleep.TimeoutSeconds))
+				{
+					bAllReady = false;
+				}
+			}
+			if (!bAllReady)
+			{
+				continue;
+			}
+			// Island内のDynamicを同じStepで同時に休止させる。ズレを作らない。
+			for (Toolbox::size_t Index = 0; Index < Island.BodyIndices.Size(); ++Index)
+			{
+				const Toolbox::size_t Slot = Island.BodyIndices[Index];
+				if (Slot >= Slots.Size())
+				{
+					continue;
+				}
+				FBodyRecord2D& Record = Slots[Slot];
+				Record.bSleeping = true;
+				Record.Velocity = {};
+				Record.AngularVelocity = 0;
+			}
+		}
+		// Islandに属さないDynamicは支持を失ったとして起こす。
+		// 拘束を破棄されて宙に浮いたsleeping Bodyが落下を再開する経路。
 		for (Toolbox::size_t Index = 0; Index < Slots.Size(); ++Index)
 		{
 			FBodyRecord2D& Record = Slots[Index];
-			if (!Record.bAlive || Record.Type != EBodyType::Dynamic || !Record.bAllowSleep)
+			if (!Record.bAlive || Record.Type != EBodyType::Dynamic)
 			{
-				Record.bTouched = false;
 				continue;
 			}
 			if (!Record.bTouched)
 			{
-				// 支持を失ったら起こす。
 				Record.SleepTimer = 0;
 				Record.bSleeping = false;
-				continue;
-			}
-			// 速度の大きさ。
-			const Toolbox::f64 Speed = Toolbox::Sqrt(Toolbox::f64(Record.Velocity.X) * Record.Velocity.X +
-			                                         Toolbox::f64(Record.Velocity.Y) * Record.Velocity.Y);
-			const Toolbox::f64 Spin =
-			    Record.AngularVelocity < 0 ? -Toolbox::f64(Record.AngularVelocity) : Record.AngularVelocity;
-			if (Speed <= Sleep.LinearSpeedLimit && Spin <= Sleep.AngularSpeedLimit)
-			{
-				Record.SleepTimer = static_cast<Toolbox::f32>(Toolbox::f64(Record.SleepTimer) + Slice);
-				if (Record.SleepTimer >= Sleep.TimeoutSeconds)
-				{
-					Record.bSleeping = true;
-					Record.Velocity = {};
-					Record.AngularVelocity = 0;
-				}
-			}
-			else
-			{
-				Record.SleepTimer = 0;
 			}
 			Record.bTouched = false;
 		}
@@ -2453,7 +2753,10 @@ struct FPhysicsWorld2D::FImpl
 		{
 			WarmStart_Internal(Manifolds[ManifoldIndex]);
 		}
-		SolveVelocities_Internal(Manifolds);
+		// 時刻を進めないため起床伝播と休止更新は行わない。構築したIslandで解く。
+		Toolbox::TVector<PhysicsPrivate::FPhysicsIsland> Islands;
+		BuildIslands_Internal(Manifolds, Islands);
+		SolveIslands_Internal(Manifolds, Islands);
 		StoreCache_Internal(Manifolds);
 	}
 	// 最初接触の解決まで位置を進める。残り時間は診断へ残す。
@@ -4021,20 +4324,30 @@ void FPhysicsWorld2D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 		// 現在位置の接触を集めて速度拘束を解く。
 		Toolbox::TVector<FManifold2D> Manifolds;
 		m_pImpl->GenerateStepManifolds_Internal(Manifolds);
+		// 接触とJointからIslandを一度だけ構築し、起床・求解・休止判定で共有する。
+		// 睡眠判定のためにUnion-Findを作り直さない。
+		Toolbox::TVector<PhysicsPrivate::FPhysicsIsland> Islands;
+		m_pImpl->BuildIslands_Internal(Manifolds, Islands);
+		m_pImpl->ExecutionDiagnostics.IslandCount = Islands.Size();
+		// Solver前に必要な起床をMain側で完了させる。並列Workerからは起こさない。
+		m_pImpl->WakeIslands_Internal(Manifolds, Islands, Slice);
 		for (Toolbox::size_t ManifoldIndex = 0; ManifoldIndex < Manifolds.Size(); ++ManifoldIndex)
 		{
 			m_pImpl->WarmStart_Internal(Manifolds[ManifoldIndex]);
 		}
+		// 新規接触で起きたBodyをIsland全体へ伝播する。既存Contact起床は保持する。
+		m_pImpl->PropagateAwakeDynamics_Internal(Islands);
 		// JointのWarm StartはMain側で全生存Jointへ適用する。
 		// WorkerがJoint Recordへ触る構造はJ4の並列commitまで作らない。
 		m_pImpl->WarmStartJoints_Internal();
-		if (m_pImpl->Execution.JobSystem == nullptr)
+		// IslandはDynamicを共有しないため逐次でも並列でも結果は同じ。
+		if (m_pImpl->UseBorrowedJobs_Internal(m_pImpl->Execution.bParallelIslandSolver))
 		{
-			m_pImpl->SolveVelocities_Internal(Manifolds);
+			m_pImpl->SolveIslands_Parallel_Internal(Manifolds, Islands);
 		}
 		else
 		{
-			m_pImpl->SolveIslands_Internal(Manifolds);
+			m_pImpl->SolveIslands_Serial_Internal(Manifolds, Islands);
 		}
 		m_pImpl->StoreCache_Internal(Manifolds);
 		if (bContinuous)
@@ -4047,7 +4360,11 @@ void FPhysicsWorld2D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 			m_pImpl->CorrectPositions_Internal(Touched);
 			// 移動後もJointの距離誤差を位置で補正する。
 			m_pImpl->CorrectDistanceJointPositions_Internal();
-			m_pImpl->UpdateSleep_Internal(Touched, Slice);
+			// 移動後の接触からIslandを作り直し、休止判定に使う。
+			// 連続衝突の区間だけ再構築する。通常経路は一度で済ませる。
+			Toolbox::TVector<PhysicsPrivate::FPhysicsIsland> MovedIslands;
+			m_pImpl->BuildIslands_Internal(Touched, MovedIslands);
+			m_pImpl->UpdateSleep_Internal(Touched, MovedIslands, Slice);
 			continue;
 		}
 		// 更新後の速度で位置と姿勢を進める。
@@ -4096,9 +4413,10 @@ void FPhysicsWorld2D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 		}
 		// 許容幅を超える貫通を位置で補正する。
 		m_pImpl->CorrectPositions_Internal(Manifolds);
-		// Jointの距離誤差も位置で補正する。角度も同時に直す。
+		// Jointの距離誤差も位置で補正する。並進中心の補正。
 		m_pImpl->CorrectDistanceJointPositions_Internal();
-		m_pImpl->UpdateSleep_Internal(Manifolds, Slice);
+		// 同じIsland列で休止を評価する。拘束の支持は接触点数ではなくContactとJointの参加で決まる。
+		m_pImpl->UpdateSleep_Internal(Manifolds, Islands, Slice);
 	}
 	// 蓄積した力とトルクを一度だけ消去する。
 	for (Toolbox::size_t Index = 0; Index < m_pImpl->Slots.Size(); ++Index)
