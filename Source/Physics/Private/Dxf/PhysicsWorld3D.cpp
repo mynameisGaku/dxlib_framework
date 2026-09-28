@@ -808,6 +808,12 @@ struct FJointRecord3D
 	Toolbox::FVector3 LocalAnchorB;
 	// 維持するAnchor間距離。
 	Toolbox::f64 Length = 0;
+	// Warm Start用に保持する、前回Stepの確定Impulse。Joint Recordの寿命内だけ有効。
+	Toolbox::f64 AccumulatedImpulse = 0;
+	// 軸が縮退したStepで用いる保存軸。A→B規約。
+	Toolbox::FVector3 LastValidAxis{1, 0, 0};
+	// LastValidAxisを実際に更新済みか。
+	bool bHasLastValidAxis = false;
 };
 struct FPhysicsWorld3D::FImpl
 {
@@ -2119,27 +2125,319 @@ struct FPhysicsWorld3D::FImpl
 		                         static_cast<Toolbox::f32>(U.Z * ClampedU + V.Z * ClampedV)};
 		ApplyImpulse_Internal(BodyA, BodyB, Point.Position, Applied);
 	}
-	// 多様体列の速度拘束を反復して解く。
+	// 軸の縮退を判定する距離閾値。Contactの分離判定と同じ精度帯に置く。
+	static constexpr Toolbox::f64 JointAxisEpsilon = 1e-6;
+	// 位置補正が1Stepで動かす距離の上限。ContactのMaxCorrectionと同量。
+	static constexpr Toolbox::f64 JointMaxPositionCorrection = 0.05;
+	// 位置補正で1Stepに解消する誤差の割合。ContactのBaumgarteBetaと同値。
+	static constexpr Toolbox::f64 JointPositionBeta = 0.2;
+	// 位置補正の反復回数。姿勢補正でAxisが変わるため、Frameを作り直しながら解く。
+	// VelocityIterationsと同数の4回で、600Stepの振り子でも誤差が拡大しないことを確認済み。
+	static constexpr Toolbox::uint32 JointPositionIterations = 4;
+	// Local Anchorを姿勢で回転したWorld Anchorと腕、軸のまとまり。
+	struct FJointFrame3D
+	{
+		// A→Bの単位軸。
+		Toolbox::FVector3 Axis{1, 0, 0};
+		// 重心からA側AnchorまでのWorldベクトル。
+		FVector3D ArmA;
+		// 重心からB側AnchorまでのWorldベクトル。
+		FVector3D ArmB;
+		// A側AnchorのWorld位置。
+		Toolbox::FVector3 PositionA;
+		// B側AnchorのWorld位置。
+		Toolbox::FVector3 PositionB;
+		// Anchor間距離。
+		Toolbox::f64 Distance = 0;
+		// 軸を確定できず、方向を捏造せずにImpulseを生成できない状態か。
+		bool bAxisUnavailable = false;
+		// 距離誤差。正なら伸びている。
+		Toolbox::f64 Error = 0;
+	};
+	// 現在のBody姿勢からJointのWorld Anchorと軸を組み立てる。
+	// Quaternion→行列の変換は既存のTransformDiagonal_Internalと同じ規約を使う。
+	bool BuildJointFrame_Internal(const FJointRecord3D& Joint, const FBodyRecord3D& BodyA, const FBodyRecord3D& BodyB,
+	                              FJointFrame3D& Out) const noexcept
+	{
+		// Local Anchorを各Bodyの姿勢でWorld方向へ回す。Identityの逆対角で回転だけ与える。
+		const FQuaternionD QuaternionA = ToDouble_Internal(BodyA.Orientation);
+		const FQuaternionD QuaternionB = ToDouble_Internal(BodyB.Orientation);
+		const FVector3D Identity = {1, 1, 1};
+		const FVector3D LocalA = {Toolbox::f64(Joint.LocalAnchorA.X), Toolbox::f64(Joint.LocalAnchorA.Y),
+		                          Toolbox::f64(Joint.LocalAnchorA.Z)};
+		const FVector3D LocalB = {Toolbox::f64(Joint.LocalAnchorB.X), Toolbox::f64(Joint.LocalAnchorB.Y),
+		                          Toolbox::f64(Joint.LocalAnchorB.Z)};
+		Out.ArmA = TransformDiagonal_Internal(QuaternionA, Identity, LocalA);
+		Out.ArmB = TransformDiagonal_Internal(QuaternionB, Identity, LocalB);
+		const FVector3D PositionA = {Toolbox::f64(BodyA.Position.X) + Out.ArmA.X, Toolbox::f64(BodyA.Position.Y) + Out.ArmA.Y,
+		                             Toolbox::f64(BodyA.Position.Z) + Out.ArmA.Z};
+		const FVector3D PositionB = {Toolbox::f64(BodyB.Position.X) + Out.ArmB.X, Toolbox::f64(BodyB.Position.Y) + Out.ArmB.Y,
+		                             Toolbox::f64(BodyB.Position.Z) + Out.ArmB.Z};
+		Out.PositionA = {static_cast<Toolbox::f32>(PositionA.X), static_cast<Toolbox::f32>(PositionA.Y),
+		                 static_cast<Toolbox::f32>(PositionA.Z)};
+		Out.PositionB = {static_cast<Toolbox::f32>(PositionB.X), static_cast<Toolbox::f32>(PositionB.Y),
+		                 static_cast<Toolbox::f32>(PositionB.Z)};
+		const FVector3D Delta = {PositionB.X - PositionA.X, PositionB.Y - PositionA.Y, PositionB.Z - PositionA.Z};
+		const Toolbox::f64 Square = Delta.X * Delta.X + Delta.Y * Delta.Y + Delta.Z * Delta.Z;
+		Out.Distance = Toolbox::Sqrt(Square);
+		Out.Error = Out.Distance - Joint.Length;
+		if (!Toolbox::IsFinite(Square) || !Toolbox::IsFinite(Out.Error))
+		{
+			Out.bAxisUnavailable = true;
+			return false;
+		}
+		if (Out.Distance > JointAxisEpsilon)
+		{
+			Out.Axis = {static_cast<Toolbox::f32>(Delta.X / Out.Distance), static_cast<Toolbox::f32>(Delta.Y / Out.Distance),
+			            static_cast<Toolbox::f32>(Delta.Z / Out.Distance)};
+			Out.bAxisUnavailable = false;
+			return true;
+		}
+		// 距離が縮退したとき。Length0なら拘束は既に満たされる。
+		if (Joint.Length <= 0)
+		{
+			Out.bAxisUnavailable = true;
+			return false;
+		}
+		// 正のLengthでAnchorが重なる場合は保存軸を使う。捏造した固定軸は使わない。
+		if (!Joint.bHasLastValidAxis)
+		{
+			Out.bAxisUnavailable = true;
+			return false;
+		}
+		Out.Axis = Joint.LastValidAxis;
+		Out.bAxisUnavailable = false;
+		return true;
+	}
+	// 保存軸を今回の確定軸で更新する。距離0のStepでは上書きしない。
+	static void UpdateLastAxis_Internal(FJointRecord3D& Joint, const FJointFrame3D& Frame) noexcept
+	{
+		if (Frame.bAxisUnavailable)
+		{
+			return;
+		}
+		Joint.LastValidAxis = Frame.Axis;
+		Joint.bHasLastValidAxis = true;
+	}
+	// 生存JointへWarm StartのImpulseを適用する。Main側で全Jointを走査する。
+	void WarmStartJoints_Internal() noexcept
+	{
+		for (Toolbox::size_t Slot = 0; Slot < Joints.Size(); ++Slot)
+		{
+			FJointRecord3D& Joint = Joints[Slot];
+			if (!Joint.bAlive)
+			{
+				continue;
+			}
+			FBodyRecord3D* BodyA = Find_Internal(Joint.BodyA);
+			FBodyRecord3D* BodyB = Find_Internal(Joint.BodyB);
+			if (BodyA == nullptr || BodyB == nullptr)
+			{
+				continue;
+			}
+			FJointFrame3D Frame;
+			if (!BuildJointFrame_Internal(Joint, *BodyA, *BodyB, Frame))
+			{
+				// 軸が確定できないStepでは前回のImpulseを適用しない。
+				Joint.AccumulatedImpulse = 0;
+				continue;
+			}
+			UpdateLastAxis_Internal(Joint, Frame);
+			if (Joint.AccumulatedImpulse == 0)
+			{
+				continue;
+			}
+			// Warm Startは前回の確定Impulseを即時適用する。蓄積は残して差分方式で積み直す。
+			const FVector3D Push = {Frame.Axis.X * Joint.AccumulatedImpulse, Frame.Axis.Y * Joint.AccumulatedImpulse,
+			                         Frame.Axis.Z * Joint.AccumulatedImpulse};
+			ApplyImpulse_Internal(*BodyA, *BodyB, Frame.PositionA, Push);
+		}
+	}
+	// 単一Distance Jointの速度拘束を解く。Hard両側拘束なので0クランプしない。
+	void SolveDistanceJoint_Internal(Toolbox::size_t JointSlot)
+	{
+		if (JointSlot >= Joints.Size())
+		{
+			return;
+		}
+		FJointRecord3D& Joint = Joints[JointSlot];
+		if (!Joint.bAlive)
+		{
+			return;
+		}
+		FBodyRecord3D* BodyA = Find_Internal(Joint.BodyA);
+		FBodyRecord3D* BodyB = Find_Internal(Joint.BodyB);
+		if (BodyA == nullptr || BodyB == nullptr)
+		{
+			return;
+		}
+		FJointFrame3D Frame;
+		if (!BuildJointFrame_Internal(Joint, *BodyA, *BodyB, Frame))
+		{
+			return;
+		}
+		const Toolbox::f64 InverseMassA = EffectiveInverseMass_Internal(*BodyA);
+		const Toolbox::f64 InverseMassB = EffectiveInverseMass_Internal(*BodyB);
+		const FVector3D InverseDiagonalA = EffectiveInverseDiagonal_Internal(*BodyA);
+		const FVector3D InverseDiagonalB = EffectiveInverseDiagonal_Internal(*BodyB);
+		const FVector3D Axis = {Toolbox::f64(Frame.Axis.X), Toolbox::f64(Frame.Axis.Y), Toolbox::f64(Frame.Axis.Z)};
+		// 腕と軸の外積。3Dの有効質量はこの角寄与を内積で足す。
+		const FVector3D CrossA = {Frame.ArmA.Y * Axis.Z - Frame.ArmA.Z * Axis.Y, Frame.ArmA.Z * Axis.X - Frame.ArmA.X * Axis.Z,
+		                           Frame.ArmA.X * Axis.Y - Frame.ArmA.Y * Axis.X};
+		const FVector3D CrossB = {Frame.ArmB.Y * Axis.Z - Frame.ArmB.Z * Axis.Y, Frame.ArmB.Z * Axis.X - Frame.ArmB.X * Axis.Z,
+		                           Frame.ArmB.X * Axis.Y - Frame.ArmB.Y * Axis.X};
+		// ワールド逆慣性で角寄与を内積へ変換する。Joint専用の変換は作らない。
+		const FVector3D WeightedA = TransformDiagonal_Internal(ToDouble_Internal(BodyA->Orientation), InverseDiagonalA, CrossA);
+		const FVector3D WeightedB = TransformDiagonal_Internal(ToDouble_Internal(BodyB->Orientation), InverseDiagonalB, CrossB);
+		const Toolbox::f64 Mass = InverseMassA + InverseMassB + CrossA.X * WeightedA.X + CrossA.Y * WeightedA.Y +
+		                          CrossA.Z * WeightedA.Z + CrossB.X * WeightedB.X + CrossB.Y * WeightedB.Y +
+		                          CrossB.Z * WeightedB.Z;
+		if (Mass <= 0 || !Toolbox::IsFinite(Mass))
+		{
+			return;
+		}
+		// RelativeVelocity = vA - vB（既存Contactと同じ規約）。
+		const Toolbox::FVector3 Relative = RelativeVelocity_Internal(*BodyA, *BodyB, Frame.PositionA);
+		// A→B軸なのでCdot = -dot(Relative, n)。CdotはAnchor間隔の増減率。
+		const Toolbox::f64 CDot = -(Toolbox::f64(Relative.X) * Axis.X + Toolbox::f64(Relative.Y) * Axis.Y +
+		                           Toolbox::f64(Relative.Z) * Axis.Z);
+		// BodyA += P / BodyB -= P なので dCdot = -lambda * K。
+		// Cdotを0にするlambdaは lambda = Cdot / K。
+		// 両側拘束（張る・押す）なので0クランプしない。
+		const Toolbox::f64 Lambda = CDot / Mass;
+		const Toolbox::f64 Old = Joint.AccumulatedImpulse;
+		Joint.AccumulatedImpulse = Old + Lambda;
+		const Toolbox::f64 Difference = Joint.AccumulatedImpulse - Old;
+		ApplyImpulse_Internal(*BodyA, *BodyB, Frame.PositionA,
+		                      {Axis.X * Difference, Axis.Y * Difference, Axis.Z * Difference});
+	}
+	// 単一Distance Jointの位置誤差を線形補正で解く。PositionとOrientationを同時に直す。
+	// 補正はAxisとAnchorの現在値から計算するため、姿勢を変えるとAxisも動く。
+	// 1回だけ補正すると回転後のAxisが古いまま残り、誤差が積み上がる。
+	//  deshalb姿勢を作り直しながら数回反復して収束させる。
+	void CorrectDistanceJointPositions_Internal() noexcept
+	{
+		for (Toolbox::size_t Slot = 0; Slot < Joints.Size(); ++Slot)
+		{
+			FJointRecord3D& Joint = Joints[Slot];
+			if (!Joint.bAlive)
+			{
+				continue;
+			}
+			FBodyRecord3D* BodyA = Find_Internal(Joint.BodyA);
+			FBodyRecord3D* BodyB = Find_Internal(Joint.BodyB);
+			if (BodyA == nullptr || BodyB == nullptr)
+			{
+				continue;
+			}
+			// 姿勢を変えるとAnchorとAxisが動くため、反復ごとに作り直す。
+			for (Toolbox::uint32 Pass = 0; Pass < JointPositionIterations; ++Pass)
+			{
+				FJointFrame3D Frame;
+				if (!BuildJointFrame_Internal(Joint, *BodyA, *BodyB, Frame))
+				{
+					break;
+				}
+				// 誤差0または縮退軸では位置補正しない。
+				if (Frame.Error == 0 || !Toolbox::IsFinite(Frame.Error))
+				{
+					break;
+				}
+				CorrectDistanceJointPositionPass_Internal(*BodyA, *BodyB, Frame);
+			}
+		}
+	}
+	// 1反復分の位置補正。Frameは呼び出し側で構築した現在値。
+	void CorrectDistanceJointPositionPass_Internal(FBodyRecord3D& BodyA, FBodyRecord3D& BodyB,
+	                                                const FJointFrame3D& Frame) noexcept
+	{
+		{
+			const Toolbox::f64 InverseMassA = EffectiveInverseMass_Internal(BodyA);
+			const Toolbox::f64 InverseMassB = EffectiveInverseMass_Internal(BodyB);
+			const FVector3D InverseDiagonalA = EffectiveInverseDiagonal_Internal(BodyA);
+			const FVector3D InverseDiagonalB = EffectiveInverseDiagonal_Internal(BodyB);
+			const FVector3D Axis = {Toolbox::f64(Frame.Axis.X), Toolbox::f64(Frame.Axis.Y), Toolbox::f64(Frame.Axis.Z)};
+			// C = Distance - Length。正なら伸びている。
+			// 軸はA→Bなので、縮めるにはAを+n、Bを-nへ動かす。
+			Toolbox::f64 Correction = JointPositionBeta * Frame.Error;
+			Correction = Toolbox::Clamp(Correction, -JointMaxPositionCorrection, JointMaxPositionCorrection);
+			const FVector3D CrossA = {Frame.ArmA.Y * Axis.Z - Frame.ArmA.Z * Axis.Y, Frame.ArmA.Z * Axis.X - Frame.ArmA.X * Axis.Z,
+			                           Frame.ArmA.X * Axis.Y - Frame.ArmA.Y * Axis.X};
+			const FVector3D CrossB = {Frame.ArmB.Y * Axis.Z - Frame.ArmB.Z * Axis.Y, Frame.ArmB.Z * Axis.X - Frame.ArmB.X * Axis.Z,
+			                           Frame.ArmB.X * Axis.Y - Frame.ArmB.Y * Axis.X};
+			const FVector3D WeightedA = TransformDiagonal_Internal(ToDouble_Internal(BodyA.Orientation), InverseDiagonalA, CrossA);
+			const FVector3D WeightedB = TransformDiagonal_Internal(ToDouble_Internal(BodyB.Orientation), InverseDiagonalB, CrossB);
+			const Toolbox::f64 Mass = InverseMassA + InverseMassB + CrossA.X * WeightedA.X + CrossA.Y * WeightedA.Y +
+			                          CrossA.Z * WeightedA.Z + CrossB.X * WeightedB.X + CrossB.Y * WeightedB.Y +
+			                          CrossB.Z * WeightedB.Z;
+			if (Mass <= 0 || !Toolbox::IsFinite(Mass))
+			{
+				return;
+			}
+			const Toolbox::f64 TotalInverse = InverseMassA + InverseMassB;
+			Toolbox::f64 WeightA = 0;
+			Toolbox::f64 WeightB = 0;
+			if (TotalInverse > 0)
+			{
+				WeightA = InverseMassA / TotalInverse;
+				WeightB = InverseMassB / TotalInverse;
+			}
+			const FVector3D Move = {Axis.X * Correction, Axis.Y * Correction, Axis.Z * Correction};
+			BodyA.Position += {static_cast<Toolbox::f32>(Move.X * WeightA), static_cast<Toolbox::f32>(Move.Y * WeightA),
+			                    static_cast<Toolbox::f32>(Move.Z * WeightA)};
+			BodyB.Position += {static_cast<Toolbox::f32>(-Move.X * WeightB), static_cast<Toolbox::f32>(-Move.Y * WeightB),
+			                    static_cast<Toolbox::f32>(-Move.Z * WeightB)};
+			// 姿勢補正は行わない。off-centerの角成分は速度拘束が担当する。
+			// 位置段階で姿勢まで動かすと、回転後のAnchorが動いた状態で
+			// 次の反復が古い軸で計算し、誤差が拡大する（実測で確認）。
+			// 回転は速度側のConstraintで毎Step解かれるため、位置補正は
+			// 重心の並進だけで長さをEstablishedする。
+		}
+	}
+	// 多様体列とJointの速度拘束を反復して解く。
+	// Job System無しの中枢経路。Contact→DistanceJointの固定順で1回ずつ反復する。
 	void SolveVelocities_Internal(Toolbox::TVector<FManifold3D>& Manifolds)
 	{
-		// 全制約の安定添字。
-		Toolbox::TVector<Toolbox::size_t> All;
-		All.Reserve(Manifolds.Size());
+		Toolbox::TVector<PhysicsPrivate::FPhysicsConstraintRef> All;
+		All.Reserve(Manifolds.Size() + Joints.Size());
 		for (Toolbox::size_t Index = 0; Index < Manifolds.Size(); ++Index)
 		{
-			All.PushBack(Index);
+			PhysicsPrivate::FPhysicsConstraintRef Ref;
+			Ref.Kind = PhysicsPrivate::EPhysicsConstraintKind::Contact;
+			Ref.Index = Index;
+			All.PushBack(Ref);
+		}
+		// 生存Jointをslot昇順で追加する。Contactが無いWorldでもJointは解かれる。
+		for (Toolbox::size_t Slot = 0; Slot < Joints.Size(); ++Slot)
+		{
+			if (!Joints[Slot].bAlive)
+			{
+				continue;
+			}
+			PhysicsPrivate::FPhysicsConstraintRef Ref;
+			Ref.Kind = PhysicsPrivate::EPhysicsConstraintKind::DistanceJoint;
+			Ref.Index = Slot;
+			All.PushBack(Ref);
 		}
 		SolveConstraints_Internal(Manifolds, All);
 	}
-	// 制約添字列の速度拘束を添字順に反復して解く。
+	// 拘束参照列の速度拘束を1反復内でContact→DistanceJoint順に解く。
+	// 反復ごとに両種類を交互に解くため、Jointを最後にまとめて解かない。
 	void SolveConstraints_Internal(Toolbox::TVector<FManifold3D>& Manifolds,
-	                               const Toolbox::TVector<Toolbox::size_t>& Constraints)
+	                               const Toolbox::TVector<PhysicsPrivate::FPhysicsConstraintRef>& Constraints)
 	{
 		for (Toolbox::uint32 Iteration = 0; Iteration < Contact.VelocityIterations; ++Iteration)
 		{
 			for (Toolbox::size_t Slot = 0; Slot < Constraints.Size(); ++Slot)
 			{
-				FManifold3D& Manifold = Manifolds[Constraints[Slot]];
+				const PhysicsPrivate::FPhysicsConstraintRef& Constraint = Constraints[Slot];
+				// Island Managerが(Kind, Index)順に整列済みなので、種別で分岐するだけで固定順になる。
+				if (Constraint.Kind == PhysicsPrivate::EPhysicsConstraintKind::DistanceJoint)
+				{
+					SolveDistanceJoint_Internal(Constraint.Index);
+					continue;
+				}
+				FManifold3D& Manifold = Manifolds[Constraint.Index];
 				FBodyRecord3D* BodyA = Find_Internal(Manifold.BodyA);
 				FBodyRecord3D* BodyB = Find_Internal(Manifold.BodyB);
 				if (BodyA == nullptr || BodyB == nullptr)
@@ -2153,13 +2451,12 @@ struct FPhysicsWorld3D::FImpl
 			}
 		}
 	}
-	// 多様体列からIslandを構築し、独立Islandごとに拘束を解く。
-	// IslandはDynamic Bodyを共有せず、Static/Kinematicへは書き込まない。
-	// WarmStartは呼び出し側で全多様体へ済ませておく。
+	// 多様体列と生存JointからIslandを構築し、独立Islandごとに拘束を解く。
+	// WarmStartは呼び出し側で全多様体とJointへ済ませておく。
 	void SolveIslands_Internal(Toolbox::TVector<FManifold3D>& Manifolds)
 	{
 		Toolbox::TVector<PhysicsPrivate::FIslandEdge> Edges;
-		Edges.Reserve(Manifolds.Size());
+		Edges.Reserve(Manifolds.Size() + Joints.Size());
 		for (Toolbox::size_t Index = 0; Index < Manifolds.Size(); ++Index)
 		{
 			const FManifold3D& Manifold = Manifolds[Index];
@@ -2172,7 +2469,31 @@ struct FPhysicsWorld3D::FImpl
 			PhysicsPrivate::FIslandEdge Edge;
 			Edge.BodyA = Manifold.BodyA.Index;
 			Edge.BodyB = Manifold.BodyB.Index;
-			Edge.ConstraintIndex = Index;
+			Edge.Constraint.Kind = PhysicsPrivate::EPhysicsConstraintKind::Contact;
+			Edge.Constraint.Index = Index;
+			Edge.bDynamicA = BodyA->Type == EBodyType::Dynamic;
+			Edge.bDynamicB = BodyB->Type == EBodyType::Dynamic;
+			Edges.PushBack(Edge);
+		}
+		// Joint辺。添字は再利用で変わらないWorld Joint slotを使う。
+		for (Toolbox::size_t Slot = 0; Slot < Joints.Size(); ++Slot)
+		{
+			const FJointRecord3D& Joint = Joints[Slot];
+			if (!Joint.bAlive)
+			{
+				continue;
+			}
+			const FBodyRecord3D* BodyA = Find_Internal(Joint.BodyA);
+			const FBodyRecord3D* BodyB = Find_Internal(Joint.BodyB);
+			if (BodyA == nullptr || BodyB == nullptr)
+			{
+				continue;
+			}
+			PhysicsPrivate::FIslandEdge Edge;
+			Edge.BodyA = Joint.BodyA.Index;
+			Edge.BodyB = Joint.BodyB.Index;
+			Edge.Constraint.Kind = PhysicsPrivate::EPhysicsConstraintKind::DistanceJoint;
+			Edge.Constraint.Index = Slot;
 			Edge.bDynamicA = BodyA->Type == EBodyType::Dynamic;
 			Edge.bDynamicB = BodyB->Type == EBodyType::Dynamic;
 			Edges.PushBack(Edge);
@@ -2186,7 +2507,7 @@ struct FPhysicsWorld3D::FImpl
 		}
 		auto SolveOne = [&](Toolbox::size_t IslandIndex)
 		{
-			SolveConstraints_Internal(Manifolds, Islands[IslandIndex].ConstraintIndices);
+			SolveConstraints_Internal(Manifolds, Islands[IslandIndex].Constraints);
 		};
 		if (UseBorrowedJobs_Internal(Execution.bParallelIslandSolver))
 		{
@@ -3000,6 +3321,10 @@ FJointId3D FPhysicsWorld3D::CreateDistanceJoint(FBodyId3D BodyA, FBodyId3D BodyB
 	Record.LocalAnchorA = Description.LocalAnchorA;
 	Record.LocalAnchorB = Description.LocalAnchorB;
 	Record.Length = Description.Length;
+	// Solver cacheは明示的に初期化する。slot再利用で古いImpulseや軸が混ざらない。
+	Record.AccumulatedImpulse = 0;
+	Record.LastValidAxis = {1, 0, 0};
+	Record.bHasLastValidAxis = false;
 	// 空きスロットの再使用または末尾への追加。破棄時に進めた世代を引き継ぐ。
 	Toolbox::size_t Index = 0;
 	if (!m_pImpl->JointFree.IsEmpty())
@@ -4173,6 +4498,8 @@ void FPhysicsWorld3D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 		{
 			m_pImpl->WarmStart_Internal(Manifolds[ManifoldIndex]);
 		}
+		// JointのWarm StartはMain側で全生存Jointへ適用する。
+		m_pImpl->WarmStartJoints_Internal();
 		if (m_pImpl->Execution.JobSystem == nullptr)
 		{
 			m_pImpl->SolveVelocities_Internal(Manifolds);
@@ -4190,6 +4517,8 @@ void FPhysicsWorld3D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 			Toolbox::TVector<FManifold3D> Touched;
 			m_pImpl->GenerateStepManifolds_Internal(Touched);
 			m_pImpl->CorrectPositions_Internal(Touched);
+			// 移動後もJointの距離誤差を位置で補正する。
+			m_pImpl->CorrectDistanceJointPositions_Internal();
 			m_pImpl->UpdateSleep_Internal(Touched, Slice);
 			continue;
 		}
@@ -4247,6 +4576,8 @@ void FPhysicsWorld3D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 		}
 		// 許容幅を超える貫通を位置で補正する。
 		m_pImpl->CorrectPositions_Internal(Manifolds);
+		// Jointの距離誤差も位置で補正する。姿勢も同時に直す。
+		m_pImpl->CorrectDistanceJointPositions_Internal();
 		m_pImpl->UpdateSleep_Internal(Manifolds, Slice);
 	}
 	// 蓄積した力とトルクを一度だけ消去する。

@@ -23,6 +23,7 @@ function(dxf_add_physics_tests Target CoreTarget)
         "${_root}/Tests/Physics/CharacterPushTests.cpp"
         "${_root}/Tests/Physics/SolverBroadPhaseTests.cpp"
         "${_root}/Tests/Physics/JointLifetimeTests.cpp"
+        "${_root}/Tests/Physics/DistanceJointTests.cpp"
         "${_root}/Tests/Physics/BoxWallContactTests.cpp"
         "${_root}/Tests/Physics/WorldOverlapTests.cpp"
         "${_root}/Tests/Physics/WorldSweepTests.cpp"
@@ -47,7 +48,7 @@ function(dxf_add_physics_tests Target CoreTarget)
     endif()
     add_test(NAME PhysicsContinuation COMMAND ${Target})
     set_tests_properties(PhysicsContinuation PROPERTIES TIMEOUT 180 LABELS "portable;physics")
-    # 範囲問い合わせの結果確保の故障注入。確保置換はこの隔離した実行ファイルだけにリンクする。
+    # 遽・峇蝠上＞蜷医ｏ縺帙・邨先棡遒ｺ菫昴・謨・囿豕ｨ蜈･縲ら｢ｺ菫晉ｽｮ謠帙・縺薙・髫秘屬縺励◆螳溯｡後ヵ繧｡繧､繝ｫ縺縺代↓繝ｪ繝ｳ繧ｯ縺吶ｋ縲・
     add_executable(${Target}_overlap_fault
         "${_root}/Tests/Physics/WorldEventAllocationFaultTests.cpp"
         "${_root}/Tests/Physics/CapsuleAllocationFaultTests.cpp"

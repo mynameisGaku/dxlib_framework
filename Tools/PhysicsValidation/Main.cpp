@@ -85,6 +85,8 @@ int32 main()
 	Failed += RunGroup_Internal(Cases, Count);
 	Cases = PhysicsTest::GetJointLifetimeCases(Count);
 	Failed += RunGroup_Internal(Cases, Count);
+	Cases = PhysicsTest::GetDistanceJointCases(Count);
+	Failed += RunGroup_Internal(Cases, Count);
 	Cases = PhysicsTest::GetBoxWallContactCases(Count);
 	Failed += RunGroup_Internal(Cases, Count);
 	Cases = PhysicsTest::GetParallelCases(Count);
