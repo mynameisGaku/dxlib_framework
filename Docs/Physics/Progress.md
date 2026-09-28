@@ -265,6 +265,22 @@ TDD記録は Docs/Tdd/Physics/D-*.log。複数接触の失敗はテストの初�
 - そのため、根拠のない挙動の変更（ほぼ平行な辺の組を捨てる閾値の変更）は元へ戻した。軸の半径を返す
   `HalfExtent_Internal`への置き換えは同じ値を返す整理なので残した。回帰試験は残す。
 
+## 現在状態（2026-09-28時点）
+
+恒久表の行M〜P（カプセル幾何／World統合／キャラクターのカプセル／Dynamic押し合い／Solver BroadPhase）は
+すべて実装済み。詳細な契約と検証結果は[Dynamic相互作用の検証記録](../Development/DynamicCharacterInteraction-2026-09-28.md)を参照。
+下部の過去の個別記録は、当時の記録としてそのまま残す。
+
+| 項目 | 現状 |
+|---|---|
+| Character→Dynamicの押し | 実装済み。既定は無効。`FCharacterMoveTuning`の`bPushDynamicBodies`で有効化し、接触法線の逆向きに`MaxPushImpulse`以下を与える |
+| Dynamic→Characterの押され | 実装済み。`bReceiveDynamicPush`。既存の障害物規則を使い壁・床・天井を貫通させない |
+| 挟まれ・圧迫 | 実装済み。解消不能時は`ECharacterRecoveryStatus`と`ECharacterMoveStop`で理由を返す |
+| カプセル | 実装済み。2D／3D共通。足元を保つ高さ変更、低い通路、天井下での非拡張を検証 |
+| Solver BroadPhase | 実装済み。組の候補を問い合わせの索引から集め、総当たりと同じ順・同じ結果。索引不可時は総当たりへ戻る |
+| 3Dの奥行き50m箱の沈み | Solverの不具合ではない。試験条件の慣性不適切（M10用Componentは立方体に変更）。回帰試験を残す |
+| DebugのPhysicsContinuation | 既存180秒の制限内で101.33秒。timeoutは延長していない |
+
 ## 残課題
 
 - 接触イベント（Begin／Stay／End）とTriggerの実装は未着手

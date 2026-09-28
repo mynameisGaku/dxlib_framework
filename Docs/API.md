@@ -195,3 +195,17 @@ Objectのコンストラクタ中に所属Collectionへ終了が要求された�
 
 - [共通UIの部品・入力・描画・データ接続](UI/GettingStarted.md)
 - [UIの進捗と未確認範囲](UI/Progress.md)
+
+## Character ⇔ Dynamic剛体（2D／3D共通）
+
+- 設定 `Dxf::FCharacterMoveTuning`（`Dxf/CharacterMoveTuning.h`）:
+  `bPushDynamicBodies`（既定false）、`PushForceScale`、`MaxPushImpulse`、
+  `bReceiveDynamicPush`（既定false）、`MaxReceivedPushSpeed`。
+- 形状 `Dxf::ECharacterShape`（`Circle`／`Capsule`）と`HalfHeight`／`Radius`。カプセルは2D／3Dで共通の意味。
+- 押し要求 `Dxf::FCharacterPushSet2D`／`FCharacterPushSet3D`（`Dxf/CharacterPushSet2D.h`／`3D.h`）:
+  `Count`（保持した要求数）、`TotalFound`（発見数）、`Items[].Body`／`Items[].Collider`／`Items[].Impulse`。
+- 結果 `Dxf::FCharacterStepResult2D`／`3D`: `Pushes`（押す要求）、`Received`（押されて退いた移動）、
+  `bPushedByBody`、`Stop`（`Dxf::ECharacterMoveStop`）。
+- 解消不能な状況 `Dxf::ECharacterRecoveryStatus`（`Blocked`／`TooDeep`／`Ambiguous`／各Limit）。
+- 使い方は[キャラクター移動](../Physics/CharacterMovement.md)を参照。Gameplay側の適用順は
+  `DCharacterMovement2DComponent`／`3DComponent`が同じ固定更新の物理Step前に行う。

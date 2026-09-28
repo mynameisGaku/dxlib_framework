@@ -167,3 +167,39 @@ World.SetBodyTransform(SelfBody, State.Center, Toolbox::FQuaternion{});   // 自
 目安（Release、1キャラクター・1固定更新あたりの移動と反映、静的な地形）: 3Dで障害物512個のとき、索引なしの基準は約2.3ms、索引ありは約2.7µs。多数のColliderがあるWorldでは、`Step`（Solver）の費用が次の支配項になります。
 
 検証の範囲と未解決事項は[ゲームプレイ基盤の検証記録](../Development/Gameplay-2026-09-25.md)、機能ごとの状態は[進捗表](Progress.md#ゲームプレイ基盤の進捗表)を参照してください。
+
+## Dynamicの剛体との押し合い（2D／3D共通）
+
+設定は`FCharacterMoveTuning`に置き、2D／3Dで同じ意味の値を使う。既定は無効で、
+既存のキャラクター移動の結果を変えない。
+
+| 設定 | 既定 | 意味 |
+|---|---|---|
+| `bPushDynamicBodies` | false | キャラクターが接触したDynamicのSolidな剛体を押す |
+| `PushForceScale` | 40 | 押すImpulseの強さの係数 |
+| `MaxPushImpulse` | 2 | 1固定更新あたりのImpulseの上限 |
+| `bReceiveDynamicPush` | false | 近づくDynamicの剛体に押されて退く |
+| `MaxReceivedPushSpeed` | 10 | 押されとして扱う速度の上限 |
+
+### 押し（Character→Dynamic）
+
+- 大きさは`PushForceScale ×（希望の水平速度の、剛体へ向かう成分）× 固定秒数`を`MaxPushImpulse`で制限する。
+- 接触法線は障害物からキャラクターへ向かうため、剛体へ与えるImpulseはその逆向きだけ。接線方向は含めない。
+- 対象はDynamicのSolidのみ。Static、Sensor、衝突フィルターで許されないCollider、自分自身の登録Bodyは押さない。
+- 同じBodyの複数接触は1件に集約する（`FCharacterPushSet2D/3D`の`Count`が保持数、`TotalFound`が発見数）。
+- `StepCharacter`はWorldを変更しない。適用は`DCharacterMovement2D/3DComponent`が同じ固定更新の物理Stepの前に行う。
+
+### 押され（Dynamic→Character）
+
+- 固定更新の開始時に、接触余裕の2倍＋（`MaxReceivedPushSpeed × 固定秒数`）以内で近づく剛体の速度の
+  Upに直交する成分から退く。押されなければ`Received`は`NoMovement`、`bPushedByBody`はfalse。
+- 押し戻しにも既存の障害物規則（overlap recovery、sweep、slide、ContactLimit、QueryLimit、PrecisionLimit）を使い、
+  別簡易判定は作らない。壁・床・天井を無視して貫通させない。
+- 結果（押したか、押されたか、別の障害物で止まったか、圧迫になったか）は
+  `FCharacterStepResult2D/3D`の`Pushes`・`Received`・`bPushedByBody`と、`Stop`／`ECharacterRecoveryStatus`で返す。
+
+### カプセルと足元の高さ変更
+
+- `ECharacterShape::Capsule`と`HalfHeight`／`Radius`でカプセルを用いる。2D／3Dで共通の意味。
+- 足元（中心からUpの逆向きに`HalfHeight + Radius`）を保って高さだけ変えられる。天井や低い通路で伸ばせないときは
+  伸ばさず、`Blocker`に妨げのColliderを返す。
