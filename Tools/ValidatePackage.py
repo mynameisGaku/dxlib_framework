@@ -17,7 +17,9 @@ from ValidationSupport import new_run_directory, project_version, run_logged, va
 ROOT = Path(__file__).resolve().parents[1]
 CONSUMER_SOURCES = ('CMakeLists.txt', 'Main.cpp', 'Support.cpp', 'Physics.cpp', 'NativeApp.cpp', 'NativeUiApp.cpp',
                     'Ui.cpp', 'UiRuntime.cpp', 'PhysicsInteraction.h', 'PhysicsInteraction.cpp',
-                    'FInteractionConsumerResult.h', 'InteractionConsumer.h', 'InteractionConsumer.cpp')
+                    'PhysicsCapsule.h', 'PhysicsCapsule.cpp',
+                    'FInteractionConsumerResult.h', 'InteractionConsumer.h', 'InteractionConsumer.cpp',
+                    'CapsuleConsumer.h', 'CapsuleConsumer.cpp')
 # UI入りの外部のApplicationへ渡す外部スタイル（正しいものと、読めないもの）。
 UI_STYLE = 'dxfui-style 1\nstyle ConsumerButton {\n background = #20a0e0\n}\n'
 UI_BROKEN_STYLE = 'dxfui-style 1\nstyle ConsumerButton {\n background = @missing\n}\n'
