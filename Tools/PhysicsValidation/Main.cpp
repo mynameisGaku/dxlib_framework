@@ -89,6 +89,8 @@ int32 main()
 	Failed += RunGroup_Internal(Cases, Count);
 	Cases = PhysicsTest::GetDistanceJointSleepCases(Count);
 	Failed += RunGroup_Internal(Cases, Count);
+	Cases = PhysicsTest::GetDistanceJoint3DFrameCases(Count);
+	Failed += RunGroup_Internal(Cases, Count);
 	Cases = PhysicsTest::GetBoxWallContactCases(Count);
 	Failed += RunGroup_Internal(Cases, Count);
 	Cases = PhysicsTest::GetParallelCases(Count);

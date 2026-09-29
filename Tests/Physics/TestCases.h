@@ -170,6 +170,11 @@ const FCase* GetDistanceJointCases(Toolbox::size_t& Count) noexcept;
  * @param Count 返す配列の要素数。
  */
 const FCase* GetDistanceJointSleepCases(Toolbox::size_t& Count) noexcept;
+/**
+ * 3D距離拘束のLocal Anchor姿勢回転と平面oracleの試験を返す。
+ * @param Count 返す配列の要素数。
+ */
+const FCase* GetDistanceJoint3DFrameCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryTreeCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryIndexEquivalenceCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryIndexContractCases(Toolbox::size_t& Count) noexcept;

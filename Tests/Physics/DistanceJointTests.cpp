@@ -729,11 +729,15 @@ void Rotated3DLocalAnchorFollows_Internal()
 	// 90度Y回転させる。LocalAnchor (0, 0, 1)は(1, 0, 0)へ移り、Anchorは(3, 0, 0)。
 	// 距離は3.0になる。回転が読めていなければ(2, 0, 1)のまま2.236のまま。
 	F3D::TurnY(World, Ball, 90.0f);
+	// 回転直後はAnchorが(3,0,0)へ移り長さ3.0まで伸びる。
 	Run3D_Internal(World, 1);
-	const f64 After = World.GetDistanceJoint(Joint).CurrentLength;
-	PHYSICS_REQUIRE(After > 2.9);
-	// 位置補正は並進だけなので長さの誤差は残るが、Anchorが回転へ追従した証拠になる。
-	PHYSICS_REQUIRE(Toolbox::Abs(World.GetPosition(Ball).X - 2.0f) <= 0.1);
+	PHYSICS_REQUIRE(World.GetDistanceJoint(Joint).CurrentLength > 2.7);
+	// Solverが回転済みAnchorを読むのでJointの長さsqrt(5)へ収束する。
+	// 修正前はWorld Anchorが姿勢に追従せず長さ3.0のままだった。
+	Run3D_Internal(World, 20);
+	RequireLength3D_Internal(World, Joint, Toolbox::Sqrt(5.0), 1e-3);
+	// 位置補正が並進で長さへ戻すので重心もAnchor位置へ寄る。
+	PHYSICS_REQUIRE(Toolbox::Abs(World.GetPosition(Ball).X - 1.2360679f) <= 0.05f);
 }
 
 void ZeroLength3DDoesNothing_Internal()

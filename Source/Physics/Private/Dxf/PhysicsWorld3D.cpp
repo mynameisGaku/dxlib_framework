@@ -2160,16 +2160,19 @@ struct FPhysicsWorld3D::FImpl
 	bool BuildJointFrame_Internal(const FJointRecord3D& Joint, const FBodyRecord3D& BodyA, const FBodyRecord3D& BodyB,
 	                              FJointFrame3D& Out) const noexcept
 	{
-		// Local Anchorを各Bodyの姿勢でWorld方向へ回す。Identityの逆対角で回転だけ与える。
+		// Local Anchorを各Bodyの姿勢でWorld方向へ回す。
+		// Rotate_InternalはR*vでベクトル回転。TransformDiagonal_InternalはR*D*R^T*vで
+		// 逆慣性変換のためのヘルパであり、D=IdentityではR*I*R^T*v=vとなって回転しない。
+		// 以前はこの後者をLocal Anchorへ使っていたため、World Anchorが姿勢に追従せず、
+		// 回転し続けるoff-center Anchorで誤差が線形に積み上がった。
 		const FQuaternionD QuaternionA = ToDouble_Internal(BodyA.Orientation);
 		const FQuaternionD QuaternionB = ToDouble_Internal(BodyB.Orientation);
-		const FVector3D Identity = {1, 1, 1};
 		const FVector3D LocalA = {Toolbox::f64(Joint.LocalAnchorA.X), Toolbox::f64(Joint.LocalAnchorA.Y),
 		                          Toolbox::f64(Joint.LocalAnchorA.Z)};
 		const FVector3D LocalB = {Toolbox::f64(Joint.LocalAnchorB.X), Toolbox::f64(Joint.LocalAnchorB.Y),
 		                          Toolbox::f64(Joint.LocalAnchorB.Z)};
-		Out.ArmA = TransformDiagonal_Internal(QuaternionA, Identity, LocalA);
-		Out.ArmB = TransformDiagonal_Internal(QuaternionB, Identity, LocalB);
+		Out.ArmA = Rotate_Internal(QuaternionA, LocalA);
+		Out.ArmB = Rotate_Internal(QuaternionB, LocalB);
 		const FVector3D PositionA = {Toolbox::f64(BodyA.Position.X) + Out.ArmA.X, Toolbox::f64(BodyA.Position.Y) + Out.ArmA.Y,
 		                             Toolbox::f64(BodyA.Position.Z) + Out.ArmA.Z};
 		const FVector3D PositionB = {Toolbox::f64(BodyB.Position.X) + Out.ArmB.X, Toolbox::f64(BodyB.Position.Y) + Out.ArmB.Y,
@@ -3690,6 +3693,8 @@ FDistanceJointState3D FPhysicsWorld3D::GetDistanceJoint(FJointId3D Id) const
 	const FJointRecord3D& Record = m_pImpl->ResolveJoint_Internal(Id);
 	const FBodyRecord3D& BodyA = m_pImpl->Resolve_Internal(Record.BodyA);
 	const FBodyRecord3D& BodyB = m_pImpl->Resolve_Internal(Record.BodyB);
+	// SolverのBuildJointFrame_Internalと同じRotate_Internal経路でWorld Anchorを作る。
+	// Anchorの姿勢変換を二重実装しないため、共通helper AnchorWorld_Internalを使う。
 	const Toolbox::FVector3 AnchorA = m_pImpl->AnchorWorld_Internal(BodyA, Record.LocalAnchorA);
 	const Toolbox::FVector3 AnchorB = m_pImpl->AnchorWorld_Internal(BodyB, Record.LocalAnchorB);
 	const Toolbox::f64 Dx = Toolbox::f64(AnchorB.X) - Toolbox::f64(AnchorA.X);
