@@ -320,7 +320,71 @@ void RejectedSolve_Internal()
 	World.Step(1.0 / 60.0);
 	PHYSICS_REQUIRE(World.GetPosition(Bodies[0]).X == 0 && World.GetPosition(Bodies[0]).Y == 0);
 }
+// 同じslotの新接続へ古いImpulseを引き継ぐと、隣の拘束を経て運動が残る。
+// 一回の速度反復を使い、十分な反復によって誤ったWarm Startが隠れることを防ぐ。
+template <typename T>
+void ReusedWarmImpulse_Internal()
+{
+	// 履歴を含む実World。
+	typename T::FWorld World;
+	World.SetGravity({});
+	// このケースだけ一反復に限定して、初期Impulseの影響を観測する。
+	typename T::FContact Contact;
+	Contact.VelocityIterations = 1;
+	World.SetContactSettings(Contact);
+	// 初回はAnchorとMiddleを重ね、第一JointのImpulseは0にする。
+	typename T::FBodyDescription Description;
+	Description.Type = EBodyType::Static;
+	const auto Anchor = World.CreateBody(Description);
+	Description.Type = EBodyType::Dynamic;
+	Description.bAllowSleep = false;
+	const auto Middle = World.CreateBody(Description);
+	Description.Position = T::At(0, 2, 0);
+	Description.Velocity = T::At(0, -2, 0);
+	const auto Right = World.CreateBody(Description);
+	typename T::FJointDescription Settings;
+	Settings.Length = 1;
+	(void)World.CreateDistanceJoint(Anchor, Middle, Settings);
+	Settings.Length = 2;
+	const auto Old = World.CreateDistanceJoint(Middle, Right, Settings);
+	World.Step(1.0 / 60.0);
+	PHYSICS_REQUIRE(World.DestroyJoint(Old));
+	T::Reset(World, Middle, T::At(0, 1, 0));
+	T::Reset(World, Right, T::At(0, 2, 0));
+	Settings.Length = 1;
+	const auto NewJoint = World.CreateDistanceJoint(Middle, Right, Settings);
+	PHYSICS_REQUIRE(NewJoint.Index == Old.Index && NewJoint.Generation != Old.Generation);
+	World.Step(1.0 / 60.0);
+	// 両端の初速は0で長さも一致するため、新しい接続にImpulseは不要。
+	PHYSICS_REQUIRE(World.GetVelocity(Middle) == T::At(0, 0, 0));
+	PHYSICS_REQUIRE(World.GetVelocity(Right) == T::At(0, 0, 0));
+}
+// Jointで結んだ同じBody対のSolid接触も、通常の許可設定で生成される。
+template <typename T>
+void ConnectedContact_Internal()
+{
+	typename T::FWorld World;
+	World.SetGravity({});
+	typename T::FBodyDescription Description;
+	Description.Type = EBodyType::Static;
+	const auto A = World.CreateBody(Description);
+	Description.Type = EBodyType::Dynamic;
+	Description.Position = T::At(0, 0.75f, 0);
+	const auto B = World.CreateBody(Description);
+	World.AttachCollider(A, T::Ball({}, 0.5f));
+	World.AttachCollider(B, T::Ball({}, 0.5f));
+	typename T::FJointDescription Settings;
+	Settings.Length = 0.75;
+	(void)World.CreateDistanceJoint(A, B, Settings);
+	World.Step(1.0 / 60.0);
+	PHYSICS_REQUIRE(World.GetExecutionDiagnostics().ManifoldCount > 0);
+	PHYSICS_REQUIRE(World.GetPosition(B).Y > 0.75f);
+}
 const PhysicsTest::FCase Cases_Internal[] = {
+    {"J5 2D reused warm impulse does not reach adjacent constraint", &ReusedWarmImpulse_Internal<F2D>},
+    {"J5 3D reused warm impulse does not reach adjacent constraint", &ReusedWarmImpulse_Internal<F3D>},
+    {"J5 2D connected bodies still generate solid contact", &ConnectedContact_Internal<F2D>},
+    {"J5 3D connected bodies still generate solid contact", &ConnectedContact_Internal<F3D>},
     {"J4 2D independent static anchors bit match 0/1/2/4/8", &Lanes_Internal<F2D, 0>},
     {"J4 3D independent static anchors bit match 0/1/2/4/8", &Lanes_Internal<F3D, 0>},
     {"J4 2D shared static anchor bit match 0/1/2/4/8", &Lanes_Internal<F2D, 1>},

@@ -2,6 +2,8 @@
 #include "Support/Test.h"
 #include "Support/FakeBackend.h"
 #include "Dxf/Application.h"
+#include "Toolbox/Platform.h"
+#include <string.h>
 #include "InteractionScene2D.h"
 #include "InteractionScene3D.h"
 #include "CharacterSample2DScene.h"
@@ -64,6 +66,11 @@ public:
 	{
 		return m_pBackend->SetClip2D(Enabled, Rect);
 	}
+	TResult<void> DrawLine2D(const FLineCommand2D&) override
+	{
+		++m_Shapes;
+		return {};
+	}
 	TResult<void> DrawCircle2D(const FCircleCommand2D&) override
 	{
 		++m_Shapes;
@@ -119,6 +126,17 @@ public:
 			}
 			REQUIRE(Result.Value());
 		}
+	}
+	// 零回・複数回の固定更新になる実フレームも同じApplicationで通す。
+	void Advance(Toolbox::f64 Seconds)
+	{
+		m_Time += Seconds;
+		const auto Result = m_App.Step(m_Time);
+		if (!Result)
+		{
+			throw Toolbox::FException(Result.Error().Message);
+		}
+		REQUIRE(Result.Value());
 	}
 	void Hold(EKey Key, bool bDown)
 	{
@@ -310,7 +328,8 @@ template <typename T> void Settings_Internal()
 	App.Hold(EKey::Space, false);
 }
 // UI描画・描画先寸法・DPIの変化を、同じ固定時刻と入力の実Worldへ入れて比較する。
-template <typename T> void Window_Internal()
+template <typename T>
+void Window_Internal()
 {
 	TSampleApp<typename T::FScene> Original;
 	TSampleApp<typename T::FScene> Changed;
@@ -339,14 +358,16 @@ template <typename T> void Window_Internal()
 	}
 }
 // 箱の物理の位置（描画の補間ではない）。
-template <typename T, typename TScene> typename T::FVector CratePosition_Internal(TScene& Scene, const auto& Handle)
+template <typename T, typename TScene>
+typename T::FVector CratePosition_Internal(TScene& Scene, const auto& Handle)
 {
 	const auto* Crate = Handle.Get();
 	REQUIRE(Crate != nullptr && Crate->GetRigid() != nullptr);
 	return Scene.GetPhysicsWorld().GetPosition(Crate->GetRigid()->GetBodyId());
 }
 // カプセル: 立つと低い天井の手前で止まり、しゃがむと通れ、天井の下では立てず、出てから立つ（足元は同じ高さ）。
-template <typename T> void CapsuleCrouch_Internal()
+template <typename T>
+void CapsuleCrouch_Internal()
 {
 	TSampleApp<typename T::FScene> App;
 	auto& Scene = App.Scene();
@@ -395,7 +416,8 @@ template <typename T> void CapsuleCrouch_Internal()
 }
 // 押し合い:
 // 触れる箱を圧力板まで押すと扉が開き（プレイヤーは板に乗っていない）、重い箱は動かない。昇降床の箱は一緒に上がる。
-template <typename T> void Push_Internal()
+template <typename T>
+void Push_Internal()
 {
 	TSampleApp<typename T::FScene> App;
 	auto& Scene = App.Scene();
@@ -433,7 +455,8 @@ template <typename T> void Push_Internal()
 	REQUIRE(Highest > 3.0f);
 }
 // カプセル・押し合いでも、表示数だけを変えた二つのサンプルは同じに進む。一時停止中の切り替えは固定更新を増やさない。
-template <typename T> void ModeViews_Internal()
+template <typename T>
+void ModeViews_Internal()
 {
 	TSampleApp<typename T::FScene> Left;
 	TSampleApp<typename T::FScene> Right;
@@ -618,4 +641,319 @@ TEST("Interaction 2D odd render width shares exact view boundaries")
 TEST("Interaction 3D odd render width shares exact view boundaries")
 {
 	OddWidth_Internal<FSample3D>();
+}
+
+namespace
+{
+// 全Jointが登録済みで、通常の成功Stepを観察できるか。
+template <typename TScene>
+void RequireCourse_Internal(TScene& Scene)
+{
+	for (const auto& Handle : Scene.GetJointCourse().GetJoints())
+	{
+		REQUIRE(Handle.Get());
+		REQUIRE(Handle.Get()->GetConnectionState() == EDistanceJointConnection::Connected);
+		const auto Value = Handle.Get()->GetObservation();
+		REQUIRE(Value && Toolbox::IsFinite(Value->CurrentLength));
+	}
+}
+// 実入力→接続要求→固定更新境界→再生成→終了を一周する。
+template <typename T>
+void JointOperations_Internal()
+{
+	TSampleApp<typename T::FScene> App;
+	App.Step(2);
+	RequireCourse_Internal(App.Scene());
+	const auto Id = *App.Scene().GetJointCourse().GetJoints()[0].Get()->GetJointId();
+	App.Press(EKey::J);
+	REQUIRE(App.Scene().GetJointCourse().GetJoints()[0].Get()->GetJointId());
+	App.Press(EKey::K);
+	REQUIRE(!App.Scene().GetJointCourse().GetJoints()[0].Get()->GetJointId());
+	REQUIRE(!App.Scene().GetPhysicsWorld().IsJointAlive(Id));
+	App.Step(10);
+	App.Press(EKey::L);
+	RequireCourse_Internal(App.Scene());
+	REQUIRE(App.Scene().GetJointCourse().GetJoints()[0].Get()->GetJointId()->Generation != Id.Generation);
+	App.Press(EKey::P);
+	REQUIRE(App.Scene().GetClock().IsPaused());
+	const auto Before = App.Scene().GetJointCourse().GetJoints()[0].Get()->GetObservation();
+	App.Press(EKey::K);
+	App.Press(EKey::J);
+	App.Step(3);
+	REQUIRE(App.Scene().GetJointCourse().GetJoints()[0].Get()->GetObservation()->SuccessfulStep == Before->SuccessfulStep);
+	REQUIRE(App.Scene().GetJointCourse().GetJoints()[0].Get()->GetJointId());
+	App.Press(EKey::P);
+	App.Step(2);
+	RequireCourse_Internal(App.Scene());
+	const auto Old = App.Scene().GetJointCourse().GetBodies()[4];
+	App.Press(EKey::N);
+	App.Step(2);
+	REQUIRE(!Old.Get());
+	RequireCourse_Internal(App.Scene());
+	App.Press(EKey::B);
+	App.Step(2);
+	const auto Mover = App.Scene().GetJointCourse().GetCarrier()->GetBodyId();
+	REQUIRE(Mover);
+	REQUIRE(App.Scene().GetPhysicsWorld().GetVelocity(*Mover) == T::At(0, 0));
+	App.Press(EKey::B);
+	App.Step(2);
+	REQUIRE(App.Scene().GetPhysicsWorld().GetVelocity(*Mover).X != 0);
+	const auto Joint = *App.Scene().GetJointCourse().GetJoints()[0].Get()->GetJointId();
+	App.Application().Shutdown();
+	REQUIRE(App.Backend().GetTrace().Fonts.IsEmpty());
+	// 別Applicationを作り、前回の時刻や要求を持ち越さない。
+	TSampleApp<typename T::FScene> Restart;
+	Restart.Step(2);
+	RequireCourse_Internal(Restart.Scene());
+	REQUIRE(Restart.Scene().GetJointCourse().GetJoints()[0].Get()->GetJointId()->World != Joint.World);
+}
+// 同じ意味のBody成分を列へ保存する。World IDや構造体の余白は比較しない。
+template <typename T>
+void AppendJointCourse_Internal(typename T::FScene& Scene, Toolbox::TVector<Toolbox::f64>& Values)
+{
+	auto& World = Scene.GetPhysicsWorld();
+	for (const auto& Handle : Scene.GetJointCourse().GetBodies())
+	{
+		const auto* Body = Handle.Get();
+		if (Body == nullptr || !Body->HasBody())
+		{
+			Values.PushBack(-1);
+			continue;
+		}
+		const auto Id = Body->GetBodyId();
+		Values.PushBack(static_cast<Toolbox::f64>(Id.Index));
+		Values.PushBack(static_cast<Toolbox::f64>(Id.Generation));
+		const auto Position = World.GetPosition(Id);
+		const auto Velocity = World.GetVelocity(Id);
+		Values.PushBack(Position.X);
+		Values.PushBack(Position.Y);
+		Values.PushBack(Velocity.X);
+		Values.PushBack(Velocity.Y);
+		if constexpr (sizeof(typename T::FVector) == sizeof(Toolbox::FVector2))
+		{
+			Values.PushBack(World.GetAngle(Id));
+			Values.PushBack(World.GetAngularVelocity(Id));
+		}
+		else
+		{
+			Values.PushBack(Position.Z);
+			Values.PushBack(Velocity.Z);
+			const auto Rotation = World.GetOrientation(Id);
+			const auto Angular = World.GetAngularVelocity(Id);
+			Values.PushBack(Rotation.X);
+			Values.PushBack(Rotation.Y);
+			Values.PushBack(Rotation.Z);
+			Values.PushBack(Rotation.W);
+			Values.PushBack(Angular.X);
+			Values.PushBack(Angular.Y);
+			Values.PushBack(Angular.Z);
+		}
+		Values.PushBack(World.IsSleeping(Id) ? 1 : 0);
+	}
+	for (const auto& Handle : Scene.GetJointCourse().GetJoints())
+	{
+		const auto* Joint = Handle.Get();
+		REQUIRE(Joint);
+		Values.PushBack(static_cast<Toolbox::f64>(Joint->GetConnectionState()));
+		const auto Id = Joint->GetJointId();
+		Values.PushBack(Id ? static_cast<Toolbox::f64>(Id->Index) : -1);
+		Values.PushBack(Id ? static_cast<Toolbox::f64>(Id->Generation) : -1);
+		const auto State = Joint->GetObservation();
+		if (State)
+		{
+			Values.PushBack(State->SuccessfulStep);
+			Values.PushBack(State->CurrentLength);
+			Values.PushBack(State->Error);
+		}
+	}
+	Values.PushBack(Scene.GetPlayer()->GetCharacter().GetStepCount());
+	Values.PushBack(Scene.GetGameRules().GetPlateOccupants());
+}
+// 同じ固定入力を1/2表示と奇数Resizeで通す。表示で二重Stepや接続しない。
+template <typename T>
+void JointViews_Internal()
+{
+	TSampleApp<typename T::FScene> One;
+	TSampleApp<typename T::FScene> Two;
+	Two.Scene().ToggleSplit();
+	for (Toolbox::int32 Frame = 0; Frame < 90; ++Frame)
+	{
+		for (auto* App : {&One, &Two})
+		{
+			App->Hold(EKey::J, Frame == 8);
+			App->Hold(EKey::K, Frame == 20);
+			App->Hold(EKey::L, Frame == 40);
+			App->Hold(EKey::N, Frame == 60);
+		}
+		if (Frame == 12 || Frame == 70)
+		{
+			auto& Window = Two.Backend().GetTrace().Window;
+			Window.bKnown = true;
+			Window.ClientWidth = Window.RenderWidth = Frame == 12 ? 1001 : 1280;
+			Window.ClientHeight = Window.RenderHeight = Frame == 12 ? 501 : 720;
+		}
+		const Toolbox::f64 Seconds = Frame == 2 ? 0 : (Frame == 3 ? 1.0 / 30.0 : 1.0 / 60.0);
+		One.Advance(Seconds);
+		Two.Advance(Seconds);
+		Toolbox::TVector<Toolbox::f64> A;
+		Toolbox::TVector<Toolbox::f64> B;
+		AppendJointCourse_Internal<T>(One.Scene(), A);
+		AppendJointCourse_Internal<T>(Two.Scene(), B);
+		REQUIRE(A.Size() == B.Size());
+		for (Toolbox::size_t Index = 0; Index < A.Size(); ++Index)
+		{
+			REQUIRE(memcmp(&A[Index], &B[Index], sizeof(Toolbox::f64)) == 0);
+		}
+	}
+}
+// 連結の端と中間を消す。隣のBodyは生存し、失効した拘束を再生成しない。
+template <typename T>
+void JointChainLifetime_Internal()
+{
+	TSampleApp<typename T::FScene> App;
+	App.Step(2);
+	for (const Toolbox::size_t Removed : {Toolbox::size_t(3), Toolbox::size_t(4), Toolbox::size_t(6)})
+	{
+		App.Scene().GetJointCourse().Regenerate();
+		App.Step(2);
+		const auto Before = App.Scene().GetJointCourse().GetBodies()[Removed];
+		App.Scene().GetJointCourse().RemoveBody(Removed);
+		App.Step(2);
+		REQUIRE(!Before.Get());
+		REQUIRE(App.Scene().GetJointCourse().GetBodies()[5].Get());
+		REQUIRE(App.Scene().GetJointCourse().GetJoints()[5].Get()->GetJointId());
+	}
+}
+// Jointでつながった重りを押して既存Sensorへ到達させる。
+template <typename T>
+void JointCharacterPush_Internal()
+{
+	TSampleApp<typename T::FScene> App;
+	auto& Scene = App.Scene();
+	Scene.TogglePush();
+	Scene.GetPlayer()->GetCharacter().Teleport(T::At(7.5f, 0.52f));
+	App.Hold(EKey::D, true);
+	for (Toolbox::int32 Frame = 0; Frame < 180 && Scene.GetGameRules().GetPlateOccupants() == 0; ++Frame)
+	{
+		App.Step();
+	}
+	App.Hold(EKey::D, false);
+	const auto* Weight = Scene.GetJointCourse().GetBodies()[1].Get();
+	REQUIRE(Weight && Weight->HasBody());
+	// Sensorとの重なりと、Character自身が板の外にいることを分けて確認する。
+	const auto Position = Scene.GetPhysicsWorld().GetPosition(Weight->GetBodyId());
+	REQUIRE(Position.X > 8.6f);
+	REQUIRE(Position.X + 0.28f > InteractionLayout::PlateX - InteractionLayout::PlateHalfX);
+	REQUIRE(Scene.GetPlayer()->GetCharacter().GetCenter().X + 0.5f < InteractionLayout::PlateX - InteractionLayout::PlateHalfX);
+	REQUIRE(Scene.GetJointCourse().GetJoints()[0].Get()->GetJointId());
+	REQUIRE(Scene.GetGameRules().GetPlateOccupants() >= 1);
+	REQUIRE(Scene.GetGameRules().IsDoorOpen());
+}
+} // namespace
+
+TEST("Interaction 2D joint input lifecycle and restart")
+{
+	JointOperations_Internal<FSample2D>();
+}
+
+TEST("Interaction 2D joint one two views and odd resize bit match")
+{
+	JointViews_Internal<FSample2D>();
+}
+
+TEST("Interaction 2D joint chain endpoint and middle lifetime")
+{
+	JointChainLifetime_Internal<FSample2D>();
+}
+
+TEST("Interaction 2D joint weight pushed into existing pressure plate")
+{
+	JointCharacterPush_Internal<FSample2D>();
+}
+
+TEST("Interaction 3D joint input lifecycle and restart")
+{
+	JointOperations_Internal<FSample3D>();
+}
+
+TEST("Interaction 3D joint one two views and odd resize bit match")
+{
+	JointViews_Internal<FSample3D>();
+}
+
+TEST("Interaction 3D joint chain endpoint and middle lifetime")
+{
+	JointChainLifetime_Internal<FSample3D>();
+}
+
+TEST("Interaction 3D joint weight pushed into existing pressure plate")
+{
+	JointCharacterPush_Internal<FSample3D>();
+}
+
+namespace
+{
+// Modalが閉じたフレームにも、保持したJoint操作を流さない。
+template <typename T>
+void JointModal_Internal()
+{
+	TSampleApp<typename T::FScene> App;
+	App.Step(3);
+	const auto OldBody = App.Scene().GetJointCourse().GetBodies()[1];
+	const auto OldJoint = *App.Scene().GetJointCourse().GetJoints()[0].Get()->GetJointId();
+	App.Press(EKey::F1);
+	REQUIRE(App.Scene().GetClock().IsPaused());
+	const auto Epoch = App.Scene().GetJointCourse().GetJoints()[0].Get()->GetObservation()->SuccessfulStep;
+	const EKey Keys[] = {EKey::J, EKey::K, EKey::L, EKey::N, EKey::B};
+	for (const auto Key : Keys)
+	{
+		App.Hold(Key, true);
+	}
+	App.Step(6);
+	REQUIRE(App.Scene().GetJointCourse().GetJoints()[0].Get()->GetObservation()->SuccessfulStep == Epoch);
+	App.Press(EKey::F1);
+	App.Step(4);
+	REQUIRE(OldBody.Get() != nullptr);
+	REQUIRE(*App.Scene().GetJointCourse().GetJoints()[0].Get()->GetJointId() == OldJoint);
+	for (const auto Key : Keys)
+	{
+		App.Hold(Key, false);
+	}
+	App.Step();
+	App.Press(EKey::K);
+	REQUIRE(!App.Scene().GetJointCourse().GetJoints()[0].Get()->GetJointId());
+}
+// 固定更新の失敗でPresentをせず、Jointを含むSceneの資源を終了する。
+template <typename T>
+void JointApplicationFailure_Internal()
+{
+	TSampleApp<typename T::FScene> App;
+	App.Step(3);
+	const auto Handle = App.Scene().GetJointCourse().GetJoints()[0];
+	auto Invalid = Handle.Get()->GetDescription();
+	Invalid.BodyB = Invalid.BodyA;
+	Handle.Get()->RequestConnect(Invalid);
+	const auto Presented = App.Backend().GetTrace().Presentations;
+	const auto Result = App.Application().Step(10.0);
+	REQUIRE(!Result);
+	REQUIRE(!Handle.Get());
+	REQUIRE(App.Backend().GetTrace().Fonts.IsEmpty());
+	REQUIRE(App.Backend().GetTrace().Presentations == Presented);
+}
+} // namespace
+TEST("Interaction 2D Joint modal consumes held operations")
+{
+	JointModal_Internal<FSample2D>();
+}
+TEST("Interaction 3D Joint modal consumes held operations")
+{
+	JointModal_Internal<FSample3D>();
+}
+TEST("Interaction 2D Joint fixed failure shuts scene without present")
+{
+	JointApplicationFailure_Internal<FSample2D>();
+}
+TEST("Interaction 3D Joint fixed failure shuts scene without present")
+{
+	JointApplicationFailure_Internal<FSample3D>();
 }

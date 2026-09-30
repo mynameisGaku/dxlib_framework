@@ -41,6 +41,25 @@ int32 main(int32 ArgumentCount, char** Arguments)
 		Failed += RunGroup_Internal(JointCases, Count);
 		return Failed == 0 ? 0 : 1;
 	}
+	// Joint変異試験の限定入口。通常起動の全試験登録と終了コードは維持する。
+	if (ArgumentCount == 2 && strcmp(Arguments[1], "--joint-all") == 0)
+	{
+		const PhysicsTest::FCase* JointCases = nullptr;
+		int32 Failed = 0;
+		JointCases = PhysicsTest::GetJointLifetimeCases(Count);
+		Failed += RunGroup_Internal(JointCases, Count);
+		JointCases = PhysicsTest::GetDistanceJointCases(Count);
+		Failed += RunGroup_Internal(JointCases, Count);
+		JointCases = PhysicsTest::GetDistanceJointSleepCases(Count);
+		Failed += RunGroup_Internal(JointCases, Count);
+		JointCases = PhysicsTest::GetDistanceJoint3DFrameCases(Count);
+		Failed += RunGroup_Internal(JointCases, Count);
+		JointCases = PhysicsTest::GetDistanceJointParallelCases(Count);
+		Failed += RunGroup_Internal(JointCases, Count);
+		JointCases = PhysicsTest::GetDistanceJointContinuousCases(Count);
+		Failed += RunGroup_Internal(JointCases, Count);
+		return Failed == 0 ? 0 : 1;
+	}
 	const PhysicsTest::FCase* Cases = PhysicsTest::GetCollisionCases(Count);
 	int32 Failed = RunGroup_Internal(Cases, Count);
 	Cases = PhysicsTest::GetSweepCases(Count);

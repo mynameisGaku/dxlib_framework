@@ -13,6 +13,7 @@
 //   --reference 索引を使わない総当たりの参照経路で計る（索引のあるビルドだけ）
 //   --pilot     所要時間の見積り用に、繰り返しの固定更新を短くする
 #include "CapsuleScenarios.h"
+#include "JointScenarios.h"
 #include "KernelCosts.h"
 #include "InteractionScenarios.h"
 #include "LegacyScenarios.h"
@@ -74,7 +75,7 @@ int main(int Count, char** Args)
 {
 	if (Count < 2)
 	{
-		printf("usage: dxf_character_benchmark legacy|legacy-static|heavy|kernels|costs|scaling|interaction|capsule "
+		printf("usage: dxf_character_benchmark legacy|legacy-static|heavy|kernels|costs|scaling|interaction|capsule|joint "
 		       "[--reference] "
 		       "[--pilot]\n");
 		return 2;
@@ -133,6 +134,24 @@ int main(int Count, char** Args)
 		catch (const Toolbox::FException& Error)
 		{
 			printf("capsule failed: %s\n", Error.What());
+			return 1;
+		}
+	}
+	if (strcmp(Args[1], "joint") == 0)
+	{
+		if (bReference)
+		{
+			printf("joint does not support --reference\n");
+			return 2;
+		}
+		try
+		{
+			RunJointSeries(Warmup, Steps);
+			return 0;
+		}
+		catch (const Toolbox::FException& Error)
+		{
+			printf("joint failed: %s\n", Error.What());
 			return 1;
 		}
 	}

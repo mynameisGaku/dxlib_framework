@@ -203,3 +203,7 @@ World.SetBodyTransform(SelfBody, State.Center, Toolbox::FQuaternion{});   // 自
 - `ECharacterShape::Capsule`と`HalfHeight`／`Radius`でカプセルを用いる。2D／3Dで共通の意味。
 - 足元（中心からUpの逆向きに`HalfHeight + Radius`）を保って高さだけ変えられる。天井や低い通路で伸ばせないときは
   伸ばさず、`Blocker`に妨げのColliderを返す。
+
+## Jointでつながれた剛体を押す
+
+既存のDynamic押し操作をそのまま使います。Character自身へJoint Bodyを重ねず、荷物のRigidBodyと支点のRigidBody／Moverを[距離Joint Component](Joints.md)で結びます。相互作用コースでは、Characterが圧力板の外から吊り下げ物を押し、その荷物が既存Triggerへ入る経路を2D／3Dで確認します。JointはContactやTriggerを無効にせず、表示数でCharacter／Physics更新を増やしません。

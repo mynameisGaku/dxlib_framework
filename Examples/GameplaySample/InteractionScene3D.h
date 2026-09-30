@@ -3,6 +3,7 @@
 #define DXF_GAMEPLAY_SAMPLE_INTERACTION_SCENE_3D_H
 #include "InteractionCourse.h"
 #include "InteractionUi.h"
+#include "JointCourse3D.h"
 #include "Dxf/Font.h"
 #include "Dxf/RenderView3D.h"
 namespace Dxf::GameplaySample
@@ -88,6 +89,21 @@ public:
 		m_Mode.TogglePush();
 	}
 
+	/**
+	 * Sceneが所有する距離拘束の仕掛け。操作は更新側だけで行う。
+	 */
+	FJointCourse3D& GetJointCourse() noexcept
+	{
+		return m_JointCourse;
+	}
+	/**
+	 * 描画と観察用の仕掛け参照。
+	 */
+	const FJointCourse3D& GetJointCourse() const noexcept
+	{
+		return m_JointCourse;
+	}
+
 protected:
 	/**
 	 * Worldのイベントを有効化し、配置・操作を置き、文字を読み込む。
@@ -118,6 +134,10 @@ private:
 	 * ゲームの規則と状態。
 	 */
 	FInteractionRules m_Rules;
+	/**
+	 * 既存コースに置いた距離拘束の仕掛け。
+	 */
+	FJointCourse3D m_JointCourse;
 	/**
 	 * Scene専用の設定画面。物理と独立した表示・入力処理。
 	 */

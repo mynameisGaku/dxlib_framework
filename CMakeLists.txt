@@ -244,6 +244,9 @@ set(DXF_GAMEPLAY_SAMPLE_SOURCES
     Examples/GameplaySample/SampleHud.cpp
     Examples/GameplaySample/CharacterSample2DScene.cpp
     Examples/GameplaySample/CharacterSample3DScene.cpp
+    Examples/GameplaySample/JointCourse2D.cpp
+    Examples/GameplaySample/JointCourse3D.cpp
+    Examples/GameplaySample/JointCourseOverlay.cpp
     Examples/GameplaySample/InteractionLayout.cpp
     Examples/GameplaySample/InteractionMode.cpp
     Examples/GameplaySample/InteractionRules.cpp
@@ -274,6 +277,7 @@ if(DXF_BUILD_TESTS)
         Tools/CharacterBenchmark/ScenarioRunner.cpp
         Tools/CharacterBenchmark/LegacyScenarios.cpp
         Tools/CharacterBenchmark/InteractionScenarios.cpp
+        Tools/CharacterBenchmark/JointScenarios.cpp
         Tools/CharacterBenchmark/CapsuleScenarios.cpp
         Tools/CharacterBenchmark/ScalingScenarios.cpp
         Tools/CharacterBenchmark/QueryCosts.cpp
@@ -413,6 +417,7 @@ if(DXF_BUILD_NATIVE_SMOKE)
     add_executable(NativeGameplaySmoke
         Tests/GameplaySampleSmoke/Main.cpp
         Tests/GameplaySampleSmoke/SmokeSupport.cpp
+        Tests/GameplaySampleSmoke/JointSmoke.cpp
         Tests/GameplaySampleSmoke/InteractionSmoke.cpp
         Tests/GameplaySampleSmoke/SmokeAcceptance.cpp
         Tests/GameplaySampleSmoke/SmokeTraces.cpp)

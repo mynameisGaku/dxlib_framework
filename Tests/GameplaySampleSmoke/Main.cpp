@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: NOASSERTION
+#include "JointSmoke.h"
+#include <string.h>
 // 入力だけを固定し、キャラクター移動のサンプル（2D／3D）を実Application・実DxLibで操作する。
 // 2D／3Dの両方で同じ受け入れ（SmokeAcceptance）と、シーンの切替・再入場・2画面の表示を確かめて終了し、
 // 1画面／2画面・索引あり／総当たりの軌跡の一致（SmokeTraces。各回を新しいApplicationで起動）と、終了後の再起動を確かめる。
@@ -13,7 +15,7 @@ Toolbox::int32 main(Toolbox::int32 Count, char** Args)
 {
 	using namespace Dxf;
 	using namespace Dxf::GameplaySmoke;
-	if (Count != 3)
+	if (Count != 3 && Count != 4)
 	{
 		Toolbox::Err << "Usage: NativeGameplaySmoke <ProjectRoot> <output directory>\n";
 		return 2;
@@ -24,6 +26,20 @@ Toolbox::int32 main(Toolbox::int32 Count, char** Args)
 		FDxLibBackends Backends;
 		const Toolbox::FPath Output(Args[2]);
 		Check(Toolbox::IsDirectory(Output) || Toolbox::CreateDirectory(Output), "output directory failed");
+		if (Count == 4)
+		{
+			if (strcmp(Args[3], "--joint-only") == 0)
+			{
+				RunJointSmoke(Backends, Args[1], Output);
+				return 0;
+			}
+			if (strcmp(Args[3], "--interaction-only") == 0)
+			{
+				RunInteractionSmoke(Backends, Args[1], Output);
+				return 0;
+			}
+			throw Toolbox::FException("Unknown limited smoke selection");
+		}
 		{
 			FSmokeApp App(Backends, Args[1]);
 			App.Start();
@@ -52,6 +68,7 @@ Toolbox::int32 main(Toolbox::int32 Count, char** Args)
 		RunTraceComparisons3D(Backends, Args[1]);
 		// 同じサンプルライブラリの相互作用を実描画・固定入力・1／2画面で確認する。
 		RunInteractionSmoke(Backends, Args[1], Output);
+		RunJointSmoke(Backends, Args[1], Output);
 		{
 			// 終了後の再起動: 新しいApplicationで開始し、歩いて終了できる。
 			FSmokeApp App(Backends, Args[1]);

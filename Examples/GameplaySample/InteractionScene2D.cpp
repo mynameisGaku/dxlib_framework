@@ -2,6 +2,7 @@
 #include "InteractionScene2D.h"
 #include "CharacterSample2DScene.h"
 #include "InteractionHud.h"
+#include "JointCourseOverlay.h"
 #include "InteractionScene3D.h"
 #include "Dxf/AssetService.h"
 #include "Dxf/RenderContext.h"
@@ -28,6 +29,7 @@ protected:
 	void OnTick(const FTickContext& Context) override
 	{
 		const FInputSnapshot& Input = Context.Input;
+		m_pScene->GetJointCourse().HandleInput(Input, m_pScene->GetClock().IsPaused());
 		if (Context.Scenes != nullptr && Input.WasPressed(EKey::Escape))
 		{
 			Context.Scenes->RequestQuit();
@@ -163,6 +165,7 @@ TResult<void> DInteraction2DScene::OnInitialize(const FInitContext& Context)
 	{
 		return Spawned;
 	}
+	m_JointCourse.Initialize(*this);
 	auto Director = Spawn<DInteractionDirector2D>(*this);
 	if (!Director)
 	{
@@ -222,6 +225,7 @@ void DInteraction2DScene::DrawView_Internal(FRenderContext& Render, Toolbox::int
 		const Toolbox::FVector2 At = Point(Center);
 		RequireSample(Draw.FillCircle({At.X, At.Y}, Radius * Scale, Style));
 	};
+	DrawJointCourse2D(Render, *this, Side);
 	const auto& Ground = InteractionLayout::GetGround();
 	for (Toolbox::size_t Index = 0; Index < Ground.Size(); ++Index)
 	{
@@ -338,6 +342,7 @@ void DInteraction2DScene::OnDraw(FRenderContext& Render) const
 	         GroundName(Character.GetGround().State), MoveStopName(Character.GetLastStep().Horizontal.Stop),
 	         MoveStopName(Character.GetLastStep().Vertical.Stop), GetClock().IsPaused() ? "[PAUSED]" : "");
 	RequireSample(Draw.DrawText(m_Font, Line, {16, 96}, Text));
+	DrawJointStatus(Render, *this, m_Font);
 	InteractionModeText(m_Mode, Line);
 	RequireSample(Draw.DrawText(m_Font, Line, {16, 124}, Text));
 }

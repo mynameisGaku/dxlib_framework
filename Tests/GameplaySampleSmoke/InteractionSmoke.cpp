@@ -124,6 +124,8 @@ struct FInteractionFrame
 	FInteractionState State;
 	// Worldが発行した順序のイベント列。
 	Toolbox::TVector<FTraceEvent> Events;
+	// Jointコースの実World成分と世代。World番号と構造体の余白は除く。
+	Toolbox::TVector<Toolbox::f64> JointValues;
 };
 
 // 2Dの値を共通の記録へ変換する。
@@ -444,7 +446,8 @@ template <typename T> void Input_Internal(FSmokeApp& App, typename T::FScene& Sc
 		const Toolbox::size_t Index = Frame == 130 ? 0 : 1;
 		// この固定更新の開始時の床の中心。
 		const auto Position = Scene.GetCourse().Platforms[Index].Get()->GetMover()->GetPose().Position;
-		Character.Teleport(Position + T::At(0, 0.77f));
+		// 昇降床の中央には箱が載るため、箱と重ならない左側の上面へ配置する。
+		Character.Teleport(Position + T::At(Frame == 170 ? -0.85f : 0, 0.77f));
 	}
 	else if (Frame == 185)
 	{
@@ -503,6 +506,12 @@ template <typename T> void Accept_Internal(const Toolbox::TVector<FInteractionFr
 		Jumps += Trace[Frame].State.bJumped ? 1 : 0;
 	}
 	Require(Jumps == 1, 164, "platform jump was missing or repeated");
+	if (!Trace[180].State.bCarried)
+	{
+		char Detail[256];
+		snprintf(Detail, sizeof(Detail), "LIFT_DIAGNOSTIC %s views=%d y172=%.6f y180=%.6f ground=%llu carrier=%llu carried=%d", T::Name, bSplit ? 2 : 1, Trace[172].State.Player.Y, Trace[180].State.Player.Y, static_cast<Toolbox::uint64>(Trace[180].State.Ground.Body), static_cast<Toolbox::uint64>(Trace[180].State.Carrier.Body), Trace[180].State.bCarried);
+		Toolbox::Err << static_cast<const char*>(Detail) << "\n";
+	}
 	Require(Trace[180].State.bCarried && Toolbox::Abs(Trace[180].State.Player.Y - Trace[172].State.Player.Y) > 0.01f,
 	        180, "lift did not carry the player vertically");
 	Require(Trace[200].State.bCarried && !(Trace[200].State.PlatformAxes[2] == Trace[190].State.PlatformAxes[2]) &&
@@ -583,6 +592,86 @@ void Record_Internal(FDxLibBackends& Backends, const char* ProjectRoot, const To
 		// 描画を終えた直後に読む、当該フレームの記録。
 		FInteractionFrame Entry;
 		ReadFrame_Internal<T>(Scene, Entry);
+		// 画面数によるJointの二重更新を、実Native Applicationでも数値で検出する。
+		auto& JointValues = Entry.JointValues;
+		const auto& World = Scene.GetPhysicsWorld();
+		auto AppendBody = [&](typename T::FBodyId Id)
+		{
+			const auto Position = World.GetPosition(Id);
+			const auto Velocity = World.GetVelocity(Id);
+			JointValues.PushBack(static_cast<Toolbox::f64>(Id.Index));
+			JointValues.PushBack(static_cast<Toolbox::f64>(Id.Generation));
+			JointValues.PushBack(Position.X);
+			JointValues.PushBack(Position.Y);
+			JointValues.PushBack(Velocity.X);
+			JointValues.PushBack(Velocity.Y);
+			JointValues.PushBack(World.IsSleeping(Id) ? 1 : 0);
+			if constexpr (T::b3D)
+			{
+				const auto Rotation = World.GetOrientation(Id);
+				const auto Angular = World.GetAngularVelocity(Id);
+				JointValues.PushBack(Position.Z);
+				JointValues.PushBack(Velocity.Z);
+				JointValues.PushBack(Rotation.X);
+				JointValues.PushBack(Rotation.Y);
+				JointValues.PushBack(Rotation.Z);
+				JointValues.PushBack(Rotation.W);
+				JointValues.PushBack(Angular.X);
+				JointValues.PushBack(Angular.Y);
+				JointValues.PushBack(Angular.Z);
+			}
+			else
+			{
+				JointValues.PushBack(World.GetAngle(Id));
+				JointValues.PushBack(World.GetAngularVelocity(Id));
+			}
+		};
+		for (const auto& Handle : Scene.GetJointCourse().GetBodies())
+		{
+			const auto* Body = Handle.Get();
+			// 運搬支点のslotにはRigidBodyを重ねず、Moverを下で一度だけ記録する。
+			if (Body == nullptr)
+			{
+				JointValues.PushBack(-1);
+				continue;
+			}
+			Check(Body->HasBody(), "native joint trace body missing");
+			AppendBody(Body->GetBodyId());
+		}
+		const auto Carrier = Scene.GetJointCourse().GetCarrier()->GetBodyId();
+		Check(static_cast<bool>(Carrier), "native joint trace mover missing");
+		AppendBody(*Carrier);
+		for (const auto& Handle : Scene.GetJointCourse().GetJoints())
+		{
+			const auto* Joint = Handle.Get();
+			const auto Id = Joint->GetJointId();
+			const auto Observation = Joint->GetObservation();
+			Check(Id && Observation, "native joint trace observation missing");
+			JointValues.PushBack(static_cast<Toolbox::f64>(Id->Index));
+			JointValues.PushBack(static_cast<Toolbox::f64>(Id->Generation));
+			JointValues.PushBack(static_cast<Toolbox::f64>(Joint->GetConnectionState()));
+			JointValues.PushBack(static_cast<Toolbox::f64>(Observation->SuccessfulStep));
+			JointValues.PushBack(Observation->CurrentLength);
+			JointValues.PushBack(Observation->Error);
+		}
+
+		if (Frame == 170 || Frame == 172 || Frame == 180)
+		{
+			// 失敗前の支持と、配置時の箱／床の実Bodyを同じフレームから残す。
+			char Detail[512];
+			const auto Lift = Scene.GetCourse().Platforms[1].Get()->GetMover()->GetBodyId();
+			const auto* Crate = Scene.GetCourse().LiftCrate.Get()->GetRigid();
+			snprintf(Detail, sizeof(Detail), "LIFT_SETUP %s frame=%d y=%.6f ground=%llu present=%d lift=%llu crate=%llu crateY=%.6f steps=%lld paused=%d liftY=%.6f", T::Name, Frame, Entry.State.Player.Y, static_cast<Toolbox::uint64>(Entry.State.Ground.Body), Entry.State.Ground.bPresent, static_cast<Toolbox::uint64>(Lift->Index), static_cast<Toolbox::uint64>(Crate->GetBodyId().Index), Scene.GetPhysicsWorld().GetPosition(Crate->GetBodyId()).Y, Entry.State.Steps, Scene.GetClock().IsPaused(), Entry.State.Platforms[1].Y);
+			Toolbox::Err << static_cast<const char*>(Detail) << "\n";
+			const auto& Recovery = Scene.GetPlayer()->GetCharacter().GetLastStep().Recovery;
+			Toolbox::Err << "RECOVERY status=" << static_cast<Toolbox::int32>(Recovery.Status) << " body=" << (Recovery.Collider ? Recovery.Collider->Body.Index : 99999) << "\n";
+			const auto& Move = Scene.GetPlayer()->GetCharacter().GetLastStep().Vertical;
+			Toolbox::Err << "VERTICAL stop=" << static_cast<Toolbox::int32>(Move.Stop) << " contacts=" << Move.ContactCount << " vy=" << Entry.State.Velocity.Y << "\n";
+			for (Toolbox::uint32 Contact = 0; Contact < Move.ContactCount; ++Contact)
+			{
+				Toolbox::Err << "CONTACT body=" << Move.Contacts[Contact].Collider.Body.Index << " ny=" << Move.Contacts[Contact].Normal.Y << "\n";
+			}
+		}
 		RequireFrame_Internal(Entry.State.Player.IsValid() && Entry.State.Velocity.IsValid(), T::Name, bSplit, Frame,
 		                      "interaction produced a nonfinite state");
 		Trace.PushBack(Toolbox::Move(Entry));
@@ -635,6 +724,12 @@ void RunDimension_Internal(FDxLibBackends& Backends, const char* ProjectRoot, co
 		// 同じ番号に対応する2画面側の記録。
 		const auto& B = Split[static_cast<Toolbox::size_t>(Frame)];
 		RequireFrame_Internal(A.State == B.State, T::Name, true, Frame, "view count changed numerical or game state");
+		RequireFrame_Internal(A.JointValues.Size() == B.JointValues.Size(), T::Name, true, Frame, "view count changed joint trace size");
+		for (Toolbox::size_t Index = 0; Index < A.JointValues.Size(); ++Index)
+		{
+			RequireFrame_Internal(A.JointValues[Index] == B.JointValues[Index], T::Name, true, Frame, "view count changed joint body, generation or observation");
+		}
+
 		RequireFrame_Internal(A.Events.Size() == B.Events.Size(), T::Name, true, Frame,
 		                      "view count changed event count");
 		for (Toolbox::size_t Index = 0; Index < A.Events.Size(); ++Index)
@@ -644,7 +739,7 @@ void RunDimension_Internal(FDxLibBackends& Backends, const char* ProjectRoot, co
 		}
 	}
 	Toolbox::Out << "INTERACTION_VIEW_INVARIANCE " << T::Name << " frames=" << InteractionFrames
-	             << " state=exact events=exact\n";
+	             << " state=exact events=exact joints=exact\n";
 }
 } // namespace
 

@@ -2,6 +2,7 @@
 #include "InteractionScene3D.h"
 #include "CharacterSample3DScene.h"
 #include "InteractionHud.h"
+#include "JointCourseOverlay.h"
 #include "InteractionScene2D.h"
 #include "Dxf/AssetService.h"
 #include "Dxf/RenderContext.h"
@@ -23,6 +24,7 @@ protected:
 	void OnTick(const FTickContext& Context) override
 	{
 		const FInputSnapshot& Input = Context.Input;
+		m_pScene->GetJointCourse().HandleInput(Input, m_pScene->GetClock().IsPaused());
 		if (Context.Scenes != nullptr && Input.WasPressed(EKey::Escape))
 		{
 			Context.Scenes->RequestQuit();
@@ -177,6 +179,7 @@ TResult<void> DInteraction3DScene::OnInitialize(const FInitContext& Context)
 	{
 		return Spawned;
 	}
+	m_JointCourse.Initialize(*this);
 	auto Director = Spawn<DInteractionDirector3D>(*this);
 	if (!Director)
 	{
@@ -191,6 +194,7 @@ void DInteraction3DScene::OnDraw(FRenderContext& Render) const
 	for (Toolbox::int32 Side = 0; Side < (m_bSplit ? 2 : 1); ++Side)
 	{
 		RequireSample(Draw3D.SetView(GetView(Side)));
+		DrawJointCourse3D(Render, *this);
 		FDrawStyle3D Style;
 		const auto& Ground = InteractionLayout::GetGround();
 		Style.Color = {60, 70, 90, 255};
@@ -319,6 +323,7 @@ void DInteraction3DScene::OnDraw(FRenderContext& Render) const
 	         MoveStopName(Character.GetLastStep().Horizontal.Stop), MoveStopName(Character.GetLastStep().Vertical.Stop),
 	         GetClock().IsPaused() ? "[PAUSED]" : "");
 	RequireSample(Draw.DrawText(m_Font, Line, {16, 96}, Text));
+	DrawJointStatus(Render, *this, m_Font);
 	InteractionModeText(m_Mode, Line);
 	RequireSample(Draw.DrawText(m_Font, Line, {16, 124}, Text));
 }

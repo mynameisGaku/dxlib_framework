@@ -14,6 +14,7 @@ FApplicationSettings Settings_Internal(const char* ProjectRoot)
 	Settings.Window.Width = 1280;
 	Settings.Window.Height = 720;
 	Settings.Window.bVSync = false;
+	Settings.Window.Resize = EWindowResizeMode::Resizable;
 	Settings.ExecutionThreadCount = 1;
 	return Settings;
 }
@@ -135,17 +136,21 @@ GameplaySample::DInteraction3DScene& FSmokeApp::Interaction3D()
 void FSmokeApp::CapturePoints(const Toolbox::FPath& Path, const FVector2* Points, FColor* Colors, Toolbox::size_t Count)
 {
 	// GPUからの読み戻しは一度だけ行い、保存と画素の確認は同じCPU画像を使う。
-	FNativeHandle Image(DxLib::MakeARGB8ColorSoftImage(1280, 720), nullptr, &ReleaseImage_Internal);
+	// 現在の描画サイズ。Resize後も固定寸法を読戻しに使わない。
+	int Width = 0;
+	int Height = 0;
+	Check(DxLib::GetDrawScreenSize(&Width, &Height) == 0, "capture render size failed");
+	FNativeHandle Image(DxLib::MakeARGB8ColorSoftImage(Width, Height), nullptr, &ReleaseImage_Internal);
 	Check(Image.Get() >= 0, "capture image allocation failed");
 	Check(DxLib::SetDrawScreen(DX_SCREEN_FRONT) == 0, "front buffer selection failed");
-	const Toolbox::int32 Read = DxLib::GetDrawScreenSoftImage(0, 0, 1280, 720, Image.Get());
+	const Toolbox::int32 Read = DxLib::GetDrawScreenSoftImage(0, 0, Width, Height, Image.Get());
 	Check(DxLib::SetDrawScreen(DX_SCREEN_BACK) == 0, "back buffer restoration failed");
 	Check(Read == 0, "capture one-shot readback failed");
 	Check(DxLib::SaveSoftImageToPng(Path.ToUtf8().CStr(), Image.Get(), 1) == 0, "capture failed");
 	for (Toolbox::size_t Index = 0; Index < Count; ++Index)
 	{
 		// 描画領域から外れた投影を端へ丸めて成功にしない。
-		Check(Points[Index].X >= 0 && Points[Index].Y >= 0 && Points[Index].X < 1280 && Points[Index].Y < 720,
+		Check(Points[Index].X >= 0 && Points[Index].Y >= 0 && Points[Index].X < Width && Points[Index].Y < Height,
 		      "capture point outside image");
 		// DxLibのABIが要求するRGBA出力先。
 		int R = 0;
