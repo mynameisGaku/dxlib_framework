@@ -209,3 +209,9 @@ Objectのコンストラクタ中に所属Collectionへ終了が要求された�
 - 解消不能な状況 `Dxf::ECharacterRecoveryStatus`（`Blocked`／`TooDeep`／`Ambiguous`／各Limit）。
 - 使い方は[キャラクター移動](../Physics/CharacterMovement.md)を参照。Gameplay側の適用順は
   `DCharacterMovement2DComponent`／`3DComponent`が同じ固定更新の物理Step前に行う。
+
+## 2D／3Dの距離Joint
+
+Physics単独は`CreateDistanceJoint`／`DestroyJoint`／`IsJointAlive`／`GetDistanceJoint`、Gameplayは`DDistanceJoint2DComponent`／`DDistanceJoint3DComponent`を使います。`FPhysicsBodyReference2D/3D`でRigidBody・KinematicMoverの型付きハンドルまたは完全なBody IDを渡します。`RequestDisconnect`／`RequestConnect`は固定更新境界への要求、`GetConnectionState`／`GetJointId`／`GetObservation`は読み取りです。描画は別責務で`GetRenderAnchors`から既存Rendererへ渡します。
+
+Gameplayはcppを持つ静的ライブラリです。公開`dxf::gameplay`／`dxf::framework`をリンクしてください。接続状態・世代・再接続失敗・Scene寿命と両次元の例は[距離Joint](Physics/Joints.md)を参照してください。

@@ -194,11 +194,17 @@ target_link_libraries(dxf_runtime PUBLIC dxf::support)
 dxf_public_headers(dxf_runtime Runtime PUBLIC)
 dxf_warnings(dxf_runtime)
 
-add_library(dxf_gameplay INTERFACE)
+add_library(dxf_gameplay STATIC
+    Source/Gameplay/Private/Dxf/PhysicsBodyReference2D.cpp
+    Source/Gameplay/Private/Dxf/PhysicsBodyReference3D.cpp
+    Source/Gameplay/Private/Dxf/DistanceJointComponent2D.cpp
+    Source/Gameplay/Private/Dxf/DistanceJointComponent3D.cpp)
 add_library(dxf::gameplay ALIAS dxf_gameplay)
-set_target_properties(dxf_gameplay PROPERTIES EXPORT_NAME gameplay)
-target_link_libraries(dxf_gameplay INTERFACE dxf::runtime dxf::physics)
-dxf_public_headers(dxf_gameplay Gameplay INTERFACE)
+set_target_properties(dxf_gameplay PROPERTIES EXPORT_NAME gameplay DEBUG_POSTFIX d)
+target_compile_features(dxf_gameplay PUBLIC cxx_std_20)
+target_link_libraries(dxf_gameplay PUBLIC dxf::runtime dxf::physics)
+dxf_public_headers(dxf_gameplay Gameplay PUBLIC)
+dxf_warnings(dxf_gameplay)
 
 add_library(dxf_physics STATIC
     Source/Physics/Private/Dxf/PhysicsWorld2D.cpp
@@ -289,7 +295,7 @@ if(DXF_BUILD_TESTS)
         set_tests_properties(NoStl PROPERTIES LABELS "source-policy" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
     endif()
     add_executable(dxf_tests Tests/TestMain.cpp Tests/InteractionMutationTests.cpp Tests/Support/TestFs.cpp Tests/ToolboxTests.cpp Tests/MathCollisionTests.cpp Tests/FoundationTests.cpp Tests/SupportTests.cpp
-        Tests/GameplayTests.cpp Tests/ApplicationTests.cpp Tests/WindowStateTests.cpp Tests/SandboxTests.cpp Tests/FixedTickTests.cpp Tests/PhysicsSceneTests.cpp Tests/CharacterMovementComponentTests.cpp Tests/PhysicsEventComponentTests.cpp Tests/KinematicMoverTests.cpp Tests/MovingGroundTests.cpp Tests/ThreadingTests.cpp Tests/AssetRootTests.cpp
+        Tests/GameplayTests.cpp Tests/ApplicationTests.cpp Tests/WindowStateTests.cpp Tests/SandboxTests.cpp Tests/FixedTickTests.cpp Tests/PhysicsSceneTests.cpp Tests/DistanceJointComponentTests.cpp Tests/CharacterMovementComponentTests.cpp Tests/PhysicsEventComponentTests.cpp Tests/KinematicMoverTests.cpp Tests/MovingGroundTests.cpp Tests/ThreadingTests.cpp Tests/AssetRootTests.cpp
         Tests/HardeningTests.cpp Tests/RenderFailureTests.cpp Tests/SceneContinuationTests.cpp Tests/ResourceShutdownTests.cpp Tests/UsabilityTests.cpp Tests/StressTests.cpp Tests/StarterTests.cpp Tests/TaskDispatcherTests.cpp Tests/LogTests.cpp Tests/AssetAsyncTests.cpp Tests/RenderBatchTests.cpp Examples/Starter/Source/BootScene.cpp Examples/Sandbox/SandboxGame.cpp Examples/Sandbox/SandboxMenuScene.cpp)
     target_link_libraries(dxf_tests PRIVATE dxf::framework)
     target_include_directories(dxf_tests PRIVATE Tests Examples/Sandbox Examples/Starter/Source)
@@ -297,6 +303,15 @@ if(DXF_BUILD_TESTS)
     dxf_warnings(dxf_tests)
     add_test(NAME Framework COMMAND dxf_tests)
     set_tests_properties(Framework PROPERTIES TIMEOUT 60 LABELS "portable")
+
+    # 確保置換は専用のCPU実行ファイルへ隔離する。
+    add_executable(dxf_joint_component_fault Tests/DistanceJointComponentFault.cpp Source/Toolbox/Private/Toolbox/Testing/AllocationFault.cpp)
+    target_compile_definitions(dxf_joint_component_fault PRIVATE DXF_ALLOCATION_FAULT_TEST_EXECUTABLE=1)
+    target_link_libraries(dxf_joint_component_fault PRIVATE dxf::gameplay)
+    target_include_directories(dxf_joint_component_fault PRIVATE Tests)
+    dxf_warnings(dxf_joint_component_fault)
+    add_test(NAME JointComponentFault COMMAND dxf_joint_component_fault)
+    set_tests_properties(JointComponentFault PROPERTIES TIMEOUT 60 LABELS "portable;gameplay;fault")
 
     # 接触・Trigger・動く床のサンプル（2D／3D）を実Application・SceneNavigator・固定入力で通す。描画・文字は代替のBackend。
     add_executable(dxf_interaction_sample_tests Tests/TestMain.cpp Tests/InteractionSampleTests.cpp)
