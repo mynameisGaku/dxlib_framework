@@ -26,6 +26,8 @@ function(dxf_add_physics_tests Target CoreTarget)
         "${_root}/Tests/Physics/DistanceJointTests.cpp"
         "${_root}/Tests/Physics/DistanceJointSleepTests.cpp"
         "${_root}/Tests/Physics/DistanceJoint3DFrameTests.cpp"
+        "${_root}/Tests/Physics/DistanceJointParallelTests.cpp"
+        "${_root}/Tests/Physics/DistanceJointContinuousTests.cpp"
         "${_root}/Tests/Physics/BoxWallContactTests.cpp"
         "${_root}/Tests/Physics/WorldOverlapTests.cpp"
         "${_root}/Tests/Physics/WorldSweepTests.cpp"
@@ -56,6 +58,7 @@ function(dxf_add_physics_tests Target CoreTarget)
         "${_root}/Tests/Physics/CapsuleAllocationFaultTests.cpp"
         "${_root}/Tests/Physics/OverlapAllocationFaultTests.cpp"
         "${_root}/Tests/Physics/QueryIndexAllocationFaultTests.cpp"
+        "${_root}/Tests/Physics/DistanceJointAllocationFaultTests.cpp"
         "${_root}/Source/Toolbox/Private/Toolbox/Testing/AllocationFault.cpp")
     target_compile_definitions(${Target}_overlap_fault PRIVATE DXF_ALLOCATION_FAULT_TEST_EXECUTABLE=1)
     target_link_libraries(${Target}_overlap_fault PRIVATE ${CoreTarget})

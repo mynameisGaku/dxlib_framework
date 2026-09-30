@@ -44,7 +44,7 @@ Job System自身をWorker Jobの中から破棄したり、Workerから`Shutdown
 - `FJobSystem`の破棄: 所有側で排他的に行う。破棄と`TrySubmit/Wait`を競合させない。
 - Scene、GameObject、GameObjectComponentの通常ライフサイクル: 引き続きGame Threadで変更する。
 - DxLib Native描画・Handle生成破棄: Main/Native担当スレッドへ残す。
-- Physics Worldの所有構造: 現時点では外部から同時変更しない。積分・BroadPhase・NarrowPhaseは借用Job Systemで並列化済み（安定順マージ、1/N一致を回帰）。Island Solverの並列化は別段階。Workerは構造を変更せず、NarrowPhaseは専用領域だけを書く。
+- Physics Worldの所有構造: 外部から同時変更しない。積分・BroadPhase・NarrowPhase・独立Island Solverは借用Job Systemで並列化済み。Workerは構造を変更せず、NarrowPhaseは専用Manifold、Solverは所属Dynamic BodyとJoint作業値だけを書く。Joint記録はStep成功後に所有スレッドで確定する。詳細は[Physics並列実行](Physics/ParallelExecution.md)を参照。
 
 ## 共有Task Dispatcher
 
@@ -61,10 +61,8 @@ Job System自身をWorker Jobの中から破棄したり、Workerから`Shutdown
 
 ## 次の並列化単位
 
-Job基盤とPhysicsの積分・BroadPhase・NarrowPhase・Island診断は接続済みです。残りは次です。
-
-1. 互いに独立したIslandをWorkerへ割り当ててConstraint Solverを実行。
-2. Barrier後に安定したBody/Collider/Pairキー順で結果とEventを統合。
+Job基盤とPhysicsの積分・BroadPhase・NarrowPhase・独立Island Solverは接続済みです。
+求解完了の待機後、Jointの再利用値は登録順、接触・Triggerイベントは正準のCollider順で所有スレッドが確定します。
 
 同一Bodyへ複数Workerから同時書き込みするSolverにはしません。一つの巨大Island内部の並列Constraint Solverは、Island間並列を検証した後の別段階です。
 

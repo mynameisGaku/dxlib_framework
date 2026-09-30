@@ -5,6 +5,10 @@
 namespace PhysicsTest
 {
 /**
+ * Joint作業領域と求解後の確保失敗からの回復を検査し、失敗数を返す。
+ */
+Toolbox::int32 RunJointAllocationChecks();
+/**
  * 独立した回帰ケースの名前と実行入口。
  */
 struct FCase
@@ -175,6 +179,16 @@ const FCase* GetDistanceJointSleepCases(Toolbox::size_t& Count) noexcept;
  * @param Count 返す配列の要素数。
  */
 const FCase* GetDistanceJoint3DFrameCases(Toolbox::size_t& Count) noexcept;
+/**
+ * 距離拘束のStep確定とIsland並列実行の回帰ケースを返す。
+ * @param Count 返す配列の要素数。
+ */
+const FCase* GetDistanceJointParallelCases(Toolbox::size_t& Count) noexcept;
+/**
+ * Jointと連続衝突の処理境界の回帰ケースを返す。
+ * @param Count 返す配列の要素数。
+ */
+const FCase* GetDistanceJointContinuousCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryTreeCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryIndexEquivalenceCases(Toolbox::size_t& Count) noexcept;
 const FCase* GetQueryIndexContractCases(Toolbox::size_t& Count) noexcept;

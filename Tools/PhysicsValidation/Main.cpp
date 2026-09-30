@@ -2,6 +2,7 @@
 // Cランタイムへの出力は検証ツールのこの入口だけで扱う。
 #include "TestCases.h"
 #include <stdio.h>
+#include <string.h>
 using namespace Toolbox;
 int32 RunGroup_Internal(const PhysicsTest::FCase* Cases, size_t Count)
 {
@@ -28,9 +29,18 @@ int32 RunGroup_Internal(const PhysicsTest::FCase* Cases, size_t Count)
 	return Failed == 0 ? 0 : 1;
 }
 
-int32 main()
+int32 main(int32 ArgumentCount, char** Arguments)
 {
 	size_t Count = 0;
+	// J4調査用の限定実行。通常起動は従来の全ケースに新規ケースを加えて実行する。
+	if (ArgumentCount == 2 && strcmp(Arguments[1], "--joint-j4") == 0)
+	{
+		const PhysicsTest::FCase* JointCases = PhysicsTest::GetDistanceJointParallelCases(Count);
+		int32 Failed = RunGroup_Internal(JointCases, Count);
+		JointCases = PhysicsTest::GetDistanceJointContinuousCases(Count);
+		Failed += RunGroup_Internal(JointCases, Count);
+		return Failed == 0 ? 0 : 1;
+	}
 	const PhysicsTest::FCase* Cases = PhysicsTest::GetCollisionCases(Count);
 	int32 Failed = RunGroup_Internal(Cases, Count);
 	Cases = PhysicsTest::GetSweepCases(Count);
@@ -90,6 +100,10 @@ int32 main()
 	Cases = PhysicsTest::GetDistanceJointSleepCases(Count);
 	Failed += RunGroup_Internal(Cases, Count);
 	Cases = PhysicsTest::GetDistanceJoint3DFrameCases(Count);
+	Failed += RunGroup_Internal(Cases, Count);
+	Cases = PhysicsTest::GetDistanceJointParallelCases(Count);
+	Failed += RunGroup_Internal(Cases, Count);
+	Cases = PhysicsTest::GetDistanceJointContinuousCases(Count);
 	Failed += RunGroup_Internal(Cases, Count);
 	Cases = PhysicsTest::GetBoxWallContactCases(Count);
 	Failed += RunGroup_Internal(Cases, Count);

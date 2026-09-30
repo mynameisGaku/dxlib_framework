@@ -49,7 +49,7 @@ struct FPhysicsExecutionDiagnostics
 	 */
 	Toolbox::uint64 ManifoldCount = 0;
 	/**
-	 * 現在接触から構築したDynamic Island数。
+	 * 現在の接触と生存Jointから構築したDynamic Island数。
 	 */
 	Toolbox::uint64 IslandCount = 0;
 	/**

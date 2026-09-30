@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: NOASSERTION
 #include "Dxf/RigidBody3D.h"
+#include "DistanceJointSolveState3D.h"
 #include "PhysicsSnapshotBuilder.h"
 #include "ParallelPhysicsCore.h"
 #include "QueryCandidates.h"
@@ -831,6 +832,8 @@ struct FPhysicsWorld3D::FImpl
 	// 前回Impulseの再利用記録。
 	// スロット番号で直接参照する距離拘束の領域。
 	Toolbox::TVector<FJointRecord3D> Joints;
+	// 容量だけを再利用し、内容は各Step開始時に全スロットを初期化する。
+	Toolbox::TVector<PhysicsPrivate::FDistanceJointSolveState3D> JointSolveStates;
 	// 再使用可能な空き拘束スロット番号。
 	Toolbox::TVector<Toolbox::size_t> JointFree;
 	Toolbox::TVector<FCachedImpulse3D> Cache;
@@ -2126,6 +2129,42 @@ struct FPhysicsWorld3D::FImpl
 		                         static_cast<Toolbox::f32>(U.Z * ClampedU + V.Z * ClampedV)};
 		ApplyImpulse_Internal(BodyA, BodyB, Point.Position, Applied);
 	}
+	// 入力検証後、物理値を変更する前に登録値から全作業スロットを作り直す。
+	void BeginJointSolve_Internal()
+	{
+		JointSolveStates.Resize(Joints.Size());
+		for (Toolbox::size_t Index = 0; Index < Joints.Size(); ++Index)
+		{
+			const FJointRecord3D& Joint = Joints[Index];
+			auto& State = JointSolveStates[Index];
+			State = {};
+			if (!Joint.bAlive)
+			{
+				continue;
+			}
+			State.bActive = true;
+			State.Generation = Joint.Generation;
+			State.AccumulatedImpulse = Joint.AccumulatedImpulse;
+			State.LastValidAxis = Joint.LastValidAxis;
+			State.bHasLastValidAxis = Joint.bHasLastValidAxis;
+		}
+	}
+	// 失敗し得る最終処理が全て終わってから、所有スレッドで登録順に確定する。
+	void CommitJointSolve_Internal() noexcept
+	{
+		for (Toolbox::size_t Index = 0; Index < Joints.Size(); ++Index)
+		{
+			FJointRecord3D& Joint = Joints[Index];
+			const auto& State = JointSolveStates[Index];
+			if (!State.bActive || !Joint.bAlive || State.Generation != Joint.Generation)
+			{
+				continue;
+			}
+			Joint.AccumulatedImpulse = State.AccumulatedImpulse;
+			Joint.LastValidAxis = State.LastValidAxis;
+			Joint.bHasLastValidAxis = State.bHasLastValidAxis;
+		}
+	}
 	// 軸の縮退を判定する距離閾値。Contactの分離判定と同じ精度帯に置く。
 	static constexpr Toolbox::f64 JointAxisEpsilon = 1e-6;
 	// 位置補正が1Stepで動かす距離の上限。ContactのMaxCorrectionと同量。
@@ -2204,31 +2243,33 @@ struct FPhysicsWorld3D::FImpl
 			return false;
 		}
 		// 正のLengthでAnchorが重なる場合は保存軸を使う。捏造した固定軸は使わない。
-		if (!Joint.bHasLastValidAxis)
+		const auto& State = JointSolveStates[static_cast<Toolbox::size_t>(&Joint - Joints.Data())];
+		if (!State.bHasLastValidAxis)
 		{
 			Out.bAxisUnavailable = true;
 			return false;
 		}
-		Out.Axis = Joint.LastValidAxis;
+		Out.Axis = State.LastValidAxis;
 		Out.bAxisUnavailable = false;
 		return true;
 	}
 	// 保存軸を今回の確定軸で更新する。距離0のStepでは上書きしない。
-	static void UpdateLastAxis_Internal(FJointRecord3D& Joint, const FJointFrame3D& Frame) noexcept
+	static void UpdateLastAxis_Internal(PhysicsPrivate::FDistanceJointSolveState3D& State, const FJointFrame3D& Frame) noexcept
 	{
 		if (Frame.bAxisUnavailable)
 		{
 			return;
 		}
-		Joint.LastValidAxis = Frame.Axis;
-		Joint.bHasLastValidAxis = true;
+		State.LastValidAxis = Frame.Axis;
+		State.bHasLastValidAxis = true;
 	}
 	// 生存JointへWarm StartのImpulseを適用する。Main側で全Jointを走査する。
 	void WarmStartJoints_Internal() noexcept
 	{
 		for (Toolbox::size_t Slot = 0; Slot < Joints.Size(); ++Slot)
 		{
-			FJointRecord3D& Joint = Joints[Slot];
+			const FJointRecord3D& Joint = Joints[Slot];
+			auto& State = JointSolveStates[Slot];
 			if (!Joint.bAlive)
 			{
 				continue;
@@ -2243,17 +2284,17 @@ struct FPhysicsWorld3D::FImpl
 			if (!BuildJointFrame_Internal(Joint, *BodyA, *BodyB, Frame))
 			{
 				// 軸が確定できないStepでは前回のImpulseを適用しない。
-				Joint.AccumulatedImpulse = 0;
+				State.AccumulatedImpulse = 0;
 				continue;
 			}
-			UpdateLastAxis_Internal(Joint, Frame);
-			if (Joint.AccumulatedImpulse == 0)
+			UpdateLastAxis_Internal(State, Frame);
+			if (State.AccumulatedImpulse == 0)
 			{
 				continue;
 			}
 			// Warm Startは前回の確定Impulseを即時適用する。蓄積は残して差分方式で積み直す。
-			const FVector3D Push = {Frame.Axis.X * Joint.AccumulatedImpulse, Frame.Axis.Y * Joint.AccumulatedImpulse,
-			                         Frame.Axis.Z * Joint.AccumulatedImpulse};
+			const FVector3D Push = {Frame.Axis.X * State.AccumulatedImpulse, Frame.Axis.Y * State.AccumulatedImpulse,
+			                        Frame.Axis.Z * State.AccumulatedImpulse};
 			ApplyImpulse_Internal(*BodyA, *BodyB, Frame.PositionA, Push);
 		}
 	}
@@ -2264,7 +2305,8 @@ struct FPhysicsWorld3D::FImpl
 		{
 			return;
 		}
-		FJointRecord3D& Joint = Joints[JointSlot];
+		const FJointRecord3D& Joint = Joints[JointSlot];
+		auto& State = JointSolveStates[JointSlot];
 		if (!Joint.bAlive)
 		{
 			return;
@@ -2280,6 +2322,7 @@ struct FPhysicsWorld3D::FImpl
 		{
 			return;
 		}
+		UpdateLastAxis_Internal(State, Frame);
 		const Toolbox::f64 InverseMassA = EffectiveInverseMass_Internal(*BodyA);
 		const Toolbox::f64 InverseMassB = EffectiveInverseMass_Internal(*BodyB);
 		const FVector3D InverseDiagonalA = EffectiveInverseDiagonal_Internal(*BodyA);
@@ -2309,9 +2352,9 @@ struct FPhysicsWorld3D::FImpl
 		// Cdotを0にするlambdaは lambda = Cdot / K。
 		// 両側拘束（張る・押す）なので0クランプしない。
 		const Toolbox::f64 Lambda = CDot / Mass;
-		const Toolbox::f64 Old = Joint.AccumulatedImpulse;
-		Joint.AccumulatedImpulse = Old + Lambda;
-		const Toolbox::f64 Difference = Joint.AccumulatedImpulse - Old;
+		const Toolbox::f64 Old = State.AccumulatedImpulse;
+		State.AccumulatedImpulse = Old + Lambda;
+		const Toolbox::f64 Difference = State.AccumulatedImpulse - Old;
 		ApplyImpulse_Internal(*BodyA, *BodyB, Frame.PositionA,
 		                      {Axis.X * Difference, Axis.Y * Difference, Axis.Z * Difference});
 	}
@@ -2323,7 +2366,7 @@ struct FPhysicsWorld3D::FImpl
 	{
 		for (Toolbox::size_t Slot = 0; Slot < Joints.Size(); ++Slot)
 		{
-			FJointRecord3D& Joint = Joints[Slot];
+			const FJointRecord3D& Joint = Joints[Slot];
 			if (!Joint.bAlive)
 			{
 				continue;
@@ -2342,6 +2385,7 @@ struct FPhysicsWorld3D::FImpl
 				{
 					break;
 				}
+				UpdateLastAxis_Internal(JointSolveStates[Slot], Frame);
 				// 誤差0または縮退軸では位置補正しない。
 				if (Frame.Error == 0 || !Toolbox::IsFinite(Frame.Error))
 				{
@@ -2454,8 +2498,7 @@ struct FPhysicsWorld3D::FImpl
 	// 多様体列と生存JointからIslandを構築する。
 	// BodyIndicesはDynamic Bodyのみを保持するため、起床伝播と休止判定の
 	// 対象列としてそのまま利用できる。Static/Kinematicは含まれない。
-	void BuildIslands_Internal(const Toolbox::TVector<FManifold3D>& Manifolds,
-	                           Toolbox::TVector<PhysicsPrivate::FPhysicsIsland>& Out)
+	void BuildIslands_Internal(const Toolbox::TVector<FManifold3D>& Manifolds, Toolbox::TVector<PhysicsPrivate::FPhysicsIsland>& Out, bool bIncludeJoints = true)
 	{
 		Toolbox::TVector<PhysicsPrivate::FIslandEdge> Edges;
 		Edges.Reserve(Manifolds.Size() + Joints.Size());
@@ -2478,7 +2521,7 @@ struct FPhysicsWorld3D::FImpl
 			Edges.PushBack(Edge);
 		}
 		// Joint辺。添字は再利用で変わらないWorld Joint slotを使う。
-		for (Toolbox::size_t Slot = 0; Slot < Joints.Size(); ++Slot)
+		for (Toolbox::size_t Slot = 0; bIncludeJoints && Slot < Joints.Size(); ++Slot)
 		{
 			const FJointRecord3D& Joint = Joints[Slot];
 			if (!Joint.bAlive)
@@ -3079,23 +3122,40 @@ struct FPhysicsWorld3D::FImpl
 		}
 		return SweptBox_Internal(ToWorld_Internal(Body, Record.Shape.Get<1>()), Displacement);
 	}
-	// 全剛体を位置だけ進める。力の積分は繰り返さない。休止中は動かさない。
-	void AdvanceAll_Internal(Toolbox::f64 Slice) noexcept
+	// 速度が変わるまで同じ開始姿勢から積分し、無関係なTOIによる丸めの蓄積を防ぐ。
+	struct FCcdMotionState3D
+	{
+		// 直前の速度変更時点の姿勢と速度。登録構造は変更しない。
+		FBodyRecord3D Baseline;
+		// 基準姿勢のSubStep内時刻。
+		Toolbox::f64 StartSeconds = 0;
+		// 前回実際に進めたSubStep内時刻。
+		Toolbox::f64 LastSeconds = 0;
+	};
+	// 指定時刻まで進める。力の積分は繰り返さず、休止中とStaticは変更しない。
+	void AdvanceAll_Internal(Toolbox::f64 TargetSeconds, Toolbox::TVector<FCcdMotionState3D>& Motion) noexcept
 	{
 		for (Toolbox::size_t Index = 0; Index < Slots.Size(); ++Index)
 		{
 			FBodyRecord3D& Record = Slots[Index];
-			if (!Record.bAlive || Record.bSleeping)
+			if (!Record.bAlive || Record.bSleeping || Record.Type == EBodyType::Static)
 			{
 				continue;
 			}
-			if (Record.Type == EBodyType::Dynamic || Record.Type == EBodyType::Kinematic)
+			auto& State = Motion[Index];
+			// 接触で速度または休止が変わった対象だけ、その直前の実姿勢を新しい基準にする。
+			if (Record.Velocity != State.Baseline.Velocity || Record.AngularVelocity != State.Baseline.AngularVelocity || Record.bSleeping != State.Baseline.bSleeping)
 			{
-				IntegratePosition_Internal(Record, Slice);
-				const FVector3D Angular = {Record.AngularVelocity.X, Record.AngularVelocity.Y,
-				                           Record.AngularVelocity.Z};
-				IntegrateOrientation_Internal(Record.Orientation, Angular, Slice);
+				State.Baseline = Record;
+				State.StartSeconds = State.LastSeconds;
 			}
+			Record.Position = State.Baseline.Position;
+			Record.Orientation = State.Baseline.Orientation;
+			const Toolbox::f64 Duration = TargetSeconds - State.StartSeconds;
+			IntegratePosition_Internal(Record, Duration);
+			const FVector3D Angular = {Record.AngularVelocity.X, Record.AngularVelocity.Y, Record.AngularVelocity.Z};
+			IntegrateOrientation_Internal(Record.Orientation, Angular, Duration);
+			State.LastSeconds = TargetSeconds;
 		}
 	}
 	// 世界箱を軸平行境界へ変換する。
@@ -3150,8 +3210,8 @@ struct FPhysicsWorld3D::FImpl
 		}
 		return Bounds;
 	}
-	// 現在位置の拘束をその場で解く。時刻は進めない。
-	void SolveNow_Internal()
+	// TOI時刻の接触だけを解く。JointのWarm Start・速度求解・再利用値は変更しない。
+	void SolveContactNow_Internal()
 	{
 		Toolbox::TVector<FManifold3D> Manifolds;
 		GenerateManifolds_Internal(Manifolds);
@@ -3161,13 +3221,20 @@ struct FPhysicsWorld3D::FImpl
 		}
 		// 時刻を進めないため起床伝播と休止更新は行わない。構築したIslandで解く。
 		Toolbox::TVector<PhysicsPrivate::FPhysicsIsland> Islands;
-		BuildIslands_Internal(Manifolds, Islands);
+		BuildIslands_Internal(Manifolds, Islands, false);
 		SolveIslands_Internal(Manifolds, Islands);
 		StoreCache_Internal(Manifolds);
 	}
 	// 最初接触の解決まで位置を進める。残り時間は診断へ残す。
 	void AdvanceContinuous_Internal(Toolbox::f64 Slice)
 	{
+		// 同じSubStep内でのみ保持する積分の基準。確保失敗はStep失敗として伝播する。
+		Toolbox::TVector<FCcdMotionState3D> Motion;
+		Motion.Resize(Slots.Size());
+		for (Toolbox::size_t Index = 0; Index < Slots.Size(); ++Index)
+		{
+			Motion[Index].Baseline = Slots[Index];
+		}
 		Toolbox::f64 Remaining = Slice;
 		// 進行なし解決の繰り返しを防ぐ。
 		bool bStalled = false;
@@ -3311,10 +3378,10 @@ struct FPhysicsWorld3D::FImpl
 					Remaining = 0;
 					break;
 				}
-				AdvanceAll_Internal(Advance);
+				AdvanceAll_Internal(Slice - Remaining + Advance, Motion);
 				Remaining -= Advance;
 				// 接触時刻の拘束を解く。
-				SolveNow_Internal();
+				SolveContactNow_Internal();
 				Diagnostics.HitsResolved++;
 				bStalled = false;
 				continue;
@@ -3322,7 +3389,7 @@ struct FPhysicsWorld3D::FImpl
 			if (bZeroApproach && !bStalled)
 			{
 				// 接近中の初期接触はその場で解いて走査し直す。
-				SolveNow_Internal();
+				SolveContactNow_Internal();
 				bStalled = true;
 				continue;
 			}
@@ -3334,7 +3401,7 @@ struct FPhysicsWorld3D::FImpl
 				break;
 			}
 			// 接触がなければ残りを進める。
-			AdvanceAll_Internal(Remaining);
+			AdvanceAll_Internal(Slice, Motion);
 			Remaining = 0;
 			break;
 		}
@@ -4781,6 +4848,8 @@ void FPhysicsWorld3D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 	PhysicsPrivate::FSnapshotStepGuard SnapshotStep(m_pImpl->SnapshotState, DeltaSeconds, SubSteps);
 	// 前回のバッチを未発行にする（途中で失敗したStepの後に、古いバッチを今回のものに見せない）。
 	m_pImpl->Events.BeginStep();
+	// 成功時だけ書き戻すJoint作業値。例外時のBody巻き戻しは行わない。
+	m_pImpl->BeginJointSolve_Internal();
 	// 一回の更新を等分割し、蓄積力は全分割で保持する。
 	const Toolbox::f64 Slice = DeltaSeconds / static_cast<Toolbox::f64>(SubSteps);
 	// 診断は更新ごとに作り直す。
@@ -4838,7 +4907,7 @@ void FPhysicsWorld3D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 		// 新規接触で起きたBodyをIsland全体へ伝播する。既存Contact起床は保持する。
 		m_pImpl->PropagateAwakeDynamics_Internal(Islands);
 		// JointのWarm StartはMain側で全生存Jointへ適用する。
-		// WorkerがJoint Recordへ触る構造はJ4の並列commitまで作らない。
+		// Workerは所属Jointの作業値だけを書き、登録値はStep成功まで保持する。
 		m_pImpl->WarmStartJoints_Internal();
 		// IslandはDynamicを共有しないため逐次でも並列でも結果は同じ。
 		if (m_pImpl->UseBorrowedJobs_Internal(m_pImpl->Execution.bParallelIslandSolver))
@@ -4948,6 +5017,7 @@ void FPhysicsWorld3D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 			                        return Impl.EndReason_Internal(Pair);
 		                        });
 	}
+	m_pImpl->CommitJointSolve_Internal();
 	SnapshotStep.Complete();
 }
 } // namespace Dxf

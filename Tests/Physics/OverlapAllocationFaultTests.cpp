@@ -16,6 +16,7 @@
 #include "QueryIndexAllocationFaultTests.h"
 #include "WorldEventAllocationFaultTests.h"
 #include "CapsuleAllocationFaultTests.h"
+#include "TestCases.h"
 #include <stdio.h>
 using namespace Toolbox;
 using namespace Dxf;
@@ -350,6 +351,7 @@ int main()
 	GFailures += PhysicsTest::RunQueryIndexAllocationChecks();
 	GFailures += PhysicsTest::RunWorldEventAllocationChecks();
 	GFailures += PhysicsTest::RunCapsuleAllocationChecks();
+	GFailures += PhysicsTest::RunJointAllocationChecks();
 	printf("RESULT %s failures=%d\n", GFailures == 0 ? "PASS" : "FAIL", GFailures);
 	return GFailures == 0 ? 0 : 1;
 }
