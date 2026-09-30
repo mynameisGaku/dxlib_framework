@@ -575,6 +575,8 @@ struct FPhysicsWorld2D::FImpl
 	Toolbox::TVector<PhysicsPrivate::FDistanceJointSolveState2D> JointSolveStates;
 	// 再使用可能な空き拘束スロット番号。
 	Toolbox::TVector<Toolbox::size_t> JointFree;
+	// 生存slotすべての破棄を、追加確保なしで保持できる上限。
+	Toolbox::size_t JointFreeReserved = 0;
 	// ワールド全体の重力加速度。
 	Toolbox::FVector2 Gravity{0, -9.8f};
 	// 接触拘束の解決設定。
@@ -3292,6 +3294,15 @@ FJointId2D FPhysicsWorld2D::CreateDistanceJoint(FBodyId2D BodyA, FBodyId2D BodyB
 	}
 	else
 	{
+		// noexceptの破棄中に確保しない。登録公開前に、全slotの空き番号領域を用意する。
+		const Toolbox::size_t Required = m_pImpl->Joints.Size() + 1;
+		if (Required > m_pImpl->JointFreeReserved)
+		{
+			// Joint記録の最大保持数より小さく、倍増もsize_tの範囲に収まる。
+			const Toolbox::size_t Reserved = Required * 2;
+			m_pImpl->JointFree.Reserve(Reserved);
+			m_pImpl->JointFreeReserved = Reserved;
+		}
 		Index = m_pImpl->Joints.Size();
 		Record.Generation = 1;
 		m_pImpl->Joints.PushBack(Record);

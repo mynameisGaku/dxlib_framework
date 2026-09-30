@@ -207,8 +207,54 @@ int32 CacheFailure_Internal()
 	printf("J4 %s allocation trials=%d after-solve=%d failures=%d\n", T::Name, Injected, AfterSolve, Failures);
 	return Failures;
 }
+// 公開noexcept破棄は、全slotを破棄しても確保しない。世代も別登録へ進む。
+template <typename T>
+int32 ReleaseWithoutAllocation_Internal()
+{
+	// 破棄中の追加確保を検査するWorld。
+	typename T::FWorld World;
+	// 動かない接続先の生成条件。
+	typename T::FBodyDescription Anchor;
+	Anchor.Type = EBodyType::Static;
+	// 支点の登録ID。
+	const auto A = World.CreateBody(Anchor);
+	// 動く接続先の生成条件。
+	typename T::FBodyDescription Weight;
+	Weight.Position = T::At(1, 0, 0);
+	// 荷物の登録ID。
+	const auto B = World.CreateBody(Weight);
+	// 同じ長さのJoint生成条件。
+	typename T::FJointDescription Description;
+	Description.Length = 1;
+	// 空き番号領域の容量を跨ぐ33登録。
+	Toolbox::TArray<typename T::FJoint, 33> Joints;
+	for (auto& Joint : Joints)
+	{
+		Joint = World.CreateDistanceJoint(A, B, Description);
+	}
+	// 破棄直前の累計確保数。
+	const auto Before = Testing::GetTotalTestAllocations();
+	Testing::SetAllocationFailureCountdown(0);
+	// すべてのJointを破棄できたか。
+	bool bDestroyed = true;
+	for (const auto Joint : Joints)
+	{
+		bDestroyed = World.DestroyJoint(Joint) && bDestroyed;
+	}
+	// 禁止した追加確保に到達したか。
+	const bool bInjected = Testing::WasAllocationFailureInjected();
+	Testing::SetAllocationFailureCountdown(-1);
+	// 破棄後の累計確保数。
+	const auto After = Testing::GetTotalTestAllocations();
+	// 同slotの新世代の登録。
+	const auto New = World.CreateDistanceJoint(A, B, Description);
+	// 確保と世代の全条件の合否。
+	const bool bOk = bDestroyed && !bInjected && Before == After && New.Index == Joints[32].Index && New.Generation != Joints[32].Generation;
+	printf("J5 %s destroy 33 joints allocation-free=%d injected=%d\n", T::Name, bOk, bInjected);
+	return bOk ? 0 : 1;
+}
 } // namespace
 Toolbox::int32 PhysicsTest::RunJointAllocationChecks()
 {
-	return ScratchGrowth_Internal<F2D>() + ScratchGrowth_Internal<F3D>() + CacheFailure_Internal<F2D>() + CacheFailure_Internal<F3D>();
+	return ReleaseWithoutAllocation_Internal<F2D>() + ReleaseWithoutAllocation_Internal<F3D>() + ScratchGrowth_Internal<F2D>() + ScratchGrowth_Internal<F3D>() + CacheFailure_Internal<F2D>() + CacheFailure_Internal<F3D>();
 }
