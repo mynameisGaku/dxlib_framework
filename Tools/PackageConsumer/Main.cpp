@@ -6,6 +6,7 @@
 #include "Dxf/AudioPlayer.h"
 #include "CapsuleConsumer.h"
 #include "InteractionConsumer.h"
+#include "JointConsumer.h"
 #include "Dxf/CharacterMovementComponent2D.h"
 #include "Dxf/CharacterMovementComponent3D.h"
 #include "Dxf/InputStateTracker.h"
@@ -170,6 +171,11 @@ int main()
 	if (InteractionCode != 0)
 	{
 		return InteractionCode;
+	}
+	const auto JointCode = RunJointConsumer(InteractionAssets, InteractionAudio);
+	if (JointCode != 0)
+	{
+		return JointCode;
 	}
 	const Toolbox::int32 CapsuleCode = RunCapsuleConsumer(InteractionAssets, InteractionAudio);
 	if (CapsuleCode != 0)

@@ -7,6 +7,8 @@ The consumer sources are in Tools/PackageConsumer and use only the relocated pac
 """
 from __future__ import annotations
 import argparse
+import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -19,7 +21,8 @@ CONSUMER_SOURCES = ('CMakeLists.txt', 'Main.cpp', 'Support.cpp', 'Physics.cpp', 
                     'Ui.cpp', 'UiRuntime.cpp', 'PhysicsInteraction.h', 'PhysicsInteraction.cpp',
                     'PhysicsCapsule.h', 'PhysicsCapsule.cpp',
                     'FInteractionConsumerResult.h', 'InteractionConsumer.h', 'InteractionConsumer.cpp',
-                    'CapsuleConsumer.h', 'CapsuleConsumer.cpp')
+                    'CapsuleConsumer.h', 'CapsuleConsumer.cpp', 'JointConsumer.h', 'JointConsumer.cpp',
+                    'FJointConsumerResult.h', 'PhysicsJoint.h', 'PhysicsJoint.cpp')
 # UI入りの外部のApplicationへ渡す外部スタイル（正しいものと、読めないもの）。
 UI_STYLE = 'dxfui-style 1\nstyle ConsumerButton {\n background = #20a0e0\n}\n'
 UI_BROKEN_STYLE = 'dxfui-style 1\nstyle ConsumerButton {\n background = @missing\n}\n'
@@ -69,6 +72,23 @@ def sdk_arguments(sdk_root: Path | None) -> list[str]:
     return [f'-D{variable}={root.as_posix()}', '-DDXF_DXLIB_AUTO_SOURCE_BUILD=OFF']
 
 
+def consumer_build_generator() -> tuple[str, list[str], bool]:
+    """Use the installed VS for Unicode MSVC link inputs; other hosts keep Ninja."""
+    if sys.platform != 'win32':
+        return 'Ninja', [], False
+    vswhere = Path(os.environ['ProgramFiles(x86)']) / 'Microsoft Visual Studio/Installer/vswhere.exe'
+    installations = json.loads(subprocess.check_output([str(vswhere), '-latest', '-products', '*',
+        '-requires', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64', '-format', 'json', '-utf8'], encoding='utf-8'))
+    if not installations:
+        raise RuntimeError('Visual Studio C++ tools are required')
+    major = installations[0]['installationVersion'].split('.')[0]
+    capabilities = json.loads(subprocess.check_output(['cmake', '-E', 'capabilities'], encoding='utf-8'))
+    generators = [item['name'] for item in capabilities['generators'] if item['name'].startswith(f'Visual Studio {major} ')]
+    if len(generators) != 1:
+        raise RuntimeError(f'CMake does not support the installed Visual Studio {major}')
+    return generators[0], ['-A', 'x64'], True
+
+
 def absolute_paths_in_exports(package: Path, forbidden: list[Path]) -> list[str]:
     """Installed CMake files that still name the source tree or the original build directory."""
     found = []
@@ -108,7 +128,7 @@ def main() -> int:
             '-DDXF_INSTALL=ON'] + sdk)
         run('build', ['cmake', '--build', str(work / 'Build'), '--parallel', str(args.jobs)])
         run('install', ['cmake', '--install', str(work / 'Build'), '--prefix', str(work / 'Original')])
-        relocated = work / 'Relocated package'
+        relocated = work / '再配置 package'
         shutil.move(str(work / 'Original'), str(relocated))
         # 再配置した後のexportに、元のソースツリーや元のBuildの絶対パスが残っていないこと。
         leaked = absolute_paths_in_exports(relocated, [ROOT, work / 'Build', work / 'Original'])
@@ -116,40 +136,46 @@ def main() -> int:
         if leaked:
             raise RuntimeError(f'installed CMake files name build-time paths; see {args.logs / "export-paths.log"}')
         print('export-paths: PASS', flush=True)
-        consumer = work / 'Consumer'
+        consumer = work / '外部 Consumer'
         consumer.mkdir()
         for name in CONSUMER_SOURCES:
             shutil.copyfile(ROOT / 'Tools' / 'PackageConsumer' / name, consumer / name)
-        run('consumer-configure', ['cmake', '-S', str(consumer), '-B', str(work / 'ConsumerBuild'), '-G', 'Ninja',
-            f'-DCMAKE_BUILD_TYPE={args.config}', f'-DCMAKE_PREFIX_PATH={relocated.as_posix()}',
+        # MSBuildは日本語の長いリンク入力もUnicodeで渡す。通常ソリューションと同じVSを選ぶ。
+        generator, generator_flags, multi_config = consumer_build_generator()
+        summary['consumer_generator'] = generator
+        run('consumer-configure', ['cmake', '-S', str(consumer), '-B', str(work / 'ConsumerBuild'), '-G', generator,
+            *generator_flags, f'-DCMAKE_BUILD_TYPE={args.config}', f'-DCMAKE_PREFIX_PATH={relocated.as_posix()}',
             f"-DDXF_VALIDATE_NATIVE={'ON' if args.native else 'OFF'}"] + sdk)
-        run('consumer-build', ['cmake', '--build', str(work / 'ConsumerBuild'), '--parallel', str(args.jobs)])
+        run('consumer-build', ['cmake', '--build', str(work / 'ConsumerBuild'), '--config', args.config, '--parallel', str(args.jobs)])
+        consumer_bin = work / 'ConsumerBuild' / args.config if multi_config else work / 'ConsumerBuild'
         suffix = '.exe' if sys.platform == 'win32' else ''
-        run('consumer-run', [str(work / 'ConsumerBuild' / ('Consumer' + suffix))], timeout=240)
-        run('support-only-run', [str(work / 'ConsumerBuild' / ('SupportOnly' + suffix))], timeout=240)
-        run('physics-only-run', [str(work / 'ConsumerBuild' / ('PhysicsOnly' + suffix))], timeout=240)
-        run('ui-only-run', [str(work / 'ConsumerBuild' / ('UiOnly' + suffix))], timeout=240)
-        run('ui-runtime-run', [str(work / 'ConsumerBuild' / ('UiRuntime' + suffix))], timeout=240)
+        run('consumer-run', [str(consumer_bin / ('Consumer' + suffix))], timeout=240)
+        run('support-only-run', [str(consumer_bin / ('SupportOnly' + suffix))], timeout=240)
+        run('physics-only-run', [str(consumer_bin / ('PhysicsOnly' + suffix))], timeout=240)
+        run('ui-only-run', [str(consumer_bin / ('UiOnly' + suffix))], timeout=240)
+        run('ui-runtime-run', [str(consumer_bin / ('UiRuntime' + suffix))], timeout=240)
         summary.update(ui_without_physics_or_runtime=True, ui_scene_adapter=True)
         summary.update(install=True, relocation=True, external_consumer=True, export_paths_relocatable=True,
                        support_without_runtime=True, physics_without_debug_or_support=True,
                        character_physics_only=True, character_gameplay_components=True)
         if args.native:
             # 実行ファイルだけを別のディレクトリへ置き、開発用の.dxfpathsや元のBuildに頼らず起動する。
-            deployed = work / 'Deployed'
+            deployed = work / '配布 Application'
             deployed.mkdir()
-            shutil.copyfile(work / 'ConsumerBuild' / 'NativeApp.exe', deployed / 'NativeApp.exe')
+            shutil.copyfile(consumer_bin / 'NativeApp.exe', deployed / 'NativeApp.exe')
             summary['native_app_built'] = True
             if args.run_device:
+                joint_cwd = work / '無関係 cwd'
+                joint_cwd.mkdir()
                 output = run('native-app-run', [str(deployed / 'NativeApp.exe'), str(deployed.resolve())],
-                             timeout=240, cwd=deployed)
+                             timeout=240, cwd=joint_cwd)
                 if 'NATIVE_CONSUMER_PASSED' not in output:
                     raise RuntimeError('native application did not report success')
                 summary['device_run'] = True
             # UI入りのApplicationは、空白と日本語を含むディレクトリへ置き、無関係な作業ディレクトリから起動する。
             ui_deployed = work / 'Deployed UI 日本語'
             (ui_deployed / 'Styles').mkdir(parents=True)
-            shutil.copyfile(work / 'ConsumerBuild' / 'NativeUiApp.exe', ui_deployed / 'NativeUiApp.exe')
+            shutil.copyfile(consumer_bin / 'NativeUiApp.exe', ui_deployed / 'NativeUiApp.exe')
             (ui_deployed / 'Styles' / 'app.dxfui').write_text(UI_STYLE, encoding='utf-8', newline='\n')
             (ui_deployed / 'Styles' / 'broken.dxfui').write_text(UI_BROKEN_STYLE, encoding='utf-8', newline='\n')
             summary['native_ui_app_built'] = True

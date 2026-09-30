@@ -13,6 +13,8 @@
 #include "Dxf/RigidBodyComponent3D.h"
 #include "Dxf/SceneNavigator.h"
 #include "InteractionConsumer.h"
+#include "JointConsumer.h"
+#include "Dxf/ViewCoordinates.h"
 #include "DxLib.h"
 namespace
 {
@@ -224,6 +226,7 @@ int main(int Count, char** Args)
 		// Appと全Sceneを破棄するまで、共通シーンの結果の保存先を維持する。
 		FInteractionConsumerResult Interaction2D;
 		FInteractionConsumerResult Interaction3D;
+		FJointConsumerResult JointResults[2];
 		FApplication App(
 		    {Services.Platform, Input, Services.Textures, Services.Sounds, Services.Fonts, Services.Renderer},
 		    Settings);
@@ -277,9 +280,37 @@ int main(int Count, char** Args)
 			Step();
 		}
 		Check(Interaction3D.bComplete, "3D interaction delivery and moving floor");
+		for (Toolbox::int32 Dimension = 0; Dimension < 2; ++Dimension)
+		{
+			auto& JointResult = JointResults[Dimension];
+			Check(static_cast<bool>(App.GetScenes().RequestChange(Dimension == 0 ? MakeJointConsumer2D(JointResult) : MakeJointConsumer3D(JointResult))), "external joint scene change");
+			for (Toolbox::int32 Frame = 0; Frame < 52; ++Frame)
+			{
+				Step();
+			}
+			Check(JointResult.bComplete, "external joint lifecycle");
+			FVector2 WeightPoint;
+			if (Dimension == 0)
+			{
+				WeightPoint = {640 + JointResult.RenderWeight.X * 80 + 8, 540 - JointResult.RenderWeight.Y * 80};
+			}
+			else
+			{
+				const auto Projected = ProjectWorldToScreen(GetJointConsumerView(), 1280, 720, JointResult.RenderWeight);
+				Check(Projected && Projected.Value().bInsideView, "external joint projection");
+				WeightPoint = Projected.Value().Screen;
+				WeightPoint.X += 8;
+			}
+			Check(DxLib::SetDrawScreen(DX_SCREEN_FRONT) == 0, "external joint front buffer");
+			DxLib::GetColor2(DxLib::GetPixel(static_cast<int>(WeightPoint.X), static_cast<int>(WeightPoint.Y)), &R, &G, &B);
+			Check(DxLib::SetDrawScreen(DX_SCREEN_BACK) == 0, "external joint back buffer");
+			Check(R > 50 && B > R && G < R, "external joint rendered weight pixel");
+			Toolbox::Out << "EXTERNAL_JOINT_PIXEL dimension=" << Dimension << " rgb=" << R << "," << G << "," << B << "\n";
+		}
 		App.GetScenes().RequestQuit();
 		const auto Quit = App.Step(Time);
 		Check(Quit && !Quit.Value(), "quit failed");
+		Check(JointResults[0].bShutdown && JointResults[1].bShutdown, "external joint scene shutdown");
 		Toolbox::Out << "NATIVE_CONSUMER_PASSED\n";
 		return 0;
 	}
