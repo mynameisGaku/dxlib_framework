@@ -221,3 +221,13 @@ Get-FileHash Build/FbxContinuation/Debug/NativeModelSmoke.exe -Algorithm SHA256
 Releaseは構成名と実行ファイルのパスを変更します。成功時の詳細はLastTest.logにも残ります。`Build/FbxContinuation/Log.txt` があれば各単独試験の直後に別名保存してください。SDKのLog.txtは再初期化時に更新されるため、それだけで全セッションやOS通知の起源を説明できるとは限りません。全群終了後のLog.txtは後続の別デバイス試験のものになり得ます。
 
 CPU回帰は終了契約と試験判定の検証であり、実DxLibの偶発終了を再現した証拠ではありません。[今回の診断と検証記録](Development/NativeModelLifecycle-2026-09-24.md)を参照してください。
+
+## Jointのゲーム利用を検証する
+
+`Framework`は実SceneのBody参照・初期化順・寿命・失敗観察、`InteractionSample`は実Applicationと固定入力のPause／Modal・0／複数固定更新・1／2表示・1001×501リサイズ・Scene再入場／終了、`JointComponentFault`は独立した実行ファイルで登録・初回接続・再接続の確保失敗を検証します。`PhysicsContinuation`は接触と拘束の併存、世代入替後のWarm Startも含みます。
+
+NativeGameplayDeviceSmokeは通常の既存シナリオを保ち、同じSampleのJoint線・両端物体・状態文字を一括GPU読戻しで確認します。1／2表示のBody／Joint全成分はWorld識別子だけを対応付けて比較します。診断用の`--joint-only`／`--interaction-only`は部分実行であり、全体成功へ数えません。
+
+配布はNative OFF／ON×Debug／Releaseを別runで実行します。Windowsの外部Consumerは日本語を含むリンク入力を扱うためVisual Studioの複数構成ビルドを使い、明示した`--config`をbuild・exeの双方へ適用します。配布本体のNinjaビルドとは区別します。日本語と空白を含むインストール／外部ソース／配置先で、無関係な作業ディレクトリからNativeAppを実行します。既存SDKを使用した同一PCでの確認であり、SDK未導入PCではありません。
+
+測定はCTest外の`dxf_character_benchmark joint --pilot`、続いて`joint`。変異は保存した対象生バイトへ復元し、再buildと同じ限定回帰を実行します。最終全群・配布・公開ヘッダー・IDE実生成物の結果は[試行別記録](Development/JointGameplayCompletion-2026-10-01.md)にまとめます。

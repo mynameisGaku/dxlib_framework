@@ -58,3 +58,7 @@ Jointのgetterは登録設定と現在のBody姿勢から計算し、作業値�
 
 限定回帰は`dxf_physics_tests --joint-j4`、全回帰は引数なしの同じ実行ファイルです。
 確保故障注入は既存の`PhysicsOverlapFault`に含めます。詳細な結果と未実施事項は[今回の検証記録](../Development/JointParallelTransactionalCCD-2026-10-01.md)を参照してください。
+
+## ゲーム用Joint Componentと測定
+
+参照解決・接続切替は所有スレッドのPrePhysicsで、観察は成功PostPhysicsで行います。WorkerはComponentへ触りません。型付き参照と寿命は[距離Joint](Joints.md)。`dxf_character_benchmark joint`は独立島・共有支点・Dynamic対・Contact混在・一本の鎖とComponent境界を分離します。一本の鎖の処理を複数Workerへ分割したという測定ではありません。CPU時間・確保の結果と14変異の検出は[検証記録](../Development/JointGameplayCompletion-2026-10-01.md)を参照してください。
