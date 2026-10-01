@@ -30,17 +30,21 @@
 | L. 動く床（Kinematicの運動・追従・離地速度・挟まれ） | 済／済 | 済／済（`PredictBodyPoint`） | 済／済（横・縦・回転、逆向き歩行、ジャンプ、壁・天井、Teleport、登録順） | 済／済（横・昇降・回転床のコース） | 済／済 | 済／済（moving-floor） | `DKinematicMover2D／3DComponent`、`FCharacterMoveTuning::bFollowMovingGround` | 回転は最大32区間の保守的な経路検査。Dynamicとの押し合いは実装済み。挟み込みは既存の停止・解消不能契約 |
 | H. 配布の利用者 | — | — | — | — | 済／済（Native OFF／ON × Debug／Release、Nativeは移動後の実行ファイルを起動） | — | `dxf::physics`だけ／`dxf::framework`／`dxf::native` | SDKのないPCでNative構成は検証できない（未確認として扱う） |
 | Distance Joint基盤（J1〜J4） | 済／済 | 済／済 | — | — | 済／済（PhysicsOnly） | 済／済 | [距離Joint](Joints.md)、世代付き所有・Anchor回転・Sleep/Wake・並列・Step確定 | 高速時の連続長保証なし |
-| Distance Jointゲーム利用（J5〜J7） | — | 済／済 | 済／済 | 済／済（固定入力・実画素） | 済／済 | 済／済 | Body参照・距離Joint Component・吊り下げ・鎖・動く支点・接続切替 | 次のJoint種類は未実装 |
+| Distance Jointゲーム利用（J5〜J7） | — | 済／済 | 済／済 | 済／済（固定入力・実画素） | 済／済 | 済／済 | Body参照・距離Joint Component・吊り下げ・鎖・動く支点・接続切替 | 追加3種類の現行範囲は下表 |
+| Revolute / Hinge | 済／済 | 済／済（自由回転、swing、Frame微分、Limit/Motor） | 済／済 | 済／済（扉・回転腕、固定入力・実画素） | 済／済（Physics/Framework/Native） | 済／済 | `Create/GetRevoluteJoint`、両Component | 主値(-π,π]、反平行Frameは拒否、連続Joint TOIなし |
+| Fixed | 済／済 | 済／済（相対Pose、異方性慣性、半回転） | 済／済 | 済／済（荷物・解除、実画素） | 済／済 | 済／済 | `Create/GetFixedJoint`、両Component | 有限反復の誤差。完全剛体の鎖保証なし |
+| Prismatic | 済／済 | 済／済（軸自由、動く支点微分、接触停止） | 済／済 | 済／済（スライド・昇降、実画素） | 済／済 | 済／済 | `Create/GetPrismaticJoint`、両Component | Dynamic床へのキャラクター追従は別の未対応 |
+| Limit / 有限速度Motor / 目標操作 | 済／済 | 済／済（累積Impulse予算、SubStep、Sleep、失敗履歴） | 済／済（保留要求・到達と停止待ち） | 済／済（既存UI、負荷、Pause/Modal） | 済／済 | 済／済 | `Set/RequestDrive`、`Set/RequestLimits`、`ComputeJointTargetDrive` | Motor努力上限は総Joint反力の上限ではない |
 | 性能測定 | — | — | — | — | — | 済／済 | `dxf_character_benchmark`（CTest外） | [問い合わせの大規模化の検証記録](../Development/QueryScale-2026-09-25.md#性能測定)。3Dの詳細判定は2Dより高い |
 
-今後の候補: Hinge／Revolute、Fixed、Prismatic、Mesh Collider、経路探索、任意形状の連続Trigger、アニメーション・描画・アセット・ゲーム構成の拡張。Distance Jointだけを全体の目的にはしません。
+今後の候補: Mesh Collider、経路探索、任意形状の連続Trigger、アニメーション・描画・アセット・ゲーム構成の拡張。Distance Jointだけを全体の目的にはしません。
 
 R0〜R7 の各構成と試行結果は [World相互作用の検証記録](../Development/WorldInteraction-2026-09-27.md) を参照してください。接触イベント・移動床の利用経路は [World相互作用](WorldInteraction.md) にまとめています。
 
 使い方は[キャラクター移動](CharacterMovement.md)・[World問い合わせの索引](QueryAcceleration.md)、検証は[ゲームプレイ基盤の検証記録](../Development/Gameplay-2026-09-25.md)・[問い合わせの大規模化の検証記録](../Development/QueryScale-2026-09-25.md)を参照してください。
 
 
-現行の両次元の実装・最終検証と過去の段階記録は[今回の記録](../Development/JointGameplayCompletion-2026-10-01.md)で区別します。
+現行の新3種類と最終試行は[仕掛け検証記録](../Development/MechanismJointsCompletion-2026-10-01.md)、Distance時点の過去結果は[当時の記録](../Development/JointGameplayCompletion-2026-10-01.md)で区別します。
 
 ## 過去の進行記録
 

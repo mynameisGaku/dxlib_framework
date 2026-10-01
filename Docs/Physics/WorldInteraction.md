@@ -80,3 +80,7 @@ Handlerを通知中に解除・置換しても、その呼び出しが終わる�
 箱のContact、取得物の一度だけの破棄、複数Bodyを数える圧力板、遅れて閉じる扉、横移動・昇降・回転床、チェックポイントと危険領域を同じ規則で構成しています。各責務はInteraction*.h/.cppに分け、Sceneは配置と接続を行います。実行ファイル・CPUのApplication試験・Native描画試験は同じ `dxf_gameplay_sample` をリンクします。
 
 自動試験のコース移動には、仕掛けの開始位置への公開Teleportも含みます。全区間を物理キーのみで連続完走した記録ではありません。試行別結果・配布・測定・未実施事項は[今回の検証記録](../Development/WorldInteraction-2026-09-27.md)を参照してください。
+
+## 仕掛けの操作と既存Trigger
+
+TriggerやUIの値はゲームコントローラーへ渡し、固定更新からJoint ComponentのRequestConnect/Disconnect/Drive/Limitsへ送ります。UIからWorld.Step/Pose変更を直接行いません。既存GameplaySampleはF1の既存操作部品で扉・直動・昇降・固定連結を操作します。Modal/PauseではSampleの要求を抑止し、Componentの次の固定更新までの保留と区別します。キャラクターのDynamic床追従は新保証に含みません。[Joint契約](Joints.md)。

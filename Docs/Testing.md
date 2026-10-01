@@ -231,3 +231,22 @@ NativeGameplayDeviceSmokeは通常の既存シナリオを保ち、同じSample�
 配布はNative OFF／ON×Debug／Releaseを別runで実行します。Windowsの外部Consumerは日本語を含むリンク入力を扱うためVisual Studioの複数構成ビルドを使い、明示した`--config`をbuild・exeの双方へ適用します。配布本体のNinjaビルドとは区別します。日本語と空白を含むインストール／外部ソース／配置先で、無関係な作業ディレクトリからNativeAppを実行します。既存SDKを使用した同一PCでの確認であり、SDK未導入PCではありません。
 
 測定はCTest外の`dxf_character_benchmark joint --pilot`、続いて`joint`。変異は保存した対象生バイトへ復元し、再buildと同じ限定回帰を実行します。最終全群・配布・公開ヘッダー・IDE実生成物の結果は[試行別記録](Development/JointGameplayCompletion-2026-10-01.md)にまとめます。
+
+## 回転・固定・直動の仕掛けを検証する
+
+新3種類は2D/3Dで共通slotと成功Step確定を使用します。PhysicsContinuationの`--mechanisms`は63件の限定実World/解析、Frameworkは6Component・型付きBody参照と目標制御、JointComponentFaultは全種類の予約・初回接続・再接続・終了の確保失敗を含みます。限定実行を登録済み全群の成功へ数えません。
+
+NativeGameplayDeviceSmokeの標準系列は旧試験を保持し、実GameplaySampleの全種類・両次元を通常/左右/1001×501で一括読戻しして確認します。`--mechanism-only`は診断用の部分実行です。NativeUiAppの配布Consumerは既存UIを保持して新装置を操作し、要求だけでなく有限Torqueで逆転した物理観察も確認します。自動入力と人の操作を区別します。
+
+```powershell
+python Tools/ValidateMechanismMutations.py --build <Portable-VS-Build> --logs <新規ログ先>
+python Tools/ValidateDistanceJointMutations.py --build <Portable-VS-Build> --logs <別の新規ログ先>
+# 個別指定の例（Releaseの対象だけbuildし、正常版の生バイトへ戻して再compileする）。
+python Tools/ValidateMechanismMutations.py --build <Portable-VS-Build> --logs <新規ログ先> 1 8 12
+```
+
+変異は他のbuild・配布・測定と同時実行しません。各対象の生バイトbackup、開始/終了時刻、command/cwd、source/exe指紋、更新時刻、build/Red/復元build/Greenを残します。build失敗は検出に数えず、復元後のGreenでもその変異試行の失敗は維持します。検証器自体のbuild失敗時復元を一時コピーでPython回帰します。
+
+`dxf_character_benchmark mechanism --pilot`と`mechanism`は5新規World・両次元・同期/4レーン（代表8レーン）、独立/共有支点/鎖/Contact混在、活動Motor/Limit停止/Sleep、Component同値維持/Drive変更/接続切替を測ります。初回/慣らし/定常のms/Stepと中央値/最小/最大、確保、Body/種類/構成した基本拘束行数、実Contact/島/活動/休止数を保存します。最大島は配置から導いた値で、一般Worldの実測ではありません。一本鎖の内部並列化やWorld無確保を保証しません。
+
+配布4構成では新PhysicsOnly、6Component/目標helperのFramework、NativeApp/NativeUiAppを再配置して実行します。旧support/ui/ui_runtimeのConsumerを維持し、コピー集合とConsumer CMakeの両方へ登録します。SDKの取得・再構築は行いません。[今回の全試行・未実施](Development/MechanismJointsCompletion-2026-10-01.md)を参照してください。

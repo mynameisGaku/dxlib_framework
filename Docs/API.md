@@ -215,3 +215,6 @@ Objectのコンストラクタ中に所属Collectionへ終了が要求された�
 Physics単独は`CreateDistanceJoint`／`DestroyJoint`／`IsJointAlive`／`GetDistanceJoint`、Gameplayは`DDistanceJoint2DComponent`／`DDistanceJoint3DComponent`を使います。`FPhysicsBodyReference2D/3D`でRigidBody・KinematicMoverの型付きハンドルまたは完全なBody IDを渡します。`RequestDisconnect`／`RequestConnect`は固定更新境界への要求、`GetConnectionState`／`GetJointId`／`GetObservation`は読み取りです。描画は別責務で`GetRenderAnchors`から既存Rendererへ渡します。
 
 Gameplayはcppを持つ静的ライブラリです。公開`dxf::gameplay`／`dxf::framework`をリンクしてください。接続状態・世代・再接続失敗・Scene寿命と両次元の例は[距離Joint](Physics/Joints.md)を参照してください。
+## ゲームの仕掛けJoint
+
+[Joint](Physics/Joints.md)のRevolute/Hinge、Fixed、Prismaticは2D/3Dの種類別Description/StateとComponentを持ちます。WorldはCreate/Getと共通ID、Gameplayは型付きBody参照・接続要求・目標速度制御を担当します。Physics単独利用にUI/Debug/Nativeは不要です。Motorは有限の速度要求、観察は成功PostPhysics、描画は補間Poseです。

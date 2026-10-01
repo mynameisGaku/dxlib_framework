@@ -9,8 +9,8 @@ Physics Worldの公開APIは引き続き**呼び出し側で直列化する契�
 1. Dynamic Bodyごとの力・速度積分。
 2. Sweep-and-Prune BroadPhaseの固定チャンク。
 3. Candidate PairごとのNarrowPhase。各Jobは専用のManifold slotだけを書きます。
-4. Dynamicの接触とDistanceJointから作った独立IslandごとのConstraint Solver。
-   直列・Job経路は同じ反復処理を使い、各反復でContact、DistanceJointの順に解く。
+4. Dynamicの接触とDistance/Revolute/Fixed/Prismaticから作った独立IslandごとのConstraint Solver。
+   直列・Job経路は同じ反復処理を使い、各反復でContact→Distance→Revolute→Fixed→Prismaticの順に解く。
    起床、ContactのWarmStart、起床の再伝播、JointのWarmStartは所有スレッドで済ませる。
    位置補正、休止更新、Contact記録の保存も所有スレッドへ残す。
 5. Bodyごとの位置・姿勢積分。
@@ -33,12 +33,12 @@ TOIの途中でJointの長さを連続的に保証する契約、AnchorのSweep�
 ## Jointの確定境界
 
 `FDistanceJointSolveState2D/3D`はPrivateの作業値です。Worldは容量を再利用しますが、内容は入力検証後の各`Step`開始時に全スロットを登録値から作り直します。
-生存・世代、蓄積Impulse、保存軸とその有効性を保持し、一回の`Step`内の全SubStepで共有します。
+生存・世代・Kind、新種類の8行累積ImpulseとLimit側、Distanceの蓄積Impulse、保存軸とその有効性を保持し、一回の`Step`内の全SubStepで共有します。
 Workerは所属IslandのDynamic Bodyと、そのIslandだけが所有するJoint作業スロットを変更します。
 共有Static/KinematicとJointの登録情報へは書き込みません。
 
 全SubStep、CCD、位置補正、休止更新、索引更新、イベント発行が成功した後に、所有スレッドがslot昇順で再利用値を確定します。
-生存と世代が一致しない登録へは戻しません。例外・Job拒否・確保失敗ではJoint記録を確定せず、次の`Step`は最後に成功した登録値から再開します。
+生存・世代・Kindが一致しない登録へは戻しません。例外・Job拒否・確保失敗ではJoint記録を確定せず、次の`Step`は最後に成功した登録値から再開します。
 **これはBodyの位置・速度、Contact記録、力を巻き戻す保証ではありません。** 途中失敗後の問い合わせ・Snapshotは既存契約どおり拒否され、次の正常な`Step`で回復します。
 Jointのgetterは登録設定と現在のBody姿勢から計算し、作業値を公開しません。同時呼出しの安全性も追加しません。
 
@@ -62,3 +62,5 @@ Jointのgetterは登録設定と現在のBody姿勢から計算し、作業値�
 ## ゲーム用Joint Componentと測定
 
 参照解決・接続切替は所有スレッドのPrePhysicsで、観察は成功PostPhysicsで行います。WorkerはComponentへ触りません。型付き参照と寿命は[距離Joint](Joints.md)。`dxf_character_benchmark joint`は独立島・共有支点・Dynamic対・Contact混在・一本の鎖とComponent境界を分離します。一本の鎖の処理を複数Workerへ分割したという測定ではありません。CPU時間・確保の結果と14変異の検出は[検証記録](../Development/JointGameplayCompletion-2026-10-01.md)を参照してください。
+
+新種類のMotor/Limitも同じStep作業値に含みます。種類別求解を最後に全反復する構成ではなく、同じIslandの各速度反復で正準順に処理します。位置行はAnchor/横→姿勢、Motor行6→Limit行7です。共有支点には書き込みません。詳細は[Joints](Joints.md)。
