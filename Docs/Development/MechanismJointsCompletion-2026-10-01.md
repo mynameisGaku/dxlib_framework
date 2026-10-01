@@ -217,6 +217,25 @@ OS Windows11 Pro 26200、CPU Ryzen7 9800X3D 8core/16logical、GPU RTX4070 SUPER�
 
 画像保存先内に複製されたobj中間フォルダーの削除は自動承認レビューがポリシーで拒否したため実施せず、別手段でも試していない。Build内に残し、Gitには含めない。
 
+## 初期試行の失敗分類と採用外の結果
+
+|分類|最初の問題・判断|修正または採用範囲|
+|---|---|---|
+|既存製品の確保|Body/Colliderのnoexcept解放で返却配列が拡張された|33件解放の両次元Red各10確保→登録前容量予約→Green0。機能を削除して回避しない|
+|数値試験の期待|回転Prismatic支点で、共通Anchor helperの初期座標0を距離2と誤認。速度0を位置ロックと誤認|配置を明示し、動く軸の微分と半陰的Eulerの独立Oracleへ照合。横誤差/姿勢の許容は保持|
+|Sampleの処理順|初回40/42：制御ObjectがJointの観察無効化後に読み要求を失った|制御Objectを装置より先に生成。公開API追加・ゲーム側の手動寿命管理で隠さない|
+|Sample試験の入力/期待|42/44：再入場に必要なフレーム不足。44/46：選択数とSlider幅・方向操作|必要フレームと入力列を訂正、既存UI方向移動を使える小さい幅へ修正。46/46は後の別試行|
+|Native試験の入力|odd UI初回：連続Downの間に解放Stepがなかった|固定Snapshotに押下/解放を明示。描画閾値を緩めず30領域を確認|
+|配布ハーネス|OFF Debug2：final OnTick継承と値型Command/TResult混同。同時にDistance M01変異へ誤って重なった|その試行は正常版配布の証拠へ採用しない。Consumerを正規OnVariableTickへ直してから単独実行|
+|配布生成|OFF Debug3：Consumer結果ヘッダー生成ミス|ヘッダーを修正、OFF Debug4から別試行。最終4構成は同じ最終manifest|
+|有限駆動の試験期待|ON Debug physical2：UI逆転後5Stepでは3Dが未到達|Torque10Nm/慣性1kg m²で有限減速する条件を明記し12固定Stepへ設定。physical3と最終D/Rで設定-.5と実角速度<-.1を両次元確認。成功するまで反復しない|
+|変異の生成|K-M01 canonical1はf64修飾不足でcompile失敗。変異検証器初回は生成時にmutate定義を落としてNameError|compile失敗を検出に数えない。canonical2の実テンソル誤用を挙動で検出し、検証器の失敗保持/復元2試験も確認|
+|最終試験の寿命|final3 Debugとowner-contract Debugの異常終了|即時解放後の予約と失効Handle再参照を試験側で訂正。後続成功を初回結果へ合算しない|
+|集計補助|一時集計スクリプトでWindows既定文字コードのJSON読取りエラー|UTF-8を明示して再読。製品や試験の成功へ読み替えない|
+|コード指紋の不一致|final4 wrapperは開始後の測定書式変更を検出してexit1|混在実行は失敗として残し、38変異とPortable両構成を再実行。採用するNative/独立/配布/測定と指紋を揃えた|
+
+今回の最終Native D/R全群には自然発生の初期化・ProcessMessage失敗はなかった。未実施の環境を、原因が環境だったという根拠にはしていない。変異や故障注入の期待するRedと、通常版の失敗は別に集計する。
+
 ## 保存した全コマンド試行
 
 次表は実行順。途中非0を消さず、command/cwd/開始終了/詳細manifestは各Result.jsonへ対応する。最終版以外の成功を採用集合へ足さない。
