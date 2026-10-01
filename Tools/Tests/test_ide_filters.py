@@ -17,7 +17,7 @@ import xml.etree.ElementTree as ET
 ROOT = Path(__file__).resolve().parents[2]
 NS = {'m': 'http://schemas.microsoft.com/developer/msbuild/2003'}
 ITEM_TAGS = ('ClCompile', 'ClInclude', 'None')
-EXTENSIONS = ('.h', '.hpp', '.cpp', '.dxfui')
+EXTENSIONS = ('.h', '.hpp', '.inl', '.cpp', '.dxfui')
 # Sources that only enter the product libraries when a build option asks for the CPU benchmark probes.
 PROBE_SOURCES = ('WorldInteractionProbe.cpp', 'WorldInteractionProbe.h')
 PROBE_OPTION = 'DXF_INTERACTION_BENCHMARK_PROBES'

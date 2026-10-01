@@ -3,6 +3,8 @@
 #include "CharacterSample2DScene.h"
 #include "InteractionHud.h"
 #include "JointCourseOverlay.h"
+#include "MechanismOverlay.h"
+#include "MechanismPanel.h"
 #include "InteractionScene3D.h"
 #include "Dxf/AssetService.h"
 #include "Dxf/RenderContext.h"
@@ -160,12 +162,17 @@ TResult<void> DInteraction2DScene::OnInitialize(const FInitContext& Context)
 	    [this]()
 	    {
 		    TogglePush();
+	    },
+	    [this](DUiPanel& Panel, FUiScope& Scope)
+	    {
+		    BuildMechanismPanel(Panel, Scope, m_MechanismCourse.GetController());
 	    });
 	if (auto Spawned = SpawnInteractionCourse<FInteraction2D>(*this, *this, m_Course); !Spawned)
 	{
 		return Spawned;
 	}
 	m_JointCourse.Initialize(*this);
+	m_MechanismCourse.Initialize(*this);
 	auto Director = Spawn<DInteractionDirector2D>(*this);
 	if (!Director)
 	{
@@ -226,6 +233,7 @@ void DInteraction2DScene::DrawView_Internal(FRenderContext& Render, Toolbox::int
 		RequireSample(Draw.FillCircle({At.X, At.Y}, Radius * Scale, Style));
 	};
 	DrawJointCourse2D(Render, *this, Side);
+	DrawMechanismCourse2D(Render, *this, Side);
 	const auto& Ground = InteractionLayout::GetGround();
 	for (Toolbox::size_t Index = 0; Index < Ground.Size(); ++Index)
 	{
@@ -343,6 +351,7 @@ void DInteraction2DScene::OnDraw(FRenderContext& Render) const
 	         MoveStopName(Character.GetLastStep().Vertical.Stop), GetClock().IsPaused() ? "[PAUSED]" : "");
 	RequireSample(Draw.DrawText(m_Font, Line, {16, 96}, Text));
 	DrawJointStatus(Render, *this, m_Font);
+	DrawMechanismStatus(Render, *this, m_Font);
 	InteractionModeText(m_Mode, Line);
 	RequireSample(Draw.DrawText(m_Font, Line, {16, 124}, Text));
 }

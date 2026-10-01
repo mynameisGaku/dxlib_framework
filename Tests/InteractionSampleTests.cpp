@@ -766,7 +766,7 @@ void AppendJointCourse_Internal(typename T::FScene& Scene, Toolbox::TVector<Tool
 			Values.PushBack(State->Error);
 		}
 	}
-	Values.PushBack(Scene.GetPlayer()->GetCharacter().GetStepCount());
+	Values.PushBack(static_cast<Toolbox::f64>(Scene.GetPlayer()->GetCharacter().GetStepCount()));
 	Values.PushBack(Scene.GetGameRules().GetPlateOccupants());
 }
 // 同じ固定入力を1/2表示と奇数Resizeで通す。表示で二重Stepや接続しない。
@@ -956,4 +956,213 @@ TEST("Interaction 2D Joint fixed failure shuts scene without present")
 TEST("Interaction 3D Joint fixed failure shuts scene without present")
 {
 	JointApplicationFailure_Internal<FSample3D>();
+}
+
+namespace
+{
+// 実Application・実Sampleの装置。描画受付の代替は画素確認とは分ける。
+template <typename T>
+void MechanismOperations_Internal()
+{
+	TSampleApp<typename T::FScene> App;
+	App.Step(3);
+	auto& Course = App.Scene().GetMechanismCourse();
+	auto& Controller = Course.GetController();
+	for (const auto& Joint : Course.GetRevolutes())
+	{
+		REQUIRE(Joint.Get()->GetJointId());
+	}
+	for (const auto& Joint : Course.GetPrismatics())
+	{
+		REQUIRE(Joint.Get()->GetJointId());
+	}
+	for (const auto& Joint : Course.GetFixed())
+	{
+		REQUIRE(Joint.Get()->GetJointId());
+	}
+	Controller.Select(0);
+	Controller.RequestKick();
+	App.Step(60);
+	const auto Manual = Course.GetRevolutes()[0].Get()->GetObservation();
+	REQUIRE(Manual && Toolbox::Abs(Manual->State.Angle) > 0.01);
+	REQUIRE(Manual->State.AnchorError < 0.002);
+	REQUIRE(Toolbox::Abs(Manual->State.Angle) < 0.805);
+	Controller.Select(1);
+	Controller.SetMotion(1, 1, 20);
+	App.Step(180);
+	const auto Door = Course.GetRevolutes()[1].Get()->GetObservation();
+	REQUIRE(Door && Toolbox::Abs(Door->State.Angle - 0.65) < 0.01);
+	const auto DoorId = *Course.GetRevolutes()[1].Get()->GetJointId();
+	Controller.SetMotion(-1, 1, 20);
+	App.Step(180);
+	const auto Reverse = Course.GetRevolutes()[1].Get()->GetObservation();
+	REQUIRE(Reverse && Toolbox::Abs(Reverse->State.Angle + 0.65) < 0.01);
+	REQUIRE(*Course.GetRevolutes()[1].Get()->GetJointId() == DoorId);
+	Controller.Select(2);
+	Controller.SetMotion(0.7, 1, 30);
+	App.Step(180);
+	const auto Gate = Course.GetPrismatics()[0].Get()->GetObservation();
+	REQUIRE(Gate && Toolbox::Abs(Gate->State.Translation - 1.7) < 0.02);
+	REQUIRE(Gate->State.AnchorError < 0.002);
+	Controller.SetConnected(false);
+	App.Step(3);
+	REQUIRE(!Course.GetPrismatics()[0].Get()->GetJointId());
+	REQUIRE(Course.GetBodies()[5].Get()->HasBody());
+	Controller.SetConnected(true);
+	App.Step(3);
+	REQUIRE(Course.GetPrismatics()[0].Get()->GetJointId());
+	const auto FixedBody = Course.GetBodies()[9];
+	Controller.Select(4);
+	Controller.SetConnected(false);
+	Controller.RequestKick();
+	App.Step(6);
+	REQUIRE(!Course.GetFixed()[0].Get()->GetJointId());
+	REQUIRE(FixedBody.Get()->HasBody());
+	App.Application().Shutdown();
+	REQUIRE(!FixedBody.Get());
+}
+// 表示数とResizeは同じ固定入力列の物理値・要求回数を変えない。
+template <typename T>
+void MechanismViews_Internal()
+{
+	TSampleApp<typename T::FScene> One;
+	TSampleApp<typename T::FScene> Two;
+	Two.Scene().ToggleSplit();
+	auto Configure = [](auto& App)
+	{
+		auto& Controller = App.Scene().GetMechanismCourse().GetController();
+		Controller.Select(1);
+		Controller.SetMotion(0.8, 1, 20);
+	};
+	Configure(One);
+	Configure(Two);
+	auto& Window = Two.Backend().GetTrace().Window;
+	Window.bKnown = true;
+	Window.ClientWidth = Window.RenderWidth = 1001;
+	Window.ClientHeight = Window.RenderHeight = 501;
+	One.Step(80);
+	Two.Step(80);
+	const auto& A = One.Scene().GetMechanismCourse();
+	const auto& B = Two.Scene().GetMechanismCourse();
+	REQUIRE(A.GetUpdateCount() == B.GetUpdateCount());
+	for (Toolbox::size_t Index = 0; Index < 12; ++Index)
+	{
+		const auto* BodyA = A.GetBodies()[Index].Get();
+		const auto* BodyB = B.GetBodies()[Index].Get();
+		if (BodyA == nullptr)
+		{
+			REQUIRE(BodyB == nullptr);
+			continue;
+		}
+		REQUIRE(BodyA->GetGamePosition() == BodyB->GetGamePosition());
+	}
+	const auto Count = A.GetUpdateCount();
+	One.Advance(0);
+	REQUIRE(A.GetUpdateCount() == Count);
+	One.Press(EKey::F1);
+	const auto Paused = A.GetUpdateCount();
+	One.Step(10);
+	REQUIRE(A.GetUpdateCount() == Paused);
+	One.Press(EKey::F1);
+	REQUIRE(!One.Scene().GetClock().IsPaused());
+	One.Advance(3.0 / 60.0);
+	REQUIRE(A.GetUpdateCount() >= Paused + 3);
+}
+} // namespace
+TEST("Interaction 2D mechanisms operation target reverse detach and shutdown")
+{
+	MechanismOperations_Internal<FSample2D>();
+}
+TEST("Interaction 3D mechanisms operation target reverse detach and shutdown")
+{
+	MechanismOperations_Internal<FSample3D>();
+}
+TEST("Interaction 2D mechanisms views fixed count modal and zero multiple updates")
+{
+	MechanismViews_Internal<FSample2D>();
+}
+TEST("Interaction 3D mechanisms views fixed count modal and zero multiple updates")
+{
+	MechanismViews_Internal<FSample3D>();
+}
+
+namespace
+{
+// 動く支点、固定荷物とDistance吊り下げが同じ実Sceneの駆動体へ接続される。
+template <typename T>
+void MechanismLoad_Internal()
+{
+	TSampleApp<typename T::FScene> App;
+	App.Step(4);
+	auto& Course = App.Scene().GetMechanismCourse();
+	auto& Controller = Course.GetController();
+	Controller.Select(3);
+	Controller.SetMotion(0.5, 1, 0);
+	App.Step(60);
+	const auto Stalled = Course.GetPrismatics()[1].Get()->GetObservation();
+	REQUIRE(Stalled && Stalled->State.Translation < 0.1);
+	Controller.SetMotion(0.5, 1, 150);
+	App.Step(240);
+	const auto Lift = Course.GetPrismatics()[1].Get()->GetObservation();
+	REQUIRE(Lift && Toolbox::Abs(Lift->State.Translation - 1.5) < 0.025);
+	REQUIRE(Lift->State.AnchorError < 0.002);
+	REQUIRE(Course.GetFixed()[1].Get()->GetJointId());
+	const auto Old = Course.GetRevolutes()[1];
+	Course.Regenerate();
+	App.Step(4);
+	REQUIRE(!Old.Get());
+	REQUIRE(Course.GetRevolutes()[1].Get()->GetJointId());
+	const auto New = Course.GetRevolutes()[1];
+	App.Press(EKey::Tab);
+	REQUIRE(!New.Get());
+	App.Press(EKey::Tab);
+	App.Step(3);
+	REQUIRE(App.Scene().GetMechanismCourse().GetRevolutes()[1].Get()->GetJointId());
+}
+} // namespace
+TEST("Interaction 2D mechanisms lift load regenerate and scene reentry")
+{
+	MechanismLoad_Internal<FSample2D>();
+}
+TEST("Interaction 3D mechanisms lift load regenerate and scene reentry")
+{
+	MechanismLoad_Internal<FSample3D>();
+}
+
+namespace
+{
+// 同じ設定画面のナビゲーション入力がControllerの値だけを更新する。
+template <typename T>
+void MechanismUi_Internal()
+{
+	TSampleApp<typename T::FScene> App;
+	App.Step(3);
+	auto& Course = App.Scene().GetMechanismCourse();
+	App.Press(EKey::F1);
+	const auto Count = Course.GetUpdateCount();
+	// Modal開始時はフォーカスなし。最初のDownは先頭の表示切替へ移す。
+	App.Press(EKey::Down);
+	App.Press(EKey::Down);
+	App.Press(EKey::Down);
+	App.Press(EKey::Down);
+	App.Press(EKey::Enter);
+	REQUIRE(Course.GetController().GetSelection() == 2);
+	App.Press(EKey::Down);
+	const auto OldTarget = Course.GetController().GetTarget();
+	App.Press(EKey::Right);
+	REQUIRE(Course.GetController().GetTarget() > OldTarget);
+	REQUIRE(Course.GetUpdateCount() == Count);
+	App.Press(EKey::F1);
+	App.Step(3);
+	REQUIRE(Course.GetUpdateCount() > Count);
+	REQUIRE(Course.GetPrismatics()[0].Get()->GetObservation()->State.Drive.TargetSpeed > 0);
+}
+} // namespace
+TEST("Interaction 2D mechanism UI input request physics resume")
+{
+	MechanismUi_Internal<FSample2D>();
+}
+TEST("Interaction 3D mechanism UI input request physics resume")
+{
+	MechanismUi_Internal<FSample3D>();
 }

@@ -352,6 +352,7 @@ int main()
 	GFailures += PhysicsTest::RunWorldEventAllocationChecks();
 	GFailures += PhysicsTest::RunCapsuleAllocationChecks();
 	GFailures += PhysicsTest::RunJointAllocationChecks();
+	GFailures += PhysicsTest::RunMechanismJointAllocationChecks();
 	printf("RESULT %s failures=%d\n", GFailures == 0 ? "PASS" : "FAIL", GFailures);
 	return GFailures == 0 ? 0 : 1;
 }

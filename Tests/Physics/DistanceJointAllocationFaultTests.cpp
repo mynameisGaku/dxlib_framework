@@ -253,8 +253,30 @@ int32 ReleaseWithoutAllocation_Internal()
 	printf("J5 %s destroy 33 joints allocation-free=%d injected=%d\n", T::Name, bOk, bInjected);
 	return bOk ? 0 : 1;
 }
+// BodyとColliderのnoexcept解放も、返却列の拡張を登録時に済ませる。
+// 修正前の確認では故障注入を使わず確保数で検出し、terminateを避ける。
+template <typename T>
+int32 BodyReleaseCapacity_Internal()
+{
+	typename T::FWorld World;
+	TArray<typename T::FBody, 33> Bodies;
+	for (auto& Body : Bodies)
+	{
+		Body = World.CreateBody({});
+		World.AttachCollider(Body, T::Ball({}, 0.5f));
+	}
+	const auto Before = Testing::GetTotalTestAllocations();
+	bool bDestroyed = true;
+	for (const auto Body : Bodies)
+	{
+		bDestroyed = World.DestroyBody(Body) && bDestroyed;
+	}
+	const auto After = Testing::GetTotalTestAllocations();
+	printf("K O01 %s body collider release allocations=%llu\n", T::Name, static_cast<uint64>(After - Before));
+	return bDestroyed && Before == After ? 0 : 1;
+}
 } // namespace
 Toolbox::int32 PhysicsTest::RunJointAllocationChecks()
 {
-	return ReleaseWithoutAllocation_Internal<F2D>() + ReleaseWithoutAllocation_Internal<F3D>() + ScratchGrowth_Internal<F2D>() + ScratchGrowth_Internal<F3D>() + CacheFailure_Internal<F2D>() + CacheFailure_Internal<F3D>();
+	return BodyReleaseCapacity_Internal<F2D>() + BodyReleaseCapacity_Internal<F3D>() + ReleaseWithoutAllocation_Internal<F2D>() + ReleaseWithoutAllocation_Internal<F3D>() + ScratchGrowth_Internal<F2D>() + ScratchGrowth_Internal<F3D>() + CacheFailure_Internal<F2D>() + CacheFailure_Internal<F3D>();
 }

@@ -2,6 +2,7 @@
 #ifndef DXF_DISTANCE_JOINT_SOLVE_STATE_2D_H
 #define DXF_DISTANCE_JOINT_SOLVE_STATE_2D_H
 #include "Toolbox/Vector2.h"
+#include "MechanismConstraintMath.h"
 namespace Dxf::PhysicsPrivate
 {
 /**
@@ -13,6 +14,11 @@ struct FDistanceJointSolveState2D
 	 * Step開始時に登録中だったか。
 	 */
 	bool bActive = false;
+	/**
+	 * 作業開始時の種類と新種類の履歴。世代とともに確定先を照合する。
+	 */
+	EJointKind Kind = EJointKind::Distance;
+	FMechanismCache Mechanism;
 	/**
 	 * 作業開始時の世代。別の登録への書き戻しを防ぐ。
 	 */

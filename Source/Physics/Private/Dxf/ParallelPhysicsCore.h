@@ -62,7 +62,10 @@ public:
 enum class EPhysicsConstraintKind : Toolbox::uint8
 {
 	Contact = 0,
-	DistanceJoint = 1
+	DistanceJoint = 1,
+	RevoluteJoint = 2,
+	FixedJoint = 3,
+	PrismaticJoint = 4
 };
 /**
  * 拘束の種別とWorld内の安定添字。ContactとJointの添字を別名前空間で扱う。

@@ -32,6 +32,12 @@ int32 RunGroup_Internal(const PhysicsTest::FCase* Cases, size_t Count)
 int32 main(int32 ArgumentCount, char** Arguments)
 {
 	size_t Count = 0;
+	// 新種類だけの診断。通常起動にも同じ群を含む。
+	if (ArgumentCount == 2 && strcmp(Arguments[1], "--mechanisms") == 0)
+	{
+		const auto* Cases = PhysicsTest::GetMechanismJointCases(Count);
+		return RunGroup_Internal(Cases, Count);
+	}
 	// J4調査用の限定実行。通常起動は従来の全ケースに新規ケースを加えて実行する。
 	if (ArgumentCount == 2 && strcmp(Arguments[1], "--joint-j4") == 0)
 	{
@@ -127,6 +133,8 @@ int32 main(int32 ArgumentCount, char** Arguments)
 	Cases = PhysicsTest::GetBoxWallContactCases(Count);
 	Failed += RunGroup_Internal(Cases, Count);
 	Cases = PhysicsTest::GetParallelCases(Count);
+	Failed += RunGroup_Internal(Cases, Count);
+	Cases = PhysicsTest::GetMechanismJointCases(Count);
 	Failed += RunGroup_Internal(Cases, Count);
 	return Failed == 0 ? 0 : 1;
 }

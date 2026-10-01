@@ -55,7 +55,8 @@ function(dxf_ide_headers Target)
     foreach(Directory IN LISTS ARGN)
         file(GLOB_RECURSE Headers CONFIGURE_DEPENDS
             "${CMAKE_CURRENT_SOURCE_DIR}/${Directory}/*.h"
-            "${CMAKE_CURRENT_SOURCE_DIR}/${Directory}/*.hpp")
+            "${CMAKE_CURRENT_SOURCE_DIR}/${Directory}/*.hpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/${Directory}/*.inl")
         if(Headers)
             # PRIVATE also gives header-only INTERFACE libraries an IDE project,
             # without exporting source-tree paths to package consumers.
@@ -198,10 +199,19 @@ add_library(dxf_gameplay STATIC
     Source/Gameplay/Private/Dxf/PhysicsBodyReference2D.cpp
     Source/Gameplay/Private/Dxf/PhysicsBodyReference3D.cpp
     Source/Gameplay/Private/Dxf/DistanceJointComponent2D.cpp
-    Source/Gameplay/Private/Dxf/DistanceJointComponent3D.cpp)
+    Source/Gameplay/Private/Dxf/DistanceJointComponent3D.cpp
+    Source/Gameplay/Private/Dxf/RevoluteJointComponent2D.cpp
+    Source/Gameplay/Private/Dxf/FixedJointComponent2D.cpp
+    Source/Gameplay/Private/Dxf/PrismaticJointComponent2D.cpp
+    Source/Gameplay/Private/Dxf/RevoluteJointComponent3D.cpp
+    Source/Gameplay/Private/Dxf/FixedJointComponent3D.cpp
+    Source/Gameplay/Private/Dxf/PrismaticJointComponent3D.cpp
+    Source/Gameplay/Private/Dxf/MechanismComponentValidation.cpp
+    Source/Gameplay/Private/Dxf/JointTargetMotion.cpp)
 add_library(dxf::gameplay ALIAS dxf_gameplay)
 set_target_properties(dxf_gameplay PROPERTIES EXPORT_NAME gameplay DEBUG_POSTFIX d)
 target_compile_features(dxf_gameplay PUBLIC cxx_std_20)
+target_include_directories(dxf_gameplay PRIVATE Source/Gameplay/Private)
 target_link_libraries(dxf_gameplay PUBLIC dxf::runtime dxf::physics)
 dxf_public_headers(dxf_gameplay Gameplay PUBLIC)
 dxf_warnings(dxf_gameplay)
@@ -209,6 +219,7 @@ dxf_warnings(dxf_gameplay)
 add_library(dxf_physics STATIC
     Source/Physics/Private/Dxf/PhysicsWorld2D.cpp
     Source/Physics/Private/Dxf/PhysicsWorld3D.cpp
+    Source/Physics/Private/Dxf/MechanismConstraintMath.cpp
     Source/Physics/Private/Dxf/WorldSlideMove.cpp
     Source/Physics/Private/Dxf/CharacterMovement.cpp
     Source/Physics/Private/Dxf/ParallelPhysicsCore.cpp)
@@ -244,6 +255,11 @@ set(DXF_GAMEPLAY_SAMPLE_SOURCES
     Examples/GameplaySample/SampleHud.cpp
     Examples/GameplaySample/CharacterSample2DScene.cpp
     Examples/GameplaySample/CharacterSample3DScene.cpp
+    Examples/GameplaySample/MechanismController.cpp
+    Examples/GameplaySample/MechanismCourse2D.cpp
+    Examples/GameplaySample/MechanismCourse3D.cpp
+    Examples/GameplaySample/MechanismPanel.cpp
+    Examples/GameplaySample/MechanismOverlay.cpp
     Examples/GameplaySample/JointCourse2D.cpp
     Examples/GameplaySample/JointCourse3D.cpp
     Examples/GameplaySample/JointCourseOverlay.cpp
@@ -278,6 +294,7 @@ if(DXF_BUILD_TESTS)
         Tools/CharacterBenchmark/LegacyScenarios.cpp
         Tools/CharacterBenchmark/InteractionScenarios.cpp
         Tools/CharacterBenchmark/JointScenarios.cpp
+        Tools/CharacterBenchmark/MechanismScenarios.cpp
         Tools/CharacterBenchmark/CapsuleScenarios.cpp
         Tools/CharacterBenchmark/ScalingScenarios.cpp
         Tools/CharacterBenchmark/QueryCosts.cpp
@@ -299,8 +316,16 @@ if(DXF_BUILD_TESTS)
         set_tests_properties(NoStl PROPERTIES LABELS "source-policy" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
     endif()
     add_executable(dxf_tests Tests/TestMain.cpp Tests/InteractionMutationTests.cpp Tests/Support/TestFs.cpp Tests/ToolboxTests.cpp Tests/MathCollisionTests.cpp Tests/FoundationTests.cpp Tests/SupportTests.cpp
-        Tests/GameplayTests.cpp Tests/ApplicationTests.cpp Tests/WindowStateTests.cpp Tests/SandboxTests.cpp Tests/FixedTickTests.cpp Tests/PhysicsSceneTests.cpp Tests/DistanceJointComponentTests.cpp Tests/CharacterMovementComponentTests.cpp Tests/PhysicsEventComponentTests.cpp Tests/KinematicMoverTests.cpp Tests/MovingGroundTests.cpp Tests/ThreadingTests.cpp Tests/AssetRootTests.cpp
+        Tests/GameplayTests.cpp Tests/ApplicationTests.cpp Tests/WindowStateTests.cpp Tests/SandboxTests.cpp Tests/FixedTickTests.cpp Tests/PhysicsSceneTests.cpp Tests/DistanceJointComponentTests.cpp Tests/MechanismJointComponentTests.cpp Tests/CharacterMovementComponentTests.cpp Tests/PhysicsEventComponentTests.cpp Tests/KinematicMoverTests.cpp Tests/MovingGroundTests.cpp Tests/ThreadingTests.cpp Tests/AssetRootTests.cpp
         Tests/HardeningTests.cpp Tests/RenderFailureTests.cpp Tests/SceneContinuationTests.cpp Tests/ResourceShutdownTests.cpp Tests/UsabilityTests.cpp Tests/StressTests.cpp Tests/StarterTests.cpp Tests/TaskDispatcherTests.cpp Tests/LogTests.cpp Tests/AssetAsyncTests.cpp Tests/RenderBatchTests.cpp Examples/Starter/Source/BootScene.cpp Examples/Sandbox/SandboxGame.cpp Examples/Sandbox/SandboxMenuScene.cpp)
+    # Observation公開ヘッダーは各翻訳単位の唯一のincludeとしてコンパイルする。
+    target_sources(dxf_tests PRIVATE
+        Tests/MechanismHeaders/FixedObservation2D.cpp
+        Tests/MechanismHeaders/FixedObservation3D.cpp
+        Tests/MechanismHeaders/RevoluteObservation2D.cpp
+        Tests/MechanismHeaders/RevoluteObservation3D.cpp
+        Tests/MechanismHeaders/PrismaticObservation2D.cpp
+        Tests/MechanismHeaders/PrismaticObservation3D.cpp)
     target_link_libraries(dxf_tests PRIVATE dxf::framework)
     target_include_directories(dxf_tests PRIVATE Tests Examples/Sandbox Examples/Starter/Source)
     dxf_ide_headers(dxf_tests Tests/Support Examples/Sandbox Examples/Starter/Source)
@@ -309,7 +334,7 @@ if(DXF_BUILD_TESTS)
     set_tests_properties(Framework PROPERTIES TIMEOUT 60 LABELS "portable")
 
     # 確保置換は専用のCPU実行ファイルへ隔離する。
-    add_executable(dxf_joint_component_fault Tests/DistanceJointComponentFault.cpp Source/Toolbox/Private/Toolbox/Testing/AllocationFault.cpp)
+    add_executable(dxf_joint_component_fault Tests/DistanceJointComponentFault.cpp Tests/MechanismJointComponentFault.cpp Source/Toolbox/Private/Toolbox/Testing/AllocationFault.cpp)
     target_compile_definitions(dxf_joint_component_fault PRIVATE DXF_ALLOCATION_FAULT_TEST_EXECUTABLE=1)
     target_link_libraries(dxf_joint_component_fault PRIVATE dxf::gameplay)
     target_include_directories(dxf_joint_component_fault PRIVATE Tests)
@@ -415,6 +440,7 @@ if(DXF_BUILD_NATIVE_SMOKE)
             "$<TARGET_FILE_DIR:NativeModelSmoke>")
     # キャラクター移動のサンプル（2D／3D）を入力だけ固定して実Applicationで確認する。通常のソリューションには含めない。
     add_executable(NativeGameplaySmoke
+        Tests/GameplaySampleSmoke/MechanismSmoke.cpp
         Tests/GameplaySampleSmoke/Main.cpp
         Tests/GameplaySampleSmoke/SmokeSupport.cpp
         Tests/GameplaySampleSmoke/JointSmoke.cpp

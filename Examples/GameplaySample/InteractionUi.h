@@ -18,7 +18,7 @@ public:
 	 * （物理の状態は変えず、一時停止中の切り替えは再開後の固定更新から反映される）。
 	 */
 	void Initialize(DScene& Scene, FAssetService& Assets, Toolbox::TFunction<void()> ToggleSplit,
-	                Toolbox::TFunction<void()> ToggleShape, Toolbox::TFunction<void()> TogglePush);
+	                Toolbox::TFunction<void()> ToggleShape, Toolbox::TFunction<void()> TogglePush, Toolbox::TFunction<void(DUiPanel&, FUiScope&)> Populate = {});
 	/**
 	 * Sceneが生存している間に入力の接続を外す。
 	 */

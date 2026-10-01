@@ -5,7 +5,7 @@
 namespace Dxf::GameplaySample
 {
 void FInteractionUi::Initialize(DScene& Scene, FAssetService& Assets, Toolbox::TFunction<void()> ToggleSplit,
-                                Toolbox::TFunction<void()> ToggleShape, Toolbox::TFunction<void()> TogglePush)
+                                Toolbox::TFunction<void()> ToggleShape, Toolbox::TFunction<void()> TogglePush, Toolbox::TFunction<void(DUiPanel&, FUiScope&)> Populate)
 {
 	m_pScene = &Scene;
 	m_pText = Toolbox::MakeUnique<FUiAssetTextService>(Assets);
@@ -19,20 +19,24 @@ void FInteractionUi::Initialize(DScene& Scene, FAssetService& Assets, Toolbox::T
 	m_Status.Get()->SetHitTest(EUiHitTest::None);
 	RequireSample(m_pRoot->AddToLayer(EUiLayer::Normal, m_Status.Cast<DUiElement>()));
 	m_Settings = m_pRoot->Create<DUiPopup>();
-	auto Panel = m_pRoot->Create<DUiPanel>(EUiStackMode::Vertical, 12.0f);
+	auto Panel = m_pRoot->Create<DUiPanel>(EUiStackMode::Vertical, Populate ? 6.0f : 12.0f);
 	Panel.Get()->SetWidth(FUiLength::Fixed(420));
 	Panel.Get()->SetHeight(FUiLength::Content());
 	Panel.Get()->SetAlign(EUiAlign::Center, EUiAlign::Center);
-	Panel.Get()->SetPadding(FUiThickness::All(20));
+	Panel.Get()->SetPadding(FUiThickness::All(Populate ? 10.0f : 20.0f));
 	Panel.Get()->CreateChild<DUiLabel>("Settings / physics paused");
 	auto Split = Panel.Get()->CreateChild<DUiButton>("Toggle 1 / 2 views");
-	Split.Get()->SetHeight(FUiLength::Fixed(40));
+	Split.Get()->SetHeight(FUiLength::Fixed(Populate ? 24.0f : 40.0f));
 	auto Shape = Panel.Get()->CreateChild<DUiButton>("Character: Round / Capsule");
-	Shape.Get()->SetHeight(FUiLength::Fixed(40));
+	Shape.Get()->SetHeight(FUiLength::Fixed(Populate ? 24.0f : 40.0f));
 	auto Push = Panel.Get()->CreateChild<DUiButton>("Push boxes: On / Off");
-	Push.Get()->SetHeight(FUiLength::Fixed(40));
+	Push.Get()->SetHeight(FUiLength::Fixed(Populate ? 24.0f : 40.0f));
+	if (Populate)
+	{
+		Populate(*Panel.Get(), m_Scope);
+	}
 	auto Close = Panel.Get()->CreateChild<DUiButton>("Resume / F1");
-	Close.Get()->SetHeight(FUiLength::Fixed(40));
+	Close.Get()->SetHeight(FUiLength::Fixed(Populate ? 24.0f : 40.0f));
 	m_Scope.Add(Split.Get()->OnClicked().Subscribe(Toolbox::Move(ToggleSplit)));
 	m_Scope.Add(Shape.Get()->OnClicked().Subscribe(Toolbox::Move(ToggleShape)));
 	m_Scope.Add(Push.Get()->OnClicked().Subscribe(Toolbox::Move(TogglePush)));

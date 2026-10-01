@@ -163,6 +163,15 @@ const FCase* GetBoxWallContactCases(Toolbox::size_t& Count) noexcept;
  * 距離拘束の所有と寿命の試験（2D／3D）を返す。
  * @param Count 返す配列の要素数。
  */
+/**
+ * 新種類の登録・解放・Step確定を確保失敗で検証する。
+ */
+Toolbox::int32 RunMechanismJointAllocationChecks();
+const FCase* GetMechanismJointCases(Toolbox::size_t& Count) noexcept;
+/**
+ * 既存距離Jointの所有回帰。
+ * @param Count 返す配列の要素数。
+ */
 const FCase* GetJointLifetimeCases(Toolbox::size_t& Count) noexcept;
 /**
  * 距離拘束の拘束方程式（2D／3D）の試験を返す。

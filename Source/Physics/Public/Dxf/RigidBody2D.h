@@ -3,6 +3,13 @@
 #define DXF_PHYSICS_RIGID_BODY_2D_H
 #include "Dxf/BodyType.h"
 #include "Dxf/DistanceJoint2D.h"
+#include "Dxf/JointKind.h"
+#include "Dxf/RevoluteJointDescription2D.h"
+#include "Dxf/RevoluteJointState2D.h"
+#include "Dxf/FixedJointDescription2D.h"
+#include "Dxf/FixedJointState2D.h"
+#include "Dxf/PrismaticJointDescription2D.h"
+#include "Dxf/PrismaticJointState2D.h"
 #include "Dxf/JointId2D.h"
 #include "Dxf/ColliderResponse.h"
 #include "Dxf/WorldEvent.h"
@@ -276,6 +283,62 @@ public:
 	 * @return 現在の距離とLengthとの差。存在しないIDでは例外。
 	 */
 	FDistanceJointState2D GetDistanceJoint(FJointId2D Id) const;
+	/**
+	 * IDの生存と種類を照合し、種類を読む。別World・失効IDは例外。
+	 */
+	EJointKind GetJointKind(FJointId2D Id) const;
+	/**
+	 * Revoluteを登録する。完全なBody ID・Frame・数値を検証し、失敗時は公開しない。
+	 */
+	FJointId2D CreateRevoluteJoint(FBodyId2D BodyA, FBodyId2D BodyB, const FRevoluteJointDescription2D& Description);
+	/**
+	 * 現在Poseから状態を読む。種類違いは例外。Step・起床を行わない。
+	 */
+	FRevoluteJointState2D GetRevoluteJoint(FJointId2D Id) const;
+	/**
+	 * 共通World FrameからLocal設定を一度だけ作る。Body・数値不正は例外。Worldは変更しない。
+	 */
+	FRevoluteJointDescription2D MakeRevoluteJointDescription(FBodyId2D BodyA, FBodyId2D BodyB, Toolbox::FVector2 WorldAnchor, Toolbox::f64 WorldAngle = 0) const;
+	/**
+	 * 受理済み設定を置き換える。検証失敗は旧設定を保持、同値ならIDと休止時間を維持。Stepとは直列化する。
+	 */
+	void SetRevoluteJointDrive(FJointId2D Id, const FAngularJointDrive& Value);
+	/**
+	 * 受理済み設定を置き換える。検証失敗は旧設定を保持、同値ならIDと休止時間を維持。Stepとは直列化する。
+	 */
+	void SetRevoluteJointLimits(FJointId2D Id, const FAngularJointLimits& Value);
+	/**
+	 * Fixedを登録する。完全なBody ID・Frame・数値を検証し、失敗時は公開しない。
+	 */
+	FJointId2D CreateFixedJoint(FBodyId2D BodyA, FBodyId2D BodyB, const FFixedJointDescription2D& Description);
+	/**
+	 * 現在Poseから状態を読む。種類違いは例外。Step・起床を行わない。
+	 */
+	FFixedJointState2D GetFixedJoint(FJointId2D Id) const;
+	/**
+	 * 共通World FrameからLocal設定を一度だけ作る。Body・数値不正は例外。Worldは変更しない。
+	 */
+	FFixedJointDescription2D MakeFixedJointDescription(FBodyId2D BodyA, FBodyId2D BodyB, Toolbox::FVector2 WorldAnchor, Toolbox::f64 WorldAngle = 0) const;
+	/**
+	 * Prismaticを登録する。完全なBody ID・Frame・数値を検証し、失敗時は公開しない。
+	 */
+	FJointId2D CreatePrismaticJoint(FBodyId2D BodyA, FBodyId2D BodyB, const FPrismaticJointDescription2D& Description);
+	/**
+	 * 現在Poseから状態を読む。種類違いは例外。Step・起床を行わない。
+	 */
+	FPrismaticJointState2D GetPrismaticJoint(FJointId2D Id) const;
+	/**
+	 * 共通World FrameからLocal設定を一度だけ作る。Body・数値不正は例外。Worldは変更しない。
+	 */
+	FPrismaticJointDescription2D MakePrismaticJointDescription(FBodyId2D BodyA, FBodyId2D BodyB, Toolbox::FVector2 WorldAnchor, Toolbox::f64 WorldAngle = 0) const;
+	/**
+	 * 受理済み設定を置き換える。検証失敗は旧設定を保持、同値ならIDと休止時間を維持。Stepとは直列化する。
+	 */
+	void SetPrismaticJointDrive(FJointId2D Id, const FLinearJointDrive& Value);
+	/**
+	 * 受理済み設定を置き換える。検証失敗は旧設定を保持、同値ならIDと休止時間を維持。Stepとは直列化する。
+	 */
+	void SetPrismaticJointLimits(FJointId2D Id, const FLinearJointLimits& Value);
 	/**
 	 * 重心位置を返す。期限切れIDは例外で通知する。
 	 * @param Id 登録を識別する世代付きID。

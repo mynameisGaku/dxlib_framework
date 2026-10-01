@@ -797,6 +797,11 @@ struct FIndexedPose3D
 // 距離拘束の登録スロット。Colliderとは独立で、Body同士の拘束だけを保持する。
 struct FJointRecord3D
 {
+	// 共通slotの種類。全登録で明示初期化する。
+	EJointKind Kind = EJointKind::Distance;
+	// Frame・受理済み設定と、成功Stepだけの再利用値。
+	PhysicsPrivate::FMechanismSettings Mechanism;
+	PhysicsPrivate::FMechanismCache MechanismCache;
 	// スロットを破棄して再使用するたびに増える世代。
 	Toolbox::uint64 Generation = 0;
 	// 登録中か。
@@ -819,6 +824,37 @@ struct FJointRecord3D
 };
 struct FPhysicsWorld3D::FImpl
 {
+	FJointId3D RegisterJoint_Internal(FJointRecord3D Record)
+	{
+		// 空きスロットの再使用または末尾への追加。破棄時に進めた世代を引き継ぐ。
+		Toolbox::size_t Index = 0;
+		if (!JointFree.IsEmpty())
+		{
+			Index = JointFree.Back();
+			JointFree.PopBack();
+			FJointRecord3D& Slot = Joints[Index];
+			const Toolbox::uint64 NextGeneration = Slot.Generation + 1;
+			Slot = Record;
+			Slot.Generation = NextGeneration;
+		}
+		else
+		{
+			// noexceptの破棄中に確保しない。登録公開前に、全slotの空き番号領域を用意する。
+			const Toolbox::size_t Required = Joints.Size() + 1;
+			if (Required > JointFreeReserved)
+			{
+				// Joint記録の最大保持数より小さく、倍増もsize_tの範囲に収まる。
+				const Toolbox::size_t Reserved = Required * 2;
+				JointFree.Reserve(Reserved);
+				JointFreeReserved = Reserved;
+			}
+			Index = Joints.Size();
+			Record.Generation = 1;
+			Joints.PushBack(Record);
+		}
+		return {World, Index, Joints[Index].Generation};
+	}
+
 	// 別ワールドのID混入を検出する識別子。
 	Toolbox::uint64 World = NextWorld_Internal();
 	// スロット番号で直接参照する登録領域。
@@ -838,6 +874,8 @@ struct FPhysicsWorld3D::FImpl
 	Toolbox::TVector<Toolbox::size_t> JointFree;
 	// 生存slotすべての破棄を、追加確保なしで保持できる上限。
 	Toolbox::size_t JointFreeReserved = 0;
+	// 現在の離散SubStep秒数。TOIでは変更しない。
+	Toolbox::f64 JointSlice = 1.0 / 60.0;
 	Toolbox::TVector<FCachedImpulse3D> Cache;
 	// ワールド全体の重力加速度。
 	Toolbox::FVector3 Gravity{0, -9.8f, 0};
@@ -2132,6 +2170,7 @@ struct FPhysicsWorld3D::FImpl
 		ApplyImpulse_Internal(BodyA, BodyB, Point.Position, Applied);
 	}
 	// 入力検証後、物理値を変更する前に登録値から全作業スロットを作り直す。
+#include "MechanismWorld3D.inl"
 	void BeginJointSolve_Internal()
 	{
 		JointSolveStates.Resize(Joints.Size());
@@ -2146,6 +2185,8 @@ struct FPhysicsWorld3D::FImpl
 			}
 			State.bActive = true;
 			State.Generation = Joint.Generation;
+			State.Kind = Joint.Kind;
+			State.Mechanism = Joint.MechanismCache;
 			State.AccumulatedImpulse = Joint.AccumulatedImpulse;
 			State.LastValidAxis = Joint.LastValidAxis;
 			State.bHasLastValidAxis = Joint.bHasLastValidAxis;
@@ -2158,10 +2199,11 @@ struct FPhysicsWorld3D::FImpl
 		{
 			FJointRecord3D& Joint = Joints[Index];
 			const auto& State = JointSolveStates[Index];
-			if (!State.bActive || !Joint.bAlive || State.Generation != Joint.Generation)
+			if (!State.bActive || !Joint.bAlive || State.Generation != Joint.Generation || State.Kind != Joint.Kind)
 			{
 				continue;
 			}
+			Joint.MechanismCache = State.Mechanism;
 			Joint.AccumulatedImpulse = State.AccumulatedImpulse;
 			Joint.LastValidAxis = State.LastValidAxis;
 			Joint.bHasLastValidAxis = State.bHasLastValidAxis;
@@ -2266,7 +2308,7 @@ struct FPhysicsWorld3D::FImpl
 		State.bHasLastValidAxis = true;
 	}
 	// 生存JointへWarm StartのImpulseを適用する。Main側で全Jointを走査する。
-	void WarmStartJoints_Internal() noexcept
+	void WarmStartJoints_Internal()
 	{
 		for (Toolbox::size_t Slot = 0; Slot < Joints.Size(); ++Slot)
 		{
@@ -2274,6 +2316,11 @@ struct FPhysicsWorld3D::FImpl
 			auto& State = JointSolveStates[Slot];
 			if (!Joint.bAlive)
 			{
+				continue;
+			}
+			if (Joint.Kind != EJointKind::Distance)
+			{
+				WarmMechanism_Internal(Slot);
 				continue;
 			}
 			FBodyRecord3D* BodyA = Find_Internal(Joint.BodyA);
@@ -2369,7 +2416,7 @@ struct FPhysicsWorld3D::FImpl
 		for (Toolbox::size_t Slot = 0; Slot < Joints.Size(); ++Slot)
 		{
 			const FJointRecord3D& Joint = Joints[Slot];
-			if (!Joint.bAlive)
+			if (!Joint.bAlive || Joint.Kind != EJointKind::Distance)
 			{
 				continue;
 			}
@@ -2477,9 +2524,16 @@ struct FPhysicsWorld3D::FImpl
 			{
 				const PhysicsPrivate::FPhysicsConstraintRef& Constraint = Constraints[Slot];
 				// Island Managerが(Kind, Index)順に整列済みなので、種別で分岐するだけで固定順になる。
-				if (Constraint.Kind == PhysicsPrivate::EPhysicsConstraintKind::DistanceJoint)
+				if (Constraint.Kind != PhysicsPrivate::EPhysicsConstraintKind::Contact)
 				{
-					SolveDistanceJoint_Internal(Constraint.Index);
+					if (Constraint.Kind == PhysicsPrivate::EPhysicsConstraintKind::DistanceJoint)
+					{
+						SolveDistanceJoint_Internal(Constraint.Index);
+					}
+					else
+					{
+						SolveMechanism_Internal(Constraint.Index);
+					}
 					continue;
 				}
 				FManifold3D& Manifold = Manifolds[Constraint.Index];
@@ -2539,7 +2593,7 @@ struct FPhysicsWorld3D::FImpl
 			PhysicsPrivate::FIslandEdge Edge;
 			Edge.BodyA = Joint.BodyA.Index;
 			Edge.BodyB = Joint.BodyB.Index;
-			Edge.Constraint.Kind = PhysicsPrivate::EPhysicsConstraintKind::DistanceJoint;
+			Edge.Constraint.Kind = static_cast<PhysicsPrivate::EPhysicsConstraintKind>(static_cast<Toolbox::uint8>(Joint.Kind) + 1);
 			Edge.Constraint.Index = Slot;
 			Edge.bDynamicA = BodyA->Type == EBodyType::Dynamic;
 			Edge.bDynamicB = BodyB->Type == EBodyType::Dynamic;
@@ -2729,12 +2783,12 @@ struct FPhysicsWorld3D::FImpl
 		return false;
 	}
 	// Island内のJointが起床閾値を超える距離誤差を持つか。
-	bool HasJointErrorBeyond_Internal(const PhysicsPrivate::FPhysicsIsland& Island, Toolbox::f64 WakeDistance) const noexcept
+	bool HasJointErrorBeyond_Internal(const PhysicsPrivate::FPhysicsIsland& Island, Toolbox::f64 WakeDistance) const
 	{
 		for (Toolbox::size_t Slot = 0; Slot < Island.Constraints.Size(); ++Slot)
 		{
 			const PhysicsPrivate::FPhysicsConstraintRef& Constraint = Island.Constraints[Slot];
-			if (Constraint.Kind != PhysicsPrivate::EPhysicsConstraintKind::DistanceJoint || Constraint.Index >= Joints.Size())
+			if (Constraint.Kind == PhysicsPrivate::EPhysicsConstraintKind::Contact || Constraint.Index >= Joints.Size())
 			{
 				continue;
 			}
@@ -2747,6 +2801,14 @@ struct FPhysicsWorld3D::FImpl
 			const FBodyRecord3D* BodyB = Find_Internal(Joint.BodyB);
 			if (BodyA == nullptr || BodyB == nullptr)
 			{
+				continue;
+			}
+			if (Joint.Kind != EJointKind::Distance)
+			{
+				if (MechanismNeedsWake_Internal(Joint, *BodyA, *BodyB, WakeDistance))
+				{
+					return true;
+				}
 				continue;
 			}
 			FJointFrame3D Frame;
@@ -2765,7 +2827,7 @@ struct FPhysicsWorld3D::FImpl
 	// 拘束の運動が起床理由になるか。Contactは既存の接触点相対運動、
 	// JointはAnchor全相対速度と距離誤差を使う。
 	bool ShouldWakeForConstraintMotion_Internal(const Toolbox::TVector<FManifold3D>& Manifolds,
-	                                            const PhysicsPrivate::FPhysicsIsland& Island, Toolbox::f64 Slice) const noexcept
+	                                            const PhysicsPrivate::FPhysicsIsland& Island, Toolbox::f64 Slice) const
 	{
 		const Toolbox::f64 WakeDistance = JointWakeDistance_Internal(Slice);
 		for (Toolbox::size_t Slot = 0; Slot < Island.Constraints.Size(); ++Slot)
@@ -2809,6 +2871,14 @@ struct FPhysicsWorld3D::FImpl
 			{
 				continue;
 			}
+			if (Joint.Kind != EJointKind::Distance)
+			{
+				if (MechanismNeedsWake_Internal(Joint, *BodyA, *BodyB, WakeDistance))
+				{
+					return true;
+				}
+				continue;
+			}
 			FJointFrame3D Frame;
 			if (!BuildJointFrame_Internal(Joint, *BodyA, *BodyB, Frame))
 			{
@@ -2841,7 +2911,7 @@ struct FPhysicsWorld3D::FImpl
 	// WakeUpやImpulse適用は対象Bodyだけを起こす既存契約で、
 	// Islandへの伝播はここ（Main側）で一度に完了する。
 	void WakeIslands_Internal(const Toolbox::TVector<FManifold3D>& Manifolds,
-	                          const Toolbox::TVector<PhysicsPrivate::FPhysicsIsland>& Islands, Toolbox::f64 Slice) noexcept
+	                          const Toolbox::TVector<PhysicsPrivate::FPhysicsIsland>& Islands, Toolbox::f64 Slice)
 	{
 		for (Toolbox::size_t IslandIndex = 0; IslandIndex < Islands.Size(); ++IslandIndex)
 		{
@@ -2876,7 +2946,7 @@ struct FPhysicsWorld3D::FImpl
 	// constraint（ContactまたはJoint）へ参加している」ことを表す。
 	// SensorはSolver拘束ではないので支持に数えない。
 	void UpdateSleep_Internal(const Toolbox::TVector<FManifold3D>& Manifolds,
-	                          const Toolbox::TVector<PhysicsPrivate::FPhysicsIsland>& Islands, Toolbox::f64 Slice) noexcept
+	                          const Toolbox::TVector<PhysicsPrivate::FPhysicsIsland>& Islands, Toolbox::f64 Slice)
 	{
 		if (!Sleep.bEnabled)
 		{
@@ -2894,7 +2964,7 @@ struct FPhysicsWorld3D::FImpl
 			for (Toolbox::size_t ConstraintSlot = 0; ConstraintSlot < Island.Constraints.Size(); ++ConstraintSlot)
 			{
 				const PhysicsPrivate::FPhysicsConstraintRef& Constraint = Island.Constraints[ConstraintSlot];
-				if (Constraint.Kind == PhysicsPrivate::EPhysicsConstraintKind::DistanceJoint)
+				if (Constraint.Kind != PhysicsPrivate::EPhysicsConstraintKind::Contact)
 				{
 					if (Constraint.Index >= Joints.Size())
 					{
@@ -3620,6 +3690,8 @@ FBodyId3D FPhysicsWorld3D::CreateBody(const FBodyDescription3D& Description)
 		m_pImpl->IndexedPoses.Resize(
 		    Toolbox::Max<Toolbox::size_t>(m_pImpl->Slots.Size() + 1, m_pImpl->IndexedPoses.Size() * 2));
 	}
+	// 全Bodyの返却容量を登録時に倍増し、破棄中の確保を防ぐ。
+	m_pImpl->Free.Reserve(m_pImpl->IndexedPoses.Size());
 	// 空きスロットの再使用または末尾への追加。
 	Toolbox::size_t Index = 0;
 	if (!m_pImpl->Free.IsEmpty())
@@ -3722,33 +3794,7 @@ FJointId3D FPhysicsWorld3D::CreateDistanceJoint(FBodyId3D BodyA, FBodyId3D BodyB
 	Record.AccumulatedImpulse = 0;
 	Record.LastValidAxis = {1, 0, 0};
 	Record.bHasLastValidAxis = false;
-	// 空きスロットの再使用または末尾への追加。破棄時に進めた世代を引き継ぐ。
-	Toolbox::size_t Index = 0;
-	if (!m_pImpl->JointFree.IsEmpty())
-	{
-		Index = m_pImpl->JointFree.Back();
-		m_pImpl->JointFree.PopBack();
-		FJointRecord3D& Slot = m_pImpl->Joints[Index];
-		const Toolbox::uint64 NextGeneration = Slot.Generation + 1;
-		Slot = Record;
-		Slot.Generation = NextGeneration;
-	}
-	else
-	{
-		// noexceptの破棄中に確保しない。登録公開前に、全slotの空き番号領域を用意する。
-		const Toolbox::size_t Required = m_pImpl->Joints.Size() + 1;
-		if (Required > m_pImpl->JointFreeReserved)
-		{
-			// Joint記録の最大保持数より小さく、倍増もsize_tの範囲に収まる。
-			const Toolbox::size_t Reserved = Required * 2;
-			m_pImpl->JointFree.Reserve(Reserved);
-			m_pImpl->JointFreeReserved = Reserved;
-		}
-		Index = m_pImpl->Joints.Size();
-		Record.Generation = 1;
-		m_pImpl->Joints.PushBack(Record);
-	}
-	return {m_pImpl->World, Index, m_pImpl->Joints[Index].Generation};
+	return m_pImpl->RegisterJoint_Internal(Record);
 }
 bool FPhysicsWorld3D::DestroyJoint(FJointId3D Id) noexcept
 {
@@ -3769,6 +3815,10 @@ bool FPhysicsWorld3D::IsJointAlive(FJointId3D Id) const noexcept
 FDistanceJointState3D FPhysicsWorld3D::GetDistanceJoint(FJointId3D Id) const
 {
 	const FJointRecord3D& Record = m_pImpl->ResolveJoint_Internal(Id);
+	if (Record.Kind != EJointKind::Distance)
+	{
+		throw Toolbox::FException("Wrong distance joint kind");
+	}
 	const FBodyRecord3D& BodyA = m_pImpl->Resolve_Internal(Record.BodyA);
 	const FBodyRecord3D& BodyB = m_pImpl->Resolve_Internal(Record.BodyB);
 	// SolverのBuildJointFrame_Internalと同じRotate_Internal経路でWorld Anchorを作る。
@@ -3783,6 +3833,7 @@ FDistanceJointState3D FPhysicsWorld3D::GetDistanceJoint(FJointId3D Id) const
 	State.Error = State.CurrentLength - Record.Length;
 	return State;
 }
+#include "MechanismApi3D.inl"
 Toolbox::FVector3 FPhysicsWorld3D::GetPosition(FBodyId3D Id) const
 {
 	return m_pImpl->Resolve_Internal(Id).Position;
@@ -3999,6 +4050,8 @@ FColliderId3D FPhysicsWorld3D::AttachCollider(FBodyId3D Body, const FColliderDes
 		m_pImpl->QueryWorldShapes.Resize(
 		    Toolbox::Max<Toolbox::size_t>(m_pImpl->Colliders.Size() + 1, m_pImpl->QueryWorldShapes.Size() * 2));
 	}
+	// Colliderの返却列も索引と同じ容量まで先に拡張する。
+	m_pImpl->ColliderFree.Reserve(m_pImpl->QueryWorldShapes.Size());
 	// イベント境界列も登録時に確保し、次のStepへ確保を持ち越さない。
 	if (m_pImpl->Events.IsEnabled())
 	{
@@ -4910,6 +4963,7 @@ void FPhysicsWorld3D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 		m_pImpl->BuildIslands_Internal(Manifolds, Islands);
 		m_pImpl->ExecutionDiagnostics.IslandCount = Islands.Size();
 		// Solver前に必要な起床をMain側で完了させる。並列Workerからは起こさない。
+		m_pImpl->JointSlice = Slice;
 		m_pImpl->WakeIslands_Internal(Manifolds, Islands, Slice);
 		for (Toolbox::size_t ManifoldIndex = 0; ManifoldIndex < Manifolds.Size(); ++ManifoldIndex)
 		{
@@ -4940,6 +4994,7 @@ void FPhysicsWorld3D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 			m_pImpl->CorrectPositions_Internal(Touched);
 			// 移動後もJointの距離誤差を位置で補正する。
 			m_pImpl->CorrectDistanceJointPositions_Internal();
+			m_pImpl->CorrectMechanismPositions_Internal();
 			// 移動後の接触からIslandを作り直し、休止判定に使う。
 			// 連続衝突の区間だけ再構築する。通常経路は一度で済ませる。
 			Toolbox::TVector<PhysicsPrivate::FPhysicsIsland> MovedIslands;
@@ -5003,6 +5058,7 @@ void FPhysicsWorld3D::Step(Toolbox::f64 DeltaSeconds, Toolbox::uint32 SubSteps)
 		m_pImpl->CorrectPositions_Internal(Manifolds);
 		// Jointの距離誤差も位置で補正する。
 		m_pImpl->CorrectDistanceJointPositions_Internal();
+		m_pImpl->CorrectMechanismPositions_Internal();
 		// 同じIsland列で休止を評価する。拘束の支持は接触点数ではなく
 		// ContactとJointの参加で決まる。
 		m_pImpl->UpdateSleep_Internal(Manifolds, Islands, Slice);

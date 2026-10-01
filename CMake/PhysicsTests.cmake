@@ -23,6 +23,7 @@ function(dxf_add_physics_tests Target CoreTarget)
         "${_root}/Tests/Physics/CharacterPushTests.cpp"
         "${_root}/Tests/Physics/SolverBroadPhaseTests.cpp"
         "${_root}/Tests/Physics/JointLifetimeTests.cpp"
+        "${_root}/Tests/Physics/MechanismJointTests.cpp"
         "${_root}/Tests/Physics/DistanceJointTests.cpp"
         "${_root}/Tests/Physics/DistanceJointSleepTests.cpp"
         "${_root}/Tests/Physics/DistanceJoint3DFrameTests.cpp"
@@ -39,7 +40,6 @@ function(dxf_add_physics_tests Target CoreTarget)
         "${_root}/Tests/Physics/QueryIndexContractTests.cpp"
         "${_root}/Tests/Physics/QueryIndexTestSupport.h"
         "${_root}/Tests/Physics/TestCases.h")
-    target_include_directories(${Target} PRIVATE "${_root}/Tests/Physics" "${_root}/Source/Physics/Private")
     target_include_directories(${Target} PRIVATE "${_root}/Tests/Physics" "${_root}/Source/Physics/Private")
     target_link_libraries(${Target} PRIVATE ${CoreTarget})
     target_compile_features(${Target} PRIVATE cxx_std_20)
@@ -59,6 +59,7 @@ function(dxf_add_physics_tests Target CoreTarget)
         "${_root}/Tests/Physics/OverlapAllocationFaultTests.cpp"
         "${_root}/Tests/Physics/QueryIndexAllocationFaultTests.cpp"
         "${_root}/Tests/Physics/DistanceJointAllocationFaultTests.cpp"
+        "${_root}/Tests/Physics/MechanismJointAllocationFaultTests.cpp"
         "${_root}/Source/Toolbox/Private/Toolbox/Testing/AllocationFault.cpp")
     target_compile_definitions(${Target}_overlap_fault PRIVATE DXF_ALLOCATION_FAULT_TEST_EXECUTABLE=1)
     target_link_libraries(${Target}_overlap_fault PRIVATE ${CoreTarget})

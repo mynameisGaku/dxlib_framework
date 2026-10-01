@@ -7,6 +7,7 @@
 #include "SmokeAcceptance.h"
 #include "SmokeTraces.h"
 #include "InteractionSmoke.h"
+#include "MechanismSmoke.h"
 // Windowsの文字種マクロとToolboxの同名関数を分離する。
 #ifdef CreateDirectory
 #undef CreateDirectory
@@ -28,6 +29,11 @@ Toolbox::int32 main(Toolbox::int32 Count, char** Args)
 		Check(Toolbox::IsDirectory(Output) || Toolbox::CreateDirectory(Output), "output directory failed");
 		if (Count == 4)
 		{
+			if (strcmp(Args[3], "--mechanism-only") == 0)
+			{
+				RunMechanismSmoke(Backends, Args[1], Output);
+				return 0;
+			}
 			if (strcmp(Args[3], "--joint-only") == 0)
 			{
 				RunJointSmoke(Backends, Args[1], Output);
@@ -69,6 +75,7 @@ Toolbox::int32 main(Toolbox::int32 Count, char** Args)
 		// 同じサンプルライブラリの相互作用を実描画・固定入力・1／2画面で確認する。
 		RunInteractionSmoke(Backends, Args[1], Output);
 		RunJointSmoke(Backends, Args[1], Output);
+		RunMechanismSmoke(Backends, Args[1], Output);
 		{
 			// 終了後の再起動: 新しいApplicationで開始し、歩いて終了できる。
 			FSmokeApp App(Backends, Args[1]);

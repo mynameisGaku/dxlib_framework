@@ -4,6 +4,7 @@
 #include "InteractionCourse.h"
 #include "InteractionUi.h"
 #include "JointCourse2D.h"
+#include "MechanismCourse2D.h"
 #include "Dxf/Font.h"
 #include "Dxf/MathTypes.h"
 namespace Dxf::GameplaySample
@@ -133,6 +134,22 @@ protected:
 	 */
 	void OnDraw(FRenderContext& Render) const override;
 
+public:
+	/**
+	 * 操作と観察で共有する装置群。Sceneは生成と寿命だけを取りまとめる。
+	 */
+	FMechanismCourse2D& GetMechanismCourse() noexcept
+	{
+		return m_MechanismCourse;
+	}
+	/**
+	 * 描画専用の装置参照。
+	 */
+	const FMechanismCourse2D& GetMechanismCourse() const noexcept
+	{
+		return m_MechanismCourse;
+	}
+
 private:
 	FInteractionRules& GetRules() noexcept override
 	{
@@ -161,6 +178,10 @@ private:
 	 * 既存コースに置いた距離拘束の仕掛け。
 	 */
 	FJointCourse2D m_JointCourse;
+	/**
+	 * 子の装置を構成する非所有の窓口。
+	 */
+	FMechanismCourse2D m_MechanismCourse;
 	/**
 	 * Scene専用の設定画面。物理と独立した表示・入力処理。
 	 */

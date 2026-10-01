@@ -8,6 +8,8 @@
 #include "Dxf/GameScene.h"
 #include "../Source/Toolbox/Private/Toolbox/Testing/AllocationFault.h"
 #include <stdio.h>
+// 新種類も同じ故障注入実行ファイルで検証する。
+void RunMechanismComponentFaults();
 namespace
 {
 using namespace Dxf;
@@ -494,6 +496,7 @@ int main()
 	try
 	{
 		setvbuf(stdout, nullptr, _IONBF, 0);
+		RunMechanismComponentFaults();
 		RunRegistration<DDistanceJoint2DComponent, FDistanceJointComponentDescription2D>("2D");
 		RunRegistration<DDistanceJoint3DComponent, FDistanceJointComponentDescription3D>("3D");
 		RunInitial2D();

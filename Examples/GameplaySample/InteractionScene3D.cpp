@@ -3,6 +3,8 @@
 #include "CharacterSample3DScene.h"
 #include "InteractionHud.h"
 #include "JointCourseOverlay.h"
+#include "MechanismOverlay.h"
+#include "MechanismPanel.h"
 #include "InteractionScene2D.h"
 #include "Dxf/AssetService.h"
 #include "Dxf/RenderContext.h"
@@ -174,12 +176,17 @@ TResult<void> DInteraction3DScene::OnInitialize(const FInitContext& Context)
 	    [this]()
 	    {
 		    TogglePush();
+	    },
+	    [this](DUiPanel& Panel, FUiScope& Scope)
+	    {
+		    BuildMechanismPanel(Panel, Scope, m_MechanismCourse.GetController());
 	    });
 	if (auto Spawned = SpawnInteractionCourse<FInteraction3D>(*this, *this, m_Course); !Spawned)
 	{
 		return Spawned;
 	}
 	m_JointCourse.Initialize(*this);
+	m_MechanismCourse.Initialize(*this);
 	auto Director = Spawn<DInteractionDirector3D>(*this);
 	if (!Director)
 	{
@@ -195,6 +202,7 @@ void DInteraction3DScene::OnDraw(FRenderContext& Render) const
 	{
 		RequireSample(Draw3D.SetView(GetView(Side)));
 		DrawJointCourse3D(Render, *this);
+		DrawMechanismCourse3D(Render, *this);
 		FDrawStyle3D Style;
 		const auto& Ground = InteractionLayout::GetGround();
 		Style.Color = {60, 70, 90, 255};
@@ -324,6 +332,7 @@ void DInteraction3DScene::OnDraw(FRenderContext& Render) const
 	         GetClock().IsPaused() ? "[PAUSED]" : "");
 	RequireSample(Draw.DrawText(m_Font, Line, {16, 96}, Text));
 	DrawJointStatus(Render, *this, m_Font);
+	DrawMechanismStatus(Render, *this, m_Font);
 	InteractionModeText(m_Mode, Line);
 	RequireSample(Draw.DrawText(m_Font, Line, {16, 124}, Text));
 }

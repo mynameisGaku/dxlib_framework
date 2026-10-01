@@ -14,6 +14,7 @@
 //   --pilot     所要時間の見積り用に、繰り返しの固定更新を短くする
 #include "CapsuleScenarios.h"
 #include "JointScenarios.h"
+#include "MechanismScenarios.h"
 #include "KernelCosts.h"
 #include "InteractionScenarios.h"
 #include "LegacyScenarios.h"
@@ -136,6 +137,11 @@ int main(int Count, char** Args)
 			printf("capsule failed: %s\n", Error.What());
 			return 1;
 		}
+	}
+	if (strcmp(Args[1], "mechanism") == 0)
+	{
+		RunMechanismSeries(Warmup, bPilot ? PilotMeasured : Measured);
+		return 0;
 	}
 	if (strcmp(Args[1], "joint") == 0)
 	{
