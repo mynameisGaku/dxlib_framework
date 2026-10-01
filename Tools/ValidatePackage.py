@@ -22,7 +22,9 @@ CONSUMER_SOURCES = ('CMakeLists.txt', 'Main.cpp', 'Support.cpp', 'Physics.cpp', 
                     'PhysicsCapsule.h', 'PhysicsCapsule.cpp',
                     'FInteractionConsumerResult.h', 'InteractionConsumer.h', 'InteractionConsumer.cpp',
                     'CapsuleConsumer.h', 'CapsuleConsumer.cpp', 'JointConsumer.h', 'JointConsumer.cpp',
-                    'FJointConsumerResult.h', 'PhysicsJoint.h', 'PhysicsJoint.cpp')
+                    'FJointConsumerResult.h', 'PhysicsJoint.h', 'PhysicsJoint.cpp',
+                    'FMechanismConsumerResult.h', 'MechanismConsumer.h', 'MechanismConsumer.cpp',
+                    'PhysicsMechanism.h', 'PhysicsMechanism.cpp')
 # UI入りの外部のApplicationへ渡す外部スタイル（正しいものと、読めないもの）。
 UI_STYLE = 'dxfui-style 1\nstyle ConsumerButton {\n background = #20a0e0\n}\n'
 UI_BROKEN_STYLE = 'dxfui-style 1\nstyle ConsumerButton {\n background = @missing\n}\n'

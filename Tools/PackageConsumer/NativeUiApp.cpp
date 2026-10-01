@@ -15,6 +15,7 @@
 #include "Dxf/ViewCoordinates.h"
 #include "Toolbox/Platform.h"
 #include "DxLib.h"
+#include "MechanismConsumer.h"
 namespace
 {
 using namespace Dxf;
@@ -319,6 +320,8 @@ int wmain(int Count, wchar_t** Args)
 		Settings.Window.Resize = EWindowResizeMode::Resizable;
 		Settings.ExecutionThreadCount = 1;
 		Settings.ClearColor = ClearColor;
+		// Applicationより長く保持する仕掛け検証値。
+		FMechanismConsumerResult MechanismResults[2];
 		FApplication App(
 		    {Services.Platform, Input, Services.Textures, Services.Sounds, Services.Fonts, Services.Renderer},
 		    Settings);
@@ -430,9 +433,72 @@ int wmain(int Count, wchar_t** Args)
 		Input.Raw.MouseButtons[0] = false;
 		Step();
 		Check(Scene3D->GetClicks() == 1, "3D panel UI click");
+
+		// 既存UI試験の後で、同じ外部装置コードをUI操作から駆動する。
+		for (Toolbox::int32 Dimension = 0; Dimension < 2; ++Dimension)
+		{
+			auto& Result = MechanismResults[Dimension];
+			Check(static_cast<bool>(App.GetScenes().RequestChange(Dimension == 0 ? MakeMechanismConsumer2D(Result) : MakeMechanismConsumer3D(Result))), "UI mechanism change");
+			for (Toolbox::int32 Frame = 0; Frame < 45; ++Frame)
+			{
+				Step();
+			}
+			FUiAssetTextService Text(App.GetAssets());
+			FUiRootSettings RootSettings;
+			RootSettings.Text = &Text;
+			FUiRoot MechanismRoot(RootSettings);
+			FUiSceneHost Host;
+			auto Button = MechanismRoot.Create<DUiButton>("Reverse mechanism");
+			Button.Get()->SetAbsolutePosition({40, 40});
+			Button.Get()->SetWidth(FUiLength::Fixed(260));
+			Button.Get()->SetHeight(FUiLength::Fixed(60));
+			FUiStylePatch ButtonStyle;
+			ButtonStyle.Background = {180, 70, 210, 255};
+			Button.Get()->SetStyleOverride(ButtonStyle);
+			Require(MechanismRoot.AddToLayer(EUiLayer::Panel, Button.Cast<DUiElement>()));
+			auto Subscription = Button.Get()->OnClicked().Subscribe([&Result]()
+			                                                        {
+				                                                        Result.RequestedSpeed = -0.5;
+				                                                        Result.bDriveRequested = true;
+			                                                        });
+			FUiDisplayOptions Options;
+			Options.Scale.Mode = EUiScaleMode::FixedPixel;
+			Host.AddScreen(MechanismRoot, Options);
+			Host.AttachTo(*App.GetScenes().GetCurrent());
+			Result.DrawOverlay = [&Host](FRenderContext& Render)
+			{
+				Require(Host.Draw(Render));
+			};
+			Step();
+			Check(Near(ReadPixel(50, 50), {180, 70, 210, 255}, 0), "external mechanism UI pixel");
+			const auto Before = Result.AppliedRequests;
+			Input.Raw.MouseX = 160;
+			Input.Raw.MouseY = 70;
+			Input.Raw.MouseButtons[0] = true;
+			Step();
+			Input.Raw.MouseButtons[0] = false;
+			Step();
+			Step();
+			Check(Result.AppliedRequests == Before + 1 && Result.RequestedSpeed == -0.5, "external UI to component request");
+			// 逆転は有限Torqueで減速してから行う。要求反映の遅れを含め12固定Step待つ。
+			for (Toolbox::int32 Frame = 0; Frame < 12; ++Frame)
+			{
+				Step();
+			}
+			Check(Result.ObservedTargetSpeed == -0.5 && Result.ObservedAngularSpeed < -0.1, "external UI changes physical motion");
+			for (Toolbox::int32 Frame = 0; Frame < 60; ++Frame)
+			{
+				Step();
+			}
+			Check(Result.bComplete, "external UI mechanism lifecycle");
+			Host.DetachFromScene();
+			Result.DrawOverlay = {};
+			Toolbox::Out << "EXTERNAL_UI_MECHANISM dimension=" << Dimension << " requests=" << Result.AppliedRequests << "\n";
+		}
 		App.GetScenes().RequestQuit();
 		const auto Quit = App.Step(Time);
 		Check(Quit && !Quit.Value(), "quit failed");
+		Check(MechanismResults[0].bShutdown && MechanismResults[1].bShutdown, "UI mechanism scene shutdown");
 		Toolbox::Out << "NATIVE_UI_CONSUMER_PASSED\n";
 		return 0;
 	}

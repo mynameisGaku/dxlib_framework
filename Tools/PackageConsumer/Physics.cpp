@@ -9,6 +9,7 @@
 #include "Dxf/WorldQueryDiagnostics.h"
 #include "PhysicsCapsule.h"
 #include "PhysicsJoint.h"
+#include "PhysicsMechanism.h"
 #include "PhysicsInteraction.h"
 // 円スイープ: 中心線の射線は外れ、半径のある移動は当たる。除外・カテゴリ・静止・削除後の失効。
 // 接触法線: 壁の左下の角(4.5,0.4)から中心(4.2,0)へ向く(-0.6,-0.8)。初期接触・半径0では空。
@@ -564,6 +565,11 @@ int main()
 	if (const Toolbox::int32 Interaction = RunPhysicsInteraction(); Interaction != 0)
 	{
 		return Interaction;
+	}
+	const auto MechanismCode = RunPhysicsMechanisms();
+	if (MechanismCode != 0)
+	{
+		return MechanismCode;
 	}
 	const auto JointCode = RunPhysicsJoint();
 	if (JointCode != 0)

@@ -14,6 +14,7 @@
 #include "Dxf/SceneNavigator.h"
 #include "InteractionConsumer.h"
 #include "JointConsumer.h"
+#include "MechanismConsumer.h"
 #include "Dxf/ViewCoordinates.h"
 #include "DxLib.h"
 namespace
@@ -227,6 +228,7 @@ int main(int Count, char** Args)
 		FInteractionConsumerResult Interaction2D;
 		FInteractionConsumerResult Interaction3D;
 		FJointConsumerResult JointResults[2];
+		FMechanismConsumerResult MechanismResults[2];
 		FApplication App(
 		    {Services.Platform, Input, Services.Textures, Services.Sounds, Services.Fonts, Services.Renderer},
 		    Settings);
@@ -307,10 +309,66 @@ int main(int Count, char** Args)
 			Check(R > 50 && B > R && G < R, "external joint rendered weight pixel");
 			Toolbox::Out << "EXTERNAL_JOINT_PIXEL dimension=" << Dimension << " rgb=" << R << "," << G << "," << B << "\n";
 		}
+
+		// 同じ公開Sceneを再配置先で描く。3種類を一度のCPU読戻しで照合する。
+		for (Toolbox::int32 Dimension = 0; Dimension < 2; ++Dimension)
+		{
+			auto& Result = MechanismResults[Dimension];
+			Check(static_cast<bool>(App.GetScenes().RequestChange(Dimension == 0 ? MakeMechanismConsumer2D(Result) : MakeMechanismConsumer3D(Result))), "external mechanism scene change");
+			for (Toolbox::int32 Frame = 0; Frame < 58; ++Frame)
+			{
+				Step();
+			}
+			Check(Result.bComplete, "external mechanism component lifecycle");
+			const Toolbox::int32 Image = DxLib::MakeARGB8ColorSoftImage(1280, 720);
+			Check(Image >= 0, "external mechanism soft image");
+			Check(DxLib::SetDrawScreen(DX_SCREEN_FRONT) == 0, "external mechanism front");
+			const Toolbox::int32 Read = DxLib::GetDrawScreenSoftImage(0, 0, 1280, 720, Image);
+			Check(DxLib::SetDrawScreen(DX_SCREEN_BACK) == 0, "external mechanism restore");
+			if (Read != 0)
+			{
+				DxLib::DeleteSoftImage(Image);
+				Check(false, "external mechanism readback");
+			}
+			bool bAll = true;
+			for (Toolbox::int32 Kind = 0; Kind < 3; ++Kind)
+			{
+				const auto Position = Result.Positions[Kind];
+				FVector2 Point{640 + Position.X * 80, 540 - Position.Y * 80};
+				if (Dimension == 1)
+				{
+					const auto Projected = ProjectWorldToScreen(GetMechanismConsumerView(), 1280, 720, Position);
+					if (!Projected || !Projected.Value().bInsideView)
+					{
+						bAll = false;
+						continue;
+					}
+					Point = Projected.Value().Screen;
+				}
+				Toolbox::int32 Matches = 0;
+				for (Toolbox::int32 Y = -3; Y <= 3; ++Y)
+				{
+					for (Toolbox::int32 X = -3; X <= 3; ++X)
+					{
+						int Alpha = 0;
+						const auto Pixel = DxLib::GetPixelSoftImage(Image, static_cast<int>(Point.X) + X, static_cast<int>(Point.Y) + Y, &R, &G, &B, &Alpha);
+						if (Pixel == 0 && G > R + 30 && B > R + 20 && G > 80)
+						{
+							++Matches;
+						}
+					}
+				}
+				bAll = bAll && Matches > 0;
+				Toolbox::Out << "EXTERNAL_MECHANISM_PIXEL dimension=" << Dimension << " kind=" << Kind << " matches=" << Matches << "\n";
+			}
+			DxLib::DeleteSoftImage(Image);
+			Check(bAll, "external mechanism pixel mismatch");
+		}
 		App.GetScenes().RequestQuit();
 		const auto Quit = App.Step(Time);
 		Check(Quit && !Quit.Value(), "quit failed");
 		Check(JointResults[0].bShutdown && JointResults[1].bShutdown, "external joint scene shutdown");
+		Check(MechanismResults[0].bShutdown && MechanismResults[1].bShutdown, "external mechanism scene shutdown");
 		Toolbox::Out << "NATIVE_CONSUMER_PASSED\n";
 		return 0;
 	}

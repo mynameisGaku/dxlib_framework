@@ -10,7 +10,7 @@ from ValidatePackage import CONSUMER_SOURCES
 import ValidatePackage as package
 class JointPackageTests(unittest.TestCase):
     def test_joint_files_are_copied(self):
-        for name in ('JointConsumer.h', 'JointConsumer.cpp', 'FJointConsumerResult.h', 'PhysicsJoint.h', 'PhysicsJoint.cpp'):
+        for name in ('JointConsumer.h', 'JointConsumer.cpp', 'FJointConsumerResult.h', 'PhysicsJoint.h', 'PhysicsJoint.cpp', 'PhysicsMechanism.h', 'PhysicsMechanism.cpp', 'MechanismConsumer.h', 'MechanismConsumer.cpp', 'FMechanismConsumerResult.h'):
             self.assertIn(name, CONSUMER_SOURCES)
             self.assertTrue((ROOT / 'Tools/PackageConsumer' / name).is_file())
         self.assertEqual(len(CONSUMER_SOURCES), len(set(CONSUMER_SOURCES)))

@@ -7,6 +7,7 @@
 #include "CapsuleConsumer.h"
 #include "InteractionConsumer.h"
 #include "JointConsumer.h"
+#include "MechanismConsumer.h"
 #include "Dxf/CharacterMovementComponent2D.h"
 #include "Dxf/CharacterMovementComponent3D.h"
 #include "Dxf/InputStateTracker.h"
@@ -171,6 +172,11 @@ int main()
 	if (InteractionCode != 0)
 	{
 		return InteractionCode;
+	}
+	const auto MechanismCode = RunMechanismConsumer(InteractionAssets, InteractionAudio);
+	if (MechanismCode != 0)
+	{
+		return MechanismCode;
 	}
 	const auto JointCode = RunJointConsumer(InteractionAssets, InteractionAudio);
 	if (JointCode != 0)
