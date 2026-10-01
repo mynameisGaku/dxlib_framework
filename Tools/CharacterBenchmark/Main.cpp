@@ -15,6 +15,7 @@
 #include "CapsuleScenarios.h"
 #include "JointScenarios.h"
 #include "MechanismScenarios.h"
+#include "ContentScenarios.h"
 #include "KernelCosts.h"
 #include "InteractionScenarios.h"
 #include "LegacyScenarios.h"
@@ -138,6 +139,12 @@ int main(int Count, char** Args)
 			return 1;
 		}
 	}
+    if (strcmp(Args[1], "content") == 0)
+    {
+        if (bReference) { return 2; }
+        try { RunContentSeries(Steps); return 0; }
+        catch (const Toolbox::FException& Error) { printf("Content benchmark failed: %s\n", Error.What()); return 1; }
+    }
 	if (strcmp(Args[1], "mechanism") == 0)
 	{
 		RunMechanismSeries(Warmup, bPilot ? PilotMeasured : Measured);

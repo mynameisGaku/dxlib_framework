@@ -5,6 +5,7 @@
 #include "Dxf/UiAssetTextService.h"
 #include "Dxf/UiPopup.h"
 #include "Dxf/UiLabel.h"
+#include "Dxf/UiScrollView.h"
 namespace Dxf::GameplaySample
 {
 /**
@@ -18,7 +19,7 @@ public:
 	 * （物理の状態は変えず、一時停止中の切り替えは再開後の固定更新から反映される）。
 	 */
 	void Initialize(DScene& Scene, FAssetService& Assets, Toolbox::TFunction<void()> ToggleSplit,
-	                Toolbox::TFunction<void()> ToggleShape, Toolbox::TFunction<void()> TogglePush, Toolbox::TFunction<void(DUiPanel&, FUiScope&)> Populate = {});
+	                Toolbox::TFunction<void()> ToggleShape, Toolbox::TFunction<void()> TogglePush, Toolbox::TFunction<void(DUiPanel&, FUiScope&)> Populate = {}, bool bContent = false);
 	/**
 	 * Sceneが生存している間に入力の接続を外す。
 	 */
@@ -72,6 +73,10 @@ private:
 	 * 設定画面と状態の表示先。
 	 */
 	TUiRef<DUiPopup> m_Settings;
+	/**
+	 * Content操作だけを小さい描画先でスクロールする。
+	 */
+	TUiRef<DUiScrollView> m_ContentScroll;
 	TUiRef<DUiLabel> m_Status;
 	/**
 	 * 設定を開く前の時計の状態。

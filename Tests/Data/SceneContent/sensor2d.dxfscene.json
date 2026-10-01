@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "kind": "scene",
+  "dimension": 2,
+  "gravity": [
+    0,
+    0
+  ],
+  "prefabs": {
+    "door": "sensor2d.dxfprefab.json"
+  },
+  "instances": [
+    {
+      "id": "doorA",
+      "prefab": "door"
+    }
+  ]
+}

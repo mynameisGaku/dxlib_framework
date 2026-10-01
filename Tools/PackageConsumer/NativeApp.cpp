@@ -15,6 +15,7 @@
 #include "InteractionConsumer.h"
 #include "JointConsumer.h"
 #include "MechanismConsumer.h"
+#include "ContentConsumer.h"
 #include "Dxf/ViewCoordinates.h"
 #include "DxLib.h"
 namespace
@@ -206,7 +207,7 @@ private:
 };
 } // namespace
 
-int main(int Count, char** Args)
+int wmain(int Count, wchar_t** Args)
 {
 	if (Count != 2)
 	{
@@ -219,7 +220,7 @@ int main(int Count, char** Args)
 		FNoInput Input;
 		const auto Services = Backends.GetServices();
 		FApplicationSettings Settings;
-		Settings.ProjectRoot = Args[1];
+		Settings.ProjectRoot = Toolbox::FromWide(Args[1]);
 		Settings.Window.Width = 1280;
 		Settings.Window.Height = 720;
 		Settings.Window.bVSync = false;
@@ -230,7 +231,7 @@ int main(int Count, char** Args)
 		FJointConsumerResult JointResults[2];
 		FMechanismConsumerResult MechanismResults[2];
 		FApplication App(
-		    {Services.Platform, Input, Services.Textures, Services.Sounds, Services.Fonts, Services.Renderer},
+		    {Services.Platform, Input, Services.Textures, Services.Sounds, Services.Fonts, Services.Renderer, Services.pModels},
 		    Settings);
 		Check(static_cast<bool>(App.Start(Toolbox::MakeUnique<DScene2D>())), "start failed");
 		Toolbox::f64 Time = 0;
@@ -364,6 +365,7 @@ int main(int Count, char** Args)
 			DxLib::DeleteSoftImage(Image);
 			Check(bAll, "external mechanism pixel mismatch");
 		}
+		RunContentNativeConsumer(App, Toolbox::FPath(Args[1]), Step);
 		App.GetScenes().RequestQuit();
 		const auto Quit = App.Step(Time);
 		Check(Quit && !Quit.Value(), "quit failed");

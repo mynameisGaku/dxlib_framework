@@ -11,7 +11,7 @@ from ValidationSupport import new_run_directory, run_logged, validation_report
 
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED = {
-    'DebugTools', 'DebugPhysicsCapture', 'RenderViews', 'NativeViewsTranslation', 'JointComponentFault', 'JointComponentFault',
+    'SceneContent', 'SceneContentAllocationFault', 'DebugTools', 'DebugPhysicsCapture', 'RenderViews', 'NativeViewsTranslation', 'JointComponentFault', 'JointComponentFault',
     'RenderContinuation', 'RenderTransparency', 'RenderTransparencyFault',
     'NativeTransparency', 'PhysicsContinuation', 'PhysicsOverlapFault',
     *(f'JobFault-{name}' for name in ('construction', 'submission', 'capture-wait',

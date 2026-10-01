@@ -8,11 +8,12 @@
 #include "SmokeTraces.h"
 #include "InteractionSmoke.h"
 #include "MechanismSmoke.h"
+#include "ContentSmoke.h"
 // Windowsの文字種マクロとToolboxの同名関数を分離する。
 #ifdef CreateDirectory
 #undef CreateDirectory
 #endif
-Toolbox::int32 main(Toolbox::int32 Count, char** Args)
+Toolbox::int32 wmain(Toolbox::int32 Count, wchar_t** Args)
 {
 	using namespace Dxf;
 	using namespace Dxf::GameplaySmoke;
@@ -23,31 +24,39 @@ Toolbox::int32 main(Toolbox::int32 Count, char** Args)
 	}
 	try
 	{
-		// ネイティブ窓口はApplicationより長く生存する。
+		// OSの引数はUTF-16。既存変換でUTF-8へ揃え、日本語Rootを保持する。
+        const auto Root = Toolbox::FromWide(Args[1]);
+        const auto Selection = Count == 4 ? Toolbox::FromWide(Args[3]) : Toolbox::FString();
+        // ネイティブ窓口はApplicationより長く生存する。
 		FDxLibBackends Backends;
 		const Toolbox::FPath Output(Args[2]);
 		Check(Toolbox::IsDirectory(Output) || Toolbox::CreateDirectory(Output), "output directory failed");
 		if (Count == 4)
 		{
-			if (strcmp(Args[3], "--mechanism-only") == 0)
+			if (strcmp(Selection.CStr(), "--content-only") == 0)
+            {
+                RunContentSmoke(Backends, Root.CStr(), Output);
+                return 0;
+            }
+            if (strcmp(Selection.CStr(), "--mechanism-only") == 0)
 			{
-				RunMechanismSmoke(Backends, Args[1], Output);
+				RunMechanismSmoke(Backends, Root.CStr(), Output);
 				return 0;
 			}
-			if (strcmp(Args[3], "--joint-only") == 0)
+			if (strcmp(Selection.CStr(), "--joint-only") == 0)
 			{
-				RunJointSmoke(Backends, Args[1], Output);
+				RunJointSmoke(Backends, Root.CStr(), Output);
 				return 0;
 			}
-			if (strcmp(Args[3], "--interaction-only") == 0)
+			if (strcmp(Selection.CStr(), "--interaction-only") == 0)
 			{
-				RunInteractionSmoke(Backends, Args[1], Output);
+				RunInteractionSmoke(Backends, Root.CStr(), Output);
 				return 0;
 			}
 			throw Toolbox::FException("Unknown limited smoke selection");
 		}
 		{
-			FSmokeApp App(Backends, Args[1]);
+			FSmokeApp App(Backends, Root.CStr());
 			App.Start();
 			// 2Dの受け入れ。
 			RunAcceptance2D(App, Output);
@@ -70,15 +79,16 @@ Toolbox::int32 main(Toolbox::int32 Count, char** Args)
 			App.Quit();
 		}
 		// 軌跡の一致（それぞれ新しいApplicationで3回ずつ起動・終了する）。
-		RunTraceComparisons2D(Backends, Args[1]);
-		RunTraceComparisons3D(Backends, Args[1]);
+		RunTraceComparisons2D(Backends, Root.CStr());
+		RunTraceComparisons3D(Backends, Root.CStr());
 		// 同じサンプルライブラリの相互作用を実描画・固定入力・1／2画面で確認する。
-		RunInteractionSmoke(Backends, Args[1], Output);
-		RunJointSmoke(Backends, Args[1], Output);
-		RunMechanismSmoke(Backends, Args[1], Output);
+		RunInteractionSmoke(Backends, Root.CStr(), Output);
+		RunJointSmoke(Backends, Root.CStr(), Output);
+		RunMechanismSmoke(Backends, Root.CStr(), Output);
+        RunContentSmoke(Backends, Root.CStr(), Output);
 		{
 			// 終了後の再起動: 新しいApplicationで開始し、歩いて終了できる。
-			FSmokeApp App(Backends, Args[1]);
+			FSmokeApp App(Backends, Root.CStr());
 			App.Start();
 			App.Hold(EKey::D, true);
 			for (Toolbox::int32 Frame = 0; Frame < 30; ++Frame)

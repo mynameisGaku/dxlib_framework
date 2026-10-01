@@ -3,6 +3,7 @@
 #define DXF_GAMEPLAY_SAMPLE_INTERACTION_SCENE_2D_H
 #include "InteractionCourse.h"
 #include "InteractionUi.h"
+#include "ContentCoursePortal.h"
 #include "JointCourse2D.h"
 #include "MechanismCourse2D.h"
 #include "Dxf/Font.h"
@@ -151,6 +152,10 @@ public:
 	}
 
 private:
+	/**
+	 * データコースの準備は独立したObjectが担当し、従来コースを準備失敗で終了しない。
+	 */
+	TObjectHandle<DContentCoursePortal> m_ContentPortal;
 	FInteractionRules& GetRules() noexcept override
 	{
 		return m_Rules;

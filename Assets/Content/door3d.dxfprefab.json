@@ -1,0 +1,395 @@
+{
+  "schema": 1,
+  "kind": "prefab",
+  "dimension": 3,
+  "parts": [
+    {
+      "id": "frame",
+      "body": {
+        "type": "Static",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "id": "leaf",
+      "body": {
+        "type": "Dynamic",
+        "position": [
+          0,
+          1,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          -1
+        ],
+        "inertia": [
+          0.227,
+          0.067,
+          0.267
+        ],
+        "mass": 1
+      },
+      "colliders": [
+        {
+          "shape": "Box",
+          "halfExtents": [
+            0.4,
+            0.8,
+            0.2
+          ]
+        }
+      ],
+      "visual": {
+        "kind": "Box",
+        "halfExtents": [
+          0.4,
+          0.8,
+          0.2
+        ],
+        "color": {
+          "parameter": "tint"
+        },
+        "font": "font",
+        "label": "Door"
+      }
+    },
+    {
+      "id": "sensor",
+      "body": {
+        "type": "Static",
+        "position": [
+          0,
+          1,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "colliders": [
+        {
+          "shape": "Box",
+          "halfExtents": [
+            0.9,
+            0.9,
+            0.6
+          ],
+          "response": "Sensor"
+        }
+      ]
+    },
+    {
+      "id": "cargo",
+      "body": {
+        "type": "Dynamic",
+        "position": [
+          0,
+          2.2,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "colliders": [
+        {
+          "shape": "Box",
+          "halfExtents": [
+            0.3,
+            0.3,
+            0.2
+          ]
+        }
+      ],
+      "visual": {
+        "kind": "Box",
+        "halfExtents": [
+          0.3,
+          0.3,
+          0.2
+        ],
+        "color": [
+          230,
+          190,
+          80,
+          255
+        ]
+      }
+    },
+    {
+      "id": "pendulum",
+      "body": {
+        "type": "Dynamic",
+        "position": [
+          -1.5,
+          -1,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "colliders": [
+        {
+          "shape": "Box",
+          "halfExtents": [
+            0.2,
+            0.2,
+            0.2
+          ]
+        }
+      ],
+      "visual": {
+        "kind": "Box",
+        "halfExtents": [
+          0.2,
+          0.2,
+          0.2
+        ],
+        "color": [
+          230,
+          190,
+          80,
+          255
+        ]
+      }
+    },
+    {
+      "id": "arm",
+      "body": {
+        "type": "Dynamic",
+        "position": [
+          -1.5,
+          1,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "colliders": [
+        {
+          "shape": "Box",
+          "halfExtents": [
+            0.25,
+            0.7,
+            0.2
+          ]
+        }
+      ],
+      "visual": {
+        "kind": "Box",
+        "halfExtents": [
+          0.25,
+          0.7,
+          0.2
+        ],
+        "color": [
+          230,
+          190,
+          80,
+          255
+        ]
+      }
+    },
+    {
+      "id": "model",
+      "pose": {
+        "position": [
+          0,
+          -2,
+          0.2
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "visual": {
+        "kind": "Model",
+        "asset": "model",
+        "scale": [
+          0.8,
+          0.8,
+          0.8
+        ],
+        "animation": 0
+      }
+    }
+  ],
+  "joints": [
+    {
+      "id": "rail",
+      "kind": "Prismatic",
+      "bodyA": "frame",
+      "bodyB": "leaf",
+      "frame": {
+        "space": "Prefab",
+        "anchor": [
+          0,
+          1,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "drive": {
+        "enabled": true,
+        "speed": {
+          "parameter": "speed"
+        },
+        "maxForce": {
+          "parameter": "effort"
+        }
+      },
+      "limits": {
+        "enabled": true,
+        "lower": 0,
+        "upper": {
+          "parameter": "travel"
+        }
+      }
+    },
+    {
+      "id": "fixed",
+      "kind": "Fixed",
+      "bodyA": "leaf",
+      "bodyB": "cargo",
+      "frame": {
+        "space": "Prefab",
+        "anchor": [
+          0,
+          1.6,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "id": "rope",
+      "kind": "Distance",
+      "bodyA": "frame",
+      "bodyB": "pendulum",
+      "length": 1.8027756377319946
+    },
+    {
+      "id": "hinge",
+      "kind": "Revolute",
+      "bodyA": "frame",
+      "bodyB": "arm",
+      "frame": {
+        "space": "Prefab",
+        "anchor": [
+          -1.5,
+          1.7,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "limits": {
+        "enabled": true,
+        "lower": -0.8,
+        "upper": 0.8
+      }
+    }
+  ],
+  "exports": {
+    "doorBody": "leaf/body",
+    "doorDrive": "rail",
+    "sensor": "sensor/sensor",
+    "openCue": "cue/asset",
+    "assembly": "fixed",
+    "armDrive": "hinge",
+    "hanger": "rope"
+  },
+  "parameters": {
+    "speed": {
+      "type": "number",
+      "default": 0.8,
+      "min": -3,
+      "max": 3
+    },
+    "travel": {
+      "type": "number",
+      "default": 2,
+      "min": 0.1,
+      "max": 5
+    },
+    "tint": {
+      "type": "color",
+      "default": [
+        80,
+        180,
+        240,
+        255
+      ]
+    },
+    "effort": {
+      "type": "number",
+      "default": 15,
+      "min": 0,
+      "max": 80
+    }
+  },
+  "assets": {
+    "picture": {
+      "kind": "Texture",
+      "path": "Assets/player.bmp"
+    },
+    "cue": {
+      "kind": "Sound",
+      "path": "Assets/confirm.wav"
+    },
+    "font": {
+      "kind": "Font",
+      "family": "Arial",
+      "size": 16
+    },
+    "model": {
+      "kind": "Model",
+      "path": "Assets/Models/SkinnedColumn.fbx",
+      "targetUnitMeters": 1
+    }
+  }
+}

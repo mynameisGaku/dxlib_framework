@@ -1,0 +1,122 @@
+{
+  "schema": 1,
+  "kind": "scene",
+  "dimension": 3,
+  "gravity": [
+    0,
+    0,
+    0
+  ],
+  "prefabs": {
+    "door": "Assets/Content/door3d.dxfprefab.json"
+  },
+  "instances": [
+    {
+      "id": "doorA",
+      "prefab": "door",
+      "placement": {
+        "position": [
+          -3,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "parameters": {
+        "speed": 0,
+        "tint": [
+          80,
+          180,
+          240,
+          255
+        ]
+      }
+    },
+    {
+      "id": "doorB",
+      "prefab": "door",
+      "placement": {
+        "position": [
+          3,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "parameters": {
+        "speed": 0.8,
+        "tint": [
+          240,
+          120,
+          60,
+          255
+        ]
+      }
+    },
+    {
+      "id": "lift",
+      "prefab": "door",
+      "placement": {
+        "position": [
+          0,
+          4,
+          2
+        ],
+        "rotation": [
+          0.5,
+          0.5,
+          0.5,
+          0.5
+        ]
+      },
+      "parameters": {
+        "speed": 0.3,
+        "effort": 25,
+        "tint": [
+          100,
+          230,
+          100,
+          255
+        ]
+      }
+    }
+  ],
+  "views": [
+    {
+      "eye": [
+        10,
+        10,
+        18
+      ],
+      "target": [
+        0,
+        2,
+        0
+      ],
+      "up": [
+        0,
+        1,
+        0
+      ],
+      "near": 0.1,
+      "far": 100,
+      "ambient": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "lightEnabled": false
+    }
+  ]
+}

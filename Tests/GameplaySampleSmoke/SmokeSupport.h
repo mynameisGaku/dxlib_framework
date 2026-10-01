@@ -111,6 +111,11 @@ public:
 	 */
 	void CapturePoints(const Toolbox::FPath& Path, const FVector2* Points, FColor* Colors, Toolbox::size_t Count);
 
+	/**
+	 * 実試験の明示Scene要求と既存AssetServiceへの窓口。
+	 */
+	FApplication& Application() noexcept;
+
 private:
 	/**
 	 * 固定した入力。

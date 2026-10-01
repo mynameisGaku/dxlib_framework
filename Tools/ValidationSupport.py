@@ -18,7 +18,7 @@ from typing import Iterator
 from uuid import uuid4
 
 # Directories hashed as the "actual source" of a run (real bytes, not the Git index).
-FINGERPRINT_DIRECTORIES = ('Source', 'Tests', 'Examples', 'Tools', 'CMake', 'External')
+FINGERPRINT_DIRECTORIES = ('Source', 'Tests', 'Examples', 'Tools', 'CMake', 'External', 'Assets')
 FINGERPRINT_ROOT_FILES = ('CMakeLists.txt', '.clang-format', 'GenerateProjectFiles.bat', 'BuildWindows.ps1')
 FINGERPRINT_EXCLUDED_PARTS = {'__pycache__', '.pytest_cache'}
 # Structured check lines printed by device programs: "DXF_CHECK <name>=<verified|not_exercised|failed>".
@@ -133,6 +133,13 @@ def validation_report(logs: Path, summary: dict[str, object], *, root: Path | No
             record_source(root, logs, summary)
             write_summary(path, summary)
         yield summary
+        if root is not None:
+            final_digest, entries = source_manifest(root)
+            summary['final_source_sha256'] = final_digest
+            summary['source_changed'] = final_digest != summary['source_sha256']
+            (logs / 'FinalSourceManifest.txt').write_text(''.join(f'{sha}  {path}\n' for path, sha in entries), encoding='utf-8')
+            if summary['source_changed']:
+                raise RuntimeError('Source manifest changed during validation; this run is not a coherent final result')
     except KeyboardInterrupt:
         summary.update(status='interrupted', error='KeyboardInterrupt')
         raise

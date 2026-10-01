@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "kind": "prefab",
+  "dimension": 2,
+  "parts": [],
+  "children": [
+    {
+      "id": "child",
+      "prefab": "depth-7-2d.dxfprefab.json"
+    }
+  ]
+}

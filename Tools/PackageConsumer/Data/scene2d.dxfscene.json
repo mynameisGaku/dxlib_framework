@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "kind": "scene",
+  "dimension": 2,
+  "prefabs": {
+    "mechanism": "Data/prefab2d.dxfprefab.json"
+  },
+  "instances": [
+    {
+      "id": "left",
+      "prefab": "mechanism"
+    },
+    {
+      "id": "right",
+      "prefab": "mechanism",
+      "placement": {
+        "position": [
+          4,
+          0
+        ]
+      }
+    }
+  ]
+}

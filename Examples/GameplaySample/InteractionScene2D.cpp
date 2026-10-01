@@ -149,6 +149,12 @@ TResult<void> DInteraction2DScene::OnInitialize(const FInitContext& Context)
 		return TResult<void>::Failure(Font.Error());
 	}
 	m_Font = Font.Value();
+	const auto Portal = Spawn<DContentCoursePortal>(false);
+	if (!Portal)
+	{
+		return TResult<void>::Failure(Portal.Error());
+	}
+	m_ContentPortal = Portal.Value();
 	m_Ui.Initialize(
 	    *this, Context.Assets,
 	    [this]()
@@ -166,6 +172,7 @@ TResult<void> DInteraction2DScene::OnInitialize(const FInitContext& Context)
 	    [this](DUiPanel& Panel, FUiScope& Scope)
 	    {
 		    BuildMechanismPanel(Panel, Scope, m_MechanismCourse.GetController());
+		    m_ContentPortal.Get()->BuildPanel(Panel, Scope, m_ContentPortal);
 	    });
 	if (auto Spawned = SpawnInteractionCourse<FInteraction2D>(*this, *this, m_Course); !Spawned)
 	{

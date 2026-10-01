@@ -7,7 +7,7 @@ function Export-RootSolution {
         [switch]$Development
     )
     # Product UI libraries belong to the normal solution; UI samples/tests remain Development-only.
-    $VisibleProjects = @('dxf_toolbox', 'dxf_foundation', 'dxf_support', 'dxf_runtime', 'dxf_gameplay', 'dxf_physics', 'dxf_native_backends', 'dxf_ui', 'dxf_ui_runtime', 'Sandbox', 'Starter')
+    $VisibleProjects = @('dxf_toolbox', 'dxf_foundation', 'dxf_support', 'dxf_runtime', 'dxf_gameplay', 'dxf_physics', 'dxf_scene_content', 'dxf_native_backends', 'dxf_ui', 'dxf_ui_runtime', 'Sandbox', 'Starter')
     if ([IO.Path]::GetExtension($Source) -eq '.slnx') {
         $Document = New-Object System.Xml.XmlDocument
         $Document.PreserveWhitespace = $true

@@ -1,0 +1,115 @@
+{
+  "schema": 1,
+  "kind": "prefab",
+  "dimension": 3,
+  "parts": [
+    {
+      "id": "support",
+      "body": {
+        "type": "Static",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "id": "leaf",
+      "body": {
+        "type": "Dynamic",
+        "position": [
+          0,
+          1,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          -1
+        ],
+        "inertia": [
+          1,
+          2,
+          3
+        ]
+      },
+      "colliders": [
+        {
+          "shape": "Box",
+          "halfExtents": [
+            0.4,
+            0.8,
+            0.2
+          ]
+        }
+      ]
+    }
+  ],
+  "joints": [
+    {
+      "id": "rail",
+      "kind": "Prismatic",
+      "bodyA": "support",
+      "bodyB": "leaf",
+      "frame": {
+        "space": "Prefab",
+        "anchor": [
+          0,
+          1,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "drive": {
+        "enabled": true,
+        "speed": {
+          "parameter": "speed"
+        },
+        "maxForce": 15
+      }
+    }
+  ],
+  "exports": {
+    "body": "leaf/body",
+    "drive": "rail",
+    "openCue": "cue/asset",
+    "picture": "picture/asset",
+    "label": "label/asset"
+  },
+  "parameters": {
+    "speed": {
+      "type": "number",
+      "default": 0.8,
+      "min": -3,
+      "max": 3
+    }
+  },
+  "assets": {
+    "picture": {
+      "kind": "Texture",
+      "path": "Assets/共有画像.png"
+    },
+    "cue": {
+      "kind": "Sound",
+      "path": "Assets/open.wav"
+    },
+    "label": {
+      "kind": "Font",
+      "family": "Arial",
+      "size": 20
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "kind": "prefab",
+  "dimension": 2,
+  "parts": [],
+  "children": [
+    {
+      "id": "left",
+      "prefab": "door2d.dxfprefab.json",
+      "placement": {
+        "position": [
+          10,
+          0
+        ],
+        "angle": 1.5707963267948966
+      },
+      "parameters": {
+        "speed": 0
+      }
+    },
+    {
+      "id": "right",
+      "prefab": "door2d.dxfprefab.json",
+      "parameters": {
+        "speed": 0.8
+      }
+    }
+  ],
+  "exports": {
+    "leftBody": "left/doorBody",
+    "leftDrive": "left/doorDrive",
+    "rightBody": "right/doorBody",
+    "rightDrive": "right/doorDrive"
+  }
+}

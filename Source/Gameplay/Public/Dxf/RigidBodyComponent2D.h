@@ -422,6 +422,30 @@ public:
 	{
 	}
 	/**
+	 * 複数Bodyを持つObjectで取り付け先を明示する。失効後に別Bodyへ追従しない。
+	 * @param Body 同次元の既存RigidBody Component。未登録なら待つ。
+	 * @param Description 重心基準の形状と材質。
+	 */
+	DCollider2DComponent(TObjectHandle<DRigidBody2DComponent> Body, FColliderDescription2D Description)
+	    : m_Body(Body), m_bExplicitBody(true), m_Description(Description)
+	{
+		if (!Body)
+		{
+			throw Toolbox::FException("Explicit collider Body reference is invalid");
+		}
+	}
+	/**
+	 * 取り付け済みIDを読む。未登録・失効なら空。
+	 */
+	Toolbox::TOptional<FColliderId2D> GetColliderId() const noexcept
+	{
+		if (IsDestroyRequested() || !m_bAttached || m_pWorld == nullptr || !m_pWorld->IsColliderAlive(m_Collider))
+		{
+			return {};
+		}
+		return m_Collider;
+	}
+	/**
 	 * 取り付けが済んでいるかを調べる。
 	 */
 	FORCEINLINE bool HasCollider() const noexcept
@@ -446,9 +470,13 @@ protected:
 		{
 			return;
 		}
-		auto BodyHandle = Owner->FindComponent<DRigidBody2DComponent>();
+		auto BodyHandle = m_bExplicitBody ? m_Body : Owner->FindComponent<DRigidBody2DComponent>();
 		if (BodyHandle.Get() == nullptr)
 		{
+			if (m_bExplicitBody)
+			{
+				throw Toolbox::FException("Explicit collider Body reference expired");
+			}
 			return;
 		}
 		DRigidBody2DComponent* Body = BodyHandle.Get();
@@ -477,6 +505,14 @@ protected:
 	}
 
 private:
+	/**
+	 * 明示された非所有の接続先。世代が変われば失効する。
+	 */
+	TObjectHandle<DRigidBody2DComponent> m_Body;
+	/**
+	 * 所有者の最初のBodyを探す従来経路と区別する。
+	 */
+	bool m_bExplicitBody = false;
 	/**
 	 * 取り付ける形状と材質。
 	 */

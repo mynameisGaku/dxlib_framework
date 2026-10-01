@@ -88,6 +88,7 @@ endfunction()
 find_package(Threads REQUIRED)
 
 add_library(dxf_toolbox STATIC
+    Source/Toolbox/Private/Toolbox/JsonDocument.cpp
     Source/Toolbox/Private/Toolbox/Threading.cpp
     Source/Toolbox/Private/Toolbox/JobSystem.cpp
     Source/Toolbox/Private/Toolbox/Log.cpp
@@ -234,6 +235,30 @@ if(DXF_SANITIZERS)
 endif()
 
 add_library(dxlib_framework INTERFACE)
+add_library(dxf_scene_content STATIC
+    Source/SceneContent/Private/Dxf/ContentScene2D.cpp
+    Source/SceneContent/Private/Dxf/ContentScene3D.cpp
+    Source/SceneContent/Private/Dxf/SceneContentSource.cpp
+    Source/SceneContent/Private/Dxf/SceneContentRequest.cpp
+    Source/SceneContent/Private/Dxf/SceneContentTicket.cpp
+    Source/SceneContent/Private/Dxf/ContentResources.cpp
+    Source/SceneContent/Private/Dxf/ContentVisuals.cpp
+    Source/SceneContent/Private/Dxf/ContentView2D.cpp
+    Source/SceneContent/Private/Dxf/ContentViews.cpp
+    Source/SceneContent/Private/Dxf/PreparedPrefab2D.cpp
+    Source/SceneContent/Private/Dxf/PreparedPrefab3D.cpp
+    Source/SceneContent/Private/Dxf/PrefabInstance2D.cpp
+    Source/SceneContent/Private/Dxf/PrefabInstance3D.cpp
+    Source/SceneContent/Private/Dxf/SceneContentError.cpp
+    Source/SceneContent/Private/Dxf/ContentSchemaReader.cpp
+    Source/SceneContent/Private/Dxf/SceneContentValidation.cpp
+    Source/SceneContent/Private/Dxf/SceneContentParser.cpp)
+add_library(dxf::scene_content ALIAS dxf_scene_content)
+set_target_properties(dxf_scene_content PROPERTIES EXPORT_NAME scene_content DEBUG_POSTFIX d)
+target_link_libraries(dxf_scene_content PUBLIC dxf::gameplay)
+target_include_directories(dxf_scene_content PRIVATE Source/SceneContent/Private Source/Gameplay/Private)
+dxf_public_headers(dxf_scene_content SceneContent PUBLIC)
+dxf_warnings(dxf_scene_content)
 add_library(dxf::framework ALIAS dxlib_framework)
 set_target_properties(dxlib_framework PROPERTIES EXPORT_NAME framework)
 target_link_libraries(dxlib_framework INTERFACE dxf::gameplay)
@@ -250,6 +275,10 @@ set(DXF_NATIVE_SOURCES
 
 # キャラクター移動のサンプル（2D／3D）のソース。サンプルと実Appの固定入力の確認が共有する。
 set(DXF_GAMEPLAY_SAMPLE_SOURCES
+    Examples/GameplaySample/ContentCoursePortal.cpp
+    Examples/GameplaySample/ContentCoursePanel.cpp
+    Examples/GameplaySample/ContentCourseScene2D.cpp
+    Examples/GameplaySample/ContentCourseScene3D.cpp
     Examples/GameplaySample/SampleLevel.cpp
     Examples/GameplaySample/SampleCharacters.cpp
     Examples/GameplaySample/SampleHud.cpp
@@ -270,14 +299,19 @@ set(DXF_GAMEPLAY_SAMPLE_SOURCES
     Examples/GameplaySample/InteractionHud.cpp
     Examples/GameplaySample/InteractionScene2D.cpp
     Examples/GameplaySample/InteractionScene3D.cpp)
+
+# データ定義は開発用の例から実フォルダーで参照する。コンパイルは行わない。
+file(GLOB DXF_CONTENT_SAMPLE_DATA CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/Content/*.json")
 # サンプルのゲーム処理（2D／3D）の正規ライブラリ。サンプルの実行ファイル・実Appの固定入力の確認・CPUの試験が同じものを使う。
 # 通常のソリューション（試験・サンプル・実機試験がOFF）には含めない。
 if(DXF_BUILD_TESTS OR DXF_BUILD_GAMEPLAY_SAMPLE OR DXF_BUILD_NATIVE_SMOKE)
     add_library(dxf_gameplay_sample STATIC ${DXF_GAMEPLAY_SAMPLE_SOURCES})
     target_include_directories(dxf_gameplay_sample PUBLIC Examples/GameplaySample)
-    target_link_libraries(dxf_gameplay_sample PUBLIC dxf::framework dxf::ui_runtime)
+    target_link_libraries(dxf_gameplay_sample PUBLIC dxf::framework dxf::ui_runtime dxf::scene_content)
     target_compile_features(dxf_gameplay_sample PUBLIC cxx_std_20)
     dxf_ide_headers(dxf_gameplay_sample Examples/GameplaySample)
+    target_sources(dxf_gameplay_sample PRIVATE ${DXF_CONTENT_SAMPLE_DATA})
+    source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${DXF_CONTENT_SAMPLE_DATA})
     dxf_warnings(dxf_gameplay_sample)
 endif()
 
@@ -295,6 +329,7 @@ if(DXF_BUILD_TESTS)
         Tools/CharacterBenchmark/InteractionScenarios.cpp
         Tools/CharacterBenchmark/JointScenarios.cpp
         Tools/CharacterBenchmark/MechanismScenarios.cpp
+        Tools/CharacterBenchmark/ContentScenarios.cpp
         Tools/CharacterBenchmark/CapsuleScenarios.cpp
         Tools/CharacterBenchmark/ScalingScenarios.cpp
         Tools/CharacterBenchmark/QueryCosts.cpp
@@ -302,13 +337,13 @@ if(DXF_BUILD_TESTS)
         Tools/CharacterBenchmark/Report.cpp
         Source/Toolbox/Private/Toolbox/Testing/AllocationFault.cpp)
     dxf_ide_headers(dxf_character_benchmark Tools/CharacterBenchmark)
-    target_compile_definitions(dxf_character_benchmark PRIVATE DXF_ALLOCATION_FAULT_TEST_EXECUTABLE=1)
+    target_compile_definitions(dxf_character_benchmark PRIVATE DXF_ALLOCATION_FAULT_TEST_EXECUTABLE=1 DXF_CONTENT_BENCH_ROOT="${CMAKE_CURRENT_SOURCE_DIR}")
     if(DXF_INTERACTION_BENCHMARK_PROBES)
         target_sources(dxf_physics PRIVATE Source/Physics/Private/Dxf/WorldInteractionProbe.cpp)
         target_compile_definitions(dxf_physics PRIVATE DXF_INTERACTION_BENCHMARK_PROBES=1)
         target_compile_definitions(dxf_character_benchmark PRIVATE DXF_INTERACTION_BENCHMARK_PROBES=1)
     endif()
-    target_link_libraries(dxf_character_benchmark PRIVATE dxf::physics dxf::gameplay)
+    target_link_libraries(dxf_character_benchmark PRIVATE dxf::physics dxf::gameplay dxf::scene_content)
     dxf_warnings(dxf_character_benchmark)
     find_package(Python3 QUIET COMPONENTS Interpreter)
     if(Python3_Interpreter_FOUND)
@@ -316,6 +351,7 @@ if(DXF_BUILD_TESTS)
         set_tests_properties(NoStl PROPERTIES LABELS "source-policy" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
     endif()
     add_executable(dxf_tests Tests/TestMain.cpp Tests/InteractionMutationTests.cpp Tests/Support/TestFs.cpp Tests/ToolboxTests.cpp Tests/MathCollisionTests.cpp Tests/FoundationTests.cpp Tests/SupportTests.cpp
+        Tests/JsonTests.cpp
         Tests/GameplayTests.cpp Tests/ApplicationTests.cpp Tests/WindowStateTests.cpp Tests/SandboxTests.cpp Tests/FixedTickTests.cpp Tests/PhysicsSceneTests.cpp Tests/DistanceJointComponentTests.cpp Tests/MechanismJointComponentTests.cpp Tests/CharacterMovementComponentTests.cpp Tests/PhysicsEventComponentTests.cpp Tests/KinematicMoverTests.cpp Tests/MovingGroundTests.cpp Tests/ThreadingTests.cpp Tests/AssetRootTests.cpp
         Tests/HardeningTests.cpp Tests/RenderFailureTests.cpp Tests/SceneContinuationTests.cpp Tests/ResourceShutdownTests.cpp Tests/UsabilityTests.cpp Tests/StressTests.cpp Tests/StarterTests.cpp Tests/TaskDispatcherTests.cpp Tests/LogTests.cpp Tests/AssetAsyncTests.cpp Tests/RenderBatchTests.cpp Examples/Starter/Source/BootScene.cpp Examples/Sandbox/SandboxGame.cpp Examples/Sandbox/SandboxMenuScene.cpp)
     # Observation公開ヘッダーは各翻訳単位の唯一のincludeとしてコンパイルする。
@@ -331,6 +367,20 @@ if(DXF_BUILD_TESTS)
     dxf_ide_headers(dxf_tests Tests/Support Examples/Sandbox Examples/Starter/Source)
     dxf_warnings(dxf_tests)
     add_test(NAME Framework COMMAND dxf_tests)
+    add_executable(dxf_scene_content_tests Tests/TestMain.cpp Tests/SceneContentTests.cpp Tests/SceneContentRequestTests.cpp Tests/SceneContentRenderingTests.cpp)
+    target_link_libraries(dxf_scene_content_tests PRIVATE dxf::scene_content)
+    target_include_directories(dxf_scene_content_tests PRIVATE Tests)
+    target_compile_definitions(dxf_scene_content_tests PRIVATE DXF_CONTENT_TEST_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/Tests/Data/SceneContent")
+    dxf_warnings(dxf_scene_content_tests)
+    add_executable(dxf_scene_content_fault_tests Tests/TestMain.cpp Tests/SceneContentFaultTests.cpp Source/Toolbox/Private/Toolbox/Testing/AllocationFault.cpp)
+    target_link_libraries(dxf_scene_content_fault_tests PRIVATE dxf::scene_content)
+    target_include_directories(dxf_scene_content_fault_tests PRIVATE Tests)
+    target_compile_definitions(dxf_scene_content_fault_tests PRIVATE DXF_ALLOCATION_FAULT_TEST_EXECUTABLE=1 DXF_CONTENT_TEST_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/Tests/Data/SceneContent")
+    dxf_warnings(dxf_scene_content_fault_tests)
+    add_test(NAME SceneContentAllocationFault COMMAND dxf_scene_content_fault_tests)
+    set_tests_properties(SceneContentAllocationFault PROPERTIES TIMEOUT 60 LABELS "portable;content;allocation-fault")
+    add_test(NAME SceneContent COMMAND dxf_scene_content_tests)
+    set_tests_properties(SceneContent PROPERTIES TIMEOUT 60 LABELS "portable;content")
     set_tests_properties(Framework PROPERTIES TIMEOUT 60 LABELS "portable")
 
     # 確保置換は専用のCPU実行ファイルへ隔離する。
@@ -343,7 +393,8 @@ if(DXF_BUILD_TESTS)
     set_tests_properties(JointComponentFault PROPERTIES TIMEOUT 60 LABELS "portable;gameplay;fault")
 
     # 接触・Trigger・動く床のサンプル（2D／3D）を実Application・SceneNavigator・固定入力で通す。描画・文字は代替のBackend。
-    add_executable(dxf_interaction_sample_tests Tests/TestMain.cpp Tests/InteractionSampleTests.cpp)
+    add_executable(dxf_interaction_sample_tests Tests/TestMain.cpp Tests/InteractionSampleTests.cpp Tests/ContentCourseSampleTests.cpp)
+    target_compile_definitions(dxf_interaction_sample_tests PRIVATE DXF_CONTENT_SAMPLE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}")
     target_link_libraries(dxf_interaction_sample_tests PRIVATE dxf_gameplay_sample)
     target_include_directories(dxf_interaction_sample_tests PRIVATE Tests)
     dxf_warnings(dxf_interaction_sample_tests)
@@ -388,7 +439,7 @@ if(DXF_BUILD_TESTS)
     endif()
 endif()
 
-set(DXF_EXPORT_TARGETS dxlib_framework dxf_toolbox dxf_foundation dxf_ufbx dxf_support dxf_runtime dxf_gameplay dxf_physics)
+set(DXF_EXPORT_TARGETS dxlib_framework dxf_toolbox dxf_foundation dxf_ufbx dxf_support dxf_runtime dxf_gameplay dxf_physics dxf_scene_content)
 # 任意のUI基盤（dxf::ui・dxf::ui_runtime）。
 include(CMake/UiModule.cmake)
 if(DXF_BUILD_NATIVE)
@@ -440,6 +491,7 @@ if(DXF_BUILD_NATIVE_SMOKE)
             "$<TARGET_FILE_DIR:NativeModelSmoke>")
     # キャラクター移動のサンプル（2D／3D）を入力だけ固定して実Applicationで確認する。通常のソリューションには含めない。
     add_executable(NativeGameplaySmoke
+        Tests/GameplaySampleSmoke/ContentSmoke.cpp
         Tests/GameplaySampleSmoke/MechanismSmoke.cpp
         Tests/GameplaySampleSmoke/Main.cpp
         Tests/GameplaySampleSmoke/SmokeSupport.cpp
@@ -560,7 +612,7 @@ if(DXF_INSTALL)
     include(CMakePackageConfigHelpers)
     install(TARGETS ${DXF_EXPORT_TARGETS} EXPORT dxlib_frameworkTargets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-    foreach(Layer Toolbox Foundation DxLibSupport Runtime Gameplay Physics Native Ui UiRuntime)
+    foreach(Layer Toolbox Foundation DxLibSupport Runtime Gameplay Physics SceneContent Native Ui UiRuntime)
         install(DIRECTORY "Source/${Layer}/Public/" DESTINATION include FILES_MATCHING PATTERN "*.h")
     endforeach()
     set(DXF_CONFIG_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/dxlib_framework")

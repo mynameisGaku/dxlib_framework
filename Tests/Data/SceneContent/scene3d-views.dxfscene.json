@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "kind": "scene",
+  "dimension": 3,
+  "gravity": [
+    0,
+    0,
+    0
+  ],
+  "prefabs": {
+    "door": "door3d.dxfprefab.json"
+  },
+  "instances": [
+    {
+      "id": "doorA",
+      "prefab": "door",
+      "parameters": {
+        "speed": 0
+      }
+    },
+    {
+      "id": "doorB",
+      "prefab": "door",
+      "parameters": {
+        "speed": 0.8
+      },
+      "placement": {
+        "position": [
+          10,
+          0,
+          0
+        ]
+      }
+    }
+  ],
+  "views": [
+    {
+      "eye": [
+        0,
+        3,
+        -8
+      ],
+      "target": [
+        0,
+        1,
+        0
+      ],
+      "viewport": [
+        0,
+        0,
+        500,
+        501
+      ]
+    },
+    {
+      "eye": [
+        10,
+        5,
+        -6
+      ],
+      "target": [
+        10,
+        1,
+        0
+      ],
+      "viewport": [
+        500,
+        0,
+        1001,
+        501
+      ]
+    }
+  ]
+}

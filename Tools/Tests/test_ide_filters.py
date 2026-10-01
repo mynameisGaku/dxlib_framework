@@ -17,7 +17,7 @@ import xml.etree.ElementTree as ET
 ROOT = Path(__file__).resolve().parents[2]
 NS = {'m': 'http://schemas.microsoft.com/developer/msbuild/2003'}
 ITEM_TAGS = ('ClCompile', 'ClInclude', 'None')
-EXTENSIONS = ('.h', '.hpp', '.inl', '.cpp', '.dxfui')
+EXTENSIONS = ('.h', '.hpp', '.inl', '.cpp', '.dxfui', '.json')
 # Sources that only enter the product libraries when a build option asks for the CPU benchmark probes.
 PROBE_SOURCES = ('WorldInteractionProbe.cpp', 'WorldInteractionProbe.h')
 PROBE_OPTION = 'DXF_INTERACTION_BENCHMARK_PROBES'
@@ -26,6 +26,7 @@ PRODUCTS = {
     'dxf_toolbox': ('Source/Toolbox',),
     'dxf_physics': ('Source/Physics',),
     'dxf_gameplay': ('Source/Gameplay',),
+    'dxf_scene_content': ('Source/SceneContent',),
 }
 # Development-only projects.
 SAMPLES = ('UISample', 'dxf_ui_sample', 'GameplaySample', 'dxf_gameplay_sample')
@@ -38,7 +39,7 @@ SHARED = {
 
 
 def tracked(directory: str) -> set[str]:
-    output = subprocess.run(['git', 'ls-files', '--', directory], cwd=ROOT, capture_output=True, text=True,
+    output = subprocess.run(['git', 'ls-files', '--cached', '--others', '--exclude-standard', '--', directory], cwd=ROOT, capture_output=True, text=True,
                             check=True).stdout
     return {line for line in output.splitlines() if line.endswith(EXTENSIONS)}
 
@@ -72,7 +73,7 @@ def expected_files(project: str, probes: bool = False) -> tuple[set[str], set[st
             files = {f for f in files if f.rsplit('/', 1)[-1] not in PROBE_SOURCES}
         return files, {f for f in files if f.endswith('.cpp')}
     ui = tracked('Examples/UiSample')
-    gameplay = tracked('Examples/GameplaySample')
+    gameplay = tracked('Examples/GameplaySample') | tracked('Assets/Content')
     shared = {'Examples/GameplaySample/SampleCharacters.h', 'Examples/GameplaySample/SampleCharacters.cpp',
               'Examples/GameplaySample/SampleLevel.h', 'Examples/GameplaySample/SampleLevel.cpp'}
     if project == 'dxf_ui_sample':

@@ -1,0 +1,119 @@
+{
+  "schema": 1,
+  "kind": "prefab",
+  "dimension": 2,
+  "parameters": {
+    "speed": {
+      "type": "number",
+      "default": 0.8,
+      "min": -3,
+      "max": 3
+    },
+    "travel": {
+      "type": "number",
+      "default": 2,
+      "min": 0.1,
+      "max": 5
+    }
+  },
+  "joints": [
+    {
+      "id": "rail",
+      "kind": "Prismatic",
+      "bodyA": "frame",
+      "bodyB": "leaf",
+      "frame": {
+        "space": "Prefab",
+        "anchor": [
+          0,
+          1
+        ],
+        "angle": 0
+      },
+      "drive": {
+        "enabled": true,
+        "speed": {
+          "parameter": "speed"
+        },
+        "maxForce": 15
+      },
+      "limits": {
+        "enabled": true,
+        "lower": 0,
+        "upper": {
+          "parameter": "travel"
+        }
+      }
+    }
+  ],
+  "parts": [
+    {
+      "id": "frame",
+      "body": {
+        "type": "Static",
+        "position": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "leaf",
+      "body": {
+        "type": "Dynamic",
+        "position": [
+          0,
+          1
+        ]
+      },
+      "colliders": [
+        {
+          "shape": "Box",
+          "halfExtents": [
+            0.4,
+            0.8
+          ],
+          "response": "Solid"
+        }
+      ],
+      "visual": {
+        "kind": "Box",
+        "halfExtents": [
+          0.4,
+          0.8
+        ],
+        "color": [
+          80,
+          180,
+          240,
+          255
+        ]
+      }
+    },
+    {
+      "id": "sensor",
+      "body": {
+        "type": "Static",
+        "position": [
+          0,
+          1
+        ]
+      },
+      "colliders": [
+        {
+          "shape": "Box",
+          "halfExtents": [
+            2,
+            2
+          ],
+          "response": "Sensor"
+        }
+      ]
+    }
+  ],
+  "exports": {
+    "doorBody": "leaf/body",
+    "doorDrive": "rail",
+    "sensor": "sensor/sensor"
+  }
+}

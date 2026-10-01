@@ -5,7 +5,7 @@
 namespace Dxf::GameplaySample
 {
 void FInteractionUi::Initialize(DScene& Scene, FAssetService& Assets, Toolbox::TFunction<void()> ToggleSplit,
-                                Toolbox::TFunction<void()> ToggleShape, Toolbox::TFunction<void()> TogglePush, Toolbox::TFunction<void(DUiPanel&, FUiScope&)> Populate)
+                                Toolbox::TFunction<void()> ToggleShape, Toolbox::TFunction<void()> TogglePush, Toolbox::TFunction<void(DUiPanel&, FUiScope&)> Populate, bool bContent)
 {
 	m_pScene = &Scene;
 	m_pText = Toolbox::MakeUnique<FUiAssetTextService>(Assets);
@@ -27,9 +27,9 @@ void FInteractionUi::Initialize(DScene& Scene, FAssetService& Assets, Toolbox::T
 	Panel.Get()->CreateChild<DUiLabel>("Settings / physics paused");
 	auto Split = Panel.Get()->CreateChild<DUiButton>("Toggle 1 / 2 views");
 	Split.Get()->SetHeight(FUiLength::Fixed(Populate ? 24.0f : 40.0f));
-	auto Shape = Panel.Get()->CreateChild<DUiButton>("Character: Round / Capsule");
+	auto Shape = Panel.Get()->CreateChild<DUiButton>(bContent ? "Spawn extra instance" : "Character: Round / Capsule");
 	Shape.Get()->SetHeight(FUiLength::Fixed(Populate ? 24.0f : 40.0f));
-	auto Push = Panel.Get()->CreateChild<DUiButton>("Push boxes: On / Off");
+	auto Push = Panel.Get()->CreateChild<DUiButton>(bContent ? "Destroy selected instance" : "Push boxes: On / Off");
 	Push.Get()->SetHeight(FUiLength::Fixed(Populate ? 24.0f : 40.0f));
 	if (Populate)
 	{
@@ -51,7 +51,20 @@ void FInteractionUi::Initialize(DScene& Scene, FAssetService& Assets, Toolbox::T
 		    m_pScene->GetClock().SetPaused(m_bWasPaused);
 		    m_pRoot->SetFocus({});
 	    }));
-	m_Settings.Get()->SetContent(Panel.Cast<DUiElement>());
+	if (bContent)
+	{
+		Panel.Get()->SetAlign(EUiAlign::Stretch, EUiAlign::Start);
+		m_ContentScroll = m_pRoot->Create<DUiScrollView>();
+		m_ContentScroll.Get()->SetWidth(FUiLength::Fixed(440));
+		m_ContentScroll.Get()->SetHeight(FUiLength::Fixed(static_cast<Toolbox::f32>(m_Height - 80)));
+		m_ContentScroll.Get()->SetAlign(EUiAlign::Center, EUiAlign::Center);
+		m_ContentScroll.Get()->SetContent(Panel.Cast<DUiElement>());
+		m_Settings.Get()->SetContent(m_ContentScroll.Cast<DUiElement>());
+	}
+	else
+	{
+		m_Settings.Get()->SetContent(Panel.Cast<DUiElement>());
+	}
 	m_Host.AddScreen(*m_pRoot);
 	Scene.SetInputRouter(this);
 }
@@ -79,6 +92,10 @@ FInputSnapshot FInteractionUi::RouteInput(const FTickContext& Context)
 	{
 		m_Width = Context.Window.RenderWidth;
 		m_Height = Context.Window.RenderHeight;
+		if (m_ContentScroll)
+		{
+			m_ContentScroll.Get()->SetHeight(FUiLength::Fixed(static_cast<Toolbox::f32>(Toolbox::Max(120, m_Height - 80))));
+		}
 	}
 	if (Context.Input.WasPressed(EKey::H))
 	{

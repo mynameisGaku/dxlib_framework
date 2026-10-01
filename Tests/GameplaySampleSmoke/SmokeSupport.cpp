@@ -22,7 +22,7 @@ FApplicationSettings Settings_Internal(const char* ProjectRoot)
 FBackendServices Services_Internal(FDxLibBackends& Backends, IInputSource& Input)
 {
 	const auto Services = Backends.GetServices();
-	return {Services.Platform, Input, Services.Textures, Services.Sounds, Services.Fonts, Services.Renderer};
+	return {Services.Platform, Input, Services.Textures, Services.Sounds, Services.Fonts, Services.Renderer, Services.pModels};
 }
 // 一括読戻し用のCPU画像を解放する。
 void ReleaseImage_Internal(void*, Toolbox::int32 Handle) noexcept
@@ -55,6 +55,10 @@ void FSmokeApp::Start()
 	const auto First = m_App.Step(m_Time);
 	Check(First && First.Value(), "first step failed");
 	m_Time += 0.25 / 60.0;
+}
+FApplication& FSmokeApp::Application() noexcept
+{
+    return m_App;
 }
 void FSmokeApp::Step()
 {

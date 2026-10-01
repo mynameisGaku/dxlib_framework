@@ -8,6 +8,7 @@
 #include "InteractionConsumer.h"
 #include "JointConsumer.h"
 #include "MechanismConsumer.h"
+#include "ContentConsumer.h"
 #include "Dxf/CharacterMovementComponent2D.h"
 #include "Dxf/CharacterMovementComponent3D.h"
 #include "Dxf/InputStateTracker.h"
@@ -162,11 +163,17 @@ int Walk(FNoAssets& Backend, TCenter Start, TCenter Move, TFloorShape Floor, int
 	Scene.Shutdown_Internal();
 	return 0;
 }
-int main()
+#if defined(_WIN32)
+int wmain(int Count, wchar_t** Args)
+#else
+int main(int Count, char** Args)
+#endif
 {
 	FNoAssets Backend;
 	// 同じ外部シーンをNative Applicationでも実行し、上位APIの利用を二重実装しない。
 	Dxf::FAssetService InteractionAssets(Backend, Backend, Backend);
+	if (Count != 2) { return 401; }
+	RunContentConsumer(InteractionAssets, Toolbox::FPath(Args[1]));
 	Dxf::FAudioPlayer InteractionAudio(Backend);
 	const Toolbox::int32 InteractionCode = RunInteractionConsumer(InteractionAssets, InteractionAudio);
 	if (InteractionCode != 0)

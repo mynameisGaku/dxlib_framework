@@ -24,7 +24,9 @@ CONSUMER_SOURCES = ('CMakeLists.txt', 'Main.cpp', 'Support.cpp', 'Physics.cpp', 
                     'CapsuleConsumer.h', 'CapsuleConsumer.cpp', 'JointConsumer.h', 'JointConsumer.cpp',
                     'FJointConsumerResult.h', 'PhysicsJoint.h', 'PhysicsJoint.cpp',
                     'FMechanismConsumerResult.h', 'MechanismConsumer.h', 'MechanismConsumer.cpp',
-                    'PhysicsMechanism.h', 'PhysicsMechanism.cpp')
+                    'PhysicsMechanism.h', 'PhysicsMechanism.cpp', 'ContentConsumer.h', 'ContentConsumer.cpp',
+                    'Data/prefab2d.dxfprefab.json', 'Data/prefab3d.dxfprefab.json', 'Data/scene2d.dxfscene.json', 'Data/scene3d.dxfscene.json',
+                    'ContentNativeConsumer.cpp')
 # UI入りの外部のApplicationへ渡す外部スタイル（正しいものと、読めないもの）。
 UI_STYLE = 'dxfui-style 1\nstyle ConsumerButton {\n background = #20a0e0\n}\n'
 UI_BROKEN_STYLE = 'dxfui-style 1\nstyle ConsumerButton {\n background = @missing\n}\n'
@@ -141,6 +143,7 @@ def main() -> int:
         consumer = work / '外部 Consumer'
         consumer.mkdir()
         for name in CONSUMER_SOURCES:
+            (consumer / name).parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / 'Tools' / 'PackageConsumer' / name, consumer / name)
         # MSBuildは日本語の長いリンク入力もUnicodeで渡す。通常ソリューションと同じVSを選ぶ。
         generator, generator_flags, multi_config = consumer_build_generator()
@@ -151,7 +154,7 @@ def main() -> int:
         run('consumer-build', ['cmake', '--build', str(work / 'ConsumerBuild'), '--config', args.config, '--parallel', str(args.jobs)])
         consumer_bin = work / 'ConsumerBuild' / args.config if multi_config else work / 'ConsumerBuild'
         suffix = '.exe' if sys.platform == 'win32' else ''
-        run('consumer-run', [str(consumer_bin / ('Consumer' + suffix))], timeout=240)
+        run('consumer-run', [str(consumer_bin / ('Consumer' + suffix)), str(consumer.resolve())], timeout=240)
         run('support-only-run', [str(consumer_bin / ('SupportOnly' + suffix))], timeout=240)
         run('physics-only-run', [str(consumer_bin / ('PhysicsOnly' + suffix))], timeout=240)
         run('ui-only-run', [str(consumer_bin / ('UiOnly' + suffix))], timeout=240)
@@ -165,6 +168,7 @@ def main() -> int:
             deployed = work / '配布 Application'
             deployed.mkdir()
             shutil.copyfile(consumer_bin / 'NativeApp.exe', deployed / 'NativeApp.exe')
+            shutil.copytree(ROOT / 'Assets', deployed / 'Assets')
             summary['native_app_built'] = True
             if args.run_device:
                 joint_cwd = work / '無関係 cwd'

@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "kind": "prefab",
+  "dimension": 3,
+  "parts": [
+    {
+      "id": "a",
+      "body": {
+        "type": "Static",
+        "position": [
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "b",
+      "body": {
+        "type": "Dynamic",
+        "position": [
+          0,
+          1,
+          0
+        ]
+      },
+      "colliders": [
+        {
+          "shape": "Box",
+          "halfExtents": [
+            0.2,
+            0.2,
+            0.2
+          ]
+        }
+      ]
+    }
+  ],
+  "joints": [
+    {
+      "id": "distance",
+      "kind": "Distance",
+      "bodyA": "a",
+      "bodyB": "b",
+      "length": 1
+    },
+    {
+      "id": "fixed",
+      "kind": "Fixed",
+      "bodyA": "a",
+      "bodyB": "b",
+      "frame": {
+        "space": "Prefab",
+        "anchor": [
+          0,
+          1,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "id": "revolute",
+      "kind": "Revolute",
+      "bodyA": "a",
+      "bodyB": "b",
+      "frame": {
+        "space": "Prefab",
+        "anchor": [
+          0,
+          1,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "id": "prismatic",
+      "kind": "Prismatic",
+      "bodyA": "a",
+      "bodyB": "b",
+      "frame": {
+        "space": "Prefab",
+        "anchor": [
+          0,
+          1,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    }
+  ],
+  "exports": {
+    "body": "b/body",
+    "drive": "prismatic"
+  }
+}

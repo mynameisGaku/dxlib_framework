@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "kind": "scene",
+  "dimension": 2,
+  "gravity": [
+    0,
+    0
+  ],
+  "prefabs": {
+    "door": "shared-door2d.dxfprefab.json"
+  },
+  "instances": [
+    {
+      "id": "doorA",
+      "prefab": "door",
+      "parameters": {
+        "speed": 0
+      }
+    },
+    {
+      "id": "doorB",
+      "prefab": "door",
+      "parameters": {
+        "speed": 0
+      },
+      "placement": {
+        "position": [
+          10,
+          0
+        ]
+      }
+    }
+  ],
+  "assets": {
+    "sharedFont": {
+      "kind": "Font",
+      "family": "Arial",
+      "size": 16
+    }
+  },
+  "connections": [
+    {
+      "id": "coupler",
+      "kind": "Fixed",
+      "bodyA": "doorA/body",
+      "bodyB": "doorA/body",
+      "frame": {
+        "space": "Scene",
+        "anchor": [
+          5,
+          1
+        ],
+        "angle": 0
+      }
+    }
+  ]
+}
