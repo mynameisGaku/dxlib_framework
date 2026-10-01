@@ -218,3 +218,6 @@ Gameplayはcppを持つ静的ライブラリです。公開`dxf::gameplay`／`dx
 ## ゲームの仕掛けJoint
 
 [Joint](Physics/Joints.md)のRevolute/Hinge、Fixed、Prismaticは2D/3Dの種類別Description/StateとComponentを持ちます。WorldはCreate/Getと共通ID、Gameplayは型付きBody参照・接続要求・目標速度制御を担当します。Physics単独利用にUI/Debug/Nativeは不要です。Motorは有限の速度要求、観察は成功PostPhysics、描画は補間Poseです。
+# Scene／Prefab初期構成（開発途中）
+
+任意リンクの`dxf::scene_content`に、2D／3Dの初期構成の読取・準備・既存Componentによる生成を追加しています。`FSceneContentSource`→`PreparePrefab`／`PrepareScene`→`DPrefabInstance2D/3D`／`DContentScene2D/3D`の経路です。受付とReadyを区別し、型付き公開先から既存Joint要求を使います。入れ子、非同期要求、描画・Sample・配布は未完了です。現在の対応範囲は[Scene定義](Content/SceneDefinitions.md)、再開位置は[継続点](Development/ScenePrefabContinuation.md)を参照してください。

@@ -250,3 +250,15 @@ python Tools/ValidateMechanismMutations.py --build <Portable-VS-Build> --logs <�
 `dxf_character_benchmark mechanism --pilot`と`mechanism`は5新規World・両次元・同期/4レーン（代表8レーン）、独立/共有支点/鎖/Contact混在、活動Motor/Limit停止/Sleep、Component同値維持/Drive変更/接続切替を測ります。初回/慣らし/定常のms/Stepと中央値/最小/最大、確保、Body/種類/構成した基本拘束行数、実Contact/島/活動/休止数を保存します。最大島は配置から導いた値で、一般Worldの実測ではありません。一本鎖の内部並列化やWorld無確保を保証しません。
 
 配布4構成では新PhysicsOnly、6Component/目標helperのFramework、NativeApp/NativeUiAppを再配置して実行します。旧support/ui/ui_runtimeのConsumerを維持し、コピー集合とConsumer CMakeの両方へ登録します。SDKの取得・再構築は行いません。[今回の全試行・未実施](Development/MechanismJointsCompletion-2026-10-01.md)を参照してください。
+
+## Scene／Prefabを検証する
+
+SceneContentはJSON／schema／参照／配置／公開先、実Worldの両次元Prefab、Task要求の終端と採用順、実Applicationの資源・遷移・表示・音の契約を確認します。SceneContentAllocationFaultは独立した確保故障基盤を使い、読解・親初期化・固定更新・再読み込み・所有側部分資源準備の注入と回復、終了での非注入を確認します。InteractionSampleは既存ゲーム経路を保持し、実Sampleの定義コース・UI・個体操作を追加します。
+
+NativeGameplayDeviceSmokeは既存標準系列の後に同じデータ定義の2D画像・3Dモデル・四種類Jointの構成を通常／左右／1001×501で確認します。一括読戻しと対象領域の画素判定を使い、HUDだけで合格しません。`--content-only`は限定診断であり全群成功へ数えません。
+
+`Tools/ValidateContentData.py`は新しい検証コピーの定義だけを変更し、同じexe・別CWD・日本語パスでA/BのWorld値と実画素の差、壊れたCと再試行を記録します。`Tools/ValidateContentMutations.py`はB-M01〜18のbuild／Red／復元build／Greenと生バイト指紋を記録します。変異は全群・配布・測定と重ねません。初回未検出やハーネス失敗も残します。
+
+`dxf_character_benchmark content --pilot`と`content`は両次元・1/32/256個体・Jointなし／四種類、定義共有／個別、試験用Textureの共有／個別を比較し、5新規環境で読取・検証・準備・受付・初期化・Ready・定常・状態読取・World比較・終了をμsと確保数で保存します。CPU境界のダブルを使う準備費用と実Nativeの取込費用を混同せず、Content状態読取の0確保をWorld全体の0確保と呼びません。
+
+ValidationSupportのmanifestにはAssetsも含み、実行中に製品／試験／ツール／定義のバイトが変わったrunは採用しません。生成物・ログは新しい保存先へ置きます。配布Consumerは任意targetをリンクして定義Assetsを配置し、既存PhysicsOnly／Support／UIの入口を保持します。[形式](Content/SceneDefinitions.md)・[Prefab](Content/Prefabs.md)・[準備と失敗境界](Content/Loading.md)を参照してください。

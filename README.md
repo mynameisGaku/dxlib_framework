@@ -93,3 +93,7 @@ python -m unittest discover -s Tools/Tests -p test_ui_ide_visibility.py -v
 
 - https://cmake.org/cmake/help/v3.31/command/source_group.html
 - https://cmake.org/cmake/help/v3.31/manual/cmake-file-api.7.html
+
+## 任意のデータ駆動構成
+
+既存C++ゲームの構成を保ち、dxf::scene_contentを追加リンクすると2D／3DのScene・PrefabをUTF-8 JSONから準備・生成できます。[形式](Docs/Content/SceneDefinitions.md)、[最小利用](Docs/Content/Prefabs.md)、[読込と取消し](Docs/Content/Loading.md)を参照してください。GameplaySampleではF2で定義コースへ入り、F1で読み込み・個体生成・型付き装置操作を試せます。

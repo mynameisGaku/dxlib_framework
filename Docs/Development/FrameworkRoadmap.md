@@ -13,3 +13,9 @@
 |配布/導入|公開target、再配置Consumer、4構成を検証する範囲|同PCの既存ソースSDK利用。SDKなしPC・開発ツールなしPCは未実施|
 
 新しい検証点と完了/未実施の状態は[今回記録](MechanismJointsCompletion-2026-10-01.md)で判定する。過去記録は当時の結果として保持する。
+
+## Scene／Prefabのデータ駆動単位
+
+任意SceneContent層で、両次元の型付き初期構成、bounded JSON、個体別parameterとexport、既存Component生成、AssetService準備、Scoped要求・取消し・再読み込み、既存GameplaySampleとUIを接続しています。実装の存在と最終検証の採用範囲は[Scene／Prefabの試行別記録](ScenePrefabContentCompletion-2026-10-02.md)で区別します。
+
+今回提供しないものは実行状態のsave、任意C++型のserialization、スクリプト、編集GUI、自動監視、親Transform追従です。次の候補はアニメーション制御のゲーム利用、入力設定／セーブ、必要な描画拡張です。候補の記録だけで実装を開始しません。従来NativeModel早期終了原因、3D UIパネル確保、Dynamic床追従、Joint連続拘束、SDKなしPC、TSan、全D3D/COMリーク証明も残します。

@@ -79,3 +79,7 @@ Starterの空起動試験、Sandbox本体を使うApplication試験、実DxLib�
 今回の根拠と残る改善観点は[利用経路の検証記録](Development/SmallGame-2026-09-23.md)を参照してください。
 
 Starter移植先での今回の結果は[別ディレクトリでの検証記録](Development/StarterCopy-2026-09-23.md)を参照してください。過去の記録の未実施項目は書き換えていません。
+
+## 定義から組み立てる任意経路
+
+従来Starter／SandboxのC++組立てを保持し、反復する構成には任意のdxf::scene_contentを利用できます。[Prefab](Content/Prefabs.md)を一度準備し、別配置・個体専用パラメーターでSpawnします。受付とReadyを区別し、型付きexportへ既存Componentの操作を渡します。ゲーム判断をJSONへ移す必要はありません。GameplaySampleのF2／F1が具体例です。
