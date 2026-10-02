@@ -121,3 +121,13 @@ New GameからチェックポイントSceneを作る際の手作業を減らす�
 |PackageInitialCheckpointOffRelease01|14工程・全終了0、公開入口を両次元の再配置Consumerから実リンク・実行|同上|
 
 Release01の記録失敗は環境／harness分類で、以前と同じWindowsのファイル置換エラー。初発原因は未特定であり、自動承認による操作拒否ではない。失敗試行を成功へ合算しない。外部Consumerの初期個体表の手書きを公開入口へ置き換え、既存の除去・動的生成・保存・Navigator再開を保持した。ここも同じプロセスのチェックポイント再開で、別Applicationプロセスのゲーム進行実証は残る。
+
+Sample専用の`FSaveCourseProgress`／`FSaveCourseProgressCodec`を追加した。取得済みキーの集合、厳密な得点・生成カウンター・進行revision、checkpoint、名前付きの扉の解錠・開扉をCPU値で扱う。ゲームルールを保存コアへ追加せず、既存のJSON文法・Writer・整数文字列変換を利用した。手書きfixtureの項目順と扉順を逆にし、2^53を超える値とuint64最大値、個体取り違え、未知項目、重複、将来バージョン、旧ゲーム値保持を確認した。Sensor・再開レシピ・UIのゲーム実利用へはまだ接続していない。
+
+|試行|結果|manifest|
+|---|---|---|
+|SaveCourseProgressDebug01|既存コースを含むInteractionSample52/52、21.32秒、全終了0|2548a798c1f977e2314af9e1658ba31c13049d0245ee6bf91df8da77703b3f8b|
+|SaveCourseProgressRelease01|同群52/52、2.43秒、No-STL970ファイル違反0、全終了0|ee0b56dc74d2a15b4dbf9d19069a29e2da910702c48ec0a9979986daaee39f55|
+|PortableSaveCourseProgressFrozenRelease01|コメント訂正と.hpp検査追加後の全群37/37、失敗0・skip0、35秒、全終了0、前後manifest同一|482a61ef01e7fd005db67ce33698ab5ea7497e4e52f2b04fc66fbe2b37c47a8e|
+
+両試行の違いは役割コメントの追加で、試行ごとに前後manifest同一を確認した。その後、取得済みキーの説明コメント1箇所を訂正し、引数コメントの再発検査へ.hppも含めた。正常コードの分岐・数値・公開宣言は変更していない。これらはL7の純粋な進行codecの検証であり、両次元の別Application再開や実画素の成功へ転用しない。

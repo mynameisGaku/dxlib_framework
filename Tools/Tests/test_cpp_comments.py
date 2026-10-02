@@ -12,7 +12,7 @@ class ParameterCommentTests(unittest.TestCase):
         violations = []
         for directory in ('Source', 'Examples', 'Tests', 'Tools/PackageConsumer'):
             for path in sorted((ROOT / directory).rglob('*')):
-                if path.suffix not in ('.h', '.cpp', '.inl'):
+                if path.suffix not in ('.h', '.hpp', '.cpp', '.inl'):
                     continue
                 for number, line in enumerate(path.read_text(encoding='utf-8-sig').splitlines(), 1):
                     if len(re.findall(r'@param\b', line)) > 1:
