@@ -9,6 +9,7 @@
 #include "JointConsumer.h"
 #include "MechanismConsumer.h"
 #include "ContentConsumer.h"
+#include "CheckpointConsumer.h"
 #include "Dxf/CharacterMovementComponent2D.h"
 #include "Dxf/CharacterMovementComponent3D.h"
 #include "Dxf/InputStateTracker.h"
@@ -99,7 +100,8 @@ protected:
 	}
 };
 // 移動Componentだけを持つキャラクター。
-template <typename TComponent, typename TDescription> class DWalker final : public Dxf::DGameObject
+template <typename TComponent, typename TDescription>
+class DWalker final : public Dxf::DGameObject
 {
 public:
 	using FDescriptionType = TDescription;
@@ -172,8 +174,12 @@ int main(int Count, char** Args)
 	FNoAssets Backend;
 	// 同じ外部シーンをNative Applicationでも実行し、上位APIの利用を二重実装しない。
 	Dxf::FAssetService InteractionAssets(Backend, Backend, Backend);
-	if (Count != 2) { return 401; }
+	if (Count != 2)
+	{
+		return 401;
+	}
 	RunContentConsumer(InteractionAssets, Toolbox::FPath(Args[1]));
+	RunCheckpointConsumer(InteractionAssets, Toolbox::FPath(Args[1]));
 	Dxf::FAudioPlayer InteractionAudio(Backend);
 	const Toolbox::int32 InteractionCode = RunInteractionConsumer(InteractionAssets, InteractionAudio);
 	if (InteractionCode != 0)

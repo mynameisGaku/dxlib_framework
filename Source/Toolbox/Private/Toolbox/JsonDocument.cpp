@@ -1,52 +1,12 @@
 // SPDX-License-Identifier: NOASSERTION
 #include "Toolbox/JsonDocument.h"
 #include "Toolbox/JsonError.h"
-#include <stdlib.h>
-#include <locale.h>
+#include "Toolbox/JsonNumber.h"
 namespace Toolbox
 {
 namespace
 {
-// プロセスのlocaleを変更せず、JSONの小数点を常にピリオドとして解釈する。
-class FNumberLocale
-{
-public:
-	FNumberLocale()
-	{
-#ifdef _WIN32
-		m_Locale = _create_locale(LC_NUMERIC, "C");
-#else
-		m_Locale = newlocale(LC_NUMERIC_MASK, "C", nullptr);
-#endif
-		if (m_Locale == nullptr)
-		{
-			throw FException("JSON numeric locale allocation failed");
-		}
-	}
-	~FNumberLocale() noexcept
-	{
-#ifdef _WIN32
-		_free_locale(m_Locale);
-#else
-		freelocale(m_Locale);
-#endif
-	}
-	f64 Convert(const char* Text) const noexcept
-	{
-#ifdef _WIN32
-		return _strtod_l(Text, nullptr, m_Locale);
-#else
-		return strtod_l(Text, nullptr, m_Locale);
-#endif
-	}
-
-private:
-#ifdef _WIN32
-	_locale_t m_Locale = nullptr;
-#else
-	locale_t m_Locale = nullptr;
-#endif
-};
+using JsonPrivate::FNumberLocale;
 // 一要求だけで使用する字句と構造の読み取り状態。
 class FReader
 {
@@ -163,7 +123,9 @@ private:
 		}
 		else
 		{
-			Text += static_cast<char>((Count == 2 ? 0xc0 : Count == 3 ? 0xe0 : 0xf0) | (Code >> (6 * (Count - 1))));
+			Text += static_cast<char>((Count == 2 ? 0xc0 : Count == 3 ? 0xe0
+			                                                          : 0xf0) |
+			                          (Code >> (6 * (Count - 1))));
 			for (size_t Index = Count - 1; Index > 0; --Index)
 			{
 				Text += static_cast<char>(0x80 | ((Code >> (6 * (Index - 1))) & 63));

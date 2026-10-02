@@ -25,6 +25,11 @@ public:
 	 */
 	static FString Unsigned(uint64 Value);
 	/**
+	 * @param Value 有限な数値。C localeの17桁で元のf64へ戻せる表現を生成する。
+	 * 非有限値・出力失敗は例外。整数世代の保存にはUnsignedを使う。
+	 */
+	static FString Number(f64 Value);
+	/**
 	 * @param Text 符号・先頭ゼロなしの十進整数。0だけは許可し、overflowは例外。
 	 */
 	static uint64 ParseUnsigned(FStringView Text);

@@ -89,6 +89,7 @@ find_package(Threads REQUIRED)
 
 add_library(dxf_toolbox STATIC
     Source/Toolbox/Private/Toolbox/JsonDocument.cpp
+    Source/Toolbox/Private/Toolbox/JsonNumber.cpp
     Source/Toolbox/Private/Toolbox/JsonWriter.cpp
     Source/Toolbox/Private/Toolbox/Crc32.cpp
     Source/Toolbox/Private/Toolbox/Sha256.cpp
@@ -134,6 +135,7 @@ if(WIN32)
 endif()
 target_include_directories(dxf_toolbox PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Source/Toolbox/Public>" "$<INSTALL_INTERFACE:include>")
 dxf_ide_headers(dxf_toolbox Source/Toolbox)
+target_include_directories(dxf_toolbox PRIVATE Source/Toolbox/Private)
 dxf_warnings(dxf_toolbox)
 
 add_library(dxf_foundation INTERFACE)
@@ -280,12 +282,14 @@ target_include_directories(dxf_scene_content PRIVATE Source/SceneContent/Private
 dxf_public_headers(dxf_scene_content SceneContent PUBLIC)
 dxf_warnings(dxf_scene_content)
 add_library(dxf_game_save STATIC
+    Source/GameSave/Private/Dxf/CheckpointRestore.cpp
+    Source/GameSave/Private/Dxf/CheckpointCodec.cpp
     Source/GameSave/Private/Dxf/GameSaveRequest.cpp
     Source/GameSave/Private/Dxf/GameSaveTicket.cpp)
 add_library(dxf::game_save ALIAS dxf_game_save)
 set_target_properties(dxf_game_save PROPERTIES EXPORT_NAME game_save DEBUG_POSTFIX d)
-target_link_libraries(dxf_game_save PUBLIC dxf::save_data dxf::runtime)
-target_include_directories(dxf_game_save PRIVATE Source/GameSave/Private)
+target_link_libraries(dxf_game_save PUBLIC dxf::save_data dxf::scene_content)
+target_include_directories(dxf_game_save PRIVATE Source/GameSave/Private Source/Gameplay/Private)
 dxf_public_headers(dxf_game_save GameSave PUBLIC)
 dxf_warnings(dxf_game_save)
 add_library(dxf::framework ALIAS dxlib_framework)
@@ -381,7 +385,7 @@ if(DXF_BUILD_TESTS)
     endif()
     add_executable(dxf_tests Tests/TestMain.cpp Tests/InteractionMutationTests.cpp Tests/Support/TestFs.cpp Tests/ToolboxTests.cpp Tests/MathCollisionTests.cpp Tests/FoundationTests.cpp Tests/SupportTests.cpp
         Tests/JsonTests.cpp
-        Tests/GameplayTests.cpp Tests/ApplicationTests.cpp Tests/WindowStateTests.cpp Tests/SandboxTests.cpp Tests/FixedTickTests.cpp Tests/PhysicsSceneTests.cpp Tests/DistanceJointComponentTests.cpp Tests/MechanismJointComponentTests.cpp Tests/CharacterMovementComponentTests.cpp Tests/PhysicsEventComponentTests.cpp Tests/KinematicMoverTests.cpp Tests/MovingGroundTests.cpp Tests/ThreadingTests.cpp Tests/AssetRootTests.cpp
+        Tests/GameplayTests.cpp Tests/ApplicationTests.cpp Tests/WindowStateTests.cpp Tests/SandboxTests.cpp Tests/FixedTickTests.cpp Tests/PhysicsSceneTests.cpp Tests/PhysicsCompletionTests.cpp Tests/DistanceJointComponentTests.cpp Tests/MechanismJointComponentTests.cpp Tests/CharacterMovementComponentTests.cpp Tests/PhysicsEventComponentTests.cpp Tests/KinematicMoverTests.cpp Tests/MovingGroundTests.cpp Tests/ThreadingTests.cpp Tests/AssetRootTests.cpp
         Tests/HardeningTests.cpp Tests/RenderFailureTests.cpp Tests/SceneContinuationTests.cpp Tests/ResourceShutdownTests.cpp Tests/UsabilityTests.cpp Tests/StressTests.cpp Tests/StarterTests.cpp Tests/TaskDispatcherTests.cpp Tests/LogTests.cpp Tests/AssetAsyncTests.cpp Tests/RenderBatchTests.cpp Examples/Starter/Source/BootScene.cpp Examples/Sandbox/SandboxGame.cpp Examples/Sandbox/SandboxMenuScene.cpp)
     # Observation公開ヘッダーは各翻訳単位の唯一のincludeとしてコンパイルする。
     target_sources(dxf_tests PRIVATE
@@ -432,6 +436,12 @@ if(DXF_BUILD_TESTS)
     dxf_warnings(dxf_game_save_tests)
     add_test(NAME GameSaveRequest COMMAND dxf_game_save_tests)
     set_tests_properties(GameSaveRequest PROPERTIES TIMEOUT 60 LABELS "portable;save;async")
+    add_executable(dxf_checkpoint_tests Tests/TestMain.cpp Tests/CheckpointTests.cpp Tests/CheckpointRestoreTests.cpp)
+    target_link_libraries(dxf_checkpoint_tests PRIVATE dxf::game_save)
+    target_include_directories(dxf_checkpoint_tests PRIVATE Tests)
+    dxf_warnings(dxf_checkpoint_tests)
+    add_test(NAME GameCheckpoint COMMAND dxf_checkpoint_tests)
+    set_tests_properties(GameCheckpoint PROPERTIES TIMEOUT 60 LABELS "portable;save;checkpoint")
     set_tests_properties(SceneContent PROPERTIES TIMEOUT 60 LABELS "portable;content")
     set_tests_properties(Framework PROPERTIES TIMEOUT 60 LABELS "portable")
 

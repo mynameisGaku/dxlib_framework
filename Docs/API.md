@@ -61,7 +61,7 @@ Destroyは即時deleteではありません。予約された対象をそれ以�
 
 OnDeinitializeは、**初期化を一度でも試みた場合に、部分失敗でも一度呼びます**。取得していない資源にも安全な実装にしてください。初期化する前にDestroyされた対象には呼びません。資源の実所有はRAIIへ任せるのが基本です。
 
-初期Sceneの失敗はApplication起動失敗です。差し替えSceneの準備失敗は現在のSceneを維持し、`GetLastTransitionError()`へ記録します。一方、実行中に追加したObjectの初期化が失敗し、`CommitObjects()`がエラーを返した場合、この版のApplicationは停止します。エラーを握りつぶして続行する方針にはしていません。
+初期Sceneの失敗はApplication起動失敗です。差し替えSceneの準備失敗は現在のSceneを維持し、`GetLastTransitionError()`へ記録します。一方、実行中に追加したObjectの初期化が失敗し、`CommitObjects()`がエラーを返した場合、現行のApplicationは停止します。エラーを握りつぶして続行する方針にはしていません。
 
 OnTick／OnFixedTick／OnDrawから例外が出ると、固定のライフサイクル入口がTResultのエラーへ変換します。Application経由では、そのエラーを受けて終了処理を実行します。noexceptのフック、デストラクタ、バックエンドの解放処理から例外を出してはいけません。
 
@@ -226,4 +226,4 @@ Gameplayはcppを持つ静的ライブラリです。公開`dxf::gameplay`／`dx
 
 `dxf::save_data`は`FSaveDocument`／`FSaveCodec`／`FSaveStore`で、論理値の封筒、厳密な世代、専用SaveRoot、二面保存、回復を提供します。Toolboxだけを利用し、Scene／Physics／Nativeを要求しません。`dxf::game_save`の`FGameSaveRequest`は既存TaskDispatcherを借り、通常更新のPollで保存を公開します。公開結果不明の再確認は`RetryPublication`で明示要求します。
 
-現在は保存コアとCPU値の要求までの実装です。チェックポイント採取、Contentからのゲーム再開、入力設定とSample統合は実装中で、任意Worldの保存を提供するものではありません。[現在の保存契約](Gameplay/SavingAndCheckpoints.md)と[試行記録](Development/GameSaveCompletion-2026-10-02.md)を参照してください。
+`FCheckpointCodec`は2D／3Dの論理個体・進行・4種類のJoint状態を変換し、`FCheckpointRestore::Build`は許可済みカタログから新SceneのCPU計画を生成します。`DPhysicsScene2D/3D::OnPhysicsStepCompleted`は、成功したWorld.Stepと全PostPhysics反映後の採取境界です。採取参加者とNavigator／必須Readyの接続、入力設定とSample統合は実装中で、任意Worldの保存を提供するものではありません。[現在の保存契約](Gameplay/SavingAndCheckpoints.md)と[試行記録](Development/GameSaveCompletion-2026-10-02.md)を参照してください。

@@ -1,19 +1,19 @@
 # L作業の継続点
 
-依頼はDXF-L-SAVE-4b20f89-20261002-R2のL0〜L10。B0〜B10の再確認へ戻らない。mainだけを使い、変更を破棄しない。
+対象はDXF-L-SAVE-4b20f89-20261002-R2のL0〜L10。Bの再確認へ戻らない。mainのみ、変更を捨てない。用語は「バージョン」に統一する。
 
-現在HEAD：`c1b71db3339a7525cd24a729a79ae2de92263b31`。最後にfetchしたorigin/main：`4b20f89a451233bc8c328df98f48a259808a3285`。保存コア・非同期要求・試験・CMake／install／IDE／配布コピー登録をcommit済み。最終pushはまだ。利用者の既存編集は開始時に無かった。新規試験Rootは今回のBuild内だけで、Assets原本や過去ログは変更していない。
+HEAD：2c1ff941d51fc2c37f0d93e6277265699419c740。最後にfetchしたorigin/main：4b20f89a451233bc8c328df98f48a259808a3285。保存コア／CPU要求（c1b71db）、実読込バイト指紋（843b799）、明示移行／将来バージョン面の保護（2c1ff94）をcommit済み。push未実施。開始時に利用者の既存差分は無かった。
 
-L0：部分調査済み。既存Toolbox JSONを再利用。L1：保存封筒、Writer、制限、厳密整数、互換性検査は実装。型付きcheckpointと移行は未完了。L2：Root、slot、二面、CRC、排他、取消し、回復を実装。全I/O fault double・全競合試験は未完了。L3：TaskDispatcherを借用する保存／読込の値要求を実装。ゲーム採取／Scene Ready接続は未完了。L4〜L8：未実施。L9：コア単独Consumerの追加中。L10：部分回帰のみ、最終push未実施。
+L0：境界を部分調査済み。L1：厳格codec・厳密整数・明示移行を実装しD/R検証済み。型付きcheckpointを追加中。L2：Root・slot・二面・排他・回復を実装。全I/O故障地点・跨プロセス競合は未完了。L3：Scoped CPU要求と最新／取消し／公開区別を実装。採取とScene完了接続は未完了。L4：型付き個体／parameter／Joint状態と成功固定更新後の採取フックを追加中。L5：許可カタログから新SceneのCPU計画を生成する両次元APIと代表実World試験を追加中。L6／L7：未実施。L8：部分回帰のみ、L-M01〜20未実施。L9：保存コア単独Consumerの移行・別プロセスを実施、上位再開・測定未完了。L10：最終採用回帰／push未実施。
 
-ログ：`Build/GameSave-20261002-30a407`。初回Debug28ケース成功、故障／要求を追加したCoreDebug03で3群成功。生ログと試行別結果はGameSaveCompletion-2026-10-02.mdに集約。
+未commit：GameSaveのCheckpointDocument／Instance／JointState／Limits／Codec／Catalog／PrefabRecipe／ResumePlan／Restore各2D3D、対応cppと試験、Toolbox JSONのlocale数値処理抽出・Writer.Number、PhysicsScene2D/3Dの成功Post後フック、PhysicsCompletionTests、CMake／ValidateDebug登録、現在Docs、以前のSHA／指紋ファイルのCRLF統一。
 
-PortableDebug01は実行器の全体90秒制限で中断。子プロセス終了を確認した。公開結果不明の明示RetryPublicationを追加したPortableDebug02とPortableRelease01は各33/33成功。Native OFFの配布はDebug／Release各12工程成功。通常Pythonは64成功・7skip。これらのソース指紋はe88609c54bc5d4edc2f12731c4f5c1bdb10c0bef3a46c24086bb66a832d66414。
+ログRoot：Build/GameSave-20261002-30a407。最新検証はPortableCheckpointFrozenDebug01／Release01各34/34、失敗0・skip0、162.77／29.02秒。No-STL925ファイル・違反0、差分0。CheckpointHeaders01は17構成成功。PackageCheckpointOffRelease02は12工程・全体終了0、外部checkpoint計画APIと保存コア別プロセスを実行。採用ソース指紋は全て94b49673dda3d4807569a5759155761b4c68431d89b2f4999c9d941e980948f0。L10最終集合ではない。
 
-Native用SaveCoreOnlyのCRT設定を追加したPackageOnDebug01／PackageOnRelease01も各15工程成功。既存描画／UIと保存コアの別プロセスを確認した範囲で、2D／3Dのゲーム再開を確認した結果ではない。指紋c39286f3a98ac6a2c23852423d97146445fc775ad9187bf75dc25c10b236b69f。現在、実行中の検証プロセスはない。
+失敗記録：FingerprintCheckpointDebug01はContent試験exeへのLNK1136。対象再リンク後の通常buildと回帰は成功、初発原因未特定。BoundaryDebug01／02は新試験のinclude不足とScene破棄API誤り、旧exe未実行。PackageCheckpointOffRelease01は12工程個別終了0の後にSummary.json更新でWinError 5、全体終了1。削除せず、02を新規ログへ1回だけ限定再試験した。承認拒否ではなく結果記録失敗。
 
-未commit：Toolbox SHA-256、SceneContentの実読込バイト記録と指紋、両次元の再配置／変更／DAG試験、対応CMake／Docs。次の一手：FingerprintDebug01でbuild・保存／要求／Content群・故障を検証し、同じ差分のReleaseを実行する。
+現在実行中プロセスなし。一時変異なし。次の一手：検証済みの型付きcheckpoint／純粋再開計画／成功固定更新フックを論理単位でcommit。その後、保留設定検査と世代付き個体履歴を用いて、要求された保存値だけを成功固定更新後に採取する両次元実装と試験を追加する。
 
-続く実装：準備時に実際に読み込んだ定義バイトの指紋をSceneContent値へ保持→型付きcheckpoint文書／許可カタログ／純粋移行／進行参加者→安全境界採取→Contentから新Sceneを作る再開adapterと全4Joint個体間接続→入力profile一括適用とrelease-to-arm→既存Sample/UI→別プロセス／実画素／L変異／故障／測定／配布4構成→最終全回帰／文書／通常push。
+続く実装：保留Joint設定と個体履歴／世代を検査する安全境界採取、ゲーム進行参加者のScene寿命、許可Contentからの資源準備・通常Navigator要求・全必須Readyによる完了、入力profile一括適用／release-to-arm／設定保存、既存Sample UI、両次元の別Applicationプロセス再開と画素、L故障／変異／測定／配布4構成、凍結manifestで全採用回帰／文書／通常push。
 
-一時変異なし。復元待ちbackupなし。承認拒否された操作なし。Build内の以前の拒否対象へ触れていない。
+一時変異なし、復元待ちbackupなし。今回の承認拒否なし。以前に削除を拒否されたBuild複製を触っていない。Assets原本・利用者の保存・過去ログを変更していない。検証前の実装差分を削除しない。

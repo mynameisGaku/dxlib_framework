@@ -43,3 +43,22 @@ mainの`c1b71db3339a7525cd24a729a79ae2de92263b31`へ保存コア／CPU要求をc
 指紋差分は`843b7996f108f8fe78877635ae50546c28accdb9`へcommit済み。ゲーム移行は今回用fixtureのcoins→scoreを検証し、将来のゲームバージョン、別Content、移行後の不正JSON・容量超過を拒否する。容量超過面の短いヘッダー検査と公開トランザクションの入口上限検証を追加した。これは製品境界の補強で、全I/O故障地点の試験完了ではない。
 
 逆完了試験の初回失敗は試験期待条件の分類。JobSystemの実行レーン数には所有スレッドが含まれ、2指定ではWorkerは1個だった。3レーンで二つのWorkerを借用し、Aを停止中にBのPrepare完了数1を確認してからAを解放する。Dispatcherの順序を変更せず、AのSupersededとBの採用を照合した。失敗試行は成功試行へ合算しない。
+
+チェックポイントの型付き文書・許可カタログ・純粋な再開計画を追加した。個体の論理キーから生成順を作り直し、明示除去、動的個体、parameter、全4種類の内部接続と個体間接続を両次元の実Worldで確認した。配列位置や旧実行時IDを保存・復活させない。型付きexportの別名は同じ設定だけを許し、矛盾を拒否する。成功World.Stepと全PostPhysics終了後の採取フックを追加したが、ゲーム状態の自動採取・Navigatorとの再開完了接続は未完了である。
+
+|試行|対象|結果|manifest|
+|---|---|---|---|
+|FingerprintCheckpointDebug01|checkpoint追加後のbuild|LNK1136、終了1。Content試験exeの初発原因は未特定。旧exeは実行せず、対象の再リンクを実施|固有Summaryへ保存|
+|CheckpointRelinkDebug01|該当2targetの再リンク|終了0。通常の全target buildと後続CTestも成功|固有Summaryへ保存|
+|FingerprintCheckpointDebug02／Release01|checkpoint codec限定回帰|各6/6、終了0|47b55516a190a9dc1f095fc58f449e135dad1bc6e71614491858ad46a47f12f4|
+|FingerprintCheckpointRestoreDebug01|許可カタログからの再開計画|6/6、終了0|14da236df434bcb0fecfb4cdb49aea4f8b97af484f5365b38aeb3bfd054e7624|
+|PortableCheckpointBoundaryDebug01|成功固定更新境界試験のbuild|終了1、試験のAssetService include不足|固有Summaryへ保存|
+|PortableCheckpointBoundaryDebug02|同build|終了1、試験のScene破棄APIの取り違え|固有Summaryへ保存|
+|PortableCheckpointBoundaryDebug03|修正後のPortable全群|34/34、失敗0・skip0、155.86秒。全終了0|f2302877d6c29a8c56487af0cf3290a13fb56044cfa1ba9ca1cd7d15c697e1da|
+|PortableCheckpointFrozenDebug01|上限・別名・外部利用・整形後の全群|34/34、失敗0・skip0、162.77秒。全終了0|94b49673dda3d4807569a5759155761b4c68431d89b2f4999c9d941e980948f0|
+|PortableCheckpointFrozenRelease01|同コードのRelease全群|34/34、失敗0・skip0、29.02秒。全終了0|同上|
+|CheckpointHeaders01|新規公開ヘッダー単独14・正逆順・保存コア単独|17構成、/utf-8付き、全終了0。リンク確認は外部Consumerに分離|同上|
+|PackageCheckpointOffRelease01|再配置Consumer・保存コア別プロセス|12工程の個別終了は全0。ただしSummary記録のos.replaceでWinError 5、全体終了1。配布全成功として採用しない|同上|
+|PackageCheckpointOffRelease02|同コード・新しい記録先で1回の限定再試験|12工程と全体終了0|同上|
+
+上記の最新No-STLは925ファイル・違反0。GameCheckpoint群は15ケース。共有Gameplay変更を含むFramework群の成功も全群へ含む。外部CheckpointConsumerはinstallの公開targetだけから新しい計画APIをリンクし、実ファイル指紋を持つ2D／3Dの生成・除去・動的個体・解除を実行した。まだ別Applicationプロセスのゲーム進行再開やLの実画素を確認したものではない。PackageCheckpointOffRelease01の失敗は結果記録の環境／harness境界で、初発原因は未特定。失敗試行を削除せず、限定再試験へ合算しない。

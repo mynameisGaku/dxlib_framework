@@ -1,6 +1,6 @@
 # 保存コアとチェックポイント再開
 
-L0〜L10の実装を進めている。現在利用できるのは任意リンクの`dxf::save_data`と、`dxf::game_save`のCPU保存／読込要求である。SceneContentからチェックポイントを再構築するadapter、入力設定、GameplaySampleのContinueはまだ接続していない。初期構成を読み込むBの成果と、今回の論理進行保存を別の機能として扱う。
+L0〜L10の実装を進めている。任意リンクの`dxf::save_data`は保存コア、`dxf::game_save`はCPU保存／読込要求と型付きチェックポイント・再開計画を提供する。実際のNavigator要求と必須Readyの完了管理、入力設定、GameplaySampleのContinueはまだ接続していない。初期構成を読み込むBの成果と、今回の論理進行保存を別の機能として扱う。
 
 ## 保存する値
 
@@ -65,3 +65,30 @@ OS処理の契約は[Known Folder取得](https://learn.microsoft.com/en-us/windo
 操作・Poll・終了は構築した所有スレッドのTask／Commit外で行う。退役は対象Scopeだけを待ち、兄弟やRoot全体を待たない。公開の同期処理やファイルI/Oはブロックし得る。完全非ブロックの契約ではない。
 
 `PublicationUnknown`になった要求は、その後のPollで自動再試行しない。`RetryPublication`で同じ保存の再確認を明示要求し、次のPollで確定面を検証する。失敗したI/Oを画面更新ごとに繰り返さない。
+## 論理チェックポイント文書
+
+`FCheckpointDocument2D`／`FCheckpointDocument3D` と `FCheckpointCodec` は、個体キー、許可Prefabキー、準備済み定義の指紋、配置、型付きparameter、存在／除去、生成順、4種類のJointの接続・Drive・Limit・目標要求を値として保存する。実行時のBody ID／Joint ID、Frame、Impulseは保存しない。ゲーム固有の進行Objectは `GamePayload` に置き、意味と範囲はゲーム側のcodecで検証する。
+
+保存封筒の形式バージョン、ゲームpayloadのバージョン、チェックポイント構造のバージョンは別の値である。現在のチェックポイント構造は `checkpointVersion: 1`。未知項目、重複個体、除去済み個体へのJoint状態、不正な種類別設定、有限上限の超過を拒否する。
+
+この変換だけではSceneの再開は完了しない。`FCheckpointRestore::Build` が許可カタログと照合してCPU再開計画を作り、後続の所有側処理が資源準備、Scene切替、必須Readyの観察を担当する。ゲーム固有の進行検証・初期姿勢レシピと、この所有側接続は実装中である。
+
+数値の出力は専用のC localeと17桁の表現を使う。保存世代などの厳密整数には引き続き十進文字列を使い、f64へ変換しない。POSIX側の実行はこのWindows環境では未確認。
+
+## 許可カタログからのCPU再開計画
+
+`FCheckpointCatalog2D`／`3D` はゲームが用意した識別条件、初期Scene、初期個体に対応するPrefabキー、許可済み `FCheckpointPrefabRecipe2D`／`3D` を持つ。保存のキーを実ファイルのパスとして扱わない。SceneとPrefabの実読込指紋を厳格に照合する。初期個体は、存在または除去を明示した記録が必要で、欠落を暗黙の除去とは解釈しない。
+
+`FCheckpointRestore::Build` は保存順に新しいScene値を作る。動的個体を含め、接続先を個体名と宣言されたBody export名から解決し直す。保存データの配列位置や旧Body IDを使わない。接続・Drive・Limitは種類を検証して新定義へ反映する。目標操作は `Plan.Targets` に残し、Ready後のControllerへ渡す。未公開の内部Jointは信頼するContentの初期設定を使う。
+
+公開値が許可済み定義と異なるときは、ゲームが明示した `Recipe.Resolve` のCPU処理を使う。結果の指紋・Root・定義パス・全公開値を検査し、既存のContent検証も再実行する。ゲーム処理は既存パーサーへ許可済み定義と型付きoverrideを渡せるが、保存由来の任意パスやC++型名をロードしてはいけない。共有する元定義は変更しない。
+
+Jointの別名exportは状態が一致した場合に一回だけ反映する。別名間の矛盾、未知の状態、種類違いは拒否する。除去個体への接続は解除済みの場合だけ論理履歴として保持し、新しい実体の接続を作らない。接続中または目標操作中なら拒否する。
+
+CPU計画の生成は旧Scene・保存ファイル・Native資源を変更しない。`PrepareScene(Plan.Scene, Assets)` 以降は既存の所有側経路を使う。計画生成や資源準備の成功を「ゲーム再開成功」と表示してはいけない。任意の動作中Poseをそのまま再現する機能ではなく、開いた扉などの姿勢を再開時から一致させるにはゲームが初期PoseとFrameの整合したレシピを用意する。
+
+## 成功した固定更新後の採取境界
+
+`DPhysicsScene2D`／`3D::OnPhysicsStepCompleted` は、World.Stepと全PostPhysics予約が成功した後に一回だけ呼ばれる。ゲーム側の最後の反映とJointの成功観察が揃った境界である。固定更新0回、Pause、固定更新／Pre／Postの失敗、SceneのDestroy要求後には呼ばない。`IsAtPhysicsCompletionBoundary()` はこのフックの実行中だけtrueで、例外時にもfalseへ戻る。
+
+`GetCompletedPhysicsStepCount()` はWorldと全PostPhysicsが成功した境界を数える。完了フック自身が失敗した場合も物理は既に進んでおり、この数は巻き戻さない。採取結果を公開できたこととは別の値である。利用者の未処理要求、保留中個体、ゲーム進行参加者の寿命を検証する採取処理は、引き続き実装中。

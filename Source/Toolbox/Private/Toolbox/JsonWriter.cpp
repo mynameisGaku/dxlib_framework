@@ -1,8 +1,17 @@
 // SPDX-License-Identifier: NOASSERTION
 #include "Toolbox/JsonWriter.h"
 #include "Toolbox/Algorithm.h"
+#include "Toolbox/JsonNumber.h"
 namespace Toolbox
 {
+FString FJsonWriter::Number(f64 Value)
+{
+	// f64最大値の十進表現も入る有限の作業領域。
+	char Buffer[64];
+	const JsonPrivate::FNumberLocale Locale;
+	const int32 Count = Locale.Format(Buffer, sizeof(Buffer), Value);
+	return FString(Buffer, static_cast<size_t>(Count));
+}
 namespace
 {
 // 復号後のUTF-8バイト順で辞書を正準化する。

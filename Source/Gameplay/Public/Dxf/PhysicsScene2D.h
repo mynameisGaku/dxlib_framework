@@ -45,8 +45,30 @@ public:
 	{
 		return m_Alpha;
 	}
+	/**
+	 * 全PostPhysics処理が成功した固定更新の数。描画回数や保存Pollで増えない。
+	 */
+	Toolbox::uint64 GetCompletedPhysicsStepCount() const noexcept
+	{
+		return m_CompletedSteps;
+	}
+	/**
+	 * 成功固定更新後の採取フック内だけtrue。Pauseや通常Tickではfalse。
+	 */
+	bool IsAtPhysicsCompletionBoundary() const noexcept
+	{
+		return m_bAtCompletion;
+	}
 
 protected:
+	/**
+	 * 全PostPhysics予約の成功後に一度呼ぶ。ゲーム進行と物理観察を同じ境界で採取できる。
+	 * @param Context 完了した固定更新。例外は実行時失敗として伝わり、Body rollbackは行わない。
+	 */
+	virtual void OnPhysicsStepCompleted(const FFixedTickContext& Context)
+	{
+		(void)Context;
+	}
 	/**
 	 * 固定更新の計画を立て、子階層へ配ってから物理を進める。
 	 * @param Context フレーム更新の実行環境。
@@ -73,6 +95,10 @@ protected:
 		}
 		for (Toolbox::uint32 Step = 0; Step < Plan.StepCount; ++Step)
 		{
+			if (m_CompletedSteps == Toolbox::TNumericLimits<Toolbox::uint64>::Max())
+			{
+				throw Toolbox::FException("Completed physics step counter overflow");
+			}
 			// 固定更新の実行環境。
 			FFixedTickContext Fixed{Context.Input,
 			                        m_PendingInputs,
@@ -109,6 +135,25 @@ protected:
 			// 物理Stepの成功後、次の固定更新の前に、予約された処理（接触イベントの配送など）を行う。
 			// Stepが例外で終わった場合は呼ばない（次の固定更新の開始で予約を捨てる）。
 			m_PostStep.Run_Internal(Fixed);
+			++m_CompletedSteps;
+			if (IsDestroyRequested() || (Context.Scenes != nullptr && Context.Scenes->WantsQuit()))
+			{
+				break;
+			}
+			// フックの例外時にも、採取可能な境界という印を外す。
+			struct FCompletionGuard
+			{
+				bool& Flag;
+				~FCompletionGuard()
+				{
+					Flag = false;
+				}
+			};
+			{
+				m_bAtCompletion = true;
+				FCompletionGuard Guard{m_bAtCompletion};
+				OnPhysicsStepCompleted(Fixed);
+			}
 			if (Context.Scenes != nullptr && Context.Scenes->WantsQuit())
 			{
 				break;
@@ -118,6 +163,14 @@ protected:
 	}
 
 private:
+	/**
+	 * 物理と全PostPhysicsが成功した境界の通し番号。
+	 */
+	Toolbox::uint64 m_CompletedSteps = 0;
+	/**
+	 * 完了フックの呼出し中だけ立つ印。
+	 */
+	bool m_bAtCompletion = false;
 	/**
 	 * 所有する2D物理ワールド。
 	 */

@@ -27,7 +27,7 @@ CONSUMER_SOURCES = ('CMakeLists.txt', 'Main.cpp', 'Support.cpp', 'Physics.cpp', 
                     'FMechanismConsumerResult.h', 'MechanismConsumer.h', 'MechanismConsumer.cpp',
                     'PhysicsMechanism.h', 'PhysicsMechanism.cpp', 'ContentConsumer.h', 'ContentConsumer.cpp',
                     'Data/prefab2d.dxfprefab.json', 'Data/prefab3d.dxfprefab.json', 'Data/scene2d.dxfscene.json', 'Data/scene3d.dxfscene.json',
-                    'ContentNativeConsumer.cpp', 'SaveCore.cpp')
+                    'ContentNativeConsumer.cpp', 'SaveCore.cpp', 'CheckpointConsumer.h', 'CheckpointConsumer.cpp')
 # UI入りの外部のApplicationへ渡す外部スタイル（正しいものと、読めないもの）。
 UI_STYLE = 'dxfui-style 1\nstyle ConsumerButton {\n background = #20a0e0\n}\n'
 UI_BROKEN_STYLE = 'dxfui-style 1\nstyle ConsumerButton {\n background = @missing\n}\n'
