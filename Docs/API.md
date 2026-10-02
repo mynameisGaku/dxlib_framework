@@ -226,7 +226,9 @@ Gameplayはcppを持つ静的ライブラリです。公開`dxf::gameplay`／`dx
 
 `dxf::save_data`は`FSaveDocument`／`FSaveCodec`／`FSaveStore`で、論理値の封筒、厳密な世代、専用SaveRoot、二面保存、回復を提供します。Toolboxだけを利用し、Scene／Physics／Nativeを要求しません。`dxf::game_save`の`FGameSaveRequest`は既存TaskDispatcherを借り、通常更新のPollで保存を公開します。公開結果不明の再確認は`RetryPublication`で明示要求します。
 
-`FCheckpointCodec`は2D／3Dの論理個体・進行・4種類のJoint状態を変換し、`FCheckpointRestore::Build`は許可済みカタログから新SceneのCPU計画を生成します。`DPhysicsScene2D/3D::OnPhysicsStepCompleted`は、成功したWorld.Stepと全PostPhysics反映後の採取境界です。採取参加者とNavigator／必須Readyの接続、入力設定とSample統合は実装中で、任意Worldの保存を提供するものではありません。[現在の保存契約](Gameplay/SavingAndCheckpoints.md)と[試行記録](Development/GameSaveCompletion-2026-10-02.md)を参照してください。
+`FCheckpointCodec`は2D／3Dの論理個体・進行・4種類のJoint状態を変換し、`FCheckpointRestore::Build`は許可済みカタログから新SceneのCPU計画を生成します。`DPhysicsScene2D/3D::OnPhysicsStepCompleted`は、成功したWorld.Stepと全PostPhysics反映後の採取境界です。通常Navigatorへの再開要求と必須Ready完了は`FCheckpointResumeRequest2D/3D`で接続します。ゲーム固有レシピとSample統合は実装中で、任意Worldの保存を提供するものではありません。[現在の保存契約](Gameplay/SavingAndCheckpoints.md)と[試行記録](Development/GameSaveCompletion-2026-10-02.md)を参照してください。
+
+`dxf::input_profiles`は`FInputProfile`／`FInputProfileCodec`による完全割当の検証・一括適用、`FInputRebindCapture`による解放後の単一入力採取、`FUserSettingsCodec`による独立した設定保存文書を提供します。Supportと保存コアを使い、SceneContent／Physics／UI／Nativeへ依存しません。適用時の押し続けを抑止し、不正入力・確保失敗で旧Mapを保持します。[入力と設定の契約](Input/Profiles.md)。
 
 チェックポイント採取の任意入口は `FCheckpointCapture2D`／`3D`（`dxf::game_save`）。Sceneが所有し、初期化後の `Bind`、動的 `Spawn`／`Destroy`、`RequestCapture`、成功固定更新後の `CaptureIfRequested`、終了前の `Retire` を使う。最後の正常CPU値と未採取要求を区別し、保留設定や古い世代へ自動追従しない。[採取契約](Gameplay/SavingAndCheckpoints.md)。
 

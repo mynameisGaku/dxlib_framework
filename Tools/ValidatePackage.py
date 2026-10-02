@@ -27,7 +27,7 @@ CONSUMER_SOURCES = ('CMakeLists.txt', 'Main.cpp', 'Support.cpp', 'Physics.cpp', 
                     'FMechanismConsumerResult.h', 'MechanismConsumer.h', 'MechanismConsumer.cpp',
                     'PhysicsMechanism.h', 'PhysicsMechanism.cpp', 'ContentConsumer.h', 'ContentConsumer.cpp',
                     'Data/prefab2d.dxfprefab.json', 'Data/prefab3d.dxfprefab.json', 'Data/scene2d.dxfscene.json', 'Data/scene3d.dxfscene.json',
-                    'ContentNativeConsumer.cpp', 'SaveCore.cpp', 'CheckpointConsumer.h', 'CheckpointConsumer.cpp')
+                    'ContentNativeConsumer.cpp', 'SaveCore.cpp', 'CheckpointConsumer.h', 'CheckpointConsumer.cpp', 'InputProfile.cpp')
 # UI入りの外部のApplicationへ渡す外部スタイル（正しいものと、読めないもの）。
 UI_STYLE = 'dxfui-style 1\nstyle ConsumerButton {\n background = #20a0e0\n}\n'
 UI_BROKEN_STYLE = 'dxfui-style 1\nstyle ConsumerButton {\n background = @missing\n}\n'
@@ -176,6 +176,18 @@ def main() -> int:
             raise RuntimeError('Save core consumer executable changed between processes')
         summary.update(save_core_without_upper_layers=True, save_core_separate_processes=True,
                        save_core_exe_sha256=binary_hash, save_core_root=str(save_root.resolve()))
+        profile_deployed = work / '入力設定 配布 exe'
+        profile_deployed.mkdir()
+        profile_exe = profile_deployed / ('InputProfileOnly' + suffix)
+        shutil.copyfile(consumer_bin / profile_exe.name, profile_exe)
+        profile_root = work / '入力設定 SaveRoot 日本語'
+        profile_hash = hashlib.sha256(profile_exe.read_bytes()).hexdigest()
+        run('input-profile-write-process', [str(profile_exe), 'write', str(profile_root.resolve())], cwd=save_cwd)
+        run('input-profile-read-process', [str(profile_exe), 'read', str(profile_root.resolve())], cwd=save_cwd)
+        if hashlib.sha256(profile_exe.read_bytes()).hexdigest() != profile_hash:
+            raise RuntimeError('Input profile executable changed between processes')
+        summary.update(input_profile_without_content_physics_ui=True, input_profile_separate_processes=True,
+                       input_profile_exe_sha256=profile_hash, input_profile_root=str(profile_root.resolve()))
         summary.update(ui_without_physics_or_runtime=True, ui_scene_adapter=True)
         summary.update(install=True, relocation=True, external_consumer=True, export_paths_relocatable=True,
                        support_without_runtime=True, physics_without_debug_or_support=True,

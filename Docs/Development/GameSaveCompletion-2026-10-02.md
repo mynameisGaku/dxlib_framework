@@ -89,3 +89,24 @@ CaptureBuildDebug01〜05のbuild失敗は新規製品コードのFStringView変�
 |PackageResumeOffRelease01|12工程・全終了0|45b02a2c2f0603720b4ba72715b0e7abcdbfa122f0b1c852aa00c9969788d7d7|
 
 ResumeBuildDebug01とResumeTargetDebug01は限定2群が全終了0で、初期化失敗による旧Scene保持と両次元の単独Prismatic有限目標駆動を確認した。最新GameCheckpointは26ケース、確保故障3ケース、Framework417ケース。公開ヘッダーは32個の単独includeと正逆順・保存コア単独の35構成を/utf-8付きで検査。外部ConsumerはContent Rootと専用SaveRootを別引数で渡し、両次元の実読込定義と保存から通常Navigator・初回成功固定更新を通した。同じプロセスの再開であり、別Applicationプロセス試験とは数えない。既存12配布工程を保持した。最終L10集合ではない。
+
+任意のInputProfilesを追加した。許可Action・予約入力・競合・全件構成を検証してから既存InputMapへ一括採用し、不正入力や確保失敗では旧MapとAction履歴を残す。Keyboard／Mouse／4Padの保存名は明示した文字列対応を使う。再割当の開始入力と適用時の押し続けを解放まで抑止し、フォーカス喪失・Pad切断・Modal終了にも同じ規則を使える。従来Bind経路の挙動は保持する。設定文書は進行スロットから独立し、入力・音量・UI倍率を全検証して値として返す。既存Sampleの音声・UI倍率への実適用と再割当画面は未完了である。
+
+|試行|結果|manifest|
+|---|---|---|
+|ProfileBuildDebug01|build終了1。故障試験のOut宣言に必要なToolbox/Platform.hが不足。旧exeは実行していない|固有Summaryを保持|
+|ProfileBuildDebug02／ProfileTargetDebug01|修正後の2群が終了0。通常12ケース・確保故障3ケースまで追加|固有Summaryを保持|
+|PortableProfileFrozenDebug01／Release01|各37/37、失敗0・skip0。Debug199秒、Release35秒、全終了0|8b2ceada55f5c8b30237dc82b77e918cf95ed7ded3d5d73551bd5d9af27ef496|
+|ProfileHeaders01|下位層だけのincludeで単独11・正逆順2、/utf-8付き13工程、全終了0|同上|
+|PackageProfileOffRelease01|既存12と設定保存・読込の別プロセス2を合わせ14工程、全終了0|同上|
+|ProfileCommentDebug01／ProfileLinkDebug01|コメント整理とBinding比較の同名cpp分離後、2群が終了0|固有Summaryを保持|
+|PortableProfileLinkFrozenDebug01|37/37、失敗0・skip0、200秒、全終了0|c9d696be080e3338793009d16de664859330be030c33f2f0418c8dbd4f6d3876|
+|PackageProfileLinkOffRelease01|比較処理のリンク登録を含む14工程、全終了0、前後指紋同一|同上|
+|ParamCommentsChecks01|引数ごとの改行、説明件数・BOM・改行形式・コメント以外の生バイト同一を検査。Python74件中67成功・7条件付きskip、No-STL965ファイル違反0、diff検査終了0|3e2b2043c225f3651eb1d7a8a4141d8ef7c16367729c6ecef1628f1ce4b5fb9f|
+|PortableParamCommentsFrozenRelease01|引数コメント修正後の全群37/37、失敗0・skip0、36秒、全終了0|同上|
+
+入力故障は一括適用・encode・decodeを独立に探索した。最初の非注入countdownは5・64・51。注入された失敗ごとに旧有効割当・未解放件数差0・次の正常要求での回復を確認した。Action更新・解放抑止・再割当Pollの定常32Snapshotは追加確保0で、WorldやNative全体の0確保を意味しない。正規Python入口の最初の呼出しは固定Python01へ記録する旧実行器に引数を渡したためLogsInUseErrorで終了した。過去ログを上書きせず、新しいProfilePython01の実行器で73件中66成功・7skipを確認した。これはharnessの呼出し誤りである。
+
+外部InputProfileOnlyは保存コアとSupportだけからリンクし、SceneContent／Physics／UIを依存に含めない。最新の別プロセス試験は`C:/dxfc/l30a407-profile-link-release/run-gfeku_z3/入力設定 配布 exe/InputProfileOnly.exe`、専用Root`C:/dxfc/l30a407-profile-link-release/run-gfeku_z3/入力設定 SaveRoot 日本語`、無関係CWDを使用した。同一exeのSHA-256は`9863a120f74e3ddf21aa1d3cbb7692526ace4e2e33064df8e87559224110bfa6`、write／readの各終了0。読込後のK・MouseRight・Pad4のButton16を実InputMapへ渡し、旧Spaceが操作しないことを確認した。音量0.4・UI倍率1.75は値の永続化までで、聴感・実UI hit testやゲームApplication再開の証拠には数えない。最新SaveCoreOnlyの別プロセスexe指紋は`9ea04f11569063b1556ef6caa8f58fa44bfc7bca3282bb8bc44dcd514278072c`。いずれもL10最終採用集合ではない。
+
+利用者の指摘に従い、現在Source・Examples・Tests・外部Consumerの引数コメントを1引数1行へ整理した。25ファイル・54行の分割で、説明・処理・宣言を変更しない。CodingStandardへ規則を追加し、Toolsの静的検査で再発を検出する。過去の検証記録は書き換えていない。

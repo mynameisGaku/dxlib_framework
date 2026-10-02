@@ -169,6 +169,7 @@ set_target_properties(dxf_ufbx PROPERTIES EXPORT_NAME ufbx DEBUG_POSTFIX d)
 target_include_directories(dxf_ufbx PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/External/ufbx>")
 
 add_library(dxf_support STATIC
+    Source/DxLibSupport/Private/Dxf/InputBindingDescription.cpp
     Source/DxLibSupport/Private/Dxf/Model.cpp
     Source/DxLibSupport/Private/Dxf/ModelCameraInfo.cpp
     Source/DxLibSupport/Private/Dxf/ModelLightInfo.cpp
@@ -257,6 +258,16 @@ target_link_libraries(dxf_save_data PUBLIC dxf::toolbox)
 target_include_directories(dxf_save_data PRIVATE Source/SaveData/Private)
 dxf_public_headers(dxf_save_data SaveData PUBLIC)
 dxf_warnings(dxf_save_data)
+add_library(dxf_input_profiles STATIC
+    Source/InputProfiles/Private/Dxf/InputProfileCodec.cpp
+    Source/InputProfiles/Private/Dxf/InputRebindCapture.cpp
+    Source/InputProfiles/Private/Dxf/UserSettingsCodec.cpp)
+add_library(dxf::input_profiles ALIAS dxf_input_profiles)
+set_target_properties(dxf_input_profiles PROPERTIES EXPORT_NAME input_profiles DEBUG_POSTFIX d)
+target_link_libraries(dxf_input_profiles PUBLIC dxf::support dxf::save_data)
+target_include_directories(dxf_input_profiles PRIVATE Source/InputProfiles/Private)
+dxf_public_headers(dxf_input_profiles InputProfiles PUBLIC)
+dxf_warnings(dxf_input_profiles)
 add_library(dxf_scene_content STATIC
     Source/SceneContent/Private/Dxf/ContentScene2D.cpp
     Source/SceneContent/Private/Dxf/ContentScene3D.cpp
@@ -436,6 +447,20 @@ if(DXF_BUILD_TESTS)
     dxf_warnings(dxf_save_data_fault_tests)
     add_test(NAME SaveDataAllocationFault COMMAND dxf_save_data_fault_tests)
     set_tests_properties(SaveDataAllocationFault PROPERTIES TIMEOUT 60 LABELS "portable;save;allocation-fault")
+    add_executable(dxf_input_profile_tests Tests/TestMain.cpp Tests/InputProfileTests.cpp)
+    target_link_libraries(dxf_input_profile_tests PRIVATE dxf::input_profiles)
+    target_include_directories(dxf_input_profile_tests PRIVATE Tests)
+    target_compile_definitions(dxf_input_profile_tests PRIVATE DXF_PROFILE_TEST_ROOT="${CMAKE_CURRENT_BINARY_DIR}/Profile SaveRoot Japanese Space")
+    dxf_warnings(dxf_input_profile_tests)
+    add_test(NAME InputProfiles COMMAND dxf_input_profile_tests)
+    set_tests_properties(InputProfiles PROPERTIES TIMEOUT 60 LABELS "portable;input;save")
+    add_executable(dxf_input_profile_fault_tests Tests/TestMain.cpp Tests/InputProfileFaultTests.cpp Source/Toolbox/Private/Toolbox/Testing/AllocationFault.cpp)
+    target_link_libraries(dxf_input_profile_fault_tests PRIVATE dxf::input_profiles)
+    target_include_directories(dxf_input_profile_fault_tests PRIVATE Tests)
+    target_compile_definitions(dxf_input_profile_fault_tests PRIVATE DXF_ALLOCATION_FAULT_TEST_EXECUTABLE=1)
+    dxf_warnings(dxf_input_profile_fault_tests)
+    add_test(NAME InputProfilesAllocationFault COMMAND dxf_input_profile_fault_tests)
+    set_tests_properties(InputProfilesAllocationFault PROPERTIES TIMEOUT 60 LABELS "portable;input;allocation-fault")
     add_executable(dxf_game_save_tests Tests/TestMain.cpp Tests/GameSaveRequestTests.cpp)
     target_link_libraries(dxf_game_save_tests PRIVATE dxf::game_save)
     target_include_directories(dxf_game_save_tests PRIVATE Tests)
@@ -516,7 +541,7 @@ if(DXF_BUILD_TESTS)
     endif()
 endif()
 
-set(DXF_EXPORT_TARGETS dxlib_framework dxf_toolbox dxf_foundation dxf_ufbx dxf_support dxf_runtime dxf_gameplay dxf_physics dxf_scene_content dxf_save_data dxf_game_save)
+set(DXF_EXPORT_TARGETS dxlib_framework dxf_toolbox dxf_foundation dxf_ufbx dxf_support dxf_runtime dxf_gameplay dxf_physics dxf_scene_content dxf_save_data dxf_game_save dxf_input_profiles)
 # 任意のUI基盤（dxf::ui・dxf::ui_runtime）。
 include(CMake/UiModule.cmake)
 if(DXF_BUILD_NATIVE)
@@ -689,7 +714,7 @@ if(DXF_INSTALL)
     include(CMakePackageConfigHelpers)
     install(TARGETS ${DXF_EXPORT_TARGETS} EXPORT dxlib_frameworkTargets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-    foreach(Layer Toolbox Foundation DxLibSupport Runtime Gameplay Physics SceneContent SaveData GameSave Native Ui UiRuntime)
+    foreach(Layer Toolbox Foundation DxLibSupport Runtime Gameplay Physics SceneContent SaveData GameSave InputProfiles Native Ui UiRuntime)
         install(DIRECTORY "Source/${Layer}/Public/" DESTINATION include FILES_MATCHING PATTERN "*.h")
     endforeach()
     set(DXF_CONFIG_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/dxlib_framework")

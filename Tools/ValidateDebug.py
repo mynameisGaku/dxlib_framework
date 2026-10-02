@@ -11,6 +11,7 @@ from ValidationSupport import new_run_directory, run_logged, validation_report
 
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED = {
+    'InputProfiles', 'InputProfilesAllocationFault',
     'SaveData', 'SaveDataAllocationFault', 'GameSaveRequest', 'GameCheckpoint', 'GameCheckpointAllocationFault', 'SceneContent', 'SceneContentAllocationFault', 'DebugTools', 'DebugPhysicsCapture', 'RenderViews', 'NativeViewsTranslation', 'JointComponentFault', 'JointComponentFault',
     'RenderContinuation', 'RenderTransparency', 'RenderTransparencyFault',
     'NativeTransparency', 'PhysicsContinuation', 'PhysicsOverlapFault',

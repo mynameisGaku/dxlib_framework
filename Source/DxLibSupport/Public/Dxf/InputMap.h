@@ -1,5 +1,6 @@
 #pragma once
 #include "Dxf/InputSnapshot.h"
+#include "Dxf/InputActionBindings.h"
 #include "Toolbox/Algorithm.h"
 #include "Toolbox/String.h"
 #include "Toolbox/Map.h"
@@ -59,6 +60,83 @@ public:
 		m_Actions.Clear();
 	}
 	/**
+	 * @param Descriptions 完全な割当集合。空名・重複名・不正入力を全体拒否する。
+	 * @param Current 適用する元Snapshot。UIで消費する前の押し続けを確認する。
+	 * 確保失敗でも現Mapを保持する。Action名のゲーム許可・予約・競合は上位のプロファイルが検査する。
+	 */
+	bool ReplaceBindings(const Toolbox::TVector<FInputActionBindings>& Descriptions, const FInputSnapshot& Current)
+	{
+		// 現Mapを消さず、履歴を含まない候補だけを構築する。
+		FInputMap Candidate;
+		for (const auto& Description : Descriptions)
+		{
+			if (Description.Action.IsEmpty() || Candidate.m_Actions.Find(Description.Action) != Candidate.m_Actions.End())
+			{
+				return false;
+			}
+			auto& State = Candidate.m_Actions[Description.Action];
+			for (const auto& Input : Description.Bindings)
+			{
+				FBinding Binding;
+				switch (Input.Device)
+				{
+				case EInputBindingDevice::Keyboard:
+					if (Input.Key >= EKey::Count)
+					{
+						return false;
+					}
+					Binding = {EDevice::Keyboard, static_cast<Toolbox::size_t>(Input.Key), 0};
+					break;
+				case EInputBindingDevice::Mouse:
+					if (Input.MouseButton >= EMouseButton::Count)
+					{
+						return false;
+					}
+					Binding = {EDevice::Mouse, static_cast<Toolbox::size_t>(Input.MouseButton), 0};
+					break;
+				case EInputBindingDevice::Gamepad:
+					if (Input.PadSlot >= 4 || Input.PadButton >= 16)
+					{
+						return false;
+					}
+					Binding = {EDevice::Gamepad, Input.PadButton, Input.PadSlot};
+					break;
+				default:
+					return false;
+				}
+				if (Toolbox::Find(State.Bindings.Begin(), State.Bindings.End(), Binding) != State.Bindings.End())
+				{
+					return false;
+				}
+				State.Bindings.PushBack(Binding);
+			}
+		}
+		Candidate.SuppressUntilRelease(Current);
+		// 全容量の確保と検査の後だけ、例外を出さない移動で公開する。
+		static_assert(noexcept(m_Actions = Toolbox::Move(Candidate.m_Actions)));
+		m_Actions = Toolbox::Move(Candidate.m_Actions);
+		m_bReleaseToArm = true;
+		return true;
+	}
+	/**
+	 * @param Current Modal終了や再割当完了Frameの元Snapshot。
+	 * 押し続けから新しいActionを発生させず、解放後に再度押した入力だけを有効にする。確保しない。
+	 */
+	void SuppressUntilRelease(const FInputSnapshot& Current) noexcept
+	{
+		m_bReleaseToArm = true;
+		for (auto& [Name, Action] : m_Actions)
+		{
+			(void)Name;
+			Action.bCurrent = false;
+			Action.bPrevious = false;
+			for (auto& Binding : Action.Bindings)
+			{
+				Binding.bArmed = IsBindingAvailable_Internal(Current, Binding) && !IsBindingDown_Internal(Current, Binding);
+			}
+		}
+	}
+	/**
 	 * 入力または管理対象の状態を更新する。
 	 * @param Input フレームの入力情報。
 	 */
@@ -71,9 +149,22 @@ public:
 			Action.bPrevious = Action.bCurrent;
 			Action.bCurrent = false;
 			// 入力の割り当て情報を順に処理する。
-			for (const auto& Binding : Action.Bindings)
+			for (auto& Binding : Action.Bindings)
 			{
-				Action.bCurrent = Action.bCurrent || IsBindingDown_Internal(Input, Binding);
+				// 他の割当が保持中でも、すべての割当の解放を観察する。
+				const bool Down = IsBindingDown_Internal(Input, Binding);
+				if (m_bReleaseToArm)
+				{
+					if (!IsBindingAvailable_Internal(Input, Binding))
+					{
+						Binding.bArmed = false;
+					}
+					else if (!Down)
+					{
+						Binding.bArmed = true;
+					}
+				}
+				Action.bCurrent = Action.bCurrent || (Down && (!m_bReleaseToArm || Binding.bArmed));
 			}
 		}
 	}
@@ -156,7 +247,14 @@ private:
 		/**
 		 * 識別情報が等しいかを比較する。
 		 */
-		bool operator==(const FBinding&) const = default;
+		bool operator==(const FBinding& Other) const noexcept
+		{
+			return Device == Other.Device && Button == Other.Button && Pad == Other.Pad;
+		}
+		/**
+		 * プロファイル適用後に解放を観察したか。割当の識別とは別。
+		 */
+		bool bArmed = true;
 	};
 	/**
 	 * アクションの割り当てと前後フレームの状態を保持する。
@@ -191,6 +289,7 @@ private:
 		auto& Bindings = m_Actions[Toolbox::Move(Action)].Bindings;
 		if (Toolbox::Find(Bindings.Begin(), Bindings.End(), Binding) == Bindings.End())
 		{
+			Binding.bArmed = !m_bReleaseToArm;
 			Bindings.PushBack(Binding);
 		}
 		return true;
@@ -214,6 +313,15 @@ private:
 		return false;
 	}
 	/**
+	 * @param Input 元Snapshot。
+	 * @param Binding 判定する入力。
+	 * Pad切断と失焦は解放としてarmせず、接続復帰後の解放を待つ。
+	 */
+	static bool IsBindingAvailable_Internal(const FInputSnapshot& Input, const FBinding& Binding) noexcept
+	{
+		return Input.GetRaw().bFocused && (Binding.Device != EDevice::Gamepad || (Binding.Pad < Input.GetRaw().Pads.Size() && Input.GetRaw().Pads[Binding.Pad].bConnected));
+	}
+	/**
 	 * 条件に一致する登録情報を探す。
 	 * @param Name 登録名。
 	 */
@@ -227,5 +335,9 @@ private:
 	 * アクション名と入力状態の対応表。
 	 */
 	Toolbox::TMap<Toolbox::FString, FActionState> m_Actions;
+	/**
+	 * 従来のBind利用は変更せず、完全プロファイルと明示抑止だけで有効にする。
+	 */
+	bool m_bReleaseToArm = false;
 };
 } // namespace Dxf

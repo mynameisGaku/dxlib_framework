@@ -1,6 +1,6 @@
 # 保存コアとチェックポイント再開
 
-L0〜L10の実装を進めている。任意リンクの`dxf::save_data`は保存コア、`dxf::game_save`はCPU保存／読込要求と型付きチェックポイント・再開計画を提供する。実際のNavigator要求と必須Readyの完了管理、入力設定、GameplaySampleのContinueはまだ接続していない。初期構成を読み込むBの成果と、今回の論理進行保存を別の機能として扱う。
+L0〜L10の実装を進めている。任意リンクの`dxf::save_data`は保存コア、`dxf::game_save`はCPU保存／読込要求と型付きチェックポイント・再開計画、通常Navigatorへの要求と必須Readyの完了管理を提供する。`dxf::input_profiles`は完全割当と独立した設定文書を扱う。GameplaySampleのContinue・設定画面とゲームの別Applicationプロセス再開は接続中である。初期構成を読み込むBの成果と、今回の論理進行保存を別の機能として扱う。
 
 ## 保存する値
 
