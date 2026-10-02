@@ -1,14 +1,17 @@
 # L作業の継続点
 
-対象はDXF-L-SAVE-4b20f89-20261002-R2、L0〜L10。Bへ戻らない。mainのみ。用語はバージョン。
+対象はDXF-L-SAVE-4b20f89-20261002-R2、L0〜L10。Bへ戻らない。mainのみ。用語はバージョン。各`@param`は引数ごとに改行する。
 
-HEAD 892469a（完全SHAはgit rev-parse HEADで確認）、最後にfetchしたorigin/main 4b20f89a451233bc8c328df98f48a259808a3285。保存コア・CPU要求・実読込バイト指紋・明示移行・型付きチェックポイント／純粋再開計画／成功固定更新フックと安全境界採取の5commitを保持。push未実施。開始時に利用者差分なし。
+HEAD `f5bf024e4f158989aa591414ddbb8548092e7071`、最後にfetchしたorigin/main `4b20f89a451233bc8c328df98f48a259808a3285`。8個のローカルcommitを保持し、push未実施。開始時に利用者差分なし。直近は`37aa078`（完全プロファイル・再割当採取・独立設定文書）と`f5bf024`（引数コメントの改行と静的検査）。
 
-L0調査済み、L1 codec／明示移行実装、L2二面保存／回復／排他実装（全I/O故障未完了）、L3要求／取消し／最新照合実装（Scene完了接続未完了）、L4論理履歴と安全境界採取の両次元実装、L5純粋再開計画と全4種類の内部／個体間接続の実World、通常Navigatorと必須Ready完了窓口を実装（ゲーム固有レシピの実利用・別プロセス未完了）、L6入力設定とL7 Sample UI未実施、L8部分回帰のみ・L-M01〜20未実施、L9保存コア別プロセス／外部計画・採取を実施（ゲーム再開別プロセス・測定未完了）、L10最終回帰／push未実施。
+L0調査済み。L1 codec／明示移行、L2二面保存／回復／排他、L3 Scoped要求／取消し／最新照合を実装（全I/O故障未完了、再開CPU計画は所有側Poll）。L4両次元の論理履歴と成功固定更新後の安全境界採取。L5許可カタログ・全4種類の内部／個体間接続、通常Navigatorと必須Ready完了窓口を実装。L6完全プロファイル一括適用・解放後有効化・再割当採取・独立設定codecを実装し、外部保存／読込の別プロセスと実Action判定を確認。L7ゲーム固有Controller・既存Sample UIと音量／UI倍率の実適用は未完了。L8部分回帰のみ、L-M01〜20は未実施。L9保存コアと入力設定の別プロセス、外部計画／採取／Navigatorを実施、ゲームApplication再開・測定・4構成は未完了。L10最終回帰／push未実施。
 
-未commit：所有側CheckpointResumeRequest2D/3D、ACheckpointScene2D/3D、Scene観察Ticket・状態、GameSaveRequest再開失敗／退役終端、対応7ケース、CMake、外部Consumerの保存Root・Navigator利用、ValidatePackage引数、現在Docs。次の一手はこの検証済み再開単位をcommitし、既存InputMapへの完全プロファイル一括適用・release-to-armと独立した設定文書／codecを実装する。
+最新の確認済み製品コード指紋は`3e2b2043c225f3651eb1d7a8a4141d8ef7c16367729c6ecef1628f1ce4b5fb9f`。コメント修正直前のDebug全群は`c9d696be080e3338793009d16de664859330be030c33f2f0418c8dbd4f6d3876`で37/37、修正後のRelease全群は37/37。コメント以外の生バイトが同一であることを確認した。L10最終採用集合ではない。
 
-最新ソース指紋45b02a2c2f0603720b4ba72715b0e7abcdbfa122f0b1c852aa00c9969788d7d7。ログRoot Build/GameSave-20261002-30a407。PortableResumeFrozenDebug01／Release01各35/35、失敗0・skip0、公開ヘッダー35構成、PackageResumeOffRelease01は12工程、全終了0。前後manifest同一。L10最終採用ではない。現在実行中プロセスなし、一時変異／復元待ちなし。新規Sceneはゲーム進行をイベント前から保持し、成功境界で採取・有限目標操作を行う。CPU計画生成と資源取込は現在所有側Pollで行う。別プロセスのゲーム再開・Sample UIは未完了。
+ログRoot `Build/GameSave-20261002-30a407`。PortableProfileLinkFrozenDebug01／PortableParamCommentsFrozenRelease01は各37/37・失敗0・skip0。PackageProfileLinkOffRelease01は14工程・全終了0、前後manifest同一。ProfileHeaders01は下位層だけの13構成。ParamCommentsChecks01はPython74件中67成功・7skip、No-STL965ファイル違反0。入力の通常12ケース・故障3ケース、最初の非注入は一括適用5・encode64・decode51。実IDEを指定したPython、Native、聴感はこの集合に含めない。
 
+直近の変更：New Game用の純粋な`FCheckpointRestore::MakeInitial`両次元、既存Captureと共有するCheckpointInitialDocument、初期値／容量／生成順の2ケース、外部Consumerの利用と現在文書。初期文書の生成・所有をゲームごとに写さず、既存Captureの初期文書作成を再利用した。InitialCheckpointDebug01は正常28/28、InitialCheckpointRelease02は正常28/28・故障3/3、PackageInitialCheckpointOffRelease01は14工程・全終了0。指紋`f7c6720b40f9a4175686143e29f0c81c63df6e2ffa21877f3890659325994d7c`。Release01は記録更新のWinError 5でCTest開始前に停止し、同コードを新しい記録先で1回だけ再試験した。現在実行中プロセスなし。一時変異／復元待ちはない。次の具体的な一手は、Sample専用の型付き進行値と純粋codecを追加し、鍵・得点・checkpoint・解錠・個体生成カウンターをゲーム側で検証すること。
 
-続く工程：純粋なゲーム進行検証・再開レシピとScene寿命、目標操作、Navigator再開完了、入力profile一括適用／release-to-arm／設定保存、既存Sample UI、両次元の別Applicationプロセスと実画素、L故障・変異・測定・配布4構成・IDE/Python/独立検証・最終manifestと通常push。実際の未完成を完了としない。過去に削除拒否されたBuild複製は未変更。Assets原本・利用者保存・過去ログを上書きせず、差分を削除しない。
+次の実装は明示SaveRootを持つSample GameInstance、純粋なゲーム進行codec／再開レシピ、Scene所有のゲームControllerと型付きexport操作、成功境界採取・Sensor revision autosave、入力ActionをUI消費後のSnapshotから1回更新する経路。New／Continue／Save／Load／Retryと設定画面を既存UIへ載せる。既存F2のContentコース、C++コース、Starter、Sandboxを保持する。音量の値保存だけを実音声適用と数えず、UI倍率は描画とhit testの同じ既存値へ渡す。
+
+残り：両次元の別Applicationプロセスで進行と設定を再開、Nativeの保存前／変更後／再開後の実画素、全故障・L-M01〜20・関連B変異、Release測定、配布4構成、IDE・公開ヘッダー・正規ValidateDebug・全群の最終manifest、現在文書、通常pushとremote照合。Assets原本・利用者保存・過去ログを上書きせず、未完了差分を捨てない。過去に削除拒否されたBuild複製は未変更。実際の未完成を完了としない。

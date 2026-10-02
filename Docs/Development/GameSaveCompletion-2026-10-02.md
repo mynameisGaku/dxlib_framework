@@ -110,3 +110,14 @@ ResumeBuildDebug01とResumeTargetDebug01は限定2群が全終了0で、初期�
 外部InputProfileOnlyは保存コアとSupportだけからリンクし、SceneContent／Physics／UIを依存に含めない。最新の別プロセス試験は`C:/dxfc/l30a407-profile-link-release/run-gfeku_z3/入力設定 配布 exe/InputProfileOnly.exe`、専用Root`C:/dxfc/l30a407-profile-link-release/run-gfeku_z3/入力設定 SaveRoot 日本語`、無関係CWDを使用した。同一exeのSHA-256は`9863a120f74e3ddf21aa1d3cbb7692526ace4e2e33064df8e87559224110bfa6`、write／readの各終了0。読込後のK・MouseRight・Pad4のButton16を実InputMapへ渡し、旧Spaceが操作しないことを確認した。音量0.4・UI倍率1.75は値の永続化までで、聴感・実UI hit testやゲームApplication再開の証拠には数えない。最新SaveCoreOnlyの別プロセスexe指紋は`9ea04f11569063b1556ef6caa8f58fa44bfc7bca3282bb8bc44dcd514278072c`。いずれもL10最終採用集合ではない。
 
 利用者の指摘に従い、現在Source・Examples・Tests・外部Consumerの引数コメントを1引数1行へ整理した。25ファイル・54行の分割で、説明・処理・宣言を変更しない。CodingStandardへ規則を追加し、Toolsの静的検査で再発を検出する。過去の検証記録は書き換えていない。
+
+New GameからチェックポイントSceneを作る際の手作業を減らすため、両次元の`FCheckpointRestore::MakeInitial`を追加した。既存Captureの初期文書生成を共有し、許可Prefab・生成順・全Joint公開先・個体間接続と独立したゲーム値を記録する。容量と構造を検証してから純粋な再開検証へ通し、不正なゲーム値ではレシピを呼ばない。World・資源・Sceneの生成はこの入口で行わない。
+
+|試行|結果|manifest|
+|---|---|---|
+|InitialCheckpointDebug01|正常群1/1、内部28/28、No-STL・引数コメント・diff検査終了0|c041eee38702c1caf080d6bdf4caf46b9f94390310d79d1687bf2cb9f0af1165|
+|InitialCheckpointRelease01|buildと登録は終了0。tests開始前のSummary.json更新でWinError 5、全体終了1。CTest未実行|固有失敗記録を保持|
+|InitialCheckpointRelease02|同コードを新しいログ先で1回だけ限定再試験。2/2、正常28ケース・故障3ケース、全終了0|f7c6720b40f9a4175686143e29f0c81c63df6e2ffa21877f3890659325994d7c|
+|PackageInitialCheckpointOffRelease01|14工程・全終了0、公開入口を両次元の再配置Consumerから実リンク・実行|同上|
+
+Release01の記録失敗は環境／harness分類で、以前と同じWindowsのファイル置換エラー。初発原因は未特定であり、自動承認による操作拒否ではない。失敗試行を成功へ合算しない。外部Consumerの初期個体表の手書きを公開入口へ置き換え、既存の除去・動的生成・保存・Navigator再開を保持した。ここも同じプロセスのチェックポイント再開で、別Applicationプロセスのゲーム進行実証は残る。

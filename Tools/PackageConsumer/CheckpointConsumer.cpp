@@ -37,26 +37,19 @@ void Test(FAssetService& Assets, TDefinition Definition, TPrefab Prefab, uint32 
 		(void)Id;
 		Catalog.InitialPrefabKeys.PushBack("mechanism");
 	}
-	TDocument Document;
-	Document.Identity = Catalog.Identity;
-	Document.DefinitionFingerprint = Catalog.Scene.ContentFingerprint;
-	Document.GamePayload = "{\"collected\":[\"keyNorth\"],\"score\":42}";
-	for (size_t I = 0; I < Catalog.Scene.Instances.Size(); ++I)
+	// 公開入口から初期個体とJoint状態を作り、ゲーム進行だけを明示する。
+	TDocument Document = FCheckpointRestore::MakeInitial(Catalog, "{\"collected\":[\"keyNorth\"],\"score\":42}");
+	for (size_t I = 0; I < Document.Instances.Size(); ++I)
 	{
-		TInstance Instance;
-		Instance.Key = Catalog.Scene.Instances[I];
-		Instance.Prefab = Recipe.Key;
-		Instance.DefinitionFingerprint = Recipe.Definition.ContentFingerprint;
-		Instance.Placement = Catalog.Scene.Placements[I];
-		Instance.Parameters = Recipe.Definition.Parameters;
-		Instance.bPresent = I == 0;
-		Document.Instances.PushBack(Instance);
+		Document.Instances[I].bPresent = I == 0;
 	}
 	auto Cargo = Document.Instances[0];
 	Cargo.Key = "cargo";
 	Cargo.bDynamic = true;
 	Cargo.Placement.Position.X = 9;
 	Document.Instances.PushBack(Cargo);
+	// 除去と追加を反映したゲーム側の論理接続を選ぶ。
+	Document.Joints.Clear();
 	for (const auto& Instance : Document.Instances)
 	{
 		if (Instance.bPresent)

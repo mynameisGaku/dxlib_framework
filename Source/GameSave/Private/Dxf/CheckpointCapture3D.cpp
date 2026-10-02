@@ -11,7 +11,7 @@ public:
 	using TCheckpointCaptureRuntime::TCheckpointCaptureRuntime;
 };
 } // namespace SavePrivate
-FCheckpointCapture3D::FCheckpointCapture3D(const FCheckpointCatalog3D& Catalog, FCheckpointLimits Limits) : FCheckpointCapture3D(SavePrivate::InitialDocument<FCheckpointDocument3D, FCheckpointCatalog3D, FCheckpointInstance3D>(Catalog, Limits), Limits)
+FCheckpointCapture3D::FCheckpointCapture3D(const FCheckpointCatalog3D& Catalog, FCheckpointLimits Limits) : FCheckpointCapture3D(FCheckpointRestore::MakeInitial(Catalog, "{}", Limits), Limits)
 {
 }
 FCheckpointCapture3D::FCheckpointCapture3D(FCheckpointDocument3D Checkpoint, FCheckpointLimits Limits) : m_pRuntime(Toolbox::MakeUnique<SavePrivate::FCheckpointCaptureRuntime3D>(Toolbox::Move(Checkpoint), Limits))

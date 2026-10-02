@@ -4,6 +4,7 @@
 #include "Dxf/SaveError.h"
 #include "Dxf/SceneContentValidation.h"
 #include "Dxf/CheckpointParameters.h"
+#include "Dxf/CheckpointInitialDocument.h"
 namespace Dxf
 {
 namespace
@@ -298,6 +299,14 @@ TPlan CheckedBuild(const TDocument& D, const TCatalog& C, FSceneContentLimits Li
 	}
 }
 } // namespace
+FCheckpointDocument2D FCheckpointRestore::MakeInitial(const FCheckpointCatalog2D& Catalog, Toolbox::FStringView GamePayload, FCheckpointLimits Limits, FSceneContentLimits ContentLimits)
+{
+	return SavePrivate::InitialDocument<FCheckpointDocument2D, FCheckpointCatalog2D, FCheckpointInstance2D>(Catalog, Limits, GamePayload, ContentLimits);
+}
+FCheckpointDocument3D FCheckpointRestore::MakeInitial(const FCheckpointCatalog3D& Catalog, Toolbox::FStringView GamePayload, FCheckpointLimits Limits, FSceneContentLimits ContentLimits)
+{
+	return SavePrivate::InitialDocument<FCheckpointDocument3D, FCheckpointCatalog3D, FCheckpointInstance3D>(Catalog, Limits, GamePayload, ContentLimits);
+}
 FCheckpointResumePlan2D FCheckpointRestore::Build(const FCheckpointDocument2D& D, const FCheckpointCatalog2D& C, FCheckpointLimits L, FSceneContentLimits CL)
 {
 	const auto Validated = FCheckpointCodec::Decode2D(FCheckpointCodec::Encode(D, L), L);

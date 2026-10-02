@@ -11,7 +11,7 @@ public:
 	using TCheckpointCaptureRuntime::TCheckpointCaptureRuntime;
 };
 } // namespace SavePrivate
-FCheckpointCapture2D::FCheckpointCapture2D(const FCheckpointCatalog2D& Catalog, FCheckpointLimits Limits) : FCheckpointCapture2D(SavePrivate::InitialDocument<FCheckpointDocument2D, FCheckpointCatalog2D, FCheckpointInstance2D>(Catalog, Limits), Limits)
+FCheckpointCapture2D::FCheckpointCapture2D(const FCheckpointCatalog2D& Catalog, FCheckpointLimits Limits) : FCheckpointCapture2D(FCheckpointRestore::MakeInitial(Catalog, "{}", Limits), Limits)
 {
 }
 FCheckpointCapture2D::FCheckpointCapture2D(FCheckpointDocument2D Checkpoint, FCheckpointLimits Limits) : m_pRuntime(Toolbox::MakeUnique<SavePrivate::FCheckpointCaptureRuntime2D>(Toolbox::Move(Checkpoint), Limits))

@@ -6,92 +6,9 @@
 #include "Dxf/CheckpointRestore.h"
 #include "Dxf/SaveError.h"
 #include "Dxf/CheckpointParameters.h"
+#include "Dxf/CheckpointInitialDocument.h"
 namespace Dxf::SavePrivate
 {
-// 個体やJointの実体は既存CollectionとWorldに置いたまま、論理履歴だけを採取する。
-inline void CaptureRequire(bool Value, const char* Reason)
-{
-	if (!Value)
-	{
-		throw FSaveError(ESaveError::InvalidDocument, Reason);
-	}
-}
-inline bool CaptureIsJoint(EContentExportKind Kind)
-{
-	return Kind == EContentExportKind::Distance || Kind == EContentExportKind::Revolute || Kind == EContentExportKind::Fixed || Kind == EContentExportKind::Prismatic;
-}
-template <typename TJoint>
-FCheckpointJointState InitialJoint(const TJoint& Joint, Toolbox::FString Instance, Toolbox::FString Export)
-{
-	FCheckpointJointState Result;
-	Result.Instance = Toolbox::Move(Instance);
-	Result.Export = Toolbox::Move(Export);
-	Result.Kind = Joint.Kind;
-	Result.bConnected = Joint.bConnect;
-	switch (Joint.Kind)
-	{
-	case EJointKind::Distance:
-		Result.DistanceLength = Joint.Distance.Length;
-		break;
-	case EJointKind::Revolute:
-		Result.AngularDrive = Joint.Revolute.Drive;
-		Result.AngularLimits = Joint.Revolute.Limits;
-		break;
-	case EJointKind::Prismatic:
-		Result.LinearDrive = Joint.Prismatic.Drive;
-		Result.LinearLimits = Joint.Prismatic.Limits;
-		break;
-	case EJointKind::Fixed:
-		break;
-	}
-	return Result;
-}
-template <typename TDocument, typename TCatalog, typename TInstance>
-TDocument InitialDocument(const TCatalog& Catalog, FCheckpointLimits Limits)
-{
-	CaptureRequire(Catalog.Scene.Instances.Size() == Catalog.InitialPrefabKeys.Size() && Catalog.Scene.Prefabs.Size() == Catalog.Scene.Instances.Size() && Catalog.Scene.Placements.Size() == Catalog.Scene.Instances.Size(), "Checkpoint initial table mismatch");
-	TDocument Result;
-	Result.Identity = Catalog.Identity;
-	Result.DefinitionFingerprint = Catalog.Scene.ContentFingerprint;
-	(void)FCheckpointCodec::Encode(Result, Limits);
-	for (Toolbox::size_t I = 0; I < Catalog.Scene.Instances.Size(); ++I)
-	{
-		CaptureRequire(Result.Instances.Size() < Limits.MaxInstances, "Checkpoint instance limit exceeded");
-		const auto& Prefab = Catalog.Scene.Prefabs[I];
-		TInstance Instance;
-		Instance.Key = Catalog.Scene.Instances[I];
-		Instance.Prefab = Catalog.InitialPrefabKeys[I];
-		Instance.Placement = Catalog.Scene.Placements[I];
-		Instance.Parameters = Prefab.Parameters;
-		bool Found = false;
-		for (const auto& Recipe : Catalog.Prefabs)
-		{
-			if (Recipe.Key == Instance.Prefab)
-			{
-				Instance.DefinitionFingerprint = Recipe.Definition.ContentFingerprint;
-				Found = true;
-			}
-		}
-		CaptureRequire(Found, "Checkpoint initial Prefab is not allowed");
-		for (const auto& Export : Prefab.Exports)
-		{
-			if (CaptureIsJoint(Export.Kind))
-			{
-				CaptureRequire(Result.Joints.Size() < Limits.MaxJoints && Export.Index < Prefab.Joints.Size(), "Checkpoint Joint limit or export invalid");
-				Result.Joints.PushBack(InitialJoint(Prefab.Joints[Export.Index], Instance.Key, Export.Id));
-			}
-		}
-		Result.Instances.PushBack(Toolbox::Move(Instance));
-	}
-	for (const auto& Connection : Catalog.Scene.Connections)
-	{
-		CaptureRequire(Result.Joints.Size() < Limits.MaxJoints, "Checkpoint Joint limit exceeded");
-		Result.Joints.PushBack(InitialJoint(Connection.Joint, {}, Connection.Joint.Id));
-	}
-	// 初期定義と公開先の整合を既存の純粋な再開検証にも通す。
-	(void)FCheckpointRestore::Build(Result, Catalog, Limits);
-	return Result;
-}
 template <typename TComponent>
 bool ReadJointBase(TComponent* Component, FCheckpointJointState& Saved)
 {
@@ -202,8 +119,8 @@ public:
 	}
 	void Bind(TScene& Scene)
 	{
-		CaptureRequire(!m_bRetired && m_pScene == nullptr && Scene.IsInitialized() && !Scene.IsDestroyRequested(), "Checkpoint Scene cannot be bound");
-		CaptureRequire(Scene.GetDefinition().ContentFingerprint == m_Document.DefinitionFingerprint, "Checkpoint Scene fingerprint mismatch");
+		CheckpointRequire(!m_bRetired && m_pScene == nullptr && Scene.IsInitialized() && !Scene.IsDestroyRequested(), "Checkpoint Scene cannot be bound");
+		CheckpointRequire(Scene.GetDefinition().ContentFingerprint == m_Document.DefinitionFingerprint, "Checkpoint Scene fingerprint mismatch");
 		Toolbox::TVector<TObjectHandle<TPrefab>> Handles;
 		Handles.Reserve(m_Document.Instances.Size());
 		for (const auto& Instance : m_Document.Instances)
@@ -213,8 +130,8 @@ public:
 			{
 				const auto& Definition = Handles.Back().Get()->GetDefinition();
 				// 初期Scene内のPrefabはScene全体の指紋に含まれる。独立準備には個別指紋がある。
-				CaptureRequire(SameParameters(Definition.Parameters, Instance.Parameters), "Checkpoint instance parameter mismatch");
-				CaptureRequire(Definition.ContentFingerprint.IsEmpty() || Definition.ContentFingerprint == Instance.DefinitionFingerprint, "Checkpoint Prefab fingerprint mismatch");
+				CheckpointRequire(SameParameters(Definition.Parameters, Instance.Parameters), "Checkpoint instance parameter mismatch");
+				CheckpointRequire(Definition.ContentFingerprint.IsEmpty() || Definition.ContentFingerprint == Instance.DefinitionFingerprint, "Checkpoint Prefab fingerprint mismatch");
 			}
 		}
 		m_Instances = Toolbox::Move(Handles);
@@ -223,20 +140,20 @@ public:
 	TResult<TObjectHandle<TPrefab>> Spawn(TScene& Scene, TInstance Instance, TPrepared Prepared)
 	{
 		RequireScene(Scene);
-		CaptureRequire(Instance.bPresent && Prepared.Definition && Prepared.Definition->ContentFingerprint == Instance.DefinitionFingerprint, "Checkpoint dynamic Prefab mismatch");
+		CheckpointRequire(Instance.bPresent && Prepared.Definition && Prepared.Definition->ContentFingerprint == Instance.DefinitionFingerprint, "Checkpoint dynamic Prefab mismatch");
 		TDocument Candidate = m_Document;
 		Toolbox::size_t Index = Candidate.Instances.Size();
 		for (Toolbox::size_t I = 0; I < Candidate.Instances.Size(); ++I)
 		{
 			if (Candidate.Instances[I].Key == Instance.Key)
 			{
-				CaptureRequire(!Candidate.Instances[I].bPresent && !m_Instances[I], "Checkpoint duplicate live key");
+				CheckpointRequire(!Candidate.Instances[I].bPresent && !m_Instances[I], "Checkpoint duplicate live key");
 				Index = I;
 				Instance.bDynamic = Candidate.Instances[I].bDynamic;
 			}
 		}
-		CaptureRequire(Index < Candidate.Instances.Size() || Instance.bDynamic, "New checkpoint instance must be dynamic");
-		CaptureRequire(Index < Candidate.Instances.Size() || Candidate.Instances.Size() < m_Limits.MaxInstances, "Checkpoint instance limit exceeded");
+		CheckpointRequire(Index < Candidate.Instances.Size() || Instance.bDynamic, "New checkpoint instance must be dynamic");
+		CheckpointRequire(Index < Candidate.Instances.Size() || Candidate.Instances.Size() < m_Limits.MaxInstances, "Checkpoint instance limit exceeded");
 		// 履歴の値は準備済みの公開値から採り、呼出し側の未検証値を代用しない。
 		Instance.Parameters = Prepared.Definition->Parameters;
 		for (Toolbox::size_t I = 0; I < Candidate.Joints.Size();)
@@ -252,9 +169,9 @@ public:
 		}
 		for (const auto& Export : Prepared.Definition->Exports)
 		{
-			if (CaptureIsJoint(Export.Kind))
+			if (IsCheckpointJointExport(Export.Kind))
 			{
-				CaptureRequire(Candidate.Joints.Size() < m_Limits.MaxJoints && Export.Index < Prepared.Definition->Joints.Size(), "Checkpoint Joint limit exceeded");
+				CheckpointRequire(Candidate.Joints.Size() < m_Limits.MaxJoints && Export.Index < Prepared.Definition->Joints.Size(), "Checkpoint Joint limit exceeded");
 				Candidate.Joints.PushBack(InitialJoint(Prepared.Definition->Joints[Export.Index], Instance.Key, Export.Id));
 			}
 		}
@@ -374,7 +291,7 @@ public:
 						Index = N;
 					}
 				}
-				CaptureRequire(Index < Candidate.Instances.Size(), "Checkpoint Joint instance missing");
+				CheckpointRequire(Index < Candidate.Instances.Size(), "Checkpoint Joint instance missing");
 				if (!Candidate.Instances[Index].bPresent)
 				{
 					Candidate.Joints.Erase(Candidate.Joints.Data() + I);
@@ -403,7 +320,7 @@ public:
 				}
 				else
 				{
-					CaptureRequire(!Saved.bConnected, "Checkpoint connection missing");
+					CheckpointRequire(!Saved.bConnected, "Checkpoint connection missing");
 				}
 			}
 			++I;
@@ -435,7 +352,7 @@ public:
 private:
 	void RequireScene(const TScene& Scene) const
 	{
-		CaptureRequire(!m_bRetired && m_pScene == &Scene && Scene.IsInitialized() && !Scene.IsDestroyRequested(), "Checkpoint Scene unavailable");
+		CheckpointRequire(!m_bRetired && m_pScene == &Scene && Scene.IsInitialized() && !Scene.IsDestroyRequested(), "Checkpoint Scene unavailable");
 	}
 	// CPUだけの初期構成・操作履歴。現在のBody Poseへ追従して書き換えない。
 	TDocument m_Document;

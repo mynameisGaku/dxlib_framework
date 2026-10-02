@@ -1,5 +1,7 @@
 # 保存コアとチェックポイント再開
 
+New Gameの初期文書は`FCheckpointRestore::MakeInitial`へ信頼するカタログとゲームの初期進行Objectを渡して作る。2D／3Dのoverloadは同じ意味で、初期個体・公開Joint・個体間接続の論理状態を生成順に記録する。共有定義は変更せず、WorldやNative資源も生成しない。進行Objectのゲーム固有の意味は呼出し側のcodecで検証し、構造・容量・Contentとの対応はこの入口で再検証する。外部CheckpointConsumerがこの入口から通常の準備・Navigator・必須Readyまでをcompile／runする。
+
 L0〜L10の実装を進めている。任意リンクの`dxf::save_data`は保存コア、`dxf::game_save`はCPU保存／読込要求と型付きチェックポイント・再開計画、通常Navigatorへの要求と必須Readyの完了管理を提供する。`dxf::input_profiles`は完全割当と独立した設定文書を扱う。GameplaySampleのContinue・設定画面とゲームの別Applicationプロセス再開は接続中である。初期構成を読み込むBの成果と、今回の論理進行保存を別の機能として扱う。
 
 ## 保存する値

@@ -78,6 +78,99 @@ void RealScene(const TPlan& Plan)
 	REQUIRE(Absent);
 }
 } // namespace
+TEST("Checkpoint initial documents preserve trusted order and independent game values in both dimensions")
+{
+	// 初期化もWorld登録も行わず、同じ許可構成から独立した進行値を作る。
+	const auto C2 = Catalog2D();
+	const auto C3 = Catalog3D();
+	const auto D2 = FCheckpointRestore::MakeInitial(C2, "{\"score\":0}");
+	const auto D3 = FCheckpointRestore::MakeInitial(C3, "{\"score\":0}");
+	const auto Other = FCheckpointRestore::MakeInitial(C2, "{\"score\":9}");
+	REQUIRE(D2.GamePayload == "{\"score\":0}" && Other.GamePayload == "{\"score\":9}");
+	REQUIRE(D3.GamePayload == "{\"score\":0}");
+	REQUIRE(D2.Instances.Size() == 3 && D3.Instances.Size() == 3);
+	REQUIRE(D2.Joints.Size() == 16 && D3.Joints.Size() == 16);
+	// 保存の配列位置を使わず、初期Sceneの論理キーと生成順を保持する。
+	const char* Keys[] = {"doorA", "doorB", "removedKey"};
+	for (size_t I = 0; I < 3; ++I)
+	{
+		REQUIRE(D2.Instances[I].Key == Keys[I] && D3.Instances[I].Key == Keys[I]);
+		REQUIRE(D2.Instances[I].bPresent && !D2.Instances[I].bDynamic);
+		REQUIRE(D3.Instances[I].bPresent && !D3.Instances[I].bDynamic);
+		REQUIRE(D2.Instances[I].Placement.Position.X == static_cast<f32>(I * 10));
+		REQUIRE(D3.Instances[I].Placement.Position.X == static_cast<f32>(I * 10));
+		REQUIRE(D2.Instances[I].DefinitionFingerprint == Stamp);
+		REQUIRE(D3.Instances[I].DefinitionFingerprint == Stamp);
+	}
+	REQUIRE(D2.Joints[0].Instance == "doorA" && D2.Joints[0].Export == "distance");
+	REQUIRE(D3.Joints[11].Instance == "removedKey" && D3.Joints[11].Export == "prismatic");
+	REQUIRE(D2.Joints[12].Instance.IsEmpty() && D2.Joints[12].Export == "distance");
+	REQUIRE(D3.Joints[15].Instance.IsEmpty() && D3.Joints[15].Export == "prismatic");
+	REQUIRE(D2.Joints[0].DistanceLength && *D2.Joints[0].DistanceLength == 1);
+	REQUIRE(FCheckpointRestore::Build(D2, C2).Scene.Instances[0] == "doorA");
+	REQUIRE(FCheckpointRestore::Build(D3, C3).Scene.Instances[0] == "doorA");
+	REQUIRE(C2.Identity.Payload == "{}" && C3.Identity.Payload == "{}");
+}
+TEST("Checkpoint initial documents reject malformed game values and limits before recipes or Scene creation")
+{
+	// レシピは純粋な値変換だが、不正な初期値では呼ぶ必要もない。
+	auto C2 = Catalog2D();
+	auto C3 = Catalog3D();
+	uint32 Calls = 0;
+	const auto P2 = C2.Prefabs[0].Definition;
+	const auto P3 = C3.Prefabs[0].Definition;
+	C2.Prefabs[0].Resolve = [&Calls, P2](const TVector<FContentParameterValue>&)
+	{
+		++Calls;
+		return P2;
+	};
+	C3.Prefabs[0].Resolve = [&Calls, P3](const TVector<FContentParameterValue>&)
+	{
+		++Calls;
+		return P3;
+	};
+	RejectRestore([&]()
+	              {
+		              FCheckpointRestore::MakeInitial(C2, "[]");
+	              });
+	RejectRestore([&]()
+	              {
+		              FCheckpointRestore::MakeInitial(C3, "{\"score\":1,\"score\":2}");
+	              });
+	FCheckpointLimits Limits;
+	Limits.Document.MaxBytes = 2;
+	RejectRestore([&]()
+	              {
+		              FCheckpointRestore::MakeInitial(C2, "{\"score\":0}", Limits);
+	              });
+	Limits = {};
+	Limits.MaxInstances = 2;
+	RejectRestore([&]()
+	              {
+		              FCheckpointRestore::MakeInitial(C2, "{}", Limits);
+	              });
+	RejectRestore([&]()
+	              {
+		              FCheckpointRestore::MakeInitial(C3, "{}", Limits);
+	              });
+	Limits = {};
+	Limits.MaxJoints = 15;
+	RejectRestore([&]()
+	              {
+		              FCheckpointRestore::MakeInitial(C2, "{}", Limits);
+	              });
+	RejectRestore([&]()
+	              {
+		              FCheckpointRestore::MakeInitial(C3, "{}", Limits);
+	              });
+	REQUIRE(Calls == 0);
+	C2.InitialPrefabKeys.PopBack();
+	RejectRestore([&]()
+	              {
+		              FCheckpointRestore::MakeInitial(C2);
+	              });
+	REQUIRE(Calls == 0);
+}
 TEST("Checkpoint 2D plan uses logical endpoints after reorder and creates all four Joint kinds")
 {
 	const auto C = Catalog2D();
