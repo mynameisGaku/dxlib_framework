@@ -44,8 +44,9 @@ public:
 	 * @param Backends ネイティブの窓口。
 	 * @param ProjectRoot アセットの起点。
 	 * @param Game 任意の長期ゲーム所有者。Applicationへ所有権を渡す。
+	 * @param Renderer 任意の観察窓口。Appより長く生存し、実描画へ委譲する。
 	 */
-	FSmokeApp(FDxLibBackends& Backends, const char* ProjectRoot, Toolbox::TUniquePtr<DGameInstance> Game = {});
+	FSmokeApp(FDxLibBackends& Backends, const char* ProjectRoot, Toolbox::TUniquePtr<DGameInstance> Game = {}, IRenderBackend* Renderer = nullptr);
 	/**
 	 * 2Dのサンプルから始め、基準のStepまで進める。
 	 */
@@ -70,6 +71,14 @@ public:
 	 * @param bDown 押すか。
 	 */
 	void Hold(EKey Key, bool bDown);
+	/**
+	 * 次の通常フレームへ固定したポインター入力を渡す。
+	 * @param X 画面の横位置。
+	 * @param Y 画面の縦位置。
+	 * @param bDown 左ボタンを押すか。
+	 * @param Wheel 今回のホイール量。
+	 */
+	void SetPointer(Toolbox::int32 X, Toolbox::int32 Y, bool bDown, Toolbox::int32 Wheel);
 	/**
 	 * [Tab]で2D／3Dを切り替え、新しいシーンで1フレーム進める。
 	 * 新しいシーンの固定更新の蓄積は0から始まり、1フレームの時刻差がちょうど固定幅になって境界に重なる。

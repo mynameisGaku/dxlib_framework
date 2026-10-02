@@ -19,10 +19,10 @@ FApplicationSettings Settings_Internal(const char* ProjectRoot)
 	return Settings;
 }
 // 固定した入力を使う実行時の窓口。
-FBackendServices Services_Internal(FDxLibBackends& Backends, IInputSource& Input)
+FBackendServices Services_Internal(FDxLibBackends& Backends, IInputSource& Input, IRenderBackend* Renderer)
 {
 	const auto Services = Backends.GetServices();
-	return {Services.Platform, Input, Services.Textures, Services.Sounds, Services.Fonts, Services.Renderer, Services.pModels};
+	return {Services.Platform, Input, Services.Textures, Services.Sounds, Services.Fonts, Renderer ? *Renderer : Services.Renderer, Services.pModels};
 }
 // 一括読戻し用のCPU画像を解放する。
 void ReleaseImage_Internal(void*, Toolbox::int32 Handle) noexcept
@@ -42,9 +42,16 @@ void Check(bool bOk, const char* Message)
 		throw Toolbox::FException(Message);
 	}
 }
-FSmokeApp::FSmokeApp(FDxLibBackends& Backends, const char* ProjectRoot, Toolbox::TUniquePtr<DGameInstance> Game)
-    : m_App(Services_Internal(Backends, m_Input), Settings_Internal(ProjectRoot), Toolbox::Move(Game))
+FSmokeApp::FSmokeApp(FDxLibBackends& Backends, const char* ProjectRoot, Toolbox::TUniquePtr<DGameInstance> Game, IRenderBackend* Renderer)
+    : m_App(Services_Internal(Backends, m_Input, Renderer), Settings_Internal(ProjectRoot), Toolbox::Move(Game))
 {
+}
+void FSmokeApp::SetPointer(Toolbox::int32 X, Toolbox::int32 Y, bool bDown, Toolbox::int32 Wheel)
+{
+	m_Input.State.MouseX = X;
+	m_Input.State.MouseY = Y;
+	m_Input.State.MouseButtons[static_cast<Toolbox::size_t>(EMouseButton::Left)] = bDown;
+	m_Input.State.Wheel = Wheel;
 }
 void FSmokeApp::Start()
 {

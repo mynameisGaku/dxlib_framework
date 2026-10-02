@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: NOASSERTION
 // 再配置したパッケージのdxf::nativeだけを使う外部のApplication。実DxLibで2Dと3Dのシーンを順に起動し、
 // 固定入力でキャラクター移動Componentを歩かせて接地・移動・2Dの画素を確かめ、終了する。
-// 使い方: NativeApp <ProjectRoot（絶対パスのディレクトリ）>。成功で"NATIVE_CONSUMER_PASSED"と終了コード0。
+// 使い方: NativeApp <ProjectRoot> は従来の全機能を検証する。
+// NativeApp write|read 2|3 <ProjectRoot> <SaveRoot> は別プロセスの保存・再開と実画素を検証する。
+// Rootはいずれも完全修飾の専用ディレクトリ。成功時の識別文字と終了コード0を確認する。
 #include "Dxf/Application.h"
 #include "Dxf/CharacterMovementComponent2D.h"
 #include "Dxf/CharacterMovementComponent3D.h"
@@ -16,6 +18,7 @@
 #include "JointConsumer.h"
 #include "MechanismConsumer.h"
 #include "ContentConsumer.h"
+#include "NativeCheckpointProcess.h"
 #include "Dxf/ViewCoordinates.h"
 #include "DxLib.h"
 namespace
@@ -73,7 +76,8 @@ private:
 	TDescription m_Collider;
 };
 // 右へ歩き続けるキャラクター（2D／3D）。
-template <typename TComponent, typename TDescription, typename TVector> class DWalker final : public DGameObject
+template <typename TComponent, typename TDescription, typename TVector>
+class DWalker final : public DGameObject
 {
 public:
 	DWalker(TVector Start, TVector Right) : m_Start(Start), m_Right(Right)
@@ -209,7 +213,7 @@ private:
 
 int wmain(int Count, wchar_t** Args)
 {
-	if (Count != 2)
+	if (Count != 2 && Count != 5)
 	{
 		Toolbox::Err << "Usage: NativeApp <ProjectRoot>\n";
 		return 2;
@@ -220,10 +224,15 @@ int wmain(int Count, wchar_t** Args)
 		FNoInput Input;
 		const auto Services = Backends.GetServices();
 		FApplicationSettings Settings;
-		Settings.ProjectRoot = Toolbox::FromWide(Args[1]);
+		Settings.ProjectRoot = Toolbox::FromWide(Args[Count == 5 ? 3 : 1]);
 		Settings.Window.Width = 1280;
 		Settings.Window.Height = 720;
 		Settings.Window.bVSync = false;
+		if (Count == 5)
+		{
+			// 奇数寸法の検証だけ、既存の可変ウィンドウ経路を使う。
+			Settings.Window.Resize = EWindowResizeMode::Resizable;
+		}
 		Settings.ExecutionThreadCount = 1;
 		// Appと全Sceneを破棄するまで、共通シーンの結果の保存先を維持する。
 		FInteractionConsumerResult Interaction2D;
@@ -241,6 +250,17 @@ int wmain(int Count, wchar_t** Args)
 			Time += 1.0 / 60.0;
 			Check(Result && Result.Value(), "step failed");
 		};
+		if (Count == 5)
+		{
+			Step();
+			const auto Dimension = Toolbox::FromWide(Args[2]) == "2" ? 2U : Toolbox::FromWide(Args[2]) == "3" ? 3U
+			                                                                                                  : 0U;
+			RunNativeCheckpointProcess(App, Toolbox::FPath(Args[3]), Toolbox::FPath(Args[4]), Toolbox::FromWide(Args[1]), Dimension, Step);
+			App.GetScenes().RequestQuit();
+			const auto Quit = App.Step(Time);
+			Check(Quit && !Quit.Value(), "checkpoint quit failed");
+			return 0;
+		}
 		for (Toolbox::int32 Frame = 0; Frame < 61; ++Frame)
 		{
 			Step();

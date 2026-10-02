@@ -44,6 +44,11 @@ def verify(probe: Path, source: Path, logs: Path) -> None:
                     raise RuntimeError('Native process exited without independent value/pixel checks: ' + expected)
                 phases = ('before', 'saved', 'changed') if mode == 'write' else ('continued',)
                 required = {f'{phase}-{layout}.png' for phase in phases for layout in ('single', 'split', 'odd')}
+                if mode == 'read':
+                    required.update({'ui-scale-single.png', 'ui-scale-odd.png'})
+                    for layout in ('single', 'odd'):
+                        if f'SAVE_UI_NATIVE_VERIFIED layout={layout} scale=1.5' not in output:
+                            raise RuntimeError('Native save UI scale/click evidence missing')
                 actual = {path.name for path in images.glob('*.png') if path.stat().st_size > 0}
                 if actual != required:
                     raise RuntimeError('Incomplete native readback images: ' + ', '.join(sorted(required - actual)))
@@ -53,7 +58,7 @@ def verify(probe: Path, source: Path, logs: Path) -> None:
                  for p in (source / 'Assets').rglob('*') if p.is_file()}
         if original != after:
             raise RuntimeError('Original Assets changed during native save test')
-        (logs / 'ProcessEvidence.json').write_text(json.dumps({'exe_sha256': sha, 'relocated_exe': str(relocated), 'project_root': str(project), 'unrelated_cwd': str(unrelated), 'original_assets_unchanged': True, 'processes': ['2D-write', '2D-read', '3D-write', '3D-read'], 'readback_images': 24, 'graphics': 'Real DxLib one-shot readback per image; fixed input; no human operation claim'}, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+        (logs / 'ProcessEvidence.json').write_text(json.dumps({'exe_sha256': sha, 'relocated_exe': str(relocated), 'project_root': str(project), 'unrelated_cwd': str(unrelated), 'original_assets_unchanged': True, 'processes': ['2D-write', '2D-read', '3D-write', '3D-read'], 'readback_images': 28, 'graphics': 'Real DxLib one-shot readback per image; fixed input; no human operation claim'}, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 
 
 def main() -> None:

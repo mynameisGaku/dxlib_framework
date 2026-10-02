@@ -262,3 +262,16 @@ NativeGameplayDeviceSmokeは既存標準系列の後に同じデータ定義の2
 `dxf_character_benchmark content --pilot`と`content`は両次元・1/32/256個体・Jointなし／四種類、定義共有／個別、試験用Textureの共有／個別を比較し、5新規環境で読取・検証・準備・受付・初期化・Ready・定常・状態読取・World比較・終了をμsと確保数で保存します。CPU境界のダブルを使う準備費用と実Nativeの取込費用を混同せず、Content状態読取の0確保をWorld全体の0確保と呼びません。
 
 ValidationSupportのmanifestにはAssetsも含み、実行中に製品／試験／ツール／定義のバイトが変わったrunは採用しません。生成物・ログは新しい保存先へ置きます。配布Consumerは任意targetをリンクして定義Assetsを配置し、既存PhysicsOnly／Support／UIの入口を保持します。[形式](Content/SceneDefinitions.md)・[Prefab](Content/Prefabs.md)・[準備と失敗境界](Content/Loading.md)を参照してください。
+
+
+## 保存・チェックポイント・入力設定を検証する
+
+SaveDataは厳密な整数・UTF-8・互換性・二面保護・回復・排他、SaveDataAllocationFaultはcodecの確保とwrite／flush／close／読戻し／公開の故障を確認します。GameSaveRequestはScope退役・取消し・最新要求・公開結果未確定、GameCheckpointは両次元の論理個体・全4種類内部／個体間接続・再開計画を確認します。GameCheckpointAllocationFaultは採取の全注入地点、GameCheckpointPrepareAllocationFault2D／3DはCPU準備、GameCheckpointResumeAllocationFault2D／3Dは所有側再開Pollの全注入地点を独立して探索します。各失敗で旧Sceneと保存を保持し、次の正常要求で回復することを確認します。CPU故障探索は同期Prepareを使い、実Worker回帰は同じ処理のスレッドと終了後の結果抑止を確認します。最初の非注入地点を記録し、成功までの無制限再試行にしません。
+
+InputProfilesと独立した確保故障群は、完全な候補Mapの一括適用と旧Map保持、Keyboard／Mouse／4Padの解放後有効化、設定の独立文書を確認します。InteractionSampleは既存群を保持し、実Sensor・ゲーム進行・成功境界採取・0／複数固定更新・UIクリック・音量／倍率・設定保存を両次元で確認します。SaveCourseProcessesは同じexeの四つの別Applicationプロセス、NativeSaveCourseProcessesは実DxLibと対象領域の読戻しを使う別起動です。ソースだけを検索する試験や同じプロセスのWorld作り直しで代用しません。
+
+Tools/ValidatePackage.pyは従来Consumerを保持し、保存コア単独・入力プロファイル単独と、公開game_saveを使う2D／3Dゲームのwrite／readを別プロセスで起動します。Native ONと--run-deviceでは再配置したNativeAppの同じゲームを実描画します。専用SaveRoot・別CWD・日本語／空白パスとexe／原本Assetsの指紋を記録します。
+
+費用測定はCTest外の `dxf_character_benchmark save --pilot`、続いて `save`。各条件は五つの新規Worldと保存環境を作り、2D／3D・16／64／256個体を測ります。`--dimension=2` と `--instances=256` 等で重い条件を別実行にできます。採取・codec／checksum・Stageのwrite／flush／read-back・所有側公開・読込／再開・入力・要求なしPollを分けてμsと確保数を記録します。Stageにはcodecと排他も含み、Worker系列には投入・待機・結果配送も含むため、純粋なdisk／CPU時間とは呼びません。全体の通常固定更新はWorldの確保を含み、Pollの0確保と区別します。
+
+変異はL-M01〜20を一件ずつbuild成功→期待する挙動Red→対象の保存生バイトへ復元→更新時刻前進→実再コンパイル→Greenで確認します。元の未検出・試験境界誤り・実行器失敗を別試行のまま残します。採用範囲、実施した故障地点、復元hash、全回帰と四配布は [Lの試行記録](Development/GameSaveCompletion-2026-10-02.md) を参照してください。電源断、全FS耐久性、SDKなしPC、人の入力・聴感の検証とは区別します。

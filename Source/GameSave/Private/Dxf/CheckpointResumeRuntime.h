@@ -42,8 +42,30 @@ public:
 		{
 			throw FSaveError(ESaveError::InvalidDocument, "Checkpoint resume owner retired");
 		}
+		// Workerへ渡すのは不変カタログ・純粋変換・CPU結果領域だけ。
+		const auto Preparation = Toolbox::MakeShared<FPreparation>();
+		const auto PrepareValues = [Preparation, Catalog = m_Catalog, RestoreProgress = m_RestoreProgress, Limits = m_Limits](const FSaveDocument& Loaded)
+		{
+			TDocument Document;
+			if constexpr (Toolbox::IsSame<TDocument, FCheckpointDocument2D>)
+			{
+				Document = FCheckpointCodec::Decode2D(Loaded, Limits);
+			}
+			else
+			{
+				Document = FCheckpointCodec::Decode3D(Loaded, Limits);
+			}
+			// 不正な参照はゲーム変換前にも拒否し、変換後に全検証をやり直す。
+			(void)FCheckpointRestore::Build(Document, Catalog, Limits);
+			Document = RestoreProgress(Document);
+			auto Plan = FCheckpointRestore::Build(Document, Catalog, Limits);
+			Toolbox::FScopedLock Lock(Preparation->Mutex);
+			Preparation->Document = Toolbox::Move(Document);
+			Preparation->Plan = Toolbox::Move(Plan);
+		};
 		// 旧要求は新しい受付が成功してから置換する。
-		auto Ticket = m_Saves.RequestLoad(Toolbox::Move(Slot), m_Catalog.Identity);
+		auto Ticket = m_Saves.RequestLoad(Toolbox::Move(Slot), m_Catalog.Identity, {}, PrepareValues);
+		m_Preparation = Preparation;
 		m_Ticket = Ticket;
 		m_SceneTicket = {};
 		return Ticket;
@@ -92,20 +114,19 @@ public:
 		}
 		try
 		{
-			const auto& Loaded = m_Saves.GetLoaded();
 			TDocument Document;
-			if constexpr (Toolbox::IsSame<TDocument, FCheckpointDocument2D>)
+			TPlan Plan;
 			{
-				Document = FCheckpointCodec::Decode2D(*Loaded.Document, m_Limits);
+				Toolbox::FScopedLock Lock(m_Preparation->Mutex);
+				if (!m_Preparation->Document || !m_Preparation->Plan)
+				{
+					throw FSaveError(ESaveError::InvalidDocument, "Checkpoint CPU plan was not delivered");
+				}
+				Document = Toolbox::Move(*m_Preparation->Document);
+				Plan = Toolbox::Move(*m_Preparation->Plan);
+				m_Preparation->Document.Reset();
+				m_Preparation->Plan.Reset();
 			}
-			else
-			{
-				Document = FCheckpointCodec::Decode3D(*Loaded.Document, m_Limits);
-			}
-			// 未許可Prefabや不正参照は、ゲームの純粋な変換を呼ぶ前にも拒否する。
-			(void)FCheckpointRestore::Build(Document, m_Catalog, m_Limits);
-			Document = m_RestoreProgress(Document);
-			auto Plan = FCheckpointRestore::Build(Document, m_Catalog, m_Limits);
 			if (!OwnsCurrent() || m_Saves.GetAcceptedSequence() != Sequence)
 			{
 				return;
@@ -177,11 +198,26 @@ public:
 				m_Saves.Cancel();
 			}
 		}
+		m_Preparation.Reset();
 		m_bRetired = true;
 		return true;
 	}
 
 private:
+	// 次元別の数学は既存の純粋な復元処理が担当する。
+	using TPlan = decltype(FCheckpointRestore::Build(TDocument{}, TCatalog{}, FCheckpointLimits{}));
+	// Sceneや資源を保持しない、要求ごとのCPU受渡し領域。
+	struct FPreparation
+	{
+		// Worker完了と所有側の採用を直列化する。
+		Toolbox::FMutex Mutex;
+		// ゲーム変換後に検証を通過した文書。
+		Toolbox::TOptional<TDocument> Document;
+		// 参照解決まで完成した初期構成。
+		Toolbox::TOptional<TPlan> Plan;
+	};
+	// 遅い旧要求は自分の領域だけを書き、新要求へ作用しない。
+	Toolbox::TSharedPtr<FPreparation> m_Preparation;
 	/**
 	 * Task・Scene通知・再入からの採用を拒否する。
 	 */

@@ -34,7 +34,10 @@ class NativeSaveEvidenceTests(unittest.TestCase):
         for phase in phases:
             for layout in ('single', 'split', 'odd'):
                 (images / f'{phase}-{layout}.png').write_bytes(b'test image')
-        return f'SAVE_COURSE_NATIVE_PASSED dimension={dimension} mode={mode}'
+        if mode == 'read':
+            for layout in ('single', 'odd'):
+                (images / f'ui-scale-{layout}.png').write_bytes(b'test image')
+        return f'SAVE_COURSE_NATIVE_PASSED dimension={dimension} mode={mode}' + ('\nSAVE_UI_NATIVE_VERIFIED layout=single scale=1.5\nSAVE_UI_NATIVE_VERIFIED layout=odd scale=1.5' if mode == 'read' else '')
 
     def verify(self, process):
         with patch.object(runner, 'validation_report', return_value=nullcontext()), patch.object(runner, 'run_logged', side_effect=process):
@@ -49,7 +52,7 @@ class NativeSaveEvidenceTests(unittest.TestCase):
         self.assertNotEqual(commands[0][5], commands[2][5])
         self.assertTrue(all(cwd != self.source for _, _, cwd in self.calls))
         evidence = json.loads((self.logs / 'ProcessEvidence.json').read_text(encoding='utf-8'))
-        self.assertEqual(evidence['readback_images'], 24)
+        self.assertEqual(evidence['readback_images'], 28)
 
     def test_success_token_does_not_hide_incomplete_images(self):
         def incomplete(*args, **kwargs):
@@ -64,6 +67,30 @@ class NativeSaveEvidenceTests(unittest.TestCase):
         with self.assertRaises(subprocess.CalledProcessError):
             self.verify(lambda *a, **k: (_ for _ in ()).throw(subprocess.CalledProcessError(7, 'probe')))
         self.assertFalse((self.logs / 'ProcessEvidence.json').exists())
+
+    def test_reader_success_without_ui_scale_evidence_is_rejected(self):
+        def incomplete(*args, **kwargs):
+            output = self.complete_process(*args, **kwargs)
+            return output.replace('SAVE_UI_NATIVE_VERIFIED layout=odd scale=1.5', '')
+        with self.assertRaisesRegex(RuntimeError, 'UI scale/click evidence missing'):
+            self.verify(incomplete)
+        self.assertFalse((self.logs / 'ProcessEvidence.json').exists())
+
+    def test_reader_ui_image_missing_is_rejected(self):
+        def incomplete(*args, **kwargs):
+            output = self.complete_process(*args, **kwargs)
+            if args[1].endswith('read'):
+                (Path(args[2][2]) / 'ui-scale-odd.png').unlink()
+            return output
+        with self.assertRaisesRegex(RuntimeError, 'Incomplete native readback'):
+            self.verify(incomplete)
+        self.assertFalse((self.logs / 'ProcessEvidence.json').exists())
+
+    def test_rounded_scale_diagnostic_is_not_accepted_as_persisted_scale(self):
+        def rounded(*args, **kwargs):
+            return self.complete_process(*args, **kwargs).replace('scale=1.5', 'scale=1')
+        with self.assertRaisesRegex(RuntimeError, 'UI scale/click evidence missing'):
+            self.verify(rounded)
 
     def test_changed_executable_is_rejected_before_next_process(self):
         def changed(*args, **kwargs):

@@ -81,6 +81,22 @@ class DebugValidationTests(unittest.TestCase):
             self.assertEqual(summary['status'], 'failed')
             self.assertEqual(summary['configurations'], {})
 
+    def test_serial_fault_budget_uses_registered_limits(self):
+        listing = self.listing()
+        for test in listing['tests']:
+            if test['name'].startswith(('GameCheckpointResumeAllocationFault', 'GameCheckpointPrepareAllocationFault')):
+                test['properties'] = [{'name': 'TIMEOUT', 'value': 600.0}]
+        self.assertEqual(validator.test_run_timeout(json.dumps(listing)), 3000)
+        listing['tests'].append({'name': 'OldTest', 'properties': [{'name': 'TIMEOUT', 'value': 9999}]})
+        self.assertEqual(validator.test_run_timeout(json.dumps(listing)), 3000)
+        for invalid in (None, True, 0, -1, 601, '600', float('inf')):
+            with self.subTest(invalid=invalid):
+                for test in listing['tests']:
+                    if test['name'].startswith(('GameCheckpointResumeAllocationFault', 'GameCheckpointPrepareAllocationFault')):
+                        test['properties'] = [{'name': 'TIMEOUT', 'value': invalid}]
+                with self.assertRaises(RuntimeError):
+                    validator.test_run_timeout(json.dumps(listing))
+
 
 if __name__ == '__main__':
     unittest.main()

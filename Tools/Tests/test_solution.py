@@ -14,6 +14,13 @@ REMOVE = '{22222222-2222-2222-2222-222222222222}'
 
 @unittest.skipUnless(POWERSHELL, 'PowerShell is unavailable')
 class SolutionTests(unittest.TestCase):
+    def test_save_and_profile_layers_remain_in_normal_solution(self):
+        names = ('dxf_save_data', 'dxf_game_save', 'dxf_input_profiles')
+        content = '<Solution>' + ''.join(f'<Project Path="{name}.vcxproj" />' for name in names) + '</Solution>'
+        converted = ET.fromstring(self.convert('.slnx', content))
+        self.assertEqual([node.attrib['Path'] for node in converted.findall('Project')],
+                         ['Build/VisualStudio/' + name + '.vcxproj' for name in names])
+
     def convert(self, extension, content, development=False):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

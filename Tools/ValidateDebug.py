@@ -4,6 +4,8 @@ import argparse
 import json
 from pathlib import Path
 import subprocess
+import shutil
+import time
 import sys
 import tempfile
 import xml.etree.ElementTree as ET
@@ -11,6 +13,8 @@ from ValidationSupport import new_run_directory, run_logged, validation_report
 
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED = {
+    'GameCheckpointPrepareAllocationFault2D', 'GameCheckpointPrepareAllocationFault3D',
+    'GameCheckpointResumeAllocationFault2D', 'GameCheckpointResumeAllocationFault3D',
     'InputProfiles', 'InputProfilesAllocationFault',
     'SaveData', 'SaveDataAllocationFault', 'GameSaveRequest', 'GameCheckpoint', 'GameCheckpointAllocationFault', 'SceneContent', 'SceneContentAllocationFault', 'DebugTools', 'DebugPhysicsCapture', 'RenderViews', 'NativeViewsTranslation', 'JointComponentFault', 'JointComponentFault',
     'RenderContinuation', 'RenderTransparency', 'RenderTransparencyFault',
@@ -54,6 +58,25 @@ def check_results(path: Path, names: list[str]) -> None:
         raise RuntimeError('A registered test failed or was skipped')
 
 
+def test_run_timeout(listing: str) -> int:
+    """Keep the existing 600-second budget and add the registered new fault budgets.
+
+    CPU preparation and owner resource sweeps each keep independent finite CTest limits. Their limits
+    remain independent; the enclosing process must allow both serial groups.
+    """
+    added = 0
+    for test in json.loads(listing)['tests']:
+        if test['name'] not in ('GameCheckpointResumeAllocationFault2D', 'GameCheckpointResumeAllocationFault3D',
+                                'GameCheckpointPrepareAllocationFault2D', 'GameCheckpointPrepareAllocationFault3D'):
+            continue
+        properties = {item['name']: item['value'] for item in test.get('properties', [])}
+        timeout = properties.get('TIMEOUT')
+        if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not 0 < timeout <= 600:
+            raise RuntimeError('Resume fault test requires a finite timeout no greater than 600 seconds')
+        added += int(timeout)
+    return 600 + added
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--work', type=Path, default=ROOT / 'Build' / 'DebugValidation')
@@ -86,10 +109,16 @@ def main() -> int:
                                   '--show-only=json-v1'], cwd=ROOT)
             names = check_configuration((build / 'CMakeCache.txt').read_text(encoding='utf-8'), listing)
             results = args.logs / (prefix + '-junit.xml')
-            run_logged(args.logs, prefix + '-tests',
-                       ['ctest', '--test-dir', str(build), '-C', config, '-j', '1', '-V',
-                        '--no-tests=error', '--output-on-failure', '--output-junit', str(results.resolve())],
-                       cwd=ROOT, timeout=600)
+            started = time.time()
+            try:
+                run_logged(args.logs, prefix + '-tests',
+                           ['ctest', '--test-dir', str(build), '-C', config, '-j', '1', '-V',
+                            '--no-tests=error', '--output-on-failure', '--output-junit', str(results.resolve())],
+                           cwd=ROOT, timeout=test_run_timeout(listing))
+            finally:
+                last = build / 'Testing' / 'Temporary' / 'LastTest.log'
+                if last.is_file() and last.stat().st_mtime >= started:
+                    shutil.copy2(last, args.logs / (prefix + '-LastTest.log'))
             check_results(results, names)
             summary['configurations'][config] = {'tests': names, 'count': len(names)}
     return 0

@@ -10,6 +10,7 @@
 #include "MechanismConsumer.h"
 #include "ContentConsumer.h"
 #include "CheckpointConsumer.h"
+#include "CheckpointProcess.h"
 #include "Dxf/CharacterMovementComponent2D.h"
 #include "Dxf/CharacterMovementComponent3D.h"
 #include "Dxf/InputStateTracker.h"
@@ -174,6 +175,42 @@ int main(int Count, char** Args)
 	FNoAssets Backend;
 	// 同じ外部シーンをNative Applicationでも実行し、上位APIの利用を二重実装しない。
 	Dxf::FAssetService InteractionAssets(Backend, Backend, Backend);
+	if (Count == 5)
+	{
+		try
+		{
+			Dxf::FAudioPlayer Audio(Backend);
+			Dxf::FSceneNavigator Scenes(InteractionAssets, Audio);
+			Dxf::FInputStateTracker Input;
+			Dxf::FFrameTime Time;
+			Time.DeltaSeconds = 1.0 / 60.0;
+			Time.UnscaledDeltaSeconds = Time.DeltaSeconds;
+			const auto Step = [&]()
+			{
+				if (!Scenes.Commit() || !Scenes.CommitObjects() || !Scenes.Tick(Time, Input.GetSnapshot()))
+				{
+					throw Toolbox::FException("External checkpoint update failed");
+				}
+			};
+#if defined(_WIN32)
+			const auto DimensionText = Toolbox::FromWide(Args[2]);
+			const auto Mode = Toolbox::FromWide(Args[1]);
+#else
+			const Toolbox::FString DimensionText(Args[2]);
+			const Toolbox::FString Mode(Args[1]);
+#endif
+			const auto Dimension = DimensionText == "2" ? 2U : DimensionText == "3" ? 3U
+			                                                                        : 0U;
+			RunCheckpointProcess(InteractionAssets, Scenes, Step, {}, Toolbox::FPath(Args[3]), Toolbox::FPath(Args[4]), Mode, Dimension);
+			Scenes.Shutdown();
+			return 0;
+		}
+		catch (const Toolbox::FException& Error)
+		{
+			Toolbox::Err << Error.What() << "\n";
+			return 1;
+		}
+	}
 	if (Count != 3)
 	{
 		return 401;

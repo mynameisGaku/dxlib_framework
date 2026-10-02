@@ -16,6 +16,7 @@ import subprocess
 import sys
 import tempfile
 from ValidationSupport import new_run_directory, project_version, run_logged, validation_report
+from VerifyCheckpointConsumers import run_processes as run_checkpoint_processes
 
 ROOT = Path(__file__).resolve().parents[1]
 CONSUMER_SOURCES = ('CMakeLists.txt', 'Main.cpp', 'Support.cpp', 'Physics.cpp', 'NativeApp.cpp', 'NativeUiApp.cpp',
@@ -27,7 +28,8 @@ CONSUMER_SOURCES = ('CMakeLists.txt', 'Main.cpp', 'Support.cpp', 'Physics.cpp', 
                     'FMechanismConsumerResult.h', 'MechanismConsumer.h', 'MechanismConsumer.cpp',
                     'PhysicsMechanism.h', 'PhysicsMechanism.cpp', 'ContentConsumer.h', 'ContentConsumer.cpp',
                     'Data/prefab2d.dxfprefab.json', 'Data/prefab3d.dxfprefab.json', 'Data/scene2d.dxfscene.json', 'Data/scene3d.dxfscene.json',
-                    'ContentNativeConsumer.cpp', 'SaveCore.cpp', 'CheckpointConsumer.h', 'CheckpointConsumer.cpp', 'InputProfile.cpp')
+                    'ContentNativeConsumer.cpp', 'SaveCore.cpp', 'CheckpointConsumer.h', 'CheckpointConsumer.cpp', 'InputProfile.cpp',
+                    'CheckpointProcess.h', 'CheckpointProcess.cpp', 'NativeCheckpointProcess.h', 'NativeCheckpointProcess.cpp', 'Data/checkpoint2d.dxfprefab.json', 'Data/checkpoint2d.dxfscene.json', 'Data/checkpoint3d.dxfprefab.json', 'Data/checkpoint3d.dxfscene.json', 'Data/nativecheckpoint2d.dxfprefab.json', 'Data/nativecheckpoint2d.dxfscene.json', 'Data/nativecheckpoint3d.dxfprefab.json', 'Data/nativecheckpoint3d.dxfscene.json')
 # UI入りの外部のApplicationへ渡す外部スタイル（正しいものと、読めないもの）。
 UI_STYLE = 'dxfui-style 1\nstyle ConsumerButton {\n background = #20a0e0\n}\n'
 UI_BROKEN_STYLE = 'dxfui-style 1\nstyle ConsumerButton {\n background = @missing\n}\n'
@@ -158,6 +160,16 @@ def main() -> int:
         checkpoint_root = work / 'Checkpoint SaveRoot 日本語'
         run('consumer-run', [str(consumer_bin / ('Consumer' + suffix)), str(consumer.resolve()), str(checkpoint_root.resolve())], timeout=240)
         summary.update(checkpoint_resume_navigator=True, checkpoint_root=str(checkpoint_root.resolve()))
+        # 同じ外部exeを再配置し、元プロセスのWorldを持たない別起動で進行と設定を読む。
+        game_deployed = work / '継続ゲーム 配布 exe'
+        game_deployed.mkdir()
+        game_exe = game_deployed / ('Consumer' + suffix)
+        shutil.copyfile(consumer_bin / game_exe.name, game_exe)
+        shutil.copytree(consumer / 'Data', game_deployed / 'Data')
+        game_cwd = work / '継続ゲーム 無関係 cwd'
+        game_cwd.mkdir()
+        summary['checkpoint_game_processes'] = run_checkpoint_processes(
+            game_exe, game_deployed, work / '継続ゲーム SaveRoot', game_cwd, args.logs, 'checkpoint-game')
         run('support-only-run', [str(consumer_bin / ('SupportOnly' + suffix))], timeout=240)
         run('physics-only-run', [str(consumer_bin / ('PhysicsOnly' + suffix))], timeout=240)
         run('ui-only-run', [str(consumer_bin / ('UiOnly' + suffix))], timeout=240)
@@ -198,6 +210,7 @@ def main() -> int:
             deployed.mkdir()
             shutil.copyfile(consumer_bin / 'NativeApp.exe', deployed / 'NativeApp.exe')
             shutil.copytree(ROOT / 'Assets', deployed / 'Assets')
+            shutil.copytree(consumer / 'Data', deployed / 'Data')
             summary['native_app_built'] = True
             if args.run_device:
                 joint_cwd = work / '無関係 cwd'
@@ -207,6 +220,16 @@ def main() -> int:
                 if 'NATIVE_CONSUMER_PASSED' not in output:
                     raise RuntimeError('native application did not report success')
                 summary['device_run'] = True
+                original_assets = {p.relative_to(ROOT / 'Assets').as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+                                   for p in (ROOT / 'Assets').rglob('*') if p.is_file()}
+                summary['native_checkpoint_game_processes'] = run_checkpoint_processes(
+                    deployed / 'NativeApp.exe', deployed, work / '実描画ゲーム SaveRoot',
+                    joint_cwd, args.logs, 'native-checkpoint-game', native=True)
+                after_assets = {p.relative_to(ROOT / 'Assets').as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+                                for p in (ROOT / 'Assets').rglob('*') if p.is_file()}
+                if original_assets != after_assets:
+                    raise RuntimeError('Original Assets changed during native checkpoint processes')
+                summary['native_checkpoint_original_assets_unchanged'] = True
             # UI入りのApplicationは、空白と日本語を含むディレクトリへ置き、無関係な作業ディレクトリから起動する。
             ui_deployed = work / 'Deployed UI 日本語'
             (ui_deployed / 'Styles').mkdir(parents=True)

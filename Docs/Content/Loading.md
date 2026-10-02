@@ -31,7 +31,7 @@ Retireは対象Scopeだけを退役・待機して入力寿命を保ち、兄弟
 |切替後のFixedTick／PrePhysics／World.Step|既存Applicationの実行時停止。旧Sceneへの無条件rollbackなし|
 |描画Backend|失敗フレームをPresentしない既存経路|
 
-明示再読み込みだけを提供します。成功新版は新生成／Scene再開始に使い、旧Instanceは旧不変定義を保持します。再開始は物理状態を初期化し、角度・速度・取得物を保存復元しません。
+明示再読み込みだけを提供します。準備に成功した新しいバージョンの定義は新生成／Scene再開始に使い、生存中のInstanceは以前の不変定義を保持します。再開始は物理状態を初期化し、角度・速度・取得物を保存復元しません。
 
 ## GameplaySampleと再現
 
@@ -48,6 +48,6 @@ Retireは対象Scopeだけを退役・待機して入力寿命を保ち、兄弟
 
 SceneContent自身は初期構成を扱う。任意の `dxf::game_save` を利用する場合は、保存文書と許可カタログから新しい初期構成を作り、既存の資源準備とNavigatorを使ってチェックポイント進行を再開できる。初期構成の再読み込みと進行ロードは別操作である。
 
-`FCheckpointResumeRequest2D`／`3D` は通常更新から切替を要求し、`ACheckpointScene2D`／`3D` の有効化・成功PostPhysics・全必須Readyを確認して完了する。Preparedや切替受付だけを再開成功と表示しない。失敗保証は上表を引き継ぎ、切替後のWorld全体のrollbackは追加しない。詳細と実際の公開利用例は [保存とチェックポイント](../Gameplay/SavingAndCheckpoints.md) を参照する。SampleへのSave／Continue UIと別プロセスのゲーム再開は実装中である。
+`FCheckpointResumeRequest2D`／`3D` は保存の読解・参照検査・純粋なゲーム変換・再検証をCPU準備で行う。既存TaskDispatcherを渡す場合はWorkerが不変のカタログと要求ごとの値だけを扱い、SceneやNative資源を捕捉しない。所有側の通常更新でPollし、資源準備とNavigatorへの切替要求を行う。`ACheckpointScene2D`／`3D` の有効化・成功PostPhysics・全必須Readyを確認して完了する。Preparedや切替受付だけを再開成功と表示しない。失敗保証は上表を引き継ぎ、切替後のWorld全体のrollbackは追加しない。詳細と実際の公開利用例は [保存とチェックポイント](../Gameplay/SavingAndCheckpoints.md) を参照する。既存SampleのSave／Continue UIと、2D／3Dそれぞれの別プロセス再開を利用できる。
 
 Scene要求から得た埋込Prefabの指紋は、その要求が実際に読んだScene・共有資源宣言・全依存定義のバイト集合を含む。単独 `LoadPrefab2D`／`3D` の依存集合とは区別する。これは保守的な互換性確認で、無関係なScene定義の変更でも同じ要求のPrefab指紋は変わり得る。資源ファイルの全内容の指紋や、後日のディスク再読込結果を意味しない。

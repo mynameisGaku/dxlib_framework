@@ -10,12 +10,15 @@
 //   scaling 移動継続・局所・動的更新・密集・登録の入替・大きな床の系列（索引と総当たり）
 //   interaction 接触イベント・実Component配送・移動床のR7系列（CSV、初回と慣らし後を分離）
 //   capsule カプセル・押し合い・SolverのBroadPhaseの系列（CSV、2D／3D、Collider 64／512／1024）
+//   save チェックポイント採取・実保存・再開・入力の系列（各条件五環境）。
+//   saveだけ --dimension=2|3 --instances=16|64|256 で条件を分けて実行できる。
 //   --reference 索引を使わない総当たりの参照経路で計る（索引のあるビルドだけ）
 //   --pilot     所要時間の見積り用に、繰り返しの固定更新を短くする
 #include "CapsuleScenarios.h"
 #include "JointScenarios.h"
 #include "MechanismScenarios.h"
 #include "ContentScenarios.h"
+#include "SaveScenarios.h"
 #include "KernelCosts.h"
 #include "InteractionScenarios.h"
 #include "LegacyScenarios.h"
@@ -77,13 +80,15 @@ int main(int Count, char** Args)
 {
 	if (Count < 2)
 	{
-		printf("usage: dxf_character_benchmark legacy|legacy-static|heavy|kernels|costs|scaling|interaction|capsule|joint "
+		printf("usage: dxf_character_benchmark legacy|legacy-static|heavy|kernels|costs|scaling|interaction|capsule|joint|mechanism|content|save "
 		       "[--reference] "
-		       "[--pilot]\n");
+		       "[--pilot] [save: --dimension=2|3 --instances=16|64|256]\n");
 		return 2;
 	}
 	bool bReference = false;
 	bool bPilot = false;
+	Toolbox::uint32 SaveDimension = 0;
+	Toolbox::uint32 SaveInstances = 0;
 	for (Toolbox::int32 Index = 2; Index < Count; ++Index)
 	{
 		if (strcmp(Args[Index], "--reference") == 0)
@@ -94,6 +99,15 @@ int main(int Count, char** Args)
 		{
 			bPilot = true;
 		}
+		else if (strcmp(Args[1], "save") == 0 && (strcmp(Args[Index], "--dimension=2") == 0 || strcmp(Args[Index], "--dimension=3") == 0))
+		{
+			SaveDimension = Args[Index][12] == '2' ? 2 : 3;
+		}
+		else if (strcmp(Args[1], "save") == 0 && (strcmp(Args[Index], "--instances=16") == 0 || strcmp(Args[Index], "--instances=64") == 0 || strcmp(Args[Index], "--instances=256") == 0))
+		{
+			SaveInstances = strcmp(Args[Index], "--instances=16") == 0 ? 16 : strcmp(Args[Index], "--instances=64") == 0 ? 64
+			                                                                                                             : 256;
+		}
 		else
 		{
 			printf("unknown option: %s\n", Args[Index]);
@@ -101,6 +115,23 @@ int main(int Count, char** Args)
 		}
 	}
 	const Toolbox::int32 Steps = bPilot ? PilotMeasured : Measured;
+	if (strcmp(Args[1], "save") == 0)
+	{
+		if (bReference)
+		{
+			return 2;
+		}
+		try
+		{
+			RunSaveSeries(Steps, SaveDimension, SaveInstances);
+			return 0;
+		}
+		catch (const Toolbox::FException& Error)
+		{
+			printf("Save benchmark failed: %s\n", Error.What());
+			return 1;
+		}
+	}
 	if (strcmp(Args[1], "interaction") == 0)
 	{
 		// イベントの参照経路切替は公開されていないため、無関係なオプションを黙って無視しない。
@@ -139,12 +170,23 @@ int main(int Count, char** Args)
 			return 1;
 		}
 	}
-    if (strcmp(Args[1], "content") == 0)
-    {
-        if (bReference) { return 2; }
-        try { RunContentSeries(Steps); return 0; }
-        catch (const Toolbox::FException& Error) { printf("Content benchmark failed: %s\n", Error.What()); return 1; }
-    }
+	if (strcmp(Args[1], "content") == 0)
+	{
+		if (bReference)
+		{
+			return 2;
+		}
+		try
+		{
+			RunContentSeries(Steps);
+			return 0;
+		}
+		catch (const Toolbox::FException& Error)
+		{
+			printf("Content benchmark failed: %s\n", Error.What());
+			return 1;
+		}
+	}
 	if (strcmp(Args[1], "mechanism") == 0)
 	{
 		RunMechanismSeries(Warmup, bPilot ? PilotMeasured : Measured);

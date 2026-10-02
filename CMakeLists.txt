@@ -388,6 +388,7 @@ if(DXF_BUILD_TESTS)
         Tools/CharacterBenchmark/JointScenarios.cpp
         Tools/CharacterBenchmark/MechanismScenarios.cpp
         Tools/CharacterBenchmark/ContentScenarios.cpp
+        Tools/CharacterBenchmark/SaveScenarios.cpp
         Tools/CharacterBenchmark/CapsuleScenarios.cpp
         Tools/CharacterBenchmark/ScalingScenarios.cpp
         Tools/CharacterBenchmark/QueryCosts.cpp
@@ -401,7 +402,7 @@ if(DXF_BUILD_TESTS)
         target_compile_definitions(dxf_physics PRIVATE DXF_INTERACTION_BENCHMARK_PROBES=1)
         target_compile_definitions(dxf_character_benchmark PRIVATE DXF_INTERACTION_BENCHMARK_PROBES=1)
     endif()
-    target_link_libraries(dxf_character_benchmark PRIVATE dxf::physics dxf::gameplay dxf::scene_content)
+    target_link_libraries(dxf_character_benchmark PRIVATE dxf::physics dxf::gameplay dxf::scene_content dxf::game_save dxf::input_profiles)
     dxf_warnings(dxf_character_benchmark)
     find_package(Python3 QUIET COMPONENTS Interpreter)
     if(Python3_Interpreter_FOUND)
@@ -489,17 +490,26 @@ if(DXF_BUILD_TESTS)
     dxf_warnings(dxf_checkpoint_fault_tests)
     add_test(NAME GameCheckpointAllocationFault COMMAND dxf_checkpoint_fault_tests)
     set_tests_properties(GameCheckpointAllocationFault PROPERTIES TIMEOUT 60 LABELS "portable;save;checkpoint;allocation-fault")
-    # pilotで再開一回の確保が2D16877／3D17690件。全探索を既存採取故障群と次元別に分離する。
-    # 旧群のtimeoutは変えず、各注入後の正常再開まで含む新しい全探索へ有限の実行時間を与える。
+    # CPUの読込・検証と所有側の資源・Scene準備を、次元別の独立した全探索に分ける。
+    # 旧群のtimeoutは維持し、各地点で正常再開まで確認する新しい群だけに有限予算を与える。
     foreach(_dxf_dimension 2 3)
-        set(_dxf_resume_fault_target dxf_checkpoint_resume_fault_${_dxf_dimension}d_tests)
-        add_executable(${_dxf_resume_fault_target} Tests/TestMain.cpp Tests/CheckpointResumeFaultTests.cpp Source/Toolbox/Private/Toolbox/Testing/AllocationFault.cpp)
-        target_link_libraries(${_dxf_resume_fault_target} PRIVATE dxf::game_save)
-        target_include_directories(${_dxf_resume_fault_target} PRIVATE Tests)
-        target_compile_definitions(${_dxf_resume_fault_target} PRIVATE DXF_ALLOCATION_FAULT_TEST_EXECUTABLE=1 DXF_CHECKPOINT_RESUME_FAULT_DIMENSION=${_dxf_dimension} DXF_CHECKPOINT_TEST_ROOT="${CMAKE_CURRENT_BINARY_DIR}/Checkpoint Resume Fault Japanese Space")
-        dxf_warnings(${_dxf_resume_fault_target})
-        add_test(NAME GameCheckpointResumeAllocationFault${_dxf_dimension}D COMMAND ${_dxf_resume_fault_target})
-        set_tests_properties(GameCheckpointResumeAllocationFault${_dxf_dimension}D PROPERTIES TIMEOUT 600 LABELS "portable;save;checkpoint;allocation-fault")
+        foreach(_dxf_stage Owner Cpu)
+            set(_dxf_resume_fault_target dxf_checkpoint_resume_fault_${_dxf_dimension}d_tests)
+            set(_dxf_resume_fault_name GameCheckpointResumeAllocationFault${_dxf_dimension}D)
+            set(_dxf_prepare_fault 0)
+            if(_dxf_stage STREQUAL "Cpu")
+                set(_dxf_resume_fault_target dxf_checkpoint_prepare_fault_${_dxf_dimension}d_tests)
+                set(_dxf_resume_fault_name GameCheckpointPrepareAllocationFault${_dxf_dimension}D)
+                set(_dxf_prepare_fault 1)
+            endif()
+            add_executable(${_dxf_resume_fault_target} Tests/TestMain.cpp Tests/CheckpointResumeFaultTests.cpp Source/Toolbox/Private/Toolbox/Testing/AllocationFault.cpp)
+            target_link_libraries(${_dxf_resume_fault_target} PRIVATE dxf::game_save)
+            target_include_directories(${_dxf_resume_fault_target} PRIVATE Tests)
+            target_compile_definitions(${_dxf_resume_fault_target} PRIVATE DXF_ALLOCATION_FAULT_TEST_EXECUTABLE=1 DXF_CHECKPOINT_RESUME_FAULT_DIMENSION=${_dxf_dimension} DXF_CHECKPOINT_RESUME_FAULT_PREPARE=${_dxf_prepare_fault} DXF_CHECKPOINT_TEST_ROOT="${CMAKE_CURRENT_BINARY_DIR}/Checkpoint Resume Fault Japanese Space")
+            dxf_warnings(${_dxf_resume_fault_target})
+            add_test(NAME ${_dxf_resume_fault_name} COMMAND ${_dxf_resume_fault_target})
+            set_tests_properties(${_dxf_resume_fault_name} PROPERTIES TIMEOUT 600 LABELS "portable;save;checkpoint;allocation-fault")
+        endforeach()
     endforeach()
     set_tests_properties(SceneContent PROPERTIES TIMEOUT 60 LABELS "portable;content")
     set_tests_properties(Framework PROPERTIES TIMEOUT 60 LABELS "portable")
@@ -622,6 +632,8 @@ if(DXF_BUILD_NATIVE_SMOKE)
             "$<TARGET_FILE_DIR:NativeModelSmoke>")
     # キャラクター移動のサンプル（2D／3D）を入力だけ固定して実Applicationで確認する。通常のソリューションには含めない。
     add_executable(NativeGameplaySmoke
+        Tests/GameplaySampleSmoke/SaveUiSmoke.cpp
+        Tests/UiNativeSmoke/ForwardRenderer.cpp
         Tests/GameplaySampleSmoke/SaveCourseSmoke.cpp
         Tests/GameplaySampleSmoke/ContentSmoke.cpp
         Tests/GameplaySampleSmoke/MechanismSmoke.cpp
@@ -632,6 +644,7 @@ if(DXF_BUILD_NATIVE_SMOKE)
         Tests/GameplaySampleSmoke/SmokeAcceptance.cpp
         Tests/GameplaySampleSmoke/SmokeTraces.cpp)
     dxf_ide_headers(NativeGameplaySmoke Tests/GameplaySampleSmoke)
+    target_sources(NativeGameplaySmoke PRIVATE Tests/UiNativeSmoke/ForwardRenderer.h)
     target_link_libraries(NativeGameplaySmoke PRIVATE dxf_gameplay_sample dxf::native)
     target_compile_definitions(NativeGameplaySmoke PRIVATE DX_NON_USING_NAMESPACE_DXLIB NOMINMAX)
     target_compile_options(NativeGameplaySmoke PRIVATE /UUNICODE /U_UNICODE)

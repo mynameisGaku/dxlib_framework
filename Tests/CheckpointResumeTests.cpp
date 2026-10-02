@@ -6,6 +6,8 @@
 #include "Dxf/CheckpointResumeRequest3D.h"
 #include "Dxf/InputStateTracker.h"
 #include "Dxf/AssetService.h"
+#include "Toolbox/ConditionVariable.h"
+#include "Toolbox/Thread.h"
 using namespace Dxf;
 using namespace Toolbox;
 using namespace TestCheckpointFixture;
@@ -72,7 +74,7 @@ void ResumeBoundary(TCatalog Catalog, const char* Slot)
 	               });
 	const auto Ticket = Resume.RequestLoad(Slot);
 	REQUIRE(Ticket.GetState() == EGameSaveRequestState::Prepared);
-	REQUIRE(!Validated && Scenes.GetCurrent() == Old);
+	REQUIRE(Validated && Current == nullptr && Scenes.GetCurrent() == Old);
 	Resume.Poll();
 	REQUIRE(Validated && Current != nullptr && Scenes.GetCurrent() == Old);
 	REQUIRE(Ticket.GetState() == EGameSaveRequestState::TransitionRequested);
@@ -301,4 +303,154 @@ TEST("Checkpoint resume rechecks cancellation at construction before Navigator p
 {
 	ResumeCanceledAtConstruction<FCheckpointResumeRequest2D, ACheckpointScene2D>(Catalog2D(), "resume_canceled_2d");
 	ResumeCanceledAtConstruction<FCheckpointResumeRequest3D, ACheckpointScene3D>(Catalog3D(), "resume_canceled_3d");
+}
+
+namespace
+{
+// Workerで止めた旧要求を、試験終了時にも必ず解放する。
+struct FResumeGate
+{
+	// 待機と解放の状態を同時に変更させない。
+	FMutex Mutex;
+	// 所有側の解放操作をWorkerへ通知する。
+	FConditionVariable Changed;
+	// Workerが純粋な変換へ到達した印。
+	TAtomic<uint32> Started;
+	// 旧Workerを終了まで進めてよいか。
+	bool Released = false;
+};
+// Assertで中断しても、要求の終了待機より先に旧Workerを解放する。
+struct FReleaseResumeGate
+{
+	// この試行の待機状態だけを共有する。
+	TSharedPtr<FResumeGate> Gate;
+	~FReleaseResumeGate()
+	{
+		FScopedLock Lock(Gate->Mutex);
+		Gate->Released = true;
+		Gate->Changed.NotifyAll();
+	}
+};
+bool AwaitResume(const TAtomic<uint32>& Flag)
+{
+	const auto Start = MonotonicNanoseconds();
+	while (!Flag.Load() && MonotonicNanoseconds() - Start < 5000000000ULL)
+	{
+		FThread::Yield();
+	}
+	return Flag.Load() != 0;
+}
+template <typename TResume, typename TScene, typename TCatalog>
+void WorkerResume(TCatalog Catalog, const char* Slot)
+{
+	Dxf::Testing::FFakeBackend Backend;
+	FAssetService Assets{Backend, Backend, Backend};
+	FAudioPlayer Audio(Backend);
+	FSceneNavigator Scenes(Assets, Audio);
+	REQUIRE(Scenes.RequestChange<APreviousScene>());
+	REQUIRE(Scenes.Commit());
+	const auto* Old = Scenes.GetCurrent();
+	FSaveStore Store{FPath(DXF_CHECKPOINT_TEST_ROOT)};
+	Store.Save(Slot, FCheckpointCodec::Encode(Document(Catalog)));
+	FJobSystem Jobs(2);
+	FTaskDispatcher Tasks(Jobs);
+	FGameSaveRequest Saves(Store, &Tasks);
+	TAtomic<uint64> PreparedThread;
+	uint64 CreatedThread = 0;
+	const auto Owner = FThread::CurrentThreadId();
+	TResume Resume(Saves, Scenes, Assets, Catalog, [&PreparedThread](const auto& Value)
+	               {
+		               PreparedThread.Store(FThread::CurrentThreadId());
+		               return Value;
+	               },
+	               [&CreatedThread](auto Prepared, auto Value)
+	               {
+		               CreatedThread = FThread::CurrentThreadId();
+		               return MakeUnique<TScene>(Move(Prepared), Move(Value));
+	               });
+	const auto Ticket = Resume.RequestLoad(Slot);
+	Tasks.WaitForPrepares();
+	REQUIRE(PreparedThread.Load() != 0 && PreparedThread.Load() != Owner);
+	REQUIRE(CreatedThread == 0 && Scenes.GetCurrent() == Old);
+	Tasks.PumpCommits();
+	REQUIRE(Ticket.GetState() == EGameSaveRequestState::Prepared);
+	REQUIRE(CreatedThread == 0 && Scenes.GetCurrent() == Old);
+	Resume.Poll();
+	REQUIRE(CreatedThread == Owner && Scenes.GetCurrent() == Old);
+	REQUIRE(Ticket.GetState() == EGameSaveRequestState::TransitionRequested);
+	REQUIRE(Scenes.Commit());
+	NavigatorTick(Scenes, 1.0 / 60.0);
+	Resume.Poll();
+	REQUIRE(Ticket.GetState() == EGameSaveRequestState::Completed);
+	REQUIRE(Resume.Retire());
+	Scenes.Shutdown();
+}
+template <typename TResume, typename TScene, typename TCatalog>
+void RetiredWorkerResume(TCatalog Catalog, const char* Slot)
+{
+	Dxf::Testing::FFakeBackend Backend;
+	FAssetService Assets{Backend, Backend, Backend};
+	FAudioPlayer Audio(Backend);
+	FSceneNavigator Scenes(Assets, Audio);
+	REQUIRE(Scenes.RequestChange<APreviousScene>());
+	REQUIRE(Scenes.Commit());
+	const auto* Old = Scenes.GetCurrent();
+	FSaveStore Store{FPath(DXF_CHECKPOINT_TEST_ROOT)};
+	Store.Save(Slot, FCheckpointCodec::Encode(Document(Catalog)));
+	FJobSystem Jobs(2);
+	FTaskDispatcher Tasks(Jobs);
+	FGameSaveRequest Saves(Store, &Tasks);
+	const auto Gate = MakeShared<FResumeGate>();
+	auto Resume = MakeUnique<TResume>(Saves, Scenes, Assets, Catalog, [Gate](const auto& Value)
+	                                  {
+		                                  FScopedLock Lock(Gate->Mutex);
+		                                  Gate->Started.Store(1);
+		                                  Gate->Changed.NotifyAll();
+		                                  while (!Gate->Released)
+		                                  {
+			                                  Gate->Changed.Wait(Gate->Mutex);
+		                                  }
+		                                  return Value;
+	                                  });
+	// この後のAssert失敗でも、Savesの終了待機より先に通知する。
+	FReleaseResumeGate Release{Gate};
+	const auto A = Resume->RequestLoad(Slot);
+	REQUIRE(AwaitResume(Gate->Started));
+	REQUIRE(Resume->Retire());
+	Resume.Reset();
+	REQUIRE(A.GetState() == EGameSaveRequestState::Canceled);
+	// 旧adapterを破棄しても、Workerは自分のCPU値だけを最後まで扱う。
+	TResume Current(Saves, Scenes, Assets, Catalog, [](const auto& Value)
+	                {
+		                return Value;
+	                });
+	const auto B = Current.RequestLoad(Slot);
+	{
+		FScopedLock Lock(Gate->Mutex);
+		Gate->Released = true;
+		Gate->Changed.NotifyAll();
+	}
+	Tasks.WaitForPrepares();
+	Tasks.PumpCommits();
+	Current.Poll();
+	REQUIRE(A.GetState() == EGameSaveRequestState::Canceled);
+	REQUIRE(B.GetState() == EGameSaveRequestState::TransitionRequested);
+	REQUIRE(Saves.GetAcceptedSequence() == B.GetSequence());
+	REQUIRE(Scenes.GetCurrent() == Old && Scenes.Commit());
+	NavigatorTick(Scenes, 1.0 / 60.0);
+	Current.Poll();
+	REQUIRE(B.GetState() == EGameSaveRequestState::Completed);
+	REQUIRE(Current.Retire());
+	Scenes.Shutdown();
+}
+} // namespace
+TEST("Checkpoint CPU plans use Worker and Scene construction stays on owner in both dimensions")
+{
+	WorkerResume<FCheckpointResumeRequest2D, ACheckpointScene2D>(Catalog2D(), "resume_worker_2d");
+	WorkerResume<FCheckpointResumeRequest3D, ACheckpointScene3D>(Catalog3D(), "resume_worker_3d");
+}
+TEST("Checkpoint retired adapter leaves late Worker values isolated from new request")
+{
+	RetiredWorkerResume<FCheckpointResumeRequest2D, ACheckpointScene2D>(Catalog2D(), "resume_retired_worker_2d");
+	RetiredWorkerResume<FCheckpointResumeRequest3D, ACheckpointScene3D>(Catalog3D(), "resume_retired_worker_3d");
 }

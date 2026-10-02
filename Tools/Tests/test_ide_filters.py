@@ -27,6 +27,9 @@ PRODUCTS = {
     'dxf_physics': ('Source/Physics',),
     'dxf_gameplay': ('Source/Gameplay',),
     'dxf_scene_content': ('Source/SceneContent',),
+    'dxf_save_data': ('Source/SaveData',),
+    'dxf_game_save': ('Source/GameSave',),
+    'dxf_input_profiles': ('Source/InputProfiles',),
 }
 # Development-only projects.
 SAMPLES = ('UISample', 'dxf_ui_sample', 'GameplaySample', 'dxf_gameplay_sample')
@@ -181,6 +184,19 @@ class GeneratedFilterTests(unittest.TestCase):
             with self.subTest(project=name):
                 self.assertNotIn(name, self.normal)
                 self.check_project(name, self.development)
+
+    def test_gameplay_entry_inherits_public_save_headers_and_library_projects(self):
+        project = self.development['GameplaySample']
+        tree = ET.parse(project).getroot()
+        includes = tree.findall('.//m:AdditionalIncludeDirectories', NS)
+        self.assertTrue(includes)
+        for node in includes:
+            paths = {(value or '').replace('\\', '/') for value in (node.text or '').split(';')}
+            for layer in ('GameSave', 'SaveData', 'InputProfiles'):
+                self.assertIn((ROOT / 'Source' / layer / 'Public').as_posix(), paths)
+        references = {Path(node.attrib['Include']).stem for node in tree.findall('.//m:ProjectReference', NS)
+                      if 'Include' in node.attrib}
+        self.assertTrue({'dxf_game_save', 'dxf_save_data', 'dxf_input_profiles'} <= references)
 
     def test_ui_sample_entry_shows_the_sample_without_compiling_it(self):
         found, compiled = items(self.development['UISample'])

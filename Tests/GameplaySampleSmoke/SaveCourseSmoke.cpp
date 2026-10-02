@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: NOASSERTION
 #include "SaveCourseSmoke.h"
+#include "SaveUiSmoke.h"
 #include "SaveCourseGameInstance.h"
 #include "SaveCourseScene2D.h"
 #include "SaveCourseScene3D.h"
@@ -197,7 +198,8 @@ void Run(FDxLibBackends& Backends, const char* Root, const FPath& Output, const 
 {
 	auto Owner = MakeUnique<ASaveCourseGameInstance>(SaveRoot, FSceneContentSource{FPath(Root)}, false);
 	auto* Game = Owner.Get();
-	FSmokeApp App(Backends, Root, Move(Owner));
+	UiSmoke::FForwardRenderer Renderer(Backends.GetServices().Renderer);
+	FSmokeApp App(Backends, Root, Move(Owner), &Renderer);
 	App.StartInteraction(Dimension == 3);
 	if (Read)
 	{
@@ -281,7 +283,12 @@ void Run(FDxLibBackends& Backends, const char* Root, const FPath& Output, const 
 		Check(Door->GetDistanceJoint("hanger") && Door->GetRevoluteJoint("armDrive") && Door->GetFixedJoint("assembly") && Door->GetPrismaticJoint("doorDrive"), "native four joint reconstruction");
 		Check(Abs(Door->GetPrismaticJoint("doorDrive").Get()->GetObservation()->State.Translation - 2) < .002, "native first step door not open");
 		Screens(App, *Scene, Output, "continued", 1);
+		Check(Game->GetSettings().Volume == .35f && Game->GetSettings().UiScale == 1.5f, "native view changes altered persisted settings");
 		Check(Scene->GetProgress().Score == 10 && Scene->GetProgress().Revision == Revision, "native duplicated acquisition after resume");
+		RunSaveUiSmoke(App, *Game, Renderer, Backends, Output, [Scene]()
+		               {
+			               return Scene->GetCompletedPhysicsStepCount();
+		               });
 		Place(*Scene, Body, -6, -2);
 		App.Press(EKey::Space);
 		Check(Abs(Scene->GetPhysicsWorld().GetVelocity(Body).Y) < .001, "native old binding still active");

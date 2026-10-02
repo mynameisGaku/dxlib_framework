@@ -24,11 +24,19 @@ TResult<void> FForwardRenderer::DrawSprite(const FSpriteCommand& Value)
 
 TResult<void> FForwardRenderer::DrawText(const FTextCommand& Value)
 {
+	if (ObserveText)
+	{
+		ObserveText(Value);
+	}
 	return m_Backend.DrawText(Value);
 }
 
 TResult<void> FForwardRenderer::DrawRectangle(const FRectangleCommand& Value)
 {
+	if (ObserveRectangle)
+	{
+		ObserveRectangle(Value);
+	}
 	return m_Backend.DrawRectangle(Value);
 }
 

@@ -1,0 +1,147 @@
+{
+  "schema": 1,
+  "kind": "prefab",
+  "dimension": 2,
+  "parts": [
+    {
+      "id": "a",
+      "body": {
+        "type": "Static",
+        "position": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "b",
+      "body": {
+        "type": "Dynamic",
+        "position": [
+          0,
+          1
+        ]
+      },
+      "colliders": [
+        {
+          "shape": "Box",
+          "halfExtents": [
+            0.2,
+            0.2
+          ]
+        }
+      ],
+      "visual": {
+        "kind": "Box",
+        "halfExtents": [
+          0.4,
+          0.4
+        ],
+        "color": [
+          80,
+          180,
+          240,
+          255
+        ]
+      }
+    },
+    {
+      "id": "appearance",
+      "body": {
+        "type": "Static",
+        "position": [
+          0,
+          3
+        ]
+      },
+      "visual": {
+        "kind": "Texture",
+        "asset": "appearance",
+        "halfExtents": [
+          0.5,
+          0.5
+        ]
+      }
+    }
+  ],
+  "joints": [
+    {
+      "id": "distance",
+      "kind": "Distance",
+      "bodyA": "a",
+      "bodyB": "b",
+      "length": 1
+    },
+    {
+      "id": "fixed",
+      "kind": "Fixed",
+      "bodyA": "a",
+      "bodyB": "b",
+      "frame": {
+        "space": "Prefab",
+        "anchor": [
+          0,
+          1
+        ],
+        "angle": 0
+      }
+    },
+    {
+      "id": "revolute",
+      "kind": "Revolute",
+      "bodyA": "a",
+      "bodyB": "b",
+      "frame": {
+        "space": "Prefab",
+        "anchor": [
+          0,
+          1
+        ],
+        "angle": 0
+      }
+    },
+    {
+      "id": "prismatic",
+      "kind": "Prismatic",
+      "bodyA": "a",
+      "bodyB": "b",
+      "frame": {
+        "space": "Prefab",
+        "anchor": [
+          0,
+          1
+        ],
+        "angle": 0
+      },
+      "drive": {
+        "enabled": true,
+        "speed": {
+          "parameter": "speed"
+        },
+        "maxForce": 12
+      }
+    }
+  ],
+  "exports": {
+    "support": "a/body",
+    "body": "b/body",
+    "distance": "distance",
+    "fixed": "fixed",
+    "revolute": "revolute",
+    "drive": "prismatic"
+  },
+  "parameters": {
+    "speed": {
+      "type": "number",
+      "default": 0,
+      "min": -2,
+      "max": 2
+    }
+  },
+  "assets": {
+    "appearance": {
+      "kind": "Texture",
+      "path": "Assets/player.bmp"
+    }
+  }
+}

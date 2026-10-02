@@ -17,7 +17,7 @@ bool Pending(EGameSaveRequestState State)
 	return State == EGameSaveRequestState::Pending || State == EGameSaveRequestState::Writing || State == EGameSaveRequestState::Reading || State == EGameSaveRequestState::Prepared;
 }
 // 不変値だけをWorkerへ持ち出し、OSの公開処理を実行しない。
-ETaskPrepare Prepare(const FSaveStore& Store, const FString& Slot, FSaveDocument Document, const FSavePayloadMigration& Migration, const TSharedPtr<SavePrivate::FRequestState>& State)
+ETaskPrepare Prepare(const FSaveStore& Store, const FString& Slot, FSaveDocument Document, const FSavePayloadMigration& Migration, const TFunction<void(const FSaveDocument&)>& PrepareValues, const TSharedPtr<SavePrivate::FRequestState>& State)
 {
 	{
 		FScopedLock Lock(State->Mutex);
@@ -48,6 +48,14 @@ ETaskPrepare Prepare(const FSaveStore& Store, const FString& Slot, FSaveDocument
 				throw FSaveError(ESaveError::InvalidDocument, "Save slot is empty");
 			}
 			Loaded.Document = FSaveCodec::Migrate(*Loaded.Document, Document, Migration, Store.GetLimits());
+			if (State->Status.Load() != static_cast<uint32>(EGameSaveRequestState::Reading))
+			{
+				return ETaskPrepare::Canceled;
+			}
+			if (PrepareValues)
+			{
+				PrepareValues(*Loaded.Document);
+			}
 			FScopedLock Lock(State->Mutex);
 			if (State->Status.Load() == static_cast<uint32>(EGameSaveRequestState::Reading))
 			{
@@ -147,7 +155,7 @@ struct FGameSaveRequest::FImpl
 		}
 		return true;
 	}
-	FGameSaveTicket Begin(FString Slot, FSaveDocument Document, bool Save, FSavePayloadMigration Migration = {})
+	FGameSaveTicket Begin(FString Slot, FSaveDocument Document, bool Save, FSavePayloadMigration Migration = {}, TFunction<void(const FSaveDocument&)> PrepareValues = {})
 	{
 		RequireOwner();
 		if (m_bRetired || m_Sequence == TNumericLimits<uint64>::Max())
@@ -164,9 +172,9 @@ struct FGameSaveRequest::FImpl
 		State->Sequence = m_Sequence + 1;
 		State->Save = Save;
 		FTaskRequest Task;
-		Task.Prepare = [Copy, Slot, Document, State, Migration]()
+		Task.Prepare = [Copy, Slot, Document, State, Migration, PrepareValues]()
 		{
-			return Prepare(Copy, Slot, Document, Migration, State);
+			return Prepare(Copy, Slot, Document, Migration, PrepareValues, State);
 		};
 		Task.Commit = [State]()
 		{
@@ -230,9 +238,9 @@ FGameSaveTicket FGameSaveRequest::RequestSave(FString Slot, FSaveDocument Captur
 {
 	return m_pImpl->Begin(Move(Slot), Move(Captured), true);
 }
-FGameSaveTicket FGameSaveRequest::RequestLoad(FString Slot, FSaveDocument Expected, FSavePayloadMigration Migration)
+FGameSaveTicket FGameSaveRequest::RequestLoad(FString Slot, FSaveDocument Expected, FSavePayloadMigration Migration, TFunction<void(const FSaveDocument&)> PrepareValues)
 {
-	return m_pImpl->Begin(Move(Slot), Move(Expected), false, Move(Migration));
+	return m_pImpl->Begin(Move(Slot), Move(Expected), false, Move(Migration), Move(PrepareValues));
 }
 bool FGameSaveRequest::Cancel()
 {

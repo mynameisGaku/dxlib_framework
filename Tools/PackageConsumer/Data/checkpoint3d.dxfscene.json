@@ -1,0 +1,111 @@
+{
+  "schema": 1,
+  "kind": "scene",
+  "dimension": 3,
+  "prefabs": {
+    "mechanism": "Data/checkpoint3d.dxfprefab.json"
+  },
+  "instances": [
+    {
+      "id": "left",
+      "prefab": "mechanism",
+      "parameters": {
+        "speed": 0.1
+      }
+    },
+    {
+      "id": "right",
+      "prefab": "mechanism",
+      "placement": {
+        "position": [
+          4,
+          0,
+          0
+        ]
+      },
+      "parameters": {
+        "speed": -0.1
+      }
+    },
+    {
+      "id": "key",
+      "prefab": "mechanism",
+      "placement": {
+        "position": [
+          12,
+          0,
+          0
+        ]
+      }
+    }
+  ],
+  "connections": [
+    {
+      "id": "crossDistance",
+      "kind": "Distance",
+      "bodyA": "left/support",
+      "bodyB": "right/body",
+      "length": 4.123105625617661
+    },
+    {
+      "id": "crossRevolute",
+      "kind": "Revolute",
+      "bodyA": "left/support",
+      "bodyB": "right/body",
+      "frame": {
+        "space": "Scene",
+        "anchor": [
+          4,
+          1,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "id": "crossFixed",
+      "kind": "Fixed",
+      "bodyA": "left/support",
+      "bodyB": "right/body",
+      "frame": {
+        "space": "Scene",
+        "anchor": [
+          4,
+          1,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "id": "crossPrismatic",
+      "kind": "Prismatic",
+      "bodyA": "left/support",
+      "bodyB": "right/body",
+      "frame": {
+        "space": "Scene",
+        "anchor": [
+          4,
+          1,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    }
+  ]
+}

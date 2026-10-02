@@ -15,6 +15,14 @@ public:
 	{
 	}
 	Toolbox::TFunction<void()> BeforePresent;
+	/**
+	 * 実描画へ送る文字を、所有側の検証中だけ観察する。
+	 */
+	Toolbox::TFunction<void(const FTextCommand&)> ObserveText;
+	/**
+	 * 実描画へ送る矩形を、所有側の検証中だけ観察する。
+	 */
+	Toolbox::TFunction<void(const FRectangleCommand&)> ObserveRectangle;
 	TResult<void> SetTarget(Toolbox::int32 Handle, Toolbox::int32 Width, Toolbox::int32 Height) override;
 	TResult<void> Clear(FColor Color) override;
 	TResult<void> ResetState(Toolbox::int32 Width, Toolbox::int32 Height) override;

@@ -40,8 +40,9 @@ public:
 	 * @param Slot 読込系列。
 	 * @param Expected 信頼するカタログの識別条件。先行読込はSupersededへ確定する。
 	 * @param Migration 任意の純粋なゲーム変換。元保存は変更せず、ゲームとContent識別を先に照合する。
+	 * @param PrepareValues 検証済み文書からCPU値だけを作る任意処理。Dispatcher利用時はWorkerで呼ぶ。Scene・Native資源を捕捉しない。
 	 */
-	FGameSaveTicket RequestLoad(Toolbox::FString Slot, FSaveDocument Expected, FSavePayloadMigration Migration = {});
+	FGameSaveTicket RequestLoad(Toolbox::FString Slot, FSaveDocument Expected, FSavePayloadMigration Migration = {}, Toolbox::TFunction<void(const FSaveDocument&)> PrepareValues = {});
 	/**
 	 * 公開前はtrue、公開済み・公開結果不明ならfalse。Scene移行を巻き戻す操作ではない。
 	 */

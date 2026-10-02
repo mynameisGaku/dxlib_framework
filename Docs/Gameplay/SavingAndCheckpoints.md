@@ -174,10 +174,17 @@ Keyboard／Mouse／4Padの再割当は既存採取と完全プロファイル検
 
 保存する起動では初期構成、鍵を一つ取得して扉を開き荷物を一つ生成した保存状態、その後にもう一つ鍵を取得し別の扉を開いた現在状態を別々に確認する。Continueする起動では保存時の得点10・取得済み一件・荷物一個・開扉したdoorAと閉じたdoorBに戻り、Spaceでは跳ばず、保存したKで実Bodyが跳ぶ。進行と設定は別系列である。
 
-画素は扉二個、取得物二個の存在／除去、動的荷物、2D画像／3Dモデルの領域から、一画像につき一回のGPU読戻しで照合する。保存前・保存時・変更後・Continue後に1画面、2画面、1001×501を使い、合計24画像を必須とする。文字HUDだけで成功にはしない。画素条件、投影範囲外の拒否、読戻し前後の物理状態不変の検査を保持する。
+画素は扉二個、取得物二個の存在／除去、動的荷物、2D画像／3Dモデルの領域から、一画像につき一回のGPU読戻しで照合する。保存前・保存時・変更後・Continue後に1画面、2画面、1001×501を使い、24画像を確認する。さらに両次元のContinue後に保存倍率1.5のメニューを通常寸法と1001×501で表示し、Buttonの背景色、実クリック、音量・UI倍率のSlider操作を4画像で確認する。内部の実行器は合計28画像と倍率の診断を必須とする。文字HUDだけで成功にはしない。画素条件、投影範囲外の拒否、読戻し前後の物理状態不変の検査を保持する。
 
 保存コースの2D縮尺は定義値を上限とし、表示先の幅に16mのコースと40画素の余白が収まる値を使う。3Dで定義が一つのカメラを持つ場合は、分割した両表示先でそのカメラを使う。二つのカメラが明示された定義では各カメラを使う。いずれも物理座標・Step回数を変えない。
 
 この試験は実Application・World・AssetService・DxLibと固定Snapshotによる確認で、人の物理入力、聴感、SDKなしPC、電源断の検証ではない。installの公開targetだけを使う外部ゲームConsumerの確認は別工程である。
 
 保存I/Oの故障検査は[専用試験](../../Tests/SaveIoFaultTests.cpp)を参照する。新規一時ファイルのwrite／flush／close／読戻し、公開前後のOS失敗、公開済みか確認できない状態の明示再確認を分ける。正常な最新面の全生バイトを保護し、失敗時に所有していない既存tempを削除しない。checksumは正常なJSONの値が変わった場合も検査し、JSON構文だけで完全性を代用しない。
+
+
+## 公開配布targetからの別起動
+
+[外部ゲーム処理](../../Tools/PackageConsumer/CheckpointProcess.cpp)は`dxf::game_save`と`dxf::input_profiles`をリンクし、既存NavigatorまたはApplicationを借りる。`RunCheckpointProcess`のwriteは通常成功境界で採取して進行と独立設定を保存し、readは新Sceneの必須Ready後に再開完了を確認する。OS公開処理・終了順・旧実行時ID復活をゲーム側に追加しない。許可したspeedのレシピは準備済み不変定義のコピーだけを変更し、再開時にディスクを読み直して元の指紋を置き換えない。
+
+既存`Consumer write|read 2|3 <ProjectRoot> <SaveRoot>`はCPUの実Scene／World、`NativeApp`の同じ引数は実Applicationと[実画素確認](../../Tools/PackageConsumer/NativeCheckpointProcess.cpp)を使う。定義はData/、資源はAssets/、保存は別Rootへ置く。[配布実行器](../../Tools/VerifyCheckpointConsumers.py)は四つの別プロセス、同一exeのSHA-256と24枚の必要画像を確認する。実際の物体・資源の画素判定はC++入口が行い、ファイルの存在だけを描画成功にしない。これらの例はinstallからコンパイル・実行する外部Consumerでもある。

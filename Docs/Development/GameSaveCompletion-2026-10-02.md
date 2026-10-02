@@ -313,3 +313,52 @@ M07は最新番号比較だけの削除がm_Current所有により等価とな�
 ログと対象別hashは `Build/GameSave-20261002-30a407/UpperFault*` と `Mutations/*/Result.json`。今回のまとまりは累積最終全群・外部installゲーム再開・四配布・測定・pushの完了を意味しない。
 
 M13-Upper01は実Body比較のRedを検出したが、診断の標準エラーがケース名の途中へ混ざり実行器の文字一致が失敗した。正確に復元して62/62へ戻した後、ログの混在を処理したUpper02で再確認した。M20-Upper01は誤保存先に実在するautosave.aをmanual1.aと取り違えた実行器の検査失敗。原本Assetsは不変で復元Green、Upper02で新しいコピー内のautosave.aの存在と専用Root読込の失敗を照合した。これらの初回失敗を検出成功件数へ加算しない。
+
+
+## 再配置installの外部ゲームConsumer（追加のpilot）
+
+既存ConsumerとNativeAppへ限定したwrite／read入口を追加し、元Source・Examplesのcppを外部targetへ追加せず公開されたgame_save／input_profilesだけを使った。信頼する配布JSONから三個の初期Prefabを作り、四種類の内部接続と四種類の個体間接続を確認。ゲーム処理が取得物を除去し、score42・解錠・north・動的cargo・片側解除・左右の異なる速度指示を保存した後、score99・二個目cargoへ変更する。新起動は保存時の論理進行へ戻り、保存したKeyboard K／Mouse Right／Pad4 Button16を使用し、Jump Actionが実BodyへのImpulseへ届く。個体別parameterも独立した期待値で確認する。
+
+|試行|終了|source manifest|同一exe SHA-256|別起動|
+|---|---|---|---|---|
+|ExternalCheckpointDebug04|全工程0|`7f6036968ac8d9b2804059d872457806947232b12e49b7601cbc656bb346e2df`|`908e14aeb4454d578e8ea3a9a650de59f94ea47d61e47ba40577f13f2b595de9`|2D write/read＋3D write/readの4プロセス|
+|ExternalNativeCheckpointDebug04|全工程0|`a57a544d258b6ea27f994dccb2a1588c0e87d8fb311da6a57e36f2c8e983ec3d`|`a320e081bdbaf03c886c2935c57016e90d54b07e2fb9ed0de151012d9361874b`|2D write/read＋3D write/readの4プロセス|
+
+CPU側は実Navigator／Scene／Worldと資源backendの試験実装、Native側は実Application／AssetService／DxLib。Nativeは保存前／保存時／その後の変更／Continue後の4状態を、全画面／左右／1001×501で24PNGへ保存し、青い物体領域の存在／消失と別領域のTexture／Modelを一括GPU読戻しで照合した。2D／3DのContinue後の奇数寸法画像も目視した。日本語・空白の再配置先、別CWD、新規SaveRootであり、人の入力・聴感ではない。前後source manifest（原本Assetsを含む）は同一。四配布全構成の最終採用はまだ未実施。
+
+途中失敗：CPU01はConsumerの必要include欠落、02／03はFStringViewの診断出力型を既存APIへ合わせていないcompile失敗。ビルド非0後のexeは実行しなかった。Native01／02は画面座標型の曖昧さ、PNG引数／UTF-8 ABIの取り違えによるcompile失敗。Native03はCount5入口が固定ウィンドウ設定で、全画面と分割の画素は一致しても奇数寸法のbackbufferにならなかった。既存可変ウィンドウ設定をCount5だけへ適用し、画素閾値を保持した04で成功。成功数へ初回失敗を合算しない。
+
+## Workerでの再開計画と保存UIの追加検証（途中結果）
+
+256個体の中間測定で、再開のcodec／参照検査／純粋なゲーム変換を所有側Pollが処理していたため、GameSaveRequestのCPU準備フックへ移した。不変のカタログと要求別のCPU値だけをWorkerが保持し、Pollは資源採用・候補Scene・通常Navigator要求を担当する。実スレッド識別の回帰と、旧adapter破棄後に旧Workerが戻る対照を両次元で追加した。旧Sceneと設定を保持する契約、必須Readyの完了判定は維持した。
+
+|試行|結果|前後一致したsource manifest|
+|---|---|---|
+|UserSaveLinkRepair03|全工程終了0|`0b789831dc35442ebb3aaf14455adf66fcd5bfd649a80629774c369f449e7ea5`|
+|WorkerPrepareDebug02|全工程終了0、対象3/3群、43秒|`8cb4d4fc82ce9766606897ec790311680936a77ca0e16baf8494f138dfc9d8d9`|
+|WorkerFaultRelease01|全工程終了0、対象8/8群、156秒|`08953547a0621897456f4e331c6921329f1e256b9f6f5921eeaae0867f6d17d6`|
+|NativeSaveUiDebug08|全工程終了0、対象2/2群、41秒|`2d0b1e10a303d41746955708f4d7b7e22780ca4a5e9dc2d57ed5c76fcc099520`|
+|NativeSaveUiRelease02|全工程終了0、対象2/2群、33秒|`2d0b1e10a303d41746955708f4d7b7e22780ca4a5e9dc2d57ed5c76fcc099520`|
+|WorkerStatic02|全工程終了0|`2d0b1e10a303d41746955708f4d7b7e22780ca4a5e9dc2d57ed5c76fcc099520`|
+
+Releaseの確保故障はCPU準備2D countdown0〜15365／3D0〜16095、所有側採用2D0〜3876／3D0〜4062で実注入した。最初の未注入正常試行はそれぞれ15366／16096／3877／4063。各失敗後の旧Scene・正常保存generation1の保持、明示再要求で通常1Stepの必須Ready、終了後保有数一致を検査した。同期Prepareで探索した同じ処理を、別の実Worker回帰が使用する。新しいWorker内人工例外APIは作っていない。Debug探索と全群累積は別途採用する。
+
+Native保存UIは保存プロセスAと新しい読込プロセスBを両次元で実行し、保存した音量.35／UI倍率1.5／Jump Kを確認する。倍率1.5のメニューで表示したButtonの背景色を一括GPU読戻しし、実クリックとSlider操作を通常寸法と1001×501で検査した。各構成は4プロセス・28PNG。物理はPause中に進めず、設定だけを操作し、元設定は保存面を書き換えず戻す。原本Assets不変・同一exeを実行器で照合した。固定入力であり、人手操作・聴感の成功ではない。
+
+途中失敗は分けて保持した。NativeSaveUiDebug02はSlider解放後に所有側が設定を適用する前の試験期待誤りで、通常更新を待つ修正を行った。Debug04／06の診断倍率1は整数用ToStringの小数切捨てであり、設定値は独立assertで1.5だった。診断を既存FJsonWriter::Numberで出力するDebug08／Release02では1.5を記録し、実行器はこの倍率・画像・マーカー不足を拒否する。画素条件は緩めていない。WorkerStatic01は実行器のcmd引用誤りによる環境取得失敗、02で修正した。
+
+通常Pythonは88件中80成功・8skip。公開ヘッダー47構成は単独・正逆順・2D／3D併用・保存コア単独・Profile単独でcompile終了0、/utf-8指定。IDE指定のPythonは別に実行する。利用者のLIB／ヘッダーエラーは正規通常／Development再生成とDebug／ReleaseのGameplaySample実リンクで確認した。生成Solution／vcxprojは追跡しない。最終配布4構成・全群・測定・pushの完了を意味しない。
+
+WorkerFaultDebug01は8/8群・失敗0・skip0・全終了0、864秒。前後manifest `2d0b1e10a303d41746955708f4d7b7e22780ca4a5e9dc2d57ed5c76fcc099520` が一致した。CPU準備2D277.58秒／3D304秒、所有側2D92秒／3D98秒。各群の個別上限600秒は変更していない。
+
+|Worker化後の再確認|結果|正常復元manifest|
+|---|---|---|
+|L-M07-Worker01|build0→期待Red→生バイト復元→実再コンパイル→Green|`8d39c5299b1a279e9dae408c2dbd9fed98e0a6151b1e429e6ad1ea55f422ffd3`|
+|L-M08-Worker01|build0→期待Red→生バイト復元→実再コンパイル→Green|`8d39c5299b1a279e9dae408c2dbd9fed98e0a6151b1e429e6ad1ea55f422ffd3`|
+|L-M09-Worker01|build0→期待Red→生バイト復元→実再コンパイル→Green|`8d39c5299b1a279e9dae408c2dbd9fed98e0a6151b1e429e6ad1ea55f422ffd3`|
+|L-M10-Worker01|build0→期待Red→生バイト復元→実再コンパイル→Green|`8d39c5299b1a279e9dae408c2dbd9fed98e0a6151b1e429e6ad1ea55f422ffd3`|
+|L-M11-Worker01|build0→期待Red→生バイト復元→実再コンパイル→Green|`8d39c5299b1a279e9dae408c2dbd9fed98e0a6151b1e429e6ad1ea55f422ffd3`|
+|L-M12-Worker01|build0→期待Red→生バイト復元→実再コンパイル→Green|`8d39c5299b1a279e9dae408c2dbd9fed98e0a6151b1e429e6ad1ea55f422ffd3`|
+|L-M19-Worker01|build0→期待Red→生バイト復元→実再コンパイル→Green|`8d39c5299b1a279e9dae408c2dbd9fed98e0a6151b1e429e6ad1ea55f422ffd3`|
+
+M07は新しい準備途中の取消し照合も含めて故障化し、旧CPU値が後続の結果を上書きする非等価な変異を確認した。M09は所有側の資源／候補準備前に旧Sceneを破棄する変異へ合わせた。どちらもWorkerへSceneを渡す製品変更ではない。3Dの奇数寸法保存UIの実PNGも確認した。一時変異なし。

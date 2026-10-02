@@ -60,27 +60,47 @@ void SweepResume(TCatalog Catalog, const char* Dimension)
 			               {
 				               return Value;
 			               });
-			const auto Ticket = Resume.RequestLoad("manual");
+			FGameSaveTicket Ticket;
+			bool Threw = false;
+#if !DXF_CHECKPOINT_RESUME_FAULT_PREPARE
+			Ticket = Resume.RequestLoad("manual");
 			REQUIRE(Ticket.GetState() == EGameSaveRequestState::Prepared);
+#endif
 			const auto Before = Toolbox::Testing::GetTotalTestAllocations();
 			Toolbox::Testing::SetAllocationFailureCountdown(Countdown);
-			Resume.Poll();
+			try
+			{
+#if DXF_CHECKPOINT_RESUME_FAULT_PREPARE
+				// 同期Prepareを一地点ずつ探索し、同じCPU処理をWorkerが借りる。
+				Ticket = Resume.RequestLoad("manual");
+#else
+				Resume.Poll();
+#endif
+			}
+			catch (const FException&)
+			{
+				Threw = true;
+			}
 			const bool Actual = Toolbox::Testing::WasAllocationFailureInjected();
 			Toolbox::Testing::SetAllocationFailureCountdown(-1);
 			const auto Used = Toolbox::Testing::GetTotalTestAllocations() - Before;
+#if DXF_CHECKPOINT_RESUME_FAULT_PREPARE
+			Resume.Poll();
+#endif
+			REQUIRE(!Threw || Actual);
 			REQUIRE(Scenes.GetCurrent() == Old);
 			REQUIRE(Store.Load("manual").Document->Generation == 1);
 			if (Countdown < 0)
 			{
 				AllocationCount = Used;
-				Out << FString("CHECKPOINT_RESUME_BASELINE ") + Dimension + " allocations=" + ToString(AllocationCount) << '\n';
-				REQUIRE(AllocationCount > 0 && AllocationCount < 32768);
+				Out << FString("CHECKPOINT_RESUME_BASELINE stage=" + FString(DXF_CHECKPOINT_RESUME_FAULT_PREPARE ? "cpu" : "owner") + " ") + Dimension + " allocations=" + ToString(AllocationCount) << '\n';
+				REQUIRE(AllocationCount > 0 && AllocationCount < 65536);
 				REQUIRE(!Actual && Ticket.GetState() == EGameSaveRequestState::TransitionRequested);
 			}
 			else if (Actual)
 			{
-				REQUIRE(Ticket.GetState() == EGameSaveRequestState::Failed);
-				REQUIRE(!Ticket.GetReason().IsEmpty());
+				REQUIRE(Threw || Ticket.GetState() == EGameSaveRequestState::Failed);
+				REQUIRE(Threw || !Ticket.GetReason().IsEmpty());
 				REQUIRE(!Scenes.Commit().Value());
 				// 次の明示要求では同じ保存を正常に使える。
 				const auto Retry = Resume.RequestLoad("manual");
@@ -94,7 +114,7 @@ void SweepResume(TCatalog Catalog, const char* Dimension)
 			}
 			if (Countdown >= 0)
 			{
-				Out << FString("CHECKPOINT_RESUME_FAULT ") + Dimension + " countdown=" + ToString(Countdown) + " injected=" + ToString(Actual ? 1 : 0) << '\n';
+				Out << FString("CHECKPOINT_RESUME_FAULT stage=" + FString(DXF_CHECKPOINT_RESUME_FAULT_PREPARE ? "cpu" : "owner") + " ") + Dimension + " countdown=" + ToString(Countdown) + " injected=" + ToString(Actual ? 1 : 0) << '\n';
 			}
 			REQUIRE(Scenes.Commit());
 			FInputStateTracker Input;
@@ -111,8 +131,10 @@ void SweepResume(TCatalog Catalog, const char* Dimension)
 			Scenes.Shutdown();
 		}
 		// 確保した候補・診断・資源参照を終了後に残さない。
-		Out << FString("CHECKPOINT_RESUME_OWNERS ") + Dimension + " countdown=" + ToString(Countdown) + " before=" + ToString(BeforeEnvironment) + " after=" + ToString(Toolbox::Testing::GetOutstandingTestAllocations()) << '\n';
-		REQUIRE(Toolbox::Testing::GetOutstandingTestAllocations() == BeforeEnvironment);
+		// 診断文字列の一時確保より先に、終了後の保有数を固定する。
+		const auto AfterEnvironment = Toolbox::Testing::GetOutstandingTestAllocations();
+		Out << FString("CHECKPOINT_RESUME_OWNERS ") + Dimension + " countdown=" + ToString(Countdown) + " before=" + ToString(BeforeEnvironment) + " after=" + ToString(AfterEnvironment) << '\n';
+		REQUIRE(AfterEnvironment == BeforeEnvironment);
 		if (Finished)
 		{
 			break;
