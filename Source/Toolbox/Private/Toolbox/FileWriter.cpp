@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: NOASSERTION
 #include "Toolbox/FileWriter.h"
 #include "Toolbox/FileError.h"
+#include "FileWriteLoop.h"
 #if defined(_WIN32)
 #define NOMINMAX
 #include <Windows.h>
@@ -48,37 +49,33 @@ void FFileWriter::Write(FStringView Bytes)
 	{
 		throw FFileError(EFileOperation::Write, 0);
 	}
-	// 書き込み済みの位置。短いwriteを成功と扱わない。
-	size_t Offset = 0;
-	while (Offset < Bytes.Size())
+	const auto WriteChunk = [this](const char* Data, uint32 Chunk)
 	{
-		// OSとCランタイム双方で扱える有限の一回分。
-		const uint32 Chunk = static_cast<uint32>(Min(Bytes.Size() - Offset, size_t(1024 * 1024)));
 #if defined(_WIN32)
 		// APIが返した実際の書き込み長。
 		DWORD Written = 0;
-		if (!WriteFile(reinterpret_cast<HANDLE>(static_cast<intptr_t>(m_Handle)), Bytes.Data() + Offset, Chunk, &Written, nullptr))
+		if (!WriteFile(reinterpret_cast<HANDLE>(static_cast<intptr_t>(m_Handle)), Data, Chunk, &Written, nullptr))
 		{
 			throw FFileError(EFileOperation::Write, GetLastError());
 		}
+		return static_cast<uint32>(Written);
 #else
-		// OSから受け取る符号付きの書き込み結果。
-		const ssize_t Written = write(static_cast<int>(m_Handle), Bytes.Data() + Offset, Chunk);
-		if (Written < 0)
+		while (true)
 		{
-			if (errno == EINTR)
+			// OSから受け取る符号付きの書き込み結果。
+			const ssize_t Written = write(static_cast<int>(m_Handle), Data, Chunk);
+			if (Written >= 0)
 			{
-				continue;
+				return static_cast<uint32>(Written);
 			}
-			throw FFileError(EFileOperation::Write, static_cast<uint32>(errno));
+			if (errno != EINTR)
+			{
+				throw FFileError(EFileOperation::Write, static_cast<uint32>(errno));
+			}
 		}
 #endif
-		if (Written == 0)
-		{
-			throw FFileError(EFileOperation::Write, 0);
-		}
-		Offset += static_cast<size_t>(Written);
-	}
+	};
+	FilePrivate::WriteAll(Bytes, WriteChunk);
 }
 void FFileWriter::Flush()
 {

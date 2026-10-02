@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: NOASSERTION
 #include "Dxf/SaveStorage.h"
+#include "Dxf/SaveTemporary.h"
+#include "Dxf/SavePublication.h"
 #include "Dxf/SaveError.h"
 #include "Toolbox/FileError.h"
 #include "Toolbox/FileLock.h"
@@ -9,6 +11,61 @@
 namespace Dxf
 {
 using namespace Toolbox;
+namespace
+{
+// 新規一時ファイルのOS操作だけを借用する。追加の所有器や確保を作らない。
+struct FTemporaryIo
+{
+	// 呼出し側が新規作成を確認した書込ハンドル。
+	FFileWriter& Writer;
+	// このトランザクションだけの一時パス。
+	const FPath& Path;
+	// 確保前の読戻し上限。
+	size_t MaxBytes;
+	void Write(FStringView Bytes)
+	{
+		Writer.Write(Bytes);
+	}
+	void Flush()
+	{
+		Writer.Flush();
+	}
+	void Close()
+	{
+		Writer.Close();
+	}
+	bool Matches(FStringView Bytes)
+	{
+		TVector<uint8> ReadBack;
+		return ReadFileBytes(Path, ReadBack, MaxBytes) && FStringView(reinterpret_cast<const char*>(ReadBack.Data()), ReadBack.Size()) == Bytes;
+	}
+	void Remove() noexcept
+	{
+		RemoveOwnedFile(Path);
+	}
+};
+// 公開中は最新正常面と異なる公開先だけを操作し、実際の全バイトを照合する。
+struct FPublicationIo
+{
+	// 自分が新規作成した一時ファイル。
+	const FPath& Temporary;
+	// 最新正常面とは別の更新面。
+	const FPath& Destination;
+	// 読戻しの有限上限。
+	size_t MaxBytes;
+	// この要求が実際に書いた予定バイト。
+	FStringView Face;
+	void Publish()
+	{
+		PublishFile(Temporary, Destination);
+	}
+	bool Matches()
+	{
+		TVector<uint8> ReadBack;
+		return ReadFileBytes(Destination, ReadBack, MaxBytes) && FStringView(reinterpret_cast<const char*>(ReadBack.Data()), ReadBack.Size()) == Face;
+	}
+};
+} // namespace
 // トランザクション中は他のWriterにslotを渡さない。
 struct FSaveTransaction::FImpl
 {
@@ -69,31 +126,8 @@ FSaveTransaction FSaveTransaction::Prepare(const FPath& Root, FString Slot, FSav
 	Impl->Temporary = Root / FPath(Impl->Slot + ".tmp-" + FJsonWriter::Unsigned(MonotonicNanoseconds()));
 	// 既存のtempも上書きしない。自分の作成が成功した場合だけ後始末できる。
 	FFileWriter Writer(Impl->Temporary);
-	try
-	{
-		Writer.Write(Impl->Face);
-		Writer.Flush();
-		Writer.Close();
-		// close後に実ファイルの全バイトが書込予定と一致することを検査する。
-		TVector<uint8> ReadBack;
-		if (!ReadFileBytes(Impl->Temporary, ReadBack, Limits.MaxBytes + 192) || FStringView(reinterpret_cast<const char*>(ReadBack.Data()), ReadBack.Size()) != FStringView(Impl->Face))
-		{
-			throw FSaveError(ESaveError::Corrupt, "Save temporary read-back mismatch");
-		}
-	}
-	catch (...)
-	{
-		// ハンドルを閉じてから、自分が作ったtempだけを取り除く。
-		try
-		{
-			Writer.Close();
-		}
-		catch (...)
-		{
-		}
-		RemoveOwnedFile(Impl->Temporary);
-		throw;
-	}
+	FTemporaryIo Io{Writer, Impl->Temporary, Limits.MaxBytes + 192};
+	SavePrivate::WriteTemporary(Io, Impl->Face);
 	return FSaveTransaction(Move(Impl));
 }
 uint64 FSaveTransaction::Publish()
@@ -102,50 +136,9 @@ uint64 FSaveTransaction::Publish()
 	{
 		throw FSaveError(ESaveError::TerminalRequest, "Save transaction is already terminal");
 	}
-	// 名前公開失敗時も、実際に新世代が存在するか必ず検査する。
-	bool Failed = false;
-	// 名前公開が失敗したOS原因を読戻し検査後も保持する。
-	uint32 FailureCode = 0;
 	m_pImpl->PublicationAttempted = true;
-	try
-	{
-		PublishFile(m_pImpl->Temporary, m_pImpl->Destination);
-	}
-	catch (const FFileError& Error)
-	{
-		Failed = true;
-		FailureCode = Error.GetCode();
-	}
-	// 公開対象を保持したまま、全ファイルの実バイトを照合する。
-	TVector<uint8> ReadBack;
-	try
-	{
-		if (!ReadFileBytes(m_pImpl->Destination, ReadBack, m_pImpl->Limits.MaxBytes + 192) || FStringView(reinterpret_cast<const char*>(ReadBack.Data()), ReadBack.Size()) != FStringView(m_pImpl->Face))
-		{
-			if (Failed)
-			{
-				throw FFileError(EFileOperation::Publish, FailureCode);
-			}
-			throw FSaveError(ESaveError::PublicationUnknown, "Published save could not be verified");
-		}
-	}
-	catch (const FSaveError&)
-	{
-		throw;
-	}
-	catch (const FFileError& Error)
-	{
-		// 読戻し自体を完了できなければ、公開後の名前状態を断定しない。
-		if (Error.GetOperation() != EFileOperation::Publish)
-		{
-			throw FSaveError(ESaveError::PublicationUnknown, "Publication read-back I/O failed; ownership retained");
-		}
-		throw;
-	}
-	catch (...)
-	{
-		throw FSaveError(ESaveError::PublicationUnknown, "Publication read-back failed; ownership retained");
-	}
+	FPublicationIo Io{m_pImpl->Temporary, m_pImpl->Destination, m_pImpl->Limits.MaxBytes + 192, m_pImpl->Face};
+	SavePrivate::VerifyPublication(Io);
 	m_pImpl->Committed = true;
 	m_pImpl->Lock.Reset();
 	return m_pImpl->Document.Generation;

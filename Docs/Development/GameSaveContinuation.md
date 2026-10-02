@@ -1,13 +1,15 @@
 # L作業の継続点
 
-対象DXF-L-SAVE-4b20f89-20261002-R2、L0〜L10。Bへ戻らない。mainのみ。用語はバージョン、各@paramは別行。Native保存の論理commit作成前HEAD ea60e341960bec57dc5ec9c46b99beaabe74f726、最後にfetchしたorigin/main 4b20f89a451233bc8c328df98f48a259808a3285。14ローカルcommit、push未実施。開始時利用者差分なし。
+対象DXF-L-SAVE-4b20f89-20261002-R2、L0〜L10。Bへ戻らない。mainのみ。用語はバージョン、各@paramは別行。保存I/Oの論理commit作成前HEAD aea55d710db8b547d51f297b6040c722adc25798、最後にfetchしたorigin/main 4b20f89a451233bc8c328df98f48a259808a3285。15ローカルcommit、push未実施。開始時利用者差分なし。
 
-L0調査済み。L1 codec・明示移行、L2二面保存・回復・排他、L3 Scoped要求を実装（全I/O故障未完了）。L4両次元の成功全Post後の採取、L5許可カタログ・新Scene・4種の内部／個体間Joint・必須Ready完了、L6完全profileと独立設定、L7実Sensor・扉・荷物・New／Continue／Save／Load／Retry・UI・再割当を実装。既存通常NativeGameplaySmokeへ保存／読込の限定入口と四プロセス実行器を追加した。実Application・World・DxLibで保存前／保存時／変更後／Continue後と24画像を両次元で確認した。固定入力で、人手入力・聴感確認ではない。L8部分回帰、L-M01〜20と全I/O故障未完了。L9独立installゲームConsumer・測定・最終配布4構成未完了。L10最終全累積・push未実施。
+L0調査済み。L1 codec・明示移行、L2二面保存・回復・排他、L3 Scoped要求を実装（全I/O故障未完了）。L4両次元の成功全Post後の採取、L5許可カタログ・新Scene・4種の内部／個体間Joint・必須Ready完了、L6完全profileと独立設定、L7実Sensor・扉・荷物・New／Continue／Save／Load／Retry・UI・再割当を実装。既存通常NativeGameplaySmokeへ保存／読込の限定入口と四プロセス実行器を追加した。実Application・World・DxLibで保存前／保存時／変更後／Continue後と24画像を両次元で確認した。固定入力で、人手入力・聴感確認ではない。L8部分回帰、L-M01〜06を検出・復元済み、L-M02初回未検出を独立fixtureで補強した。L-M07〜20と上位の追加故障未完了。L9独立installゲームConsumer・測定・最終配布4構成未完了。L10最終全累積・push未実施。
 
-このまとまりの未commitはNative保存の試験と登録、実行器・harness5試験、両Sceneの分割表示修正、カメラ独立検査と現在Docs。正確な一覧はgit status --short。二次元の奇数幅で画面外になる荷物はコース幅に縮尺を合わせ、三次元のViewCount=1の未使用カメラを使う誤りは両表示先で同じ明示カメラを使うよう直した。閾値は保持。
+このまとまりの未commitはSaveTransactionの小さいprivate I/O分離、Toolboxの全量write分離、SaveIoFaultTestsとCMake登録、SaveDataTestsのchecksum／長さ独立例、現在Docs。正確な一覧はgit status --short。最新正常面の生バイト・世代、所有temp回収、既存temp非変更、公開API失敗でも実バイトから成功判定、PublicationUnknownと明示再確認を検証した。globalフックや公開API追加なし。
 
 最新成功：PortableSaveNativeFrozenRelease02／Debug01全38/38・失敗0・skip0、前後manifest 0529e71f36b4a73e2c2f78c902a6d49c91acbe489844e82dc05fc65a20672db4 同一、No-STL991違反0。NativeSaveFrozenReleaseDevice01／DebugDevice01は旧Gameplayと新保存の2/2・失敗0・skip0、build／コメント／No-STL／diff終了0。Nativeは色検査訂正前manifest d9cca20103f7a6b0a7885652677cf0c0a63a6cf8ff0403225b0f3ce59f4f9aa0、後続変更はPortable試験のFColor比較だけ。全群採用とはせず最終で全Nativeを再実行する。ログRoot Build/GameSave-20261002-30a407、詳細とexe指紋はGameSaveCompletion末尾と各Summaryへ記録。
 
 現在実行中プロセスなし。一時変異・復元待ちなし。関連B-M16 Root02のみ検出・復元済み。拒否されたBuild複製は未変更。今回拒否された実行なし。通常pushは全要件完了後。
 
-次の具体的な一手：SaveTransactionのwrite→flush→close→read-back順序を小さいprivate templateへ抽出し、OS処理を持つstack adapterで本体を呼ぶ。局所的な試験I/O実装で各段階を故障化して、最新正常面の生バイトと世代保持、所有tempの後始末、次の正常要求回復を独立確認する。Toolboxの全量writeの短いwrite／0writeもprivate計算へ分離して検算する。新globalフック・公開private覗きAPIは作らない。その後L-M01〜20、独立Consumer／配布4構成／測定、最終累積・Docs・通常pushまで継続。
+最新I/O成功：SaveIoFrozenDebug01／Release01、同一manifest 6d1127f07ed53794f01d1093942d974a279ca1564c3a54b71bacc01a887d2d11、3/3群・保存41／故障8／要求11、No-STL995違反0、全終了0。L-M01〜06は各build0→期待Red→生バイト復元→対象cpp再コンパイル→41/41 Green。L-M02初回未検出は記録を残し、正常JSONの変更とヘッダー長だけの変更で再検出した。各復元hashとログはMutations/各ID-Core01またはL-M02-Strengthened01/Result.json。現在一時変異なし、プロセスなし。
+
+次の具体的な一手：GameSaveRequestの旧CPU結果採用と取消し済み公開、CheckpointResumeRuntimeの準備失敗時旧Scene保持、CheckpointRestoreの論理参照・個体除去・Joint種類に対しL-M07〜12／19を行う。m_Currentが最新だけを指すため、Sequence比較単独の削除が等価になる場合は、理由を記録し旧Prepared値を後から採用する非等価な変異へ置き換える。個別の生バイト退避とfinally復元、実再コンパイルとGreenを維持する。その後L-M13〜18／20、独立Consumer／配布4構成／測定、最終累積・Docs・通常pushまで継続。

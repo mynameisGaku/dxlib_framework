@@ -529,6 +529,55 @@ TEST("Save corrupt latest checksum recovers older face with reason")
 	REQUIRE(Store.Save("manual", Value) == 2);
 	REQUIRE(Store.Load("manual").State == ESaveLoadState::Loaded);
 }
+TEST("Save face checksum rejects altered valid JSON payload and recovers previous")
+{
+	FSaveStore Store(NewRoot());
+	REQUIRE(Store.Save("manual", Document()) == 1);
+	const FString Protected = Read(Store.GetRoot() / "manual.a");
+	auto Value = Document();
+	Value.Generation = 2;
+	Value.Payload = "{\"score\":100}";
+	FString Broken = Face(Value);
+	const FStringView Needle = "\"score\":100";
+	bool Changed = false;
+	for (size_t I = 0; I + Needle.Size() <= Broken.Size(); ++I)
+	{
+		if (FStringView(Broken.Data() + I, Needle.Size()) == Needle)
+		{
+			// 同じ長さの正常JSONへ変え、checksumだけを元のバイトのままにする。
+			Broken[I + Needle.Size() - 1] = '1';
+			Changed = true;
+			break;
+		}
+	}
+	REQUIRE(Changed);
+	Write(Store.GetRoot() / "manual.b", Broken);
+	const auto Previous = Store.Load("manual");
+	REQUIRE(Previous.State == ESaveLoadState::RecoveredPrevious);
+	REQUIRE(!Previous.RecoveryReason.IsEmpty() && Previous.Document->Generation == 1);
+	REQUIRE(Previous.Document->Payload == FSaveCodec::Decode(FSaveCodec::Encode(Document())).Payload);
+	REQUIRE(Read(Store.GetRoot() / "manual.a") == Protected);
+	REQUIRE(Store.Save("manual", Value) == 2);
+	REQUIRE(Store.Load("manual").State == ESaveLoadState::Loaded);
+}
+TEST("Save face length rejects valid JSON even when its checksum matches")
+{
+	FSaveStore Store(NewRoot());
+	REQUIRE(Store.Save("manual", Document()) == 1);
+	const FString Protected = Read(Store.GetRoot() / "manual.a");
+	auto Value = Document();
+	Value.Generation = 2;
+	const FString Payload = FSaveCodec::Encode(Value);
+	// 生payloadもchecksumも正常で、ヘッダーの長さだけが異なる独立fixture。
+	const FString Broken = FString("DXFSAVE\n1\n2\n") + FJsonWriter::Unsigned(Payload.Size() + 1) + "\n" + FJsonWriter::Unsigned(FCrc32::Compute(Payload)) + "\n" + Payload;
+	Write(Store.GetRoot() / "manual.b", Broken);
+	const auto Previous = Store.Load("manual");
+	REQUIRE(Previous.State == ESaveLoadState::RecoveredPrevious);
+	REQUIRE(!Previous.RecoveryReason.IsEmpty() && Previous.Document->Generation == 1);
+	REQUIRE(Read(Store.GetRoot() / "manual.a") == Protected);
+	REQUIRE(Store.Save("manual", Value) == 2);
+	REQUIRE(Store.Load("manual").State == ESaveLoadState::Loaded);
+}
 TEST("Save both corrupt faces refuse load and overwrite")
 {
 	FSaveStore Store(NewRoot());

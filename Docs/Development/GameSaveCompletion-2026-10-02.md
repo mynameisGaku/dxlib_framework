@@ -242,3 +242,35 @@ Debugの同一exe SHA-256 `8a91b4404d2f04fd8bda8cd6366d9cbfb5218b0b7f83abedf0232
 Releaseの同一exe SHA-256 `cb6e6b7261e82336b6c94c33763eedd7f3aea7bd78840fdd1b1afc1386f27b49`。SaveRoot親と画像は `Build/GameSave-20261002-30a407/Native/NativeSaveCourseProcesses/Release/20261002T092449Z-6d5c0d89`、別CWDはその中の `無関係 作業場所`。実行した四つのcommand・開始終了UTC・exit・前後manifestをSummaryへ保存し、原本Assetsは変更なし。
 
 Portableのカメラ成分検査の訂正後の同一manifest `0529e71f36b4a73e2c2f78c902a6d49c91acbe489844e82dc05fc65a20672db4` では PortableSaveNativeFrozenRelease02:38/38、38秒、PortableSaveNativeFrozenDebug01:38/38、215秒。両構成build／No-STL／diff全終了0、skip0。新しい保存の実描画追加に対して、旧全Portable群を保持した。最終累積・故障・変異・測定・最終配布4構成は引き続き未完了。
+
+## 一時書込・公開故障とL-M01〜06（L8部分）
+
+保存前の一時書込と公開結果確認をprivateの小さいtemplateへ分離し、製品は追加確保なしのstack adapterから既存Toolbox OS操作を呼ぶ。公開APIやglobalな故障フックは追加しない。Toolboxの短いwriteは実際に書けた長さだけ進め、0バイト・指定長超過・OS失敗を拒否する。OS処理と元の二面選択・排他・取消しの契約は保持した。
+
+局所I/O試験では実際に新規ファイルを作り、writeの一バイト残留、flush、close、読戻しI/O、不在、短い値、改変値を一地点ずつ注入する。全てでclose後に所有tempだけを回収し、正常なmanual.aの全生バイトと世代1を保持、次の通常保存で世代2へ回復する。CREATE_NEW拒否では、既存tempの生バイトを削除・変更しない。
+
+公開は通常、名前変更前の失敗、名前変更済みだがOS失敗、読戻しI/O、実配列確保、値不一致、不在を別々に確認した。OS失敗でも予定バイトが公開先にあれば成功と確定し、確認できない場合はPublicationUnknownで所有を保持する。同じ要求の明示再確認と次の通常保存で世代3へ回復し、正常な元面は全条件で不変。実ファイルの共有違反とCancel拒否は既存SaveData／GameSaveRequestのWindows試験も保持する。実電源断・全FSの耐久性証明ではない。
+
+|試行|結果|
+|---|---|
+|SaveIoFaultDebug01|build1。保存要求target名を誤った実行器を現行CMakeのdxf_game_save_testsへ訂正。旧exe未実行|
+|SaveIoFaultDebug02|一時書込と短いwrite、3/3群成功|
+|SaveIoFaultDebug03／Release01|公開故障追加後、3/3群成功|
+|SaveIoFaultRelease02|checksum／長さの独立fixture追加後、3/3群成功|
+|SaveIoFrozenDebug01／Release01|整形後同一コード3/3・失敗0・skip0。保存41/41、故障8/8、要求11/11。コメント／No-STL995対象・違反0／diff終了0|
+
+L-M02の初回は検査を省く製品変異が生き残った。従来の破損例はJSON構文も壊していたため、checksumを外しても構文検査で拒否できた。正常JSONのpayload一文字だけを変更して元checksumを保つfixtureと、正常payload／checksumでヘッダー長さだけを変更するfixtureを追加し、同じ変異が両方をRedにすることを確認した。最初の未検出を成功へ転記しない。
+
+|変異|ログ下の試行|検出と復元|
+|---|---|---|
+|L-M01|Mutations/L-M01-Core01|最新正常面を先に空にする。世代交互更新の保護試験Red|
+|L-M02|Mutations/L-M02-Initial01|未検出、正常バイト復元と再build／Green|
+|L-M02|Mutations/L-M02-Strengthened01|長さ／checksumの省略を独立した二例でRed、正常復元Green|
+|L-M03|Mutations/L-M03-Core01|世代をf64へ一度変換し、9007199254740993のexact round-tripがRed|
+|L-M04|Mutations/L-M04-Core01|未公開tempの最高世代を採用し、temp無視試験Red|
+|L-M05|Mutations/L-M05-Core01|将来formatを受理して未来バージョン拒否試験Red|
+|L-M06|Mutations/L-M06-Core01|gameId／Content revision不一致を受理して互換性試験Red|
+
+各検出はbuild0→期待する実挙動Red→生バイト復元→更新時刻前進→対象cppの実再コンパイル→正常41/41を確認した。コンパイル失敗を検出件数へ数えず、一件ずつ行った。各Result.jsonに元ファイルhash、退避パス、期待したケース、exe hash、復元manifestを保持する。保存Rootは登録済みの今回専用試験ディレクトリで、Assetsや実ユーザー保存へ変異を実行していない。L-M07〜20と上位の追加故障は未完了。
+
+整形後の採用manifestは `6d1127f07ed53794f01d1093942d974a279ca1564c3a54b71bacc01a887d2d11`。六つのCore変異の復元manifestは `239d3e367083a4476d176a634679f31dc41965556a863aaff3d6c31a50147781`、差はその後のFileWriter／試験lambdaの宣言分離整形であり、二面選択・codecは変更なし。最終累積をこの限定3群で代用しない。
