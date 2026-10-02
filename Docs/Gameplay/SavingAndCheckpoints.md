@@ -107,7 +107,7 @@ CPU計画の生成は旧Scene・保存ファイル・Native資源を変更しな
 
 Sceneの `OnPhysicsStepCompleted` で、同じ境界のゲームcodecが検証した進行Objectを `CaptureIfRequested` へ渡す。全個体Ready、公開Jointの接続状態、成功観察、`HasPendingRequest()` を確認する。PostPhysicsでDrive等の新要求が出た場合、その要求を反映する次の成功固定更新まで採取を待つ。接続・解除・種類別Drive／Limitは専任Componentの採用済み設定から読み、追加World.Stepを実行しない。採取時の確保やcodec失敗では最後の正常文書を保持し、例外を実行時契約へ伝える。全Bodyのrollbackは行わない。
 
-固定更新0回やPauseでは最後の正常文書を利用できるが、新しい未処理要求をその文書へ混ぜない。要求なしの呼出しはJSON処理や文書複製を行わない。目標操作や開いた扉の初期Poseを選ぶゲームレシピ、入力設定、SampleのSave／Continue UIは追加中である。通常利用のコンパイル・実行例は [外部CheckpointConsumer](../../Tools/PackageConsumer/CheckpointConsumer.cpp) のScene所有・成功境界・退役経路を参照する。
+固定更新0回やPauseでは最後の正常文書を利用できるが、新しい未処理要求をその文書へ混ぜない。要求なしの呼出しはJSON処理や文書複製を行わない。開扉の初期Poseを選ぶゲームレシピと入力設定は下記Sampleで接続している。通常利用のコンパイル・実行例は [外部CheckpointConsumer](../../Tools/PackageConsumer/CheckpointConsumer.cpp) のScene所有・成功境界・退役経路を参照する。
 
 
 ## 所有側のロードと再開完了
@@ -122,7 +122,7 @@ Sceneの `OnPhysicsStepCompleted` で、同じ境界のゲームcodecが検証�
 
 `ACheckpointScene` は進行をコンストラクターから保持し、初期イベント消費前にゲームControllerへ渡せる。`OnCheckpointStepCompleted` でゲームのPost反映を採取より先に行い、`SetGamePayload` の不正JSONでは旧進行を保持する。目標付きRevolute／Prismaticは型付きhandleを一度解決し、成功観察から既存 `ComputeJointTargetDrive` を使って次の有限Motorを要求する。初期Poseの直接上書きや追加World.Stepを行わない。Readyは目標到達を意味せず、初期構成の利用可能を意味する。
 
-最小のコンパイル・実行例は [CheckpointConsumer](../../Tools/PackageConsumer/CheckpointConsumer.cpp) を参照する。両次元で `RequestLoad` → 通常 `Poll` → 既存Navigator確定 → 成功固定更新 → `Completed` を確認する。保存用RootをContentのRootとは別引数で渡す。この試験は同一プロセスの再開であり、ゲームの別Applicationプロセス再開・Sample UI・入力設定はまだ完成していない。
+最小のコンパイル・実行例は [CheckpointConsumer](../../Tools/PackageConsumer/CheckpointConsumer.cpp) を参照する。両次元で `RequestLoad` → 通常 `Poll` → 既存Navigator確定 → 成功固定更新 → `Completed` を確認する。保存用RootをContentのRootとは別引数で渡す。このConsumerの試験は同一プロセスで、下記Sampleの別プロセス試験とは区別する。
 
 ## Sampleの再開レシピ
 
@@ -144,6 +144,16 @@ Controllerは鍵・安全地点の型付きSensor exportを一度だけ解決す
 
 `FSaveCourseInput::Defaults` と `Policy` がゲームのActionと予約キーを提供する。完全な `ApplySettings(Settings, RawSnapshot)` は既存プロファイルの検証・強い失敗保証・解放後有効化を使う。ActionはUI消費の後、物理計画の前に一回更新する。0固定更新の押下を保留し、複数固定更新でも一回だけ消費する。Modal終了の押し続け、フォーカス喪失、Pad切断では保留操作を抑止する。UIで作られた偽の解放で解除待ちを終了しない。
 
-取得の効果音はScene有効化後の通常更新で既存AudioScopeへ再生し、準備・初期化・描画では再生しない。音量は起動中のPlaybackと次のPlayへ元の倍率から適用する。設定値の保存成功とは別である。UI倍率の実適用、SampleのSave／Continue UI、別プロセスと実画素は引き続き実装中。
+取得の効果音はScene有効化後の通常更新で既存AudioScopeへ再生し、準備・初期化・描画では再生しない。音量は起動中のPlaybackと次のPlayへ元の倍率から適用する。設定値の保存成功とは別である。UI倍率の実適用、SampleのSave／Continue UI、実画素は引き続き実装中。
+
+## Scene切替を越えるSampleの保存窓口
+
+[ASaveCourseGameInstance](../../Examples/GameplaySample/SaveCourseGameInstance.h) はApplicationが所有し、保存サービスとScope付き要求、現在の設定を保持する。完全修飾の専用SaveRootと信頼するContent読込窓口をコンストラクターへ渡す。`RequestNewGame(2)`／`(3)`、`RequestSave("manual1")`、`RequestLoad(2, "manual1")`、`RequestRetry(2)`、`RequestCancel()` を通常更新で反映する。Sceneを第二の管理器で所有せず、既存Navigatorへ候補を渡す。
+
+手動保存は成功固定更新の採取を待ち、Pause中は最後の正常採取値を使用する。`IsCapturing()` はコア書込前の待機で、`GetSaveTicket()` のCommittedやCompletedとは別である。checkpointの新しい進行revisionだけでautosaveを要求し、同じSensorのStayやContinueで同じ保存を繰り返さない。Scene終了前に採取できなければ旧保存を変更しない。同期読込でも受付FrameにはSceneへ採用せず、取消し・後続要求を照合する境界を残す。
+
+`RequestSettings` は完全な設定を次の所有側境界で適用する。`RequestSettingsSave` は進行とは別のsettingsスロットへ要求する。`IsSettingsDirty` は適用した現在設定が書込成功するまでtrueで、古い進行ロードによって現在のキー・音量・UI倍率を巻き戻さない。設定準備失敗では現在値、初回設定読込失敗では明示した既定値と診断を保持する。
+
+[Session試験](../../Tests/SaveCourseSessionTests.cpp) は実Applicationで同期／既存Dispatcherの両経路を通し、Pause保存、異次元失敗時の旧Scene保持、取消し、旧要求の抑止、独立設定、Scene採用と必須Readyの区別を確認する。[別プロセス入口](../../Tests/SaveCourseProcess.cpp) と [実行器](../../Tools/VerifySaveCourseProcesses.py) は同じexeを再配置し、プロセスAで鍵取得・開扉・荷物生成・checkpoint・設定を保存して終了し、別Application／JobSystem／Worldを持つプロセスBでContinueする。日本語・空白の専用SaveRoot、別CWD、exeと原本AssetsのSHA-256を確認する。実BodyのJumpも保存したKへ変わる。描画・外部I/Oの境界は試験実装で、Native画素や人の操作の証拠ではない。
 
 [Controller試験](../../Tests/SaveCourseControllerTests.cpp) は実Application・World・Sensorで鍵取得、解錠、片側開扉、動的生成、成功境界採取、新Sceneでの二重得点抑止を確認する。入力変更も実BodyのImpulseで検証し、Keyboard／Mouse／Pad、0／複数固定更新、Modal閉鎖、切断・フォーカス喪失を含める。接触を作る試験用配置は試験が明示的にTeleportし、製品Controllerの移動方法とは区別する。同一プロセスのScene再開であり、別プロセス試験の代用にはしない。

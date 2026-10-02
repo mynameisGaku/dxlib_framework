@@ -166,4 +166,27 @@ B-M16の対象Source復元SHA-256は`087f04a6b528699336404ed5892c43acc09fd28d4ea
 |PortableSaveCourseControllerRelease01|CRLFを揃えた全群37/37、失敗0・skip0、35.60秒、No-STL981違反0、全終了0、前後同一|55101a8b1b80f4c7f862fbcdd866e2585ca600157efaf75abc7837a729ad1dc2|
 |SaveCourseControllerFrozenDebug01|同じCRLFコードで58/58、コメント・No-STL・diffも終了0、前後manifest同一|同上|
 
-進行を保持するGameInstanceと保存UI、実ファイルへ保存して終了するゲームプロセスA/B、UI倍率、Native画素、Lの変異、測定・配布4構成はまだ実装・検証中である。同一プロセスの新Scene生成を別プロセスの成功へ転用しない。
+進行を保持するGameInstanceと保存UI、実ファイルへ保存して終了するゲームプロセスA/B、UI倍率、Native画素、Lの変異、測定・配布4構成はこの試行時点ではまだ実装・検証中である。同一プロセスの新Scene生成を別プロセスの成功へ転用しない。
+
+Scene切替を越えて保存と設定を所有する`ASaveCourseGameInstance`を追加した。成功境界の手動採取、Pause時の最後の正常値、checkpoint revision autosave、独立設定スロット、通常Navigatorと必須Readyまでの完了観察を通す。同期・既存Dispatcherの両経路を実Applicationで確認した。受付Frameで同期ロードを即採用すると取消し境界を失う不具合を修正し、取消し・Aの後にBを受付した場合の旧要求抑止も両次元で検証した。
+
+|試行|結果|
+|---|---|
+|SaveCourseSessionDebug01|build1。試験のパス・時刻API参照を訂正。旧exeは未実行|
+|SaveCourseSessionDebug02|build0、58/60、CTest8。RequestChange受付と次Frameの採用を同時と扱った試験期待を訂正|
+|SaveCourseSessionDebug03|60/60、引数コメント・No-STL・diffとも終了0|
+|SaveCourseSessionDebug04|build0、58/60、CTest8。同期受付Frameで候補を採用するため取消しが遅れる製品不具合を検出|
+|SaveCourseSessionDebug05|受付Frameの候補採用を分離後60/60、28.66秒、全終了0|
+|ProcessPilotBuildDebug01／03／04／05|別プロセス試験の文字列出力・進行field・個体一覧API参照誤りでbuild1。旧exeは実行しなかった|
+|ProcessPilotBuildDebug02／06|それぞれ訂正後build0|
+|ProcessPilotDebug01|2D-write終了1。未知個体getterを失効handleとして扱った試験期待を訂正、readと3Dは未実行|
+|ProcessPilotDebug02|2D／3Dのwrite／read各終了0。旧ファイル・原本Assetsは未変更|
+|PortableSaveCourseSessionFrozenRelease01|整形・CRLF後の全群38/38、失敗0・skip0、37.04秒、全終了0|
+|SaveCourseSessionFrozenDebug01|同じ最終製品コードでInteractionSample60/60、引数コメント・No-STL・diffとも終了0|
+|PortableSaveCourseSessionFrozenDebug01|同じCRLFコードの全群38/38、失敗0・skip0、全終了0。別プロセス4起動も終了0|
+
+FrozenRelease01と限定FrozenDebug01の前後manifestは`241f4a6a5a1db837ef409bb9674489708ee31a50d27a8d43c30108587be08677`で同一。登録が37から38へ増えたのは`SaveCourseProcesses`を追加したためで、既存群は削除していない。失敗試行は分類・原ログを保持し、成功へ合算しない。L10の最終累積集合ではない。
+
+別プロセス試験はGUIを増やさないCPU検証target`dxf_save_course_process`を使う。同じexeのプロセスAでNew Game、実Sensor取得、GameActionによるcargo生成、有限Motorで片側開扉、checkpoint保存、Jump=K・音量0.35・UI倍率1.5保存を行って終了0。プロセスBは新しいApplication・JobSystem・WorldでContinueし、得点10、north、動的cargo1、doorAの初回Translation2、doorBの閉扉、取得済み除去、全4種類の内部Joint、二重得点／音声なしを独立期待値で照合した。旧Spaceが動かずKの押下で実Bodyが動くことも確認した。UI倍率は文書と現在値の検証で、画面の実適用は残る。
+
+FrozenRelease01の再配置exe SHA-256は`3608c0cb4eda64412fff40b8ffb441409392e3ba3c6d720a3498e92d9c727e9c`。証拠は`Build/GameSave-20261002-30a407/Portable/SaveCourseProcesses/Release/20261002T081250Z-4091afde/ProcessEvidence.json`、各プロセスのcommand／CWD／時刻／exitは同ディレクトリへ保存した。`再配置 ゲーム`、`保存 専用 2D`／`3D`、`無関係 作業場所`を使用し、exe前後と原本Assetsのhash不変を確認した。描画と資源の境界は試験実装で、実GPU・人手操作・独立install Consumerの成功とは区別する。
