@@ -190,3 +190,30 @@ FrozenRelease01と限定FrozenDebug01の前後manifestは`241f4a6a5a1db837ef409b
 別プロセス試験はGUIを増やさないCPU検証target`dxf_save_course_process`を使う。同じexeのプロセスAでNew Game、実Sensor取得、GameActionによるcargo生成、有限Motorで片側開扉、checkpoint保存、Jump=K・音量0.35・UI倍率1.5保存を行って終了0。プロセスBは新しいApplication・JobSystem・WorldでContinueし、得点10、north、動的cargo1、doorAの初回Translation2、doorBの閉扉、取得済み除去、全4種類の内部Joint、二重得点／音声なしを独立期待値で照合した。旧Spaceが動かずKの押下で実Bodyが動くことも確認した。UI倍率は文書と現在値の検証で、画面の実適用は残る。
 
 FrozenRelease01の再配置exe SHA-256は`3608c0cb4eda64412fff40b8ffb441409392e3ba3c6d720a3498e92d9c727e9c`。証拠は`Build/GameSave-20261002-30a407/Portable/SaveCourseProcesses/Release/20261002T081250Z-4091afde/ProcessEvidence.json`、各プロセスのcommand／CWD／時刻／exitは同ディレクトリへ保存した。`再配置 ゲーム`、`保存 専用 2D`／`3D`、`無関係 作業場所`を使用し、exe前後と原本Assetsのhash不変を確認した。描画と資源の境界は試験実装で、実GPU・人手操作・独立install Consumerの成功とは区別する。
+
+保存コースの既存UIを接続した。手動3系列・autosaveの状態を初回／終端／明示更新で読み、通常DrawからI/Oを行わない。New／Continue／Load／Retry／公開前Cancel、上書きModal、独立設定保存、公開結果未確定の明示再確認、扉目標、動的荷物の生成／破棄を要求へ渡す。Keyboard／Mouse／Padの採取と競合拒否、音量と倍率、画面のスクロールを既存部品で操作する。
+
+候補Sceneを構築した後に設定を変更すると、採用Sceneが古いBindingを持つ競合を試験で検出した。GameInstanceはSceneの世代付きTicketと設定変更番号を照合し、そのSceneの入力更新前に現在の完全な設定を適用する。ロードした進行は操作設定を巻き戻さない。設定倍率をドラッグ中に直ちに変えるとクリック座標が動くため、倍率の適用はSliderの解放後へ送る。
+
+|UIの試行|結果と分類|
+|---|---|
+|SaveCourseUiDebug02／03|60/62。試験用Fontが文字計測を提供せず、UI文字が描画されないharness不備|
+|SaveCourseUiDebug04／05|62/62。実クリック・保存Modal・設定・新Sceneの押し続け抑止|
+|SaveCourseUiDebug06|60/62。倍率変更と試験クリック位置の検査。原ログを保持|
+|SaveCourseUiDebug07|build1。protectedな操作を参照した誤りを公開IsPressedへ訂正。旧exe未実行|
+|SaveCourseUiDebug08|62/62。音量、競合するBinding候補、Mouse／Padを追加|
+|NativeUiBuildDebug01|GameplaySample Debugの構成・build終了0。ウィンドウ起動／Native画素は未実施|
+|SaveCourseUiSettingsRaceDebug01|build1。試験Backendの入力参照を訂正。旧exe未実行|
+|SaveCourseUiSettingsRaceDebug02|60/62。候補構築後の設定変更が新Sceneへ届かない製品不具合を両次元で検出|
+|SaveCourseUiSettingsRaceDebug03|62/62。世代と設定変更番号の照合後Green|
+|SaveCourseUiFrozenDebug01／02、SaveCourseUiScrollDebug01|60/62。領域上端と一致する文字へ不要な余白を要求し、Wheelを往復させるharness不備。終盤の座標記録を保持|
+|PortableSaveCourseUiFrozenRelease01|全38/38・失敗0・skip0、38.18秒、全終了0|
+|PortableSaveCourseUiFrozenDebug01|同じコードで全38/38・失敗0・skip0、221.03秒、全終了0|
+|SaveCourseUiEntryDebug01|58/62。追加Scrollによる従来方向操作の妨害、試験描画BackendのLine未対応、Continue確定境界の期待誤り|
+|SaveCourseUiEntryDebug02|58/62。Line対応後も、祖先Scrollの方向操作消費と受付Frameの期待誤りが残る|
+|SaveCourseUiEntryDebug03|62/62、34.59秒、コメント／No-STL／diff終了0。Continueは受付と次の失敗確定を分けて確認|
+|PortableSaveCourseUiEntryFrozenRelease01|build1。新しい独立Scroll試験のFocus getter名を訂正。旧exe未実行|
+
+最初のUiFrozen両構成の前後manifestは`496a59cb56cb0340edf1ce23dc17c095a37681bfd4a6adff19d41a64b690dd9a`。EntryDebug03は`acda8de36817f450db8b85d4397934a3c04e274ea443f63c3f86c50b69981a04`。どちらも後続編集前の限定採用で、L10の最終集合ではない。EntryDebug03では旧相互作用Sceneの実メニューから空のContinueをクリックし、旧Scene保持と失敗の文字表示後、New Gameをクリックして両次元のReadyへ進む。Drawに記録した位置を使うCPU Backend試験であり、人手・Native画素の証明とは区別する。
+
+UI入口・Scroll独立回帰を追加した後の採用はPortableSaveCourseUiEntryFrozenRelease02とPortableSaveCourseUiEntryFrozenDebug01。両構成全38/38・失敗0・skip0、build／No-STL／diff終了0、No-STL989ファイル・違反0。前後manifest `b44e4345af55ebad03fdb705315a21f1b2b3745ef3210bcda0aa049ca0da0d4d` は同一。NativeUiEntryBuildDebug01も同じコードで通常GameplaySample Debugの構成・build終了0。これはGUIのビルド確認で、まだNative保存・再開画素の成功ではない。新しいScroll試験は子Buttonへの方向移動とWheelスクロールを独立して照合し、フォーカス可能な従来Scrollの操作も既存全群で保持した。

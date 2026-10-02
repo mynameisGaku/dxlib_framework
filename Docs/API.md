@@ -226,7 +226,7 @@ Gameplayはcppを持つ静的ライブラリです。公開`dxf::gameplay`／`dx
 
 `dxf::save_data`は`FSaveDocument`／`FSaveCodec`／`FSaveStore`で、論理値の封筒、厳密な世代、専用SaveRoot、二面保存、回復を提供します。Toolboxだけを利用し、Scene／Physics／Nativeを要求しません。`dxf::game_save`の`FGameSaveRequest`は既存TaskDispatcherを借り、通常更新のPollで保存を公開します。公開結果不明の再確認は`RetryPublication`で明示要求します。
 
-`FCheckpointCodec`は2D／3Dの論理個体・進行・4種類のJoint状態を変換します。`FCheckpointRestore::MakeInitial`は信頼する初期構成から独立したNew Game文書を作り、`FCheckpointRestore::Build`は許可済みカタログから新SceneのCPU計画を生成します。`DPhysicsScene2D/3D::OnPhysicsStepCompleted`は、成功したWorld.Stepと全PostPhysics反映後の採取境界です。通常Navigatorへの再開要求と必須Ready完了は`FCheckpointResumeRequest2D/3D`で接続します。ゲーム固有レシピとSample統合は実装中で、任意Worldの保存を提供するものではありません。[現在の保存契約](Gameplay/SavingAndCheckpoints.md)と[試行記録](Development/GameSaveCompletion-2026-10-02.md)を参照してください。
+`FCheckpointCodec`は2D／3Dの論理個体・進行・4種類のJoint状態を変換します。`FCheckpointRestore::MakeInitial`は信頼する初期構成から独立したNew Game文書を作り、`FCheckpointRestore::Build`は許可済みカタログから新SceneのCPU計画を生成します。`DPhysicsScene2D/3D::OnPhysicsStepCompleted`は、成功したWorld.Stepと全PostPhysics反映後の採取境界です。通常Navigatorへの再開要求と必須Ready完了は`FCheckpointResumeRequest2D/3D`で接続します。ゲーム固有レシピとSampleの長期保存窓口・既存UIへ接続しています。全I/O故障・変異・Native・最終配布は検証中で、任意Worldの保存を提供するものではありません。[現在の保存契約](Gameplay/SavingAndCheckpoints.md)と[試行記録](Development/GameSaveCompletion-2026-10-02.md)を参照してください。
 
 `dxf::input_profiles`は`FInputProfile`／`FInputProfileCodec`による完全割当の検証・一括適用、`FInputRebindCapture`による解放後の単一入力採取、`FUserSettingsCodec`による独立した設定保存文書を提供します。Supportと保存コアを使い、SceneContent／Physics／UI／Nativeへ依存しません。適用時の押し続けを抑止し、不正入力・確保失敗で旧Mapを保持します。[入力と設定の契約](Input/Profiles.md)。
 
@@ -234,3 +234,6 @@ Gameplayはcppを持つ静的ライブラリです。公開`dxf::gameplay`／`dx
 
 
 `FCheckpointResumeRequest2D`／`3D` は、保存要求・既存Navigator・資源サービスと許可カタログ、明示ゲームレシピを借用する所有側ロード窓口です。通常PollはScene変更を要求し、既存境界で有効化した `ACheckpointScene2D`／`3D` の成功物理更新と必須Ready後に完了を公開します。`FCheckpointSceneTicket` は旧Sceneの結果をCPU値で保持し、新しい同名Sceneを追跡しません。利用例と保証範囲は [保存とチェックポイント](Gameplay/SavingAndCheckpoints.md) と外部Consumerにあります。
+
+
+GameplaySampleの`ASaveCourseGameInstance`は専用SaveRootと信頼するContentを受け取り、`RequestNewGame`／`RequestSave`／`RequestLoad`／`RequestRetry`と独立設定を通常更新で反映します。`FSaveCoursePanel`は既存F1メニューから要求を出し、採取待ち・保存成功・Scene切替待ち・必須Ready後の再開完了を分けて表示します。`RequestPublicationRetry`は公開結果未確定の同じ保存だけを再確認します。利用方法と検証範囲は[保存契約](Gameplay/SavingAndCheckpoints.md)にあります。

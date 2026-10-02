@@ -2,6 +2,7 @@
 #ifndef DXF_SAMPLE_SAVE_COURSE_SCENE_2D_H
 #define DXF_SAMPLE_SAVE_COURSE_SCENE_2D_H
 #include "SaveCourseController.h"
+#include "SaveCoursePanel.h"
 #include "Dxf/CheckpointScene2D.h"
 namespace Dxf::GameplaySample
 {
@@ -19,9 +20,10 @@ public:
 	 * @param Prepared 信頼する再開計画から準備したScene。
 	 * @param Checkpoint ゲームレシピを通した進行。取得済み値をイベント前に保持する。
 	 * @param Cargo 許可された動的荷物の準備値。
+	 * @param SaveOwner 任意の保存UI窓口。ApplicationがSceneより長く所有する。
 	 * @param Settings ゲーム進行とは独立した現在の設定。
 	 */
-	ASaveCourseScene2D(FPreparedScene2D Prepared, FCheckpointDocument2D Checkpoint, FPreparedPrefab2D Cargo, FUserSettings Settings = FSaveCourseInput::Defaults());
+	ASaveCourseScene2D(FPreparedScene2D Prepared, FCheckpointDocument2D Checkpoint, FPreparedPrefab2D Cargo, FUserSettings Settings = FSaveCourseInput::Defaults(), ASaveCourseGameInstance* SaveOwner = nullptr);
 	/**
 	 * Sceneの子をmemberの解放より先に終了する。
 	 */
@@ -44,6 +46,10 @@ public:
 	 * 次の固定更新で荷物を一個だけ生成する。未初期化では例外。
 	 */
 	void RequestCargo();
+	/**
+	 * 最新の動的荷物を次の固定更新で履歴付き除去する。
+	 */
+	void RequestDestroyCargo();
 
 protected:
 	/**
@@ -58,6 +64,10 @@ protected:
 	 * @param Context 全PostPhysicsの成功境界。ゲーム進行を親の採取より先に反映する。
 	 */
 	void OnCheckpointStepCompleted(const FFixedTickContext& Context) override;
+	/**
+	 * @param Render 定義由来の描画後に既存UIを重ねる。物理や保存を進めない。
+	 */
+	void OnDraw(FRenderContext& Render) const override;
 
 private:
 	/**
@@ -72,6 +82,30 @@ private:
 	 * 既存Collectionが所有するControllerへの世代付き非所有参照。
 	 */
 	TObjectHandle<FController> m_Controller;
+	/**
+	 * ApplicationがSceneより後に終了する任意の保存窓口。
+	 */
+	ASaveCourseGameInstance* m_pSaveOwner = nullptr;
+	/**
+	 * 新Sceneで最初に届いた押し続けは、解放するまでゲームへ渡さない。
+	 */
+	bool m_bInputArmed = false;
+	/**
+	 * Scene所有の任意UI。既存Collectionの実体所有を変更しない。
+	 */
+	Toolbox::TUniquePtr<FSaveCoursePanel> m_pPanel;
+	/**
+	 * 表示条件が変わった場合だけViewを設定する。
+	 */
+	Toolbox::int32 m_Width = 0;
+	/**
+	 * 前回の表示高さ。
+	 */
+	Toolbox::int32 m_Height = 0;
+	/**
+	 * 前回の一つ／二つのView選択。
+	 */
+	bool m_bSplit = false;
 };
 } // namespace Dxf::GameplaySample
 #endif

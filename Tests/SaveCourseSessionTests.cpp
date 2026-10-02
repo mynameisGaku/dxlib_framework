@@ -168,6 +168,40 @@ void RunSession(uint32 Dimension, bool bAsync)
 	REQUIRE(Game->GetSettings().Volume == .35f && Game->GetSettings().UiScale == 1.5f);
 	Tick();
 	REQUIRE(Store.Load("autosave").Document->Generation == 1);
+	if (!bAsync)
+	{
+		// 候補Sceneの構築と採用の間に設定を変更しても、最新の操作へ切り替える。
+		Game->RequestLoad(Dimension, "manual1");
+		Tick(0);
+		auto Latest = Changed;
+		for (auto& Action : Latest.Input.Actions)
+		{
+			if (Action.Action == "Jump")
+			{
+				Action.Bindings[0].Key = EKey::L;
+			}
+		}
+		Latest.Volume = .8f;
+		Game->RequestSettings(Latest);
+		Tick(0);
+		REQUIRE(Game->GetSaveTicket().GetState() == EGameSaveRequestState::TransitionRequested);
+		Tick(0);
+		Tick();
+		Wait(false, EGameSaveRequestState::Completed);
+		Current = App.GetScenes().GetCurrent()->TryCast<TScene>();
+		REQUIRE(Current != nullptr && Game->GetSettings().Volume == .8f && Game->IsSettingsDirty());
+		const auto NewBody = Current->GetPrefab("player").Get()->GetRigidBody("body").Get()->GetBodyId();
+		PlacePlayer(*Current, NewBody, -6, -3);
+		Tick();
+		Backend.GetTrace().Input.Keys[static_cast<size_t>(EKey::K)] = true;
+		Tick(.06);
+		REQUIRE(Current->GetPhysicsWorld().GetVelocity(NewBody).Y == 0);
+		Backend.GetTrace().Input.Keys[static_cast<size_t>(EKey::K)] = false;
+		Tick(0);
+		Backend.GetTrace().Input.Keys[static_cast<size_t>(EKey::L)] = true;
+		Tick(.06);
+		REQUIRE(Current->GetPhysicsWorld().GetVelocity(NewBody).Y > 1.9f);
+	}
 	App.GetScenes().RequestQuit();
 	const auto Quit = App.Step(Now);
 	REQUIRE(Quit && !Quit.Value());

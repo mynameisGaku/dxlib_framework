@@ -329,6 +329,7 @@ set(DXF_GAMEPLAY_SAMPLE_SOURCES
     Examples/GameplaySample/SaveCourseRecipes.cpp
     Examples/GameplaySample/SaveCourseInput.cpp
     Examples/GameplaySample/SaveCourseGameInstance.cpp
+    Examples/GameplaySample/SaveCoursePanel.cpp
     Examples/GameplaySample/SaveCourseScene2D.cpp
     Examples/GameplaySample/SaveCourseScene3D.cpp
     Examples/GameplaySample/SaveCourseProgressCodec.cpp
@@ -501,7 +502,7 @@ if(DXF_BUILD_TESTS)
     set_tests_properties(JointComponentFault PROPERTIES TIMEOUT 60 LABELS "portable;gameplay;fault")
 
     # 接触・Trigger・動く床のサンプル（2D／3D）を実Application・SceneNavigator・固定入力で通す。描画・文字は代替のBackend。
-    add_executable(dxf_interaction_sample_tests Tests/TestMain.cpp Tests/InteractionSampleTests.cpp Tests/ContentCourseSampleTests.cpp Tests/SaveCourseProgressTests.cpp Tests/SaveCourseRecipeTests.cpp Tests/SaveCourseControllerTests.cpp Tests/SaveCourseSessionTests.cpp)
+    add_executable(dxf_interaction_sample_tests Tests/TestMain.cpp Tests/InteractionSampleTests.cpp Tests/ContentCourseSampleTests.cpp Tests/SaveCourseProgressTests.cpp Tests/SaveCourseRecipeTests.cpp Tests/SaveCourseControllerTests.cpp Tests/SaveCourseSessionTests.cpp Tests/SaveCourseUiTests.cpp)
     target_compile_definitions(dxf_interaction_sample_tests PRIVATE DXF_CONTENT_SAMPLE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}" DXF_SAVE_COURSE_TEST_ROOT="${CMAKE_CURRENT_BINARY_DIR}/SaveCourseData")
     target_link_libraries(dxf_interaction_sample_tests PRIVATE dxf_gameplay_sample)
     target_include_directories(dxf_interaction_sample_tests PRIVATE Tests)

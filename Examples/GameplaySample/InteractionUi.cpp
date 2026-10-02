@@ -51,10 +51,13 @@ void FInteractionUi::Initialize(DScene& Scene, FAssetService& Assets, Toolbox::T
 		    m_pScene->GetClock().SetPaused(m_bWasPaused);
 		    m_pRoot->SetFocus({});
 	    }));
-	if (bContent)
+	if (bContent || Populate)
 	{
+		Panel.Get()->SetWidth(FUiLength::Fill());
 		Panel.Get()->SetAlign(EUiAlign::Stretch, EUiAlign::Start);
 		m_ContentScroll = m_pRoot->Create<DUiScrollView>();
+		// 従来メニューと同じく、最初の方向キーは先頭Buttonへ送る。
+		m_ContentScroll.Get()->SetFocusable(false);
 		m_ContentScroll.Get()->SetWidth(FUiLength::Fixed(440));
 		m_ContentScroll.Get()->SetHeight(FUiLength::Fixed(static_cast<Toolbox::f32>(m_Height - 80)));
 		m_ContentScroll.Get()->SetAlign(EUiAlign::Center, EUiAlign::Center);
@@ -65,7 +68,7 @@ void FInteractionUi::Initialize(DScene& Scene, FAssetService& Assets, Toolbox::T
 	{
 		m_Settings.Get()->SetContent(Panel.Cast<DUiElement>());
 	}
-	m_Host.AddScreen(*m_pRoot);
+	m_Display = m_Host.AddScreen(*m_pRoot, m_DisplayOptions);
 	Scene.SetInputRouter(this);
 }
 FInteractionUi::~FInteractionUi()
@@ -74,6 +77,29 @@ FInteractionUi::~FInteractionUi()
 	{
 		m_pScene->SetInputRouter(nullptr);
 	}
+}
+void FInteractionUi::SetUserScale(Toolbox::f32 Scale)
+{
+	if (!Toolbox::IsFinite(Scale) || Scale < .25f || Scale > 8)
+	{
+		throw Toolbox::FException("Invalid UI user scale");
+	}
+	if (Scale != m_DisplayOptions.Scale.UserScale)
+	{
+		m_DisplayOptions.Scale.UserScale = Scale;
+		if (!m_Host.SetOptions(m_Display, m_DisplayOptions))
+		{
+			throw Toolbox::FException("UI display is not available");
+		}
+	}
+}
+bool FInteractionUi::IsSettingsOpen() const noexcept
+{
+	return m_Settings && m_Settings.Get()->IsOpen();
+}
+void FInteractionUi::SetHudToggleEnabled(bool bEnabled) noexcept
+{
+	m_bHudToggleEnabled = bEnabled;
 }
 void FInteractionUi::ToggleSettings_Internal()
 {
@@ -94,10 +120,13 @@ FInputSnapshot FInteractionUi::RouteInput(const FTickContext& Context)
 		m_Height = Context.Window.RenderHeight;
 		if (m_ContentScroll)
 		{
-			m_ContentScroll.Get()->SetHeight(FUiLength::Fixed(static_cast<Toolbox::f32>(Toolbox::Max(120, m_Height - 80))));
+			const FUiSurface Surface({0, 0, m_Width, m_Height}, m_DisplayOptions.Scale);
+			const auto Size = Surface.GetLogicalSize();
+			m_ContentScroll.Get()->SetWidth(FUiLength::Fixed(Toolbox::Min(440.0f, Toolbox::Max(40.0f, Size.Width - 24))));
+			m_ContentScroll.Get()->SetHeight(FUiLength::Fixed(Toolbox::Max(40.0f, Size.Height - 40)));
 		}
 	}
-	if (Context.Input.WasPressed(EKey::H))
+	if (m_bHudToggleEnabled && Context.Input.WasPressed(EKey::H))
 	{
 		m_bVisible = !m_bVisible;
 	}

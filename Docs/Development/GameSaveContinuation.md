@@ -1,19 +1,13 @@
 # L作業の継続点
 
-対象はDXF-L-SAVE-4b20f89-20261002-R2、L0〜L10。Bへ戻らない。mainのみ。用語はバージョン。各`@param`は引数ごとに改行する。
+対象はDXF-L-SAVE-4b20f89-20261002-R2、L0〜L10。Bへ戻らない。mainのみ。用語はバージョン、各@paramは別行。現在HEAD `734fbfcf9a263aa44b643f6a58b123696c7402c4`、最後にfetchしたorigin/main `4b20f89a451233bc8c328df98f48a259808a3285`。13ローカルcommit、push未実施。開始時に利用者差分なし。
 
-進行codec追加直前のHEAD `765d2369b231dcfb0c821da74419e6f4637d8e33`、最後にfetchしたorigin/main `4b20f89a451233bc8c328df98f48a259808a3285`。9個のローカルcommitを保持し、push未実施。開始時に利用者差分なし。直近は`37aa078`（完全プロファイル・再割当採取・独立設定文書）、`f5bf024`（引数コメントの改行と静的検査）、`765d236`（両次元の純粋な初期文書生成）。後続commitはgit logで照合する。
+L0調査済み。L1 codec・明示移行、L2二面保存・回復・排他、L3 Scoped要求を実装（全I/O故障未完了）。L4成功全Post後の両次元論理採取、L5信頼するカタログ・新Scene・4種の内部／個体間Joint・必須Ready完了、L6完全Input profileと独立設定、L7実Sensor・扉・動的荷物・手動／autosave／New／Load／Retryを実装。今回、既存メニューのNew／Continue、保存Panel・上書きModal・再割当・Volume／UiScale・スロット表示・公開結果未確定の明示再確認を接続した。候補Scene構築後の設定変更を入力更新前に同期し、非フォーカスScrollは子の方向操作を妨げない。L8部分回帰のみ、L-M01〜20未実施。L9 CPU別プロセス両次元を確認済み、独立installゲームConsumer・測定・Nativeを含む配布4構成は未完了。L10最終全累積・push未実施。
 
-L0調査済み。L1 codec／明示移行、L2二面保存／回復／排他、L3 Scoped要求／取消し／最新照合を実装（全I/O故障未完了、再開CPU計画は所有側Poll）。L4両次元の論理履歴と成功固定更新後の安全境界採取。L5許可カタログ・全4種類の内部／個体間接続、通常Navigatorと必須Ready完了窓口を実装。L6完全プロファイル一括適用・解放後有効化・再割当採取・独立設定codecを実装し、外部保存／読込の別プロセスと実Action判定を確認。L7ゲーム固有Controller・既存Sample UIと音量／UI倍率の実適用は未完了。L8部分回帰のみ、L-M01〜20は未実施。L9保存コアと入力設定の別プロセス、外部計画／採取／Navigatorを実施、ゲームApplication再開・測定・4構成は未完了。L10最終回帰／push未実施。
+今回の未commit差分は保存UI一式、GameInstance／両Scene／Portal／InteractionUi／通常Windows入口、UI Scrollと独立試験、Session設定競合と実クリック試験、CMake登録と現在Docs。正確な一覧はgit status --short。本UIの論理commitをこれから作る。過去のcommitや利用者の成果は保持する。
 
-最新の確認済み製品コード指紋は`482a61ef01e7fd005db67ce33698ab5ea7497e4e52f2b04fc66fbe2b37c47a8e`。PortableSaveCourseProgressFrozenRelease01は全群37/37・失敗0・skip0・35秒、前後manifest同一。SaveCourseProgressDebug01／Release01は既存コースを含む52/52、全終了0。GameCheckpointは28ケース。No-STL970ファイル・違反0。L10最終採用集合ではない。
+最新の成功：PortableSaveCourseUiEntryFrozenRelease02／Debug01全38/38・失敗0・skip0、前後manifest `b44e4345af55ebad03fdb705315a21f1b2b3745ef3210bcda0aa049ca0da0d4d` 同一、No-STL989違反0、build・diff終了0。NativeUiEntryBuildDebug01は同じコードのGameplaySample Debug build0のみ、実デバイス未起動。EntryDebug03はInteractionSample62/62、コメント検査0。ログRoot `Build/GameSave-20261002-30a407`。Summary／Registration／JUnit／LastTest／BinaryHashes／manifestを各固有試行へ保存。失敗試行はCompletion末尾へ分類して保持し、成功へ合算しない。
 
-ログRoot `Build/GameSave-20261002-30a407`。PortableProfileLinkFrozenDebug01／PortableParamCommentsFrozenRelease01は各37/37・失敗0・skip0。PackageProfileLinkOffRelease01は14工程・全終了0、前後manifest同一。ProfileHeaders01は下位層だけの13構成。ParamCommentsChecks01はPython74件中67成功・7skip、No-STL965ファイル違反0。入力の通常12ケース・故障3ケース、最初の非注入は一括適用5・encode64・decode51。実IDEを指定したPython、Native、聴感はこの集合に含めない。
+現在実行中プロセスなし。一時変異・復元待ちなし。関連B-M16 Root02のみ検出・復元済み、Source hash `087f04a6b528699336404ed5892c43acc09fd28d4ea29f466ba3ec50dc9b6d40`。拒否されたBuild複製は未変更。通常pushは全要件完了後。
 
-直近の初期文書変更：`FCheckpointRestore::MakeInitial`両次元は既存Captureと共有し、初期値／容量／生成順と外部利用を検証した。InitialCheckpointDebug01は正常28/28、InitialCheckpointRelease02は正常28/28・故障3/3、PackageInitialCheckpointOffRelease01は14工程・全終了0。指紋`f7c6720b40f9a4175686143e29f0c81c63df6e2ffa21877f3890659325994d7c`。Release01は記録更新のWinError 5でCTest開始前に停止し、同コードを新しい記録先で1回だけ再試験した。
-
-続いてSample専用の`FSaveCourseProgress`と同名責務の純粋codecを追加した。手作りfixtureの論理扉名・厳密整数・旧値保持を4ケースで確認。まだSensorや画面へ接続していない。現在実行中プロセスなし、一時変異／復元待ちはない。次の具体的な一手は、既存Contentコースを保持してSave用2D／3D定義と信頼カタログを追加し、この進行から取得物除去・開扉初期配置・動的荷物を決める純粋な再開レシピを実Worldで検証すること。既存のFCheckpointRestore::MakeInitial／BuildとFSaveCourseProgressCodecを再実装しない。
-
-次の実装は明示SaveRootを持つSample GameInstance、純粋なゲーム進行codec／再開レシピ、Scene所有のゲームControllerと型付きexport操作、成功境界採取・Sensor revision autosave、入力ActionをUI消費後のSnapshotから1回更新する経路。New／Continue／Save／Load／Retryと設定画面を既存UIへ載せる。既存F2のContentコース、C++コース、Starter、Sandboxを保持する。音量の値保存だけを実音声適用と数えず、UI倍率は描画とhit testの同じ既存値へ渡す。
-
-残り：両次元の別Applicationプロセスで進行と設定を再開、Nativeの保存前／変更後／再開後の実画素、全故障・L-M01〜20・関連B変異、Release測定、配布4構成、IDE・公開ヘッダー・正規ValidateDebug・全群の最終manifest、現在文書、通常pushとremote照合。Assets原本・利用者保存・過去ログを上書きせず、未完了差分を捨てない。過去に削除拒否されたBuild複製は未変更。実際の未完成を完了としない。
+次の具体的な一手：既存Tests/GameplaySampleSmokeへSaveCourseSmoke.h/cppを追加し、Mainの限定--save-write／--save-read入口から同一NativeGameplaySmoke exeを別プロセスで実行する。FSmokeAppは任意GameInstanceを受け取り、既存一括CapturePointsを再利用する。専用日本語・空白SaveRoot、別CWD、再配置Assets／exeで、2D／3Dの保存前・進行変更後・Continue後のWorld値と扉・取得物・荷物・Texture／Modelの画素を照合する。実デバイスは構成・対象・ウィンドウが開くことを説明してから直列実行。続いてL8故障・変異、L9独立Consumer／4配布／測定、L10累積・Docs・通常pushを進める。

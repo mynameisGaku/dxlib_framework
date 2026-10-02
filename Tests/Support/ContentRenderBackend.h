@@ -21,6 +21,10 @@ public:
 	 */
 	Toolbox::TVector<FTriangleCommand2D> Triangles;
 	/**
+	 * 従来コースが送った2D線分。入口のUI試験でも描画命令を受け取る。
+	 */
+	Toolbox::TVector<FLineCommand2D> Lines;
+	/**
 	 * 実行した円の値。
 	 */
 	Toolbox::TVector<FCircleCommand2D> Circles;
@@ -44,6 +48,10 @@ public:
 	 * 個体数の確認に使うNative境界の番号。
 	 */
 	Toolbox::TVector<Toolbox::int32> ModelHandles;
+	/**
+	 * UIが実際に送った画素位置。hit testとの一致を確認する記録で、実画素ではない。
+	 */
+	Toolbox::TVector<FTextCommand> Texts;
 	bool SupportsModels3D() const noexcept override
 	{
 		return true;
@@ -73,6 +81,7 @@ public:
 	}
 	TResult<void> DrawText(const FTextCommand& Command) override
 	{
+		Texts.PushBack(Command);
 		return m_pBackend->DrawText(Command);
 	}
 	TResult<void> DrawRectangle(const FRectangleCommand& Command) override
@@ -102,6 +111,11 @@ public:
 	TResult<void> DrawTriangle2D(const FTriangleCommand2D& Command) override
 	{
 		Triangles.PushBack(Command);
+		return DrawResult();
+	}
+	TResult<void> DrawLine2D(const FLineCommand2D& Command) override
+	{
+		Lines.PushBack(Command);
 		return DrawResult();
 	}
 	TResult<void> DrawCircle2D(const FCircleCommand2D& Command) override

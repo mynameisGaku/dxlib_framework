@@ -2,6 +2,8 @@
 #include "Dxf/NativeBackends.h"
 #include "Dxf/AppRunner.h"
 #include "CharacterSample.h"
+#include "SaveCourseGameInstance.h"
+#include "Dxf/SaveStore.h"
 #include "../Shared/ProjectRootEntry.h"
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -49,7 +51,8 @@ Toolbox::int32 WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, Toolbox::int32)
 		const Toolbox::FPath ProjectRoot = Dxf::ResolveEntryProjectRoot("GameplaySample.dxfpaths");
 		Settings.ProjectRoot = ProjectRoot.ToUtf8();
 		// サービスを結合した実行用のアプリケーション。
-		Dxf::FApplication Application(Backends.GetServices(), Settings);
+		auto SaveOwner = Toolbox::MakeUnique<Dxf::GameplaySample::ASaveCourseGameInstance>(Dxf::FSaveStore::DefaultRoot("dxfGameplaySample"), Dxf::FSceneContentSource(ProjectRoot));
+		Dxf::FApplication Application(Backends.GetServices(), Settings, Toolbox::Move(SaveOwner));
 		// アプリケーションの実行器。
 		Dxf::FAppRunner Runner;
 		// 処理結果。

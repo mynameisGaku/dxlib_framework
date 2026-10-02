@@ -367,6 +367,11 @@ void DUiScrollView::OnPointerEvent(FUiPointerEvent& Event)
 
 void DUiScrollView::OnNavigationEvent(FUiNavigationEvent& Event)
 {
+	// 非フォーカスの入れ物は、子から届いた方向操作をボタン移動へ残す。
+	if (!IsFocusable())
+	{
+		return;
+	}
 	const bool bVertical = Event.Command == EUiNavigationCommand::Down || Event.Command == EUiNavigationCommand::Up;
 	const bool bHorizontal =
 	    Event.Command == EUiNavigationCommand::Right || Event.Command == EUiNavigationCommand::Left;

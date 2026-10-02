@@ -2,6 +2,8 @@
 #ifndef DXF_SAMPLE_SAVE_COURSE_GAME_INSTANCE_H
 #define DXF_SAMPLE_SAVE_COURSE_GAME_INSTANCE_H
 #include "SaveCourseInput.h"
+#include "SaveCourseSlot.h"
+#include "Toolbox/Array.h"
 #include "Dxf/GameInstance.h"
 #include "Dxf/GameSaveTicket.h"
 #include "Dxf/SceneContentSource.h"
@@ -29,6 +31,10 @@ public:
 	 */
 	void RequestNewGame(Toolbox::uint32 Dimension);
 	/**
+	 * @param Dimension 従来のC++コースへ通常Scene切替を要求する。
+	 */
+	void RequestLegacyCourse(Toolbox::uint32 Dimension);
+	/**
 	 * @param Slot 短い識別子。通常は次の成功境界で採取し、Pause中は最後の正常値を使う。
 	 */
 	void RequestSave(Toolbox::FString Slot);
@@ -55,6 +61,11 @@ public:
 	 */
 	void RequestSettingsSave() noexcept;
 	/**
+	 * 公開結果が未確定の同じ保存だけを、次の通常更新で再確認する。
+	 * @param bSettings trueは独立設定、falseはゲーム進行の保存。
+	 */
+	void RequestPublicationRetry(bool bSettings) noexcept;
+	/**
 	 * 現在適用した独立設定。
 	 */
 	const FUserSettings& GetSettings() const noexcept;
@@ -78,6 +89,22 @@ public:
 	 * 採取待ちや要求前の失敗も含む診断。通常Tickで毎回確保しない。
 	 */
 	const Toolbox::FString& GetDiagnostic() const noexcept;
+	/**
+	 * 初期化と要求の終端で更新した4系列。通常UI表示ではI/Oしない。
+	 */
+	const Toolbox::TArray<FSaveCourseSlot, 4>& GetSlots() const noexcept;
+	/**
+	 * 次の所有側更新でスロット一覧を読み直す。毎Frameは要求しない。
+	 */
+	void RequestSlotRefresh() noexcept;
+	/**
+	 * スロット一覧を実際に更新した番号。定常表示ではI/Oしない。
+	 */
+	Toolbox::uint64 GetSlotRevision() const noexcept;
+	/**
+	 * 現在適用した設定の番号。UIは変更時だけ表示値を作り直す。
+	 */
+	Toolbox::uint64 GetSettingsRevision() const noexcept;
 
 protected:
 	/**

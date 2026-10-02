@@ -6,8 +6,10 @@
 #include "Dxf/UiLabel.h"
 #include "Dxf/UiScope.h"
 #include "Dxf/UiPanel.h"
+#include "Dxf/GameSaveRequestState.h"
 namespace Dxf::GameplaySample
 {
+class ASaveCourseGameInstance;
 /**
  * 現在のSceneを残して準備し、Ready値を通常更新からNavigatorへ渡す利用例。
  * WorkerへSceneやNative資源を捕捉しない。
@@ -54,9 +56,33 @@ protected:
 
 private:
 	/**
+	 * Continue失敗を現在のメニューへ表示する。通常表示では保存ファイルを読まない。
+	 */
+	void UpdateSaveStatus();
+	/**
+	 * 従来Contentの診断と分けた保存要求の表示。
+	 */
+	TUiRef<DUiLabel> m_SaveStatus;
+	/**
+	 * 同じ状態でも別要求なら診断を更新する番号。
+	 */
+	Toolbox::uint64 m_LastSaveSequence = 0;
+	/**
+	 * 前回の保存要求状態。
+	 */
+	EGameSaveRequestState m_LastSaveState = EGameSaveRequestState::Canceled;
+	/**
+	 * コア要求前の診断も変更時だけ更新する。
+	 */
+	Toolbox::FString m_LastSaveDiagnostic;
+	/**
 	 * 所有側の資源窓口。Applicationが長く生存する。
 	 */
 	FAssetService* m_pAssets = nullptr;
+	/**
+	 * 通常更新で借りた長期保存窓口。Workerや後続Sceneへ渡さない。
+	 */
+	ASaveCourseGameInstance* m_pSaveOwner = nullptr;
 	/**
 	 * この要求だけのScopeとCPU状態。
 	 */

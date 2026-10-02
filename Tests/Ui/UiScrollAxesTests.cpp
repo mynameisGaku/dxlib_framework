@@ -3,6 +3,7 @@
 #include "Ui/UiTestSupport.h"
 #include "Dxf/UiPanel.h"
 #include "Dxf/UiScrollView.h"
+#include "Dxf/UiButton.h"
 using namespace UiTest;
 
 namespace
@@ -51,6 +52,28 @@ bool TrySetInertia(DUiScrollView& Scroll, const FUiScrollInertia& Inertia)
 	}
 }
 } // namespace
+
+TEST("UI nonfocusable scroll preserves child button navigation and wheel scrolling")
+{
+	FUiRoot Root;
+	auto Scroll = MakeScroll(Root, 200, 100, EUiScrollAxes::Vertical);
+	Scroll.Get()->SetFocusable(false);
+	REQUIRE(Root.AddToLayer(EUiLayer::Normal, Scroll.Cast<DUiElement>()));
+	auto Content = Root.Create<DUiPanel>(EUiStackMode::Vertical, 4);
+	Content.Get()->SetHeight(FUiLength::Fixed(400));
+	auto First = Content.Get()->CreateChild<DUiButton>("First");
+	First.Get()->SetHeight(FUiLength::Fixed(24));
+	auto Second = Content.Get()->CreateChild<DUiButton>("Second");
+	Second.Get()->SetHeight(FUiLength::Fixed(24));
+	Scroll.Get()->SetContent(Content.Cast<DUiElement>());
+	LayoutRoot(Root);
+	REQUIRE(Root.SetFocus(First.Cast<DUiElement>()));
+	REQUIRE(Root.ProcessInput(NavigationFrame(EUiNavigationCommand::Down, true, false)));
+	REQUIRE(Root.GetFocused() == Second.Get());
+	REQUIRE(Scroll.Get()->GetScrollOffset() == 0);
+	Wheel(Root, 20, 20, 1, 0);
+	REQUIRE(Scroll.Get()->GetScrollOffset() > 0);
+}
 
 TEST("UI horizontal scroll moves only its axis and arranges content by the offset")
 {

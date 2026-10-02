@@ -33,6 +33,18 @@ public:
 	 */
 	void Draw(FRenderContext& Render, const char* Status);
 	/**
+	 * @param Scale 有限の利用者倍率。描画とクリック判定へ同じ表示設定を渡す。
+	 */
+	void SetUserScale(Toolbox::f32 Scale);
+	/**
+	 * 現在の設定Modalが開いているか。
+	 */
+	bool IsSettingsOpen() const noexcept;
+	/**
+	 * @param bEnabled 既存コースのH表示切替。再割当ゲームではHを通常Actionに使える。
+	 */
+	void SetHudToggleEnabled(bool bEnabled) noexcept;
+	/**
 	 * 現在の描画先寸法。Window情報が来るまでは起動時の寸法。
 	 */
 	Toolbox::int32 GetWidth() const noexcept
@@ -66,6 +78,14 @@ private:
 	 */
 	FUiSceneHost m_Host;
 	/**
+	 * 倍率を反映する全画面の表示先。
+	 */
+	FUiDisplayId m_Display = 0;
+	/**
+	 * 同じ表示・入力変換に使う現在の設定。
+	 */
+	FUiDisplayOptions m_DisplayOptions;
+	/**
 	 * Scene終了時に購読を解除する。
 	 */
 	FUiScope m_Scope;
@@ -86,6 +106,10 @@ private:
 	 * 描画だけを省く検証用の表示切替。入力処理と物理更新は変えない。
 	 */
 	bool m_bVisible = true;
+	/**
+	 * 旧コース専用のH操作を受け付けるか。
+	 */
+	bool m_bHudToggleEnabled = true;
 	/**
 	 * ウィンドウから取得した描画先寸法。
 	 */

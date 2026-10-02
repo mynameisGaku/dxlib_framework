@@ -1,6 +1,6 @@
 # 入力プロファイルとユーザー設定
 
-任意リンクの `dxf::input_profiles` は既存 `FInputMap` へ完全な割当を適用し、入力・音量・UI倍率を設定文書へ変換する。SceneContent、Physics、UI、Nativeを要求しない。OS入力は既存Snapshotを使う。設定値の永続化とActionの操作を外部Consumerの別プロセスで検証した。GameplaySampleの設定画面、実音量・UI倍率への反映はL作業で接続中である。
+任意リンクの `dxf::input_profiles` は既存 `FInputMap` へ完全な割当を適用し、入力・音量・UI倍率を設定文書へ変換する。SceneContent、Physics、UI、Nativeを要求しない。OS入力は既存Snapshotを使う。設定値の永続化とActionの操作を外部Consumerの別プロセスで検証した。GameplaySampleの既存F1メニューへ設定画面を接続し、既存Playbackと次のPlayへの音量、描画とhit testへのUI倍率を同じ値から適用する。Native画素と人の操作・聴感は別の検証である。
 
 ## 全体の検証と適用
 
@@ -46,6 +46,6 @@ Mapの `Update` は新しいSnapshotごとに一回。採取の `Poll`、描画V
 
 `FUserSettingsCodec::Encode` はSettings種類・次元0の `FSaveDocument` を返し、Content／Scene／checkpointキーを空にする。設定は `settings` 等の専用系列へ `FSaveStore` で保存する。進行のmanual／autosaveとは別系列で、古い進行のLoadで現在の設定を戻さない。Decodeは現在のMap・音声・UIへ副作用を出さず、全検証後に値を返す。壊れた設定やゲーム不一致では現在の値を維持できる。
 
-Volumeは元の再生音量へ一度だけ掛け、既存Playbackへの `SetVolume` と次回PlayのOptionsへ反映する。UiScaleは既存表示先のOptionsへ渡し、描画とhit testを同じ座標変換にする。この反映処理は現在Sampleへ接続中である。設定を適用したことと保存公開の成功を区別し、書込失敗を保存済み表示にしない。
+Volumeは元の再生音量へ一度だけ掛け、既存Playbackへの `SetVolume` と次回PlayのOptionsへ反映する。UiScaleは既存表示先のOptionsへ渡し、描画とhit testを同じ座標変換にする。SampleのControllerが既存Playbackを更新し、Scene所有のUIが表示先のUserScaleを更新する。設定を適用したことと保存公開の成功を区別し、書込失敗を保存済み表示にしない。
 
-現在の確認範囲は [L作業の試行記録](../Development/GameSaveCompletion-2026-10-02.md)。別プロセスConsumerで値の永続化と実Action操作を確認したが、実音量・画面倍率・人の入力・聴感の確認結果ではない。
+現在の確認範囲は [L作業の試行記録](../Development/GameSaveCompletion-2026-10-02.md)。別プロセスConsumerでは値の永続化と実Action操作を確認した。SampleのCPU実ApplicationではPlayback呼出しと、1001×501・倍率1.5で実描画位置をクリックするUI・実Body操作を確認した。いずれも実DxLib画素・人の入力・聴感の確認結果ではない。

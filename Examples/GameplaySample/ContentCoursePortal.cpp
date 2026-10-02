@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: NOASSERTION
 #include "ContentCoursePortal.h"
+#include "SaveCourseGameInstance.h"
 #include "ContentCourseScene2D.h"
 #include "ContentCourseScene3D.h"
 #include "Dxf/AssetService.h"
@@ -33,6 +34,8 @@ TResult<void> DContentCoursePortal::OnInitialize(const FInitContext& Context)
 }
 void DContentCoursePortal::OnTick(const FTickContext& Context)
 {
+	m_pSaveOwner = Context.Game ? Context.Game->TryCast<ASaveCourseGameInstance>() : nullptr;
+	UpdateSaveStatus();
 	// F2は既存コースからの入口。Modalが消費した入力は届かない。
 	if (Context.Input.WasPressed(EKey::F2))
 	{
@@ -95,6 +98,7 @@ void DContentCoursePortal::OnDeinitialize() noexcept
 	}
 	m_pRequest.Reset();
 	m_pAssets = nullptr;
+	m_pSaveOwner = nullptr;
 }
 void DContentCoursePortal::BuildPanel(DUiPanel& Panel, FUiScope& Scope, TObjectHandle<DContentCoursePortal> Self)
 {
@@ -139,7 +143,73 @@ void DContentCoursePortal::BuildPanel(DUiPanel& Panel, FUiScope& Scope, TObjectH
 			    Self.Get()->RequestCancel();
 		    }
 	    }));
+	for (Toolbox::uint32 Dimension = 2; Dimension <= 3; ++Dimension)
+	{
+		auto NewGame = Panel.CreateChild<DUiButton>(Dimension == 2 ? "New checkpoint game 2D" : "New checkpoint game 3D");
+		NewGame.Get()->SetHeight(FUiLength::Fixed(24));
+		Scope.Add(NewGame.Get()->OnClicked().Subscribe([Self, Dimension]()
+		                                               {
+			                                               if (Self && Self.Get()->m_pSaveOwner)
+			                                               {
+				                                               Self.Get()->m_pSaveOwner->RequestNewGame(Dimension);
+			                                               }
+		                                               }));
+		auto Continue = Panel.CreateChild<DUiButton>(Dimension == 2 ? "Continue checkpoint 2D" : "Continue checkpoint 3D");
+		Continue.Get()->SetHeight(FUiLength::Fixed(24));
+		Scope.Add(Continue.Get()->OnClicked().Subscribe([Self, Dimension]()
+		                                                {
+			                                                if (Self && Self.Get()->m_pSaveOwner)
+			                                                {
+				                                                Self.Get()->m_pSaveOwner->RequestRetry(Dimension);
+			                                                }
+		                                                }));
+	}
 	m_Status = Panel.CreateChild<DUiLabel>("No data request");
 	m_Status.Get()->SetHeight(FUiLength::Fixed(20));
+	m_SaveStatus = Panel.CreateChild<DUiLabel>("保存要求なし");
+	m_SaveStatus.Get()->SetHeight(FUiLength::Content());
+}
+void DContentCoursePortal::UpdateSaveStatus()
+{
+	if (!m_pSaveOwner || !m_SaveStatus)
+	{
+		return;
+	}
+	const auto Ticket = m_pSaveOwner->GetSaveTicket();
+	const auto State = Ticket.GetState();
+	const auto& Diagnostic = m_pSaveOwner->GetDiagnostic();
+	if (State == m_LastSaveState && Ticket.GetSequence() == m_LastSaveSequence && Diagnostic == m_LastSaveDiagnostic)
+	{
+		return;
+	}
+	m_LastSaveState = State;
+	m_LastSaveSequence = Ticket.GetSequence();
+	m_LastSaveDiagnostic = Diagnostic;
+	Toolbox::FString Text = "保存／再開の準備中（未完了）";
+	if (State == EGameSaveRequestState::Failed)
+	{
+		Text = "Continue失敗: " + Ticket.GetReason();
+	}
+	else if (State == EGameSaveRequestState::Canceled || State == EGameSaveRequestState::Superseded)
+	{
+		Text = "保存／再開は取消しまたは置換済み";
+	}
+	else if (State == EGameSaveRequestState::Committed)
+	{
+		Text = "保存成功";
+	}
+	else if (State == EGameSaveRequestState::Completed)
+	{
+		Text = "ゲーム再開完了";
+	}
+	else if (State == EGameSaveRequestState::PublicationUnknown)
+	{
+		Text = "保存の公開結果が未確定です";
+	}
+	if (!Diagnostic.IsEmpty())
+	{
+		Text += "\n" + Diagnostic;
+	}
+	m_SaveStatus.Get()->SetText(Toolbox::Move(Text));
 }
 } // namespace Dxf::GameplaySample

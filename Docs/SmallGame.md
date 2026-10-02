@@ -83,3 +83,8 @@ Starter移植先での今回の結果は[別ディレクトリでの検証記録
 ## 定義から組み立てる任意経路
 
 従来Starter／SandboxのC++組立てを保持し、反復する構成には任意のdxf::scene_contentを利用できます。[Prefab](Content/Prefabs.md)を一度準備し、別配置・個体専用パラメーターでSpawnします。受付とReadyを区別し、型付きexportへ既存Componentの操作を渡します。ゲーム判断をJSONへ移す必要はありません。GameplaySampleのF2／F1が具体例です。
+
+
+## チェックポイントと独立設定を使うSample
+
+GameplaySampleの起動後、Iで相互作用コースへ進み、F1メニューから保存コースのNew／Continueを選びます。保存コースではF1から手動保存・Load・Retry・再割当・音量・UI倍率を操作できます。C++で書くコースとF2で読み込む従来のContentコース、空Starterは保持しています。ゲームの鍵・扉・動的荷物を論理値として保存し、再開は信頼するContentから新Sceneを作ります。任意Worldの途中状態を完全復元する機能ではありません。[公開窓口と保証範囲](Gameplay/SavingAndCheckpoints.md)、[入力設定](Input/Profiles.md)を参照してください。L全体のNative・故障・変異・最終配布は引き続き検証中です。

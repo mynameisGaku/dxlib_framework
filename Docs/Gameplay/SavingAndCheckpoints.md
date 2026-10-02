@@ -2,9 +2,9 @@
 
 New Gameの初期文書は`FCheckpointRestore::MakeInitial`へ信頼するカタログとゲームの初期進行Objectを渡して作る。2D／3Dのoverloadは同じ意味で、初期個体・公開Joint・個体間接続の論理状態を生成順に記録する。共有定義は変更せず、WorldやNative資源も生成しない。進行Objectのゲーム固有の意味は呼出し側のcodecで検証し、構造・容量・Contentとの対応はこの入口で再検証する。外部CheckpointConsumerがこの入口から通常の準備・Navigator・必須Readyまでをcompile／runする。
 
-GameplaySampleの`FSaveCourseProgress`／`FSaveCourseProgressCodec`は、保存コアへゲームのルールを入れずに、鍵・得点・チェックポイント・doorA／doorBの解錠と開扉・生成カウンター・進行revisionを検証する。score・spawnCounter・revisionは厳密な十進文字列とし、配列順を変えても扉の論理キーは取り違えない。未解錠の開扉、不明なキー、重複取得を拒否する。現在は純粋codecの試験までで、既存SampleのSensor通知・再開レシピ・UIへの接続は実装中である。
+GameplaySampleの`FSaveCourseProgress`／`FSaveCourseProgressCodec`は、保存コアへゲームのルールを入れずに、鍵・得点・チェックポイント・doorA／doorBの解錠と開扉・生成カウンター・進行revisionを検証する。score・spawnCounter・revisionは厳密な十進文字列とし、配列順を変えても扉の論理キーは取り違えない。未解錠の開扉、不明なキー、重複取得を拒否する。実Sensor通知、純粋な再開レシピ、既存Sampleの保存UIへ接続している。
 
-L0〜L10の実装を進めている。任意リンクの`dxf::save_data`は保存コア、`dxf::game_save`はCPU保存／読込要求と型付きチェックポイント・再開計画、通常Navigatorへの要求と必須Readyの完了管理を提供する。`dxf::input_profiles`は完全割当と独立した設定文書を扱う。GameplaySampleのContinue・設定画面とゲームの別Applicationプロセス再開は接続中である。初期構成を読み込むBの成果と、今回の論理進行保存を別の機能として扱う。
+L0〜L10の実装を進めている。任意リンクの`dxf::save_data`は保存コア、`dxf::game_save`はCPU保存／読込要求と型付きチェックポイント・再開計画、通常Navigatorへの要求と必須Readyの完了管理を提供する。`dxf::input_profiles`は完全割当と独立した設定文書を扱う。GameplaySampleのContinue・設定画面と、別Applicationプロセスの両次元再開を接続した。Native画素、全I/O故障、変異、測定・最終配布は引き続き検証中である。初期構成を読み込むBの成果と、今回の論理進行保存を別の機能として扱う。
 
 ## 保存する値
 
@@ -14,7 +14,7 @@ L0〜L10の実装を進めている。任意リンクの`dxf::save_data`は保�
 
 UTF-8、復号後の重複キー、非有限数値、末尾データ、未知field、未知の形式バージョンを既存Toolbox JSON readerで拒否する。既定上限は8MiB、深度64、文字列64KiB、値128K、論理キー512bytes。世代は符号・先頭ゼロなしの十進文字列であり、f64を経由しない。Writerは復号済み辞書キーをUTF-8バイト順に並べ、配列順と数値の元の検証済み字句を保持する。したがって1と1.0の字句まで同一へ統一する正準化ではない。
 
-`RequireCompatible`はゲーム／Content／Scene／次元／payloadバージョンを厳格に照合する。revisionは呼出し側の明示値であり、保存コアが資源のバイト一致を自動採取したという保証はない。SceneContentのファイル準備結果には、実際に読んだ定義バイトの`ContentFingerprint`がある。再開adapterでこの値とアセットbundle revisionを照合する接続はまだ実装中である。
+`RequireCompatible`はゲーム／Content／Scene／次元／payloadバージョンを厳格に照合する。revisionは呼出し側の明示値であり、保存コアが資源のバイト一致を自動採取したという保証はない。SceneContentのファイル準備結果には、実際に読んだ定義バイトの`ContentFingerprint`がある。再開adapterは読込済みScene／Prefabの指紋を許可カタログと厳格に照合する。アセットbundle revisionはゲームの明示した識別値であり、全アセットの実ファイルhashを保存コアが採取する保証ではない。
 
 ## 明示的なゲームデータ移行
 
@@ -62,7 +62,7 @@ OS処理の契約は[Known Folder取得](https://learn.microsoft.com/en-us/windo
 
 ## 非同期要求の現在の範囲
 
-呼出し側が`FGameSaveRequest`を所有し、既存Dispatcher／Scopeを任意で借りる。RequestSaveへ渡す文書は、安全な採取境界で既に完成したCPU値である。Scene所有のFCheckpointCaptureによる要求時採取を追加した。非同期要求とのゲーム側接続は実装中。Workerはencode／temp I/Oまたは面読込／互換性検査だけを行う。Task CommitはCPU結果に印を付け、ファイル公開やNavigator.Commitを実行しない。通常更新のPollが保存を公開し、または読込値を採用する。
+呼出し側が`FGameSaveRequest`を所有し、既存Dispatcher／Scopeを任意で借りる。RequestSaveへ渡す文書は、安全な採取境界で既に完成したCPU値である。Scene所有のFCheckpointCaptureによる要求時採取を追加した。Sampleの長期GameInstanceが成功境界の採取値を非同期要求へ渡す。Workerはencode／temp I/Oまたは面読込／互換性検査だけを行う。Task CommitはCPU結果に印を付け、ファイル公開やNavigator.Commitを実行しない。通常更新のPollが保存を公開し、または読込値を採用する。
 
 状態はPending、Writing／Reading、Prepared、Publishing、Committed、PublicationUnknown、TransitionRequested、Completed、Failed、Canceled、Supersededを区別する。未公開手動保存がある間の次要求はBusy。先行読込は後続でSupersededにし、最後に採用した正常値は新要求の失敗でも残す。Preparedはゲーム再開完了ではない。現在のMarkTransitionRequested／MarkResumeCompletedは上位adapterが実際のNavigator要求と必須Readyを確認して呼ぶ入口で、保存コアの試験だけでScene再開を確認したとは扱わない。
 
@@ -95,7 +95,7 @@ CPU計画の生成は旧Scene・保存ファイル・Native資源を変更しな
 
 `DPhysicsScene2D`／`3D::OnPhysicsStepCompleted` は、World.Stepと全PostPhysics予約が成功した後に一回だけ呼ばれる。ゲーム側の最後の反映とJointの成功観察が揃った境界である。固定更新0回、Pause、固定更新／Pre／Postの失敗、SceneのDestroy要求後には呼ばない。`IsAtPhysicsCompletionBoundary()` はこのフックの実行中だけtrueで、例外時にもfalseへ戻る。
 
-`GetCompletedPhysicsStepCount()` はWorldと全PostPhysicsが成功した境界を数える。完了フック自身が失敗した場合も物理は既に進んでおり、この数は巻き戻さない。採取結果を公開できたこととは別の値である。FCheckpointCapture2D／3Dは、この境界内だけでReadyとJoint保留要求を検査し、要求された文書を一度採取する。ACheckpointScene2D／3Dがこの境界と通常Navigatorへの接続を提供する。ゲーム固有Controllerと既存Sample UIへの適用は実装中。
+`GetCompletedPhysicsStepCount()` はWorldと全PostPhysicsが成功した境界を数える。完了フック自身が失敗した場合も物理は既に進んでおり、この数は巻き戻さない。採取結果を公開できたこととは別の値である。FCheckpointCapture2D／3Dは、この境界内だけでReadyとJoint保留要求を検査し、要求された文書を一度採取する。ACheckpointScene2D／3Dがこの境界と通常Navigatorへの接続を提供する。Sampleのゲーム固有Controllerと既存F1メニューへ接続している。
 
 ## 個体履歴と要求時の採取
 
@@ -144,7 +144,7 @@ Controllerは鍵・安全地点の型付きSensor exportを一度だけ解決す
 
 `FSaveCourseInput::Defaults` と `Policy` がゲームのActionと予約キーを提供する。完全な `ApplySettings(Settings, RawSnapshot)` は既存プロファイルの検証・強い失敗保証・解放後有効化を使う。ActionはUI消費の後、物理計画の前に一回更新する。0固定更新の押下を保留し、複数固定更新でも一回だけ消費する。Modal終了の押し続け、フォーカス喪失、Pad切断では保留操作を抑止する。UIで作られた偽の解放で解除待ちを終了しない。
 
-取得の効果音はScene有効化後の通常更新で既存AudioScopeへ再生し、準備・初期化・描画では再生しない。音量は起動中のPlaybackと次のPlayへ元の倍率から適用する。設定値の保存成功とは別である。UI倍率の実適用、SampleのSave／Continue UI、実画素は引き続き実装中。
+取得の効果音はScene有効化後の通常更新で既存AudioScopeへ再生し、準備・初期化・描画では再生しない。音量は起動中のPlaybackと次のPlayへ元の倍率から適用する。設定値の保存成功とは別である。UI倍率は既存表示先の描画とhit testへ同じ値で適用し、Save／Continue UIから要求を渡す。実画素の検証は引き続き実装中。
 
 ## Scene切替を越えるSampleの保存窓口
 
@@ -157,3 +157,13 @@ Controllerは鍵・安全地点の型付きSensor exportを一度だけ解決す
 [Session試験](../../Tests/SaveCourseSessionTests.cpp) は実Applicationで同期／既存Dispatcherの両経路を通し、Pause保存、異次元失敗時の旧Scene保持、取消し、旧要求の抑止、独立設定、Scene採用と必須Readyの区別を確認する。[別プロセス入口](../../Tests/SaveCourseProcess.cpp) と [実行器](../../Tools/VerifySaveCourseProcesses.py) は同じexeを再配置し、プロセスAで鍵取得・開扉・荷物生成・checkpoint・設定を保存して終了し、別Application／JobSystem／Worldを持つプロセスBでContinueする。日本語・空白の専用SaveRoot、別CWD、exeと原本AssetsのSHA-256を確認する。実BodyのJumpも保存したKへ変わる。描画・外部I/Oの境界は試験実装で、Native画素や人の操作の証拠ではない。
 
 [Controller試験](../../Tests/SaveCourseControllerTests.cpp) は実Application・World・Sensorで鍵取得、解錠、片側開扉、動的生成、成功境界採取、新Sceneでの二重得点抑止を確認する。入力変更も実BodyのImpulseで検証し、Keyboard／Mouse／Pad、0／複数固定更新、Modal閉鎖、切断・フォーカス喪失を含める。接触を作る試験用配置は試験が明示的にTeleportし、製品Controllerの移動方法とは区別する。同一プロセスのScene再開であり、別プロセス試験の代用にはしない。
+
+## 既存Sampleからの操作
+
+通常GameplaySampleは`ASaveCourseGameInstance`をApplicationに渡し、ユーザー保存領域を`FSaveStore::DefaultRoot("dxfGameplaySample")`で一度確定する。起動直後のキャラクターコースでIを押して相互作用コースへ進み、F1メニューから保存コースのNew／Continueを選ぶ。初期のC++コースとF2のContent読込を保持する。保存コースのF1にはNew 2D／3D、Continue、手動3系列、Save／Load、Checkpoint Retry、公開前Cancel、設定保存、公開結果未確定の明示再確認がある。従来C++コースへ戻る操作も通常Navigatorを使う。
+
+Scene所有の`FSaveCoursePanel`は要求と表示だけを担当する。手動上書きは既存Modalで対象系列を確認し、取消しでは保存しない。空・正常・破損・非互換・保存中・前の正常保存からの回復を表示する。一覧は初回、要求の終端、利用者の明示操作だけで更新し、通常の描画やTickで全ファイルを読み直さない。公開結果未確定を保存成功／Canceledと表示せず、同じトランザクションの再確認を要求できる。
+
+Keyboard／Mouse／4Padの再割当は既存採取と完全プロファイル検証を使い、開始クリック・競合・予約入力・閉鎖Frameの押し続けを抑止する。音量とUI倍率は適用済みと保存済みを別表示する。倍率はドラッグ終了時に適用し、操作途中でつまみの座標を動かさない。ロード候補の構築後に設定を変更した場合も、新Scene採用後の入力更新前に最新番号を照合し、独立設定を反映する。
+
+[UI試験](../../Tests/SaveCourseUiTests.cpp) は既存UIの実際の描画位置をクリックし、1001×501・倍率1.5・スクロール・1／2View、上書き取消し、割当変更後の実Body、設定保存、動的個体の生成・破棄、ロード時の入力抑止を両次元で確認する。文字描画と資源境界は試験実装であり、Native画素・人の操作・聴感の証拠ではない。

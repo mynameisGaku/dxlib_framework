@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: NOASSERTION
 #include "SaveCourseGameInstance.h"
+#include "InteractionScene2D.h"
+#include "InteractionScene3D.h"
 #include "SaveCourseRecipes.h"
 #include "SaveCourseScene2D.h"
 #include "SaveCourseScene3D.h"
@@ -8,6 +10,7 @@
 #include "Dxf/CheckpointCodec.h"
 #include "Dxf/UserSettingsCodec.h"
 #include "Dxf/SaveError.h"
+#include "Dxf/SaveCodec.h"
 namespace Dxf::GameplaySample
 {
 namespace
@@ -40,6 +43,8 @@ struct ASaveCourseGameInstance::FImpl
 	Toolbox::TOptional<FUserSettings> PendingSettings;
 	// Applicationが所有する資源窓口。Workerへ渡さない。
 	FAssetService* Assets = nullptr;
+	// Sceneへ明示して渡す非所有の長期owner。Workerへ捕捉しない。
+	ASaveCourseGameInstance* GameOwner = nullptr;
 	// ゲーム進行のScope付きCPU要求。
 	Toolbox::TUniquePtr<FGameSaveRequest> Saves;
 	// 設定はゲーム進行と別の要求・スロット系列。
@@ -56,12 +61,26 @@ struct ASaveCourseGameInstance::FImpl
 	FCheckpointSceneTicket CaptureSource;
 	// autosaveの重複をSceneごとに抑止する元世代。
 	FCheckpointSceneTicket AutoSource;
+	// 最新設定を適用したSceneの世代。別Sceneへポインタで追従しない。
+	FCheckpointSceneTicket SettingsSource;
+	// Sceneへ適用済みの設定変更番号。
+	Toolbox::uint64 AppliedSettingsRevision = 0;
 	// 書込前採取を待つ手動系列。
 	Toolbox::FString SaveSlot;
 	// 次の通常更新で読み込む系列。
 	Toolbox::FString LoadSlot;
 	// コア要求を出す前の失敗を含む表示用値。
 	Toolbox::FString Diagnostic;
+	// UI専用の瞬間表示。確定面の再検証は実際のLoadでも行う。
+	Toolbox::TArray<FSaveCourseSlot, 4> Slots;
+	// 初回と利用者の明示操作、要求の終端だけで一覧を更新する。
+	bool bRefreshSlots = true;
+	// 一覧が変わったときだけUIの文字を更新する番号。
+	Toolbox::uint64 SlotRevision = 0;
+	// 従来C++コースへ戻る通常更新の要求。
+	Toolbox::uint32 LegacyDimension = 0;
+	// 同じ終端を見て毎Frameファイルを読み直さない。
+	EGameSaveRequestState ObservedRequestState = EGameSaveRequestState::Canceled;
 	// 未受付New Gameの次元。0なら要求なし。
 	Toolbox::uint32 NewDimension = 0;
 	// 最新ロードの次元を固定する。
@@ -82,12 +101,79 @@ struct ASaveCourseGameInstance::FImpl
 	bool bSettingsDirty = true;
 	// 次の所有側更新の独立設定保存。
 	bool bSaveSettings = false;
+	// 公開結果未確定の進行保存だけを明示再確認する。
+	bool bRetryPublication = false;
+	// 独立設定の公開再確認。ゲーム進行へ混ぜない。
+	bool bRetrySettingsPublication = false;
 	// 次の更新で公開前取消しを実行する。
 	bool bCancel = false;
 	// 現在のロードadapter。0は進行保存や要求なし。
 	Toolbox::uint32 ActiveResume = 0;
 	FImpl(Toolbox::FPath Root, const FSceneContentSource& Source, bool Async) : Store(Toolbox::Move(Root)), Catalog2D(FSaveCourseRecipes::Load2D(Source)), Catalog3D(FSaveCourseRecipes::Load3D(Source)), bAsync(Async)
 	{
+		Slots[0].Name = "manual1";
+		Slots[1].Name = "manual2";
+		Slots[2].Name = "manual3";
+		Slots[3].Name = "autosave";
+	}
+	// 原因を値で残し、破損や非互換を空の保存と表示しない。
+	void RefreshSlots()
+	{
+		for (auto& Slot : Slots)
+		{
+			try
+			{
+				const auto Result = Store.Load(Slot.Name);
+				Slot.bOccupied = Result.Document.HasValue();
+				Slot.Reason = Result.RecoveryReason;
+				Slot.Status = !Result.Document ? "空" : Result.State == ESaveLoadState::RecoveredPrevious ? "前の正常保存から回復"
+				                                                                                          : "正常";
+				if (Result.Document)
+				{
+					if (Result.Document->Dimension == 2)
+					{
+						FSaveCodec::RequireCompatible(*Result.Document, Catalog2D.Identity);
+						(void)FCheckpointRestore::Build(FSaveCourseRecipes::Restore(FCheckpointCodec::Decode2D(*Result.Document)), Catalog2D);
+					}
+					else if (Result.Document->Dimension == 3)
+					{
+						FSaveCodec::RequireCompatible(*Result.Document, Catalog3D.Identity);
+						(void)FCheckpointRestore::Build(FSaveCourseRecipes::Restore(FCheckpointCodec::Decode3D(*Result.Document)), Catalog3D);
+					}
+					else
+					{
+						throw FSaveError(ESaveError::IncompatibleContent, "Slot does not contain a checkpoint");
+					}
+				}
+			}
+			catch (const FSaveError& Error)
+			{
+				Slot.bOccupied = true;
+				Slot.Status = Error.GetCode() == ESaveError::UnsupportedVersion || Error.GetCode() == ESaveError::IncompatibleContent ? "非互換" : "破損";
+				Slot.Reason = Error.What();
+			}
+			catch (const Toolbox::FException& Error)
+			{
+				Slot.bOccupied = true;
+				Slot.Status = "読取失敗／使用中";
+				Slot.Reason = Error.What();
+			}
+		}
+		bRefreshSlots = false;
+		++SlotRevision;
+	}
+	// 保存中の系列を表示する。通常UIからファイルを読まない。
+	void MarkWriting(const Toolbox::FString& Name)
+	{
+		for (auto& Slot : Slots)
+		{
+			if (Slot.Name == Name)
+			{
+				Slot.Status = "保存中";
+				Slot.Reason.Clear();
+				++SlotRevision;
+			}
+		}
 	}
 	// 依存先はApplicationが長く生存する。通常更新からだけ要求を構築する。
 	void Ensure(const FTickContext& Context)
@@ -104,7 +190,7 @@ struct ASaveCourseGameInstance::FImpl
 		                                                           },
 		                                                           [this](FPreparedScene2D Prepared, FCheckpointDocument2D Document) -> Toolbox::TUniquePtr<ACheckpointScene2D>
 		                                                           {
-			                                                           return Toolbox::MakeUnique<ASaveCourseScene2D>(Toolbox::Move(Prepared), Toolbox::Move(Document), PreparePrefab(Catalog2D.Prefabs.Back().Definition, *Assets), Settings);
+			                                                           return Toolbox::MakeUnique<ASaveCourseScene2D>(Toolbox::Move(Prepared), Toolbox::Move(Document), PreparePrefab(Catalog2D.Prefabs.Back().Definition, *Assets), Settings, GameOwner);
 		                                                           });
 		Resume3D = Toolbox::MakeUnique<FCheckpointResumeRequest3D>(*Saves, *Context.Scenes, *Assets, Catalog3D, [](const FCheckpointDocument3D& Document)
 		                                                           {
@@ -112,8 +198,19 @@ struct ASaveCourseGameInstance::FImpl
 		                                                           },
 		                                                           [this](FPreparedScene3D Prepared, FCheckpointDocument3D Document) -> Toolbox::TUniquePtr<ACheckpointScene3D>
 		                                                           {
-			                                                           return Toolbox::MakeUnique<ASaveCourseScene3D>(Toolbox::Move(Prepared), Toolbox::Move(Document), PreparePrefab(Catalog3D.Prefabs.Back().Definition, *Assets), Settings);
+			                                                           return Toolbox::MakeUnique<ASaveCourseScene3D>(Toolbox::Move(Prepared), Toolbox::Move(Document), PreparePrefab(Catalog3D.Prefabs.Back().Definition, *Assets), Settings, GameOwner);
 		                                                           });
+	}
+	// 候補構築後に変更した設定も、採用したSceneの入力更新より先に反映する。
+	template <typename TScene>
+	void SynchronizeSettings(TScene& Scene, const FInputSnapshot& Input)
+	{
+		if (SettingsSource.GetState() == ECheckpointSceneState::Ended || AppliedSettingsRevision != SettingsRevision)
+		{
+			Scene.ApplySettings(Settings, Input);
+			SettingsSource = Scene.GetResumeTicket();
+			AppliedSettingsRevision = SettingsRevision;
+		}
 	}
 	// 成功固定更新の文書だけを使う。GameInstanceが先に更新されても一つ後の境界を待つ。
 	template <typename TScene>
@@ -138,6 +235,7 @@ struct ASaveCourseGameInstance::FImpl
 			if (Capture.GetLastCapture() && (Scene.GetClock().IsPaused() || !Capture.HasCaptureRequest()))
 			{
 				Ticket = Saves->RequestSave(SaveSlot, FCheckpointCodec::Encode(*Capture.GetLastCapture()));
+				MarkWriting(SaveSlot);
 				SaveSlot.Clear();
 				bCaptureStarted = false;
 				ActiveResume = 0;
@@ -159,6 +257,7 @@ struct ASaveCourseGameInstance::FImpl
 			if (Progress.Checkpoint == "north" && Progress.Revision > AttemptedAutoRevision)
 			{
 				Ticket = Saves->RequestSave("autosave", FCheckpointCodec::Encode(*Last));
+				MarkWriting("autosave");
 				AttemptedAutoRevision = Progress.Revision;
 				ActiveResume = 0;
 			}
@@ -176,6 +275,7 @@ struct ASaveCourseGameInstance::FImpl
 };
 ASaveCourseGameInstance::ASaveCourseGameInstance(Toolbox::FPath SaveRoot, FSceneContentSource Content, bool bAsync) : m_pImpl(Toolbox::MakeUnique<FImpl>(Toolbox::Move(SaveRoot), Content, bAsync))
 {
+	m_pImpl->GameOwner = this;
 	SetTickWhenPaused(true);
 }
 ASaveCourseGameInstance::~ASaveCourseGameInstance()
@@ -185,10 +285,20 @@ ASaveCourseGameInstance::~ASaveCourseGameInstance()
 void ASaveCourseGameInstance::RequestNewGame(Toolbox::uint32 Dimension)
 {
 	RequireDimension(Dimension);
+	m_pImpl->LegacyDimension = 0;
 	m_pImpl->LoadSlot.Clear();
 	m_pImpl->SaveSlot.Clear();
 	m_pImpl->bCaptureStarted = false;
 	m_pImpl->NewDimension = Dimension;
+}
+void ASaveCourseGameInstance::RequestLegacyCourse(Toolbox::uint32 Dimension)
+{
+	RequireDimension(Dimension);
+	m_pImpl->NewDimension = 0;
+	m_pImpl->LoadSlot.Clear();
+	m_pImpl->SaveSlot.Clear();
+	m_pImpl->bCaptureStarted = false;
+	m_pImpl->LegacyDimension = Dimension;
 }
 void ASaveCourseGameInstance::RequestSave(Toolbox::FString Slot)
 {
@@ -212,6 +322,7 @@ void ASaveCourseGameInstance::RequestLoad(Toolbox::uint32 Dimension, Toolbox::FS
 		throw Toolbox::FException("Save course slot must not be empty");
 	}
 	m_pImpl->NewDimension = 0;
+	m_pImpl->LegacyDimension = 0;
 	m_pImpl->SaveSlot.Clear();
 	m_pImpl->bCaptureStarted = false;
 	m_pImpl->LoadDimension = Dimension;
@@ -233,6 +344,17 @@ void ASaveCourseGameInstance::RequestSettings(FUserSettings Settings)
 void ASaveCourseGameInstance::RequestSettingsSave() noexcept
 {
 	m_pImpl->bSaveSettings = true;
+}
+void ASaveCourseGameInstance::RequestPublicationRetry(bool bSettings) noexcept
+{
+	if (bSettings)
+	{
+		m_pImpl->bRetrySettingsPublication = true;
+	}
+	else
+	{
+		m_pImpl->bRetryPublication = true;
+	}
 }
 const FUserSettings& ASaveCourseGameInstance::GetSettings() const noexcept
 {
@@ -257,6 +379,22 @@ FGameSaveTicket ASaveCourseGameInstance::GetSettingsTicket() const
 const Toolbox::FString& ASaveCourseGameInstance::GetDiagnostic() const noexcept
 {
 	return m_pImpl->Diagnostic;
+}
+const Toolbox::TArray<FSaveCourseSlot, 4>& ASaveCourseGameInstance::GetSlots() const noexcept
+{
+	return m_pImpl->Slots;
+}
+Toolbox::uint64 ASaveCourseGameInstance::GetSlotRevision() const noexcept
+{
+	return m_pImpl->SlotRevision;
+}
+Toolbox::uint64 ASaveCourseGameInstance::GetSettingsRevision() const noexcept
+{
+	return m_pImpl->SettingsRevision;
+}
+void ASaveCourseGameInstance::RequestSlotRefresh() noexcept
+{
+	m_pImpl->bRefreshSlots = true;
 }
 TResult<void> ASaveCourseGameInstance::OnInitialize(const FInitContext& Context)
 {
@@ -291,6 +429,7 @@ void ASaveCourseGameInstance::OnTick(const FTickContext& Context)
 		I.SaveSlot.Clear();
 		I.LoadSlot.Clear();
 		I.NewDimension = 0;
+		I.LegacyDimension = 0;
 		I.bCaptureStarted = false;
 		const bool Canceled = I.ActiveResume == 2 ? I.Resume2D->Cancel() : I.ActiveResume == 3 ? I.Resume3D->Cancel()
 		                                                                                       : I.Saves->Cancel();
@@ -300,8 +439,24 @@ void ASaveCourseGameInstance::OnTick(const FTickContext& Context)
 		}
 		I.bCancel = false;
 	}
+	if (I.bRetryPublication)
+	{
+		I.bRetryPublication = false;
+		if (!I.Saves->RetryPublication())
+		{
+			I.Diagnostic = "公開結果未確定の進行保存はありません。";
+		}
+	}
+	if (I.bRetrySettingsPublication)
+	{
+		I.bRetrySettingsPublication = false;
+		if (!I.SettingsSaves->RetryPublication())
+		{
+			I.Diagnostic = "公開結果未確定の設定保存はありません。";
+		}
+	}
 	// New Gameも遅れた旧ロードより先に受付する。切替済み候補は既存境界まで待つ。
-	if (I.NewDimension != 0 && I.ActiveResume != 0 && I.Ticket.GetState() != EGameSaveRequestState::TransitionRequested)
+	if ((I.NewDimension != 0 || I.LegacyDimension != 0) && I.ActiveResume != 0 && I.Ticket.GetState() != EGameSaveRequestState::TransitionRequested)
 	{
 		(void)(I.ActiveResume == 2 ? I.Resume2D->Cancel() : I.Resume3D->Cancel());
 	}
@@ -345,8 +500,38 @@ void ASaveCourseGameInstance::OnTick(const FTickContext& Context)
 	{
 		I.bSettingsDirty = false;
 	}
+	const auto RequestState = I.Ticket.GetState();
+	if (RequestState != I.ObservedRequestState)
+	{
+		I.ObservedRequestState = RequestState;
+		if (!IsWorking(RequestState))
+		{
+			I.bRefreshSlots = true;
+		}
+	}
+	if (I.bRefreshSlots)
+	{
+		I.RefreshSlots();
+	}
 	try
 	{
+		// 従来コースへの要求も通常Navigator境界へ任せる。
+		if (I.LegacyDimension != 0)
+		{
+			if (IsWorking(I.Ticket.GetState()))
+			{
+				I.Diagnostic = "保存または再開の確定を待ってください。";
+				return;
+			}
+			const auto Dimension = I.LegacyDimension;
+			I.LegacyDimension = 0;
+			const auto Result = Dimension == 2 ? Context.Scenes->RequestChange<DInteraction2DScene>() : Context.Scenes->RequestChange<DInteraction3DScene>();
+			if (!Result)
+			{
+				throw Toolbox::FException(Result.Error().Message);
+			}
+			I.LegacyDimension = 0;
+		}
 		// 通常Scene更新より先に元Snapshotで全体適用する。GameInstanceはActionを更新しない。
 		if (I.PendingSettings)
 		{
@@ -359,10 +544,14 @@ void ASaveCourseGameInstance::OnTick(const FTickContext& Context)
 				if (auto* C2 = Scene->TryCast<ASaveCourseScene2D>())
 				{
 					C2->ApplySettings(*I.PendingSettings, Context.Input);
+					I.SettingsSource = C2->GetResumeTicket();
+					I.AppliedSettingsRevision = I.SettingsRevision + 1;
 				}
 				if (auto* C3 = Scene->TryCast<ASaveCourseScene3D>())
 				{
 					C3->ApplySettings(*I.PendingSettings, Context.Input);
+					I.SettingsSource = C3->GetResumeTicket();
+					I.AppliedSettingsRevision = I.SettingsRevision + 1;
 				}
 			}
 			I.Settings = Toolbox::Move(*I.PendingSettings);
@@ -393,13 +582,13 @@ void ASaveCourseGameInstance::OnTick(const FTickContext& Context)
 				{
 					const auto Initial = FSaveCourseRecipes::NewGame(I.Catalog2D);
 					const auto Plan = FCheckpointRestore::Build(Initial, I.Catalog2D);
-					Requested = Context.Scenes->RequestChange<ASaveCourseScene2D>(PrepareScene(Plan.Scene, *I.Assets), Initial, PreparePrefab(I.Catalog2D.Prefabs.Back().Definition, *I.Assets), I.Settings);
+					Requested = Context.Scenes->RequestChange<ASaveCourseScene2D>(PrepareScene(Plan.Scene, *I.Assets), Initial, PreparePrefab(I.Catalog2D.Prefabs.Back().Definition, *I.Assets), I.Settings, this);
 				}
 				else
 				{
 					const auto Initial = FSaveCourseRecipes::NewGame(I.Catalog3D);
 					const auto Plan = FCheckpointRestore::Build(Initial, I.Catalog3D);
-					Requested = Context.Scenes->RequestChange<ASaveCourseScene3D>(PrepareScene(Plan.Scene, *I.Assets), Initial, PreparePrefab(I.Catalog3D.Prefabs.Back().Definition, *I.Assets), I.Settings);
+					Requested = Context.Scenes->RequestChange<ASaveCourseScene3D>(PrepareScene(Plan.Scene, *I.Assets), Initial, PreparePrefab(I.Catalog3D.Prefabs.Back().Definition, *I.Assets), I.Settings, this);
 				}
 				if (!Requested)
 				{
@@ -424,10 +613,12 @@ void ASaveCourseGameInstance::OnTick(const FTickContext& Context)
 		{
 			if (auto* C2 = Scene->TryCast<ASaveCourseScene2D>())
 			{
+				I.SynchronizeSettings(*C2, Context.Input);
 				I.PollCapture(*C2);
 			}
 			else if (auto* C3 = Scene->TryCast<ASaveCourseScene3D>())
 			{
+				I.SynchronizeSettings(*C3, Context.Input);
 				I.PollCapture(*C3);
 			}
 			else if (!I.SaveSlot.IsEmpty())

@@ -116,7 +116,14 @@ public:
 	 */
 	void RequestCargo() noexcept
 	{
-		m_bSpawn = true;
+		m_bCargoRequested = true;
+	}
+	/**
+	 * UIの明示除去を次の通常固定更新へ保留する。Pause中の入力抑止で消さない。
+	 */
+	void RequestDestroyCargo() noexcept
+	{
+		m_bDestroyCargo = true;
 	}
 	/**
 	 * @param Context 全PostPhysicsが成功した一貫した境界。World.Stepを追加しない。
@@ -206,10 +213,24 @@ protected:
 			(void)RequestDoor(0, !m_bGoalOpen[0]);
 			m_bInteract = false;
 		}
-		if (m_bSpawn)
+		if (m_bDestroyCargo)
+		{
+			if (m_Progress.SpawnCounter != 0)
+			{
+				const auto Key = Toolbox::FString("cargo") + Toolbox::FJsonWriter::Unsigned(m_Progress.SpawnCounter);
+				if (m_Scene.GetCheckpointCapture().Destroy(m_Scene, Key))
+				{
+					Increment(m_Progress.Revision);
+					m_bDirty = true;
+				}
+			}
+			m_bDestroyCargo = false;
+		}
+		if (m_bSpawn || m_bCargoRequested)
 		{
 			SpawnCargo();
 			m_bSpawn = false;
+			m_bCargoRequested = false;
 		}
 		for (Toolbox::uint32 Index = 0; Index < 2; ++Index)
 		{
@@ -291,6 +312,14 @@ private:
 	FInputMap m_Input;
 	// 取得済み状態を最初のイベントより先に保持する。
 	FSaveCourseProgress m_Progress;
+	/**
+	 * UIからの生成は入力の押下履歴と別に保留する。
+	 */
+	bool m_bCargoRequested = false;
+	/**
+	 * 明示した最新荷物の除去。論理カウンターは減らさない。
+	 */
+	bool m_bDestroyCargo = false;
 	// 元のプレイヤーComponent。破棄後は再検索しない。
 	TObjectHandle<TBody> m_Player;
 	// 音の公開先を持つ元の扉個体。

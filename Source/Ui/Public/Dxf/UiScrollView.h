@@ -52,6 +52,7 @@ struct FUiScrollInertia
  * 縦・横・両方向のスクロールの入れ物。内容の配置・クリップ・残りホイール・つまみ操作を一か所で扱う。
  * ホイールの1ノッチは表示寸法の割合、または指定した論理距離。縦のホイールは縦、Shift＋ホイール（横のノッチ）は横へ使い、
  * 使いきれなかった分は軸ごとに外側へ渡す。
+ * SetFocusable(false)の入れ物は子の方向操作を消費せず、ボタン間の移動へ残す。ホイールとバーは利用できる。
  */
 class DUiScrollView : public DUiElement
 {
@@ -171,7 +172,7 @@ protected:
 	 */
 	void OnPointerEvent(FUiPointerEvent& Event) override;
 	/**
-	 * 方向操作によるスクロール（横は横の軸があるときだけ）。
+	 * フォーカス可能な場合の方向操作によるスクロール（横は横の軸があるときだけ）。
 	 */
 	void OnNavigationEvent(FUiNavigationEvent& Event) override;
 	/**
