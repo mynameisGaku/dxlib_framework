@@ -123,6 +123,14 @@ bool IsDirectory(const FPath& Path);
  */
 bool ReadFileBytes(const FPath& Path, TVector<uint8>& Out, size_t MaxBytes);
 /**
+ * ファイル先頭を最大指定バイトまで読む。存在しなければfalse、読取失敗は例外を返す。
+ * 全量読込や形式検証を完了したことにはしない。失敗時は出力を変更しない。
+ * @param Path 読み取る通常ファイル。
+ * @param Out 読み取った先頭バイトの格納先。
+ * @param MaxBytes 確保・読取する先頭の最大長。
+ */
+bool ReadFilePrefix(const FPath& Path, TVector<uint8>& Out, size_t MaxBytes);
+/**
  * ファイルを新規コピーする。既存のコピー先は上書きしない。
  * @param Source 読み取り元のパス。
  * @param Destination 新規作成するコピー先のパス。
@@ -204,7 +212,8 @@ public:
 	/**
 	 * 値を指定した出力先へ書き出す。
 	 */
-	template <typename T> const FConsole& operator<<(T Value) const
+	template <typename T>
+	const FConsole& operator<<(T Value) const
 	{
 		return *this << ToString(Value);
 	}

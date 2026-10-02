@@ -43,6 +43,7 @@ FSaveTransaction::FSaveTransaction(FSaveTransaction&& Other) noexcept = default;
 FSaveTransaction& FSaveTransaction::operator=(FSaveTransaction&& Other) noexcept = default;
 FSaveTransaction FSaveTransaction::Prepare(const FPath& Root, FString Slot, FSaveDocument Document, FSaveLimits Limits)
 {
+	ValidateSaveLimits(Limits);
 	ValidateSaveLocation(Root, Slot);
 	// 全確保は公開前に行い、失敗で元の確定面を触らない。
 	TUniquePtr<FImpl> Impl = MakeUnique<FImpl>();
@@ -103,14 +104,17 @@ uint64 FSaveTransaction::Publish()
 	}
 	// 名前公開失敗時も、実際に新世代が存在するか必ず検査する。
 	bool Failed = false;
+	// 名前公開が失敗したOS原因を読戻し検査後も保持する。
+	uint32 FailureCode = 0;
 	m_pImpl->PublicationAttempted = true;
 	try
 	{
 		PublishFile(m_pImpl->Temporary, m_pImpl->Destination);
 	}
-	catch (const FFileError&)
+	catch (const FFileError& Error)
 	{
 		Failed = true;
+		FailureCode = Error.GetCode();
 	}
 	// 公開対象を保持したまま、全ファイルの実バイトを照合する。
 	TVector<uint8> ReadBack;
@@ -120,7 +124,7 @@ uint64 FSaveTransaction::Publish()
 		{
 			if (Failed)
 			{
-				throw FFileError(EFileOperation::Publish, 0);
+				throw FFileError(EFileOperation::Publish, FailureCode);
 			}
 			throw FSaveError(ESaveError::PublicationUnknown, "Published save could not be verified");
 		}

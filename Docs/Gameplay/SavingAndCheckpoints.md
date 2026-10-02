@@ -10,7 +10,15 @@ L0〜L10の実装を進めている。現在利用できるのは任意リンク
 
 UTF-8、復号後の重複キー、非有限数値、末尾データ、未知field、未知の形式バージョンを既存Toolbox JSON readerで拒否する。既定上限は8MiB、深度64、文字列64KiB、値128K、論理キー512bytes。世代は符号・先頭ゼロなしの十進文字列であり、f64を経由しない。Writerは復号済み辞書キーをUTF-8バイト順に並べ、配列順と数値の元の検証済み字句を保持する。したがって1と1.0の字句まで同一へ統一する正準化ではない。
 
-`RequireCompatible`はゲーム／Content／Scene／次元／payloadバージョンを厳格に照合する。revisionは呼出し側の明示値であり、現在の保存コアが資源のバイト一致や準備済みContentの指紋を自動採取したという保証はない。準備に使った定義バイトの指紋保持と型付きpayload移行は後続の再開adapterで実装する。
+`RequireCompatible`はゲーム／Content／Scene／次元／payloadバージョンを厳格に照合する。revisionは呼出し側の明示値であり、保存コアが資源のバイト一致を自動採取したという保証はない。SceneContentのファイル準備結果には、実際に読んだ定義バイトの`ContentFingerprint`がある。再開adapterでこの値とアセットbundle revisionを照合する接続はまだ実装中である。
+
+## 明示的なゲームデータ移行
+
+`FSaveCodec::Migrate`は、形式・ゲーム・Content・Scene・次元を先に照合してから、指定された`FSavePayloadMigration`のFromVersion／ToVersionと純粋なConvertを使う。変更する値はゲームpayloadとゲームバージョンだけで、世代や識別は維持する。変換後もJSON、封筒、有限上限を再検査する。payloadのゲーム固有型・範囲はConvert側のcodecが検証する。
+
+未知の将来ゲームバージョン、変換がない古いバージョン、異なるゲーム／Contentは拒否する。元保存を自動的に上書きしない。移行値を保存する場合は、利用者が別の新規slotを明示する。`RequestLoad`の任意Migrationも同じ処理をWorkerで行い、失敗した結果は最後の正常な採用値を置き換えない。
+
+`Tests/Data/SaveData/legacy_progress_v1.json`は今回のゲームschema移行試験用fixtureで、過去に配布したフレームワークとの互換性を示す資料ではない。coinsからscoreへの変換、未知バージョン、別Content、変換先の重複key／容量超過、元バイト保持を検証する。公開targetだけを使う移行例は`Tools/PackageConsumer/SaveCore.cpp`にも登録した。
 
 ## 最小の同期利用
 
@@ -39,6 +47,8 @@ slotはパスではなく短いASCII識別子で、区切り、..、NUL、Window
 Storeは非待機のslot排他をOSから取得し、最新の正常面を変更しない。反対面の専用tempをCREATE_NEWで作り、全量write、flush、明示close、全バイト読戻し検証を行う。`Stage`が返す`FSaveTransaction`はまだ公開していない。`Publish`が反対面だけへ公開し、実ファイルの完全一致を確認して世代を返す。
 
 読込は最高の正常世代を使う。片面不正なら`RecoveredPrevious`と元の理由を返す。両面不正、同世代の異なるpayload、明確な将来バージョンは通常成功にしない。既存Store／別プロセスのWriterと競合するとBusyで拒否し、永続待機しない。lockファイルの存在だけではBusyにならず、プロセス終了でOSの排他が解放される。
+
+容量を超える面も先頭192バイトだけでヘッダーを確認し、明確な未知の面バージョンなら旧面への回復・次の保存を拒否する。この先頭読込を全量検証成功とは扱わない。破損した既知の面は元の容量超過原因を保持し、反対面の正常値から回復できる。上限そのものは公開トランザクション入口でもOS操作前に検証する。
 
 公開前のCancelは確定面を変更しない。公開を試みた後の成否不明は`PublicationUnknown`で、Canceledとは表示しない。トランザクションが保持する排他のもとで同じPublishを明示再試行し、実面を検証できる。公開確認後のCancelはfalse。最新正常面の保持と全ファイルシステム・実電源断の耐久性は別であり、後者は証明していない。
 

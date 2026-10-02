@@ -39,6 +39,25 @@ Toolbox::int32 Run(const Toolbox::FString& Mode, const Toolbox::FPath& Root)
 		{
 			throw Toolbox::FException("Core consumer lost exact counter");
 		}
+		// ゲームが明示した純粋変換だけを採用し、元スロットへ書き戻さない。
+		auto Current = Expected();
+		Current.GameVersion = 2;
+		Dxf::FSavePayloadMigration Migration;
+		Migration.FromVersion = 1;
+		Migration.ToVersion = 2;
+		Migration.Convert = [](Toolbox::FStringView Bytes)
+		{
+			if (Bytes != Expected().Payload)
+			{
+				throw Toolbox::FException("Invalid legacy core payload");
+			}
+			return Toolbox::FString("{\"collected\":true,\"counter\":\"9007199254740993\",\"score\":42,\"unlocked\":false}");
+		};
+		const auto Migrated = Dxf::FSaveCodec::Migrate(*Loaded.Document, Current, Migration);
+		if (Migrated.GameVersion != 2 || Migrated.Generation != 1 || Store.Load("manual").Document->GameVersion != 1)
+		{
+			throw Toolbox::FException("Migration altered source save or identity");
+		}
 	}
 	else
 	{

@@ -102,6 +102,121 @@ TEST("Save SHA256 binary block boundaries match independent reference digests")
 		REQUIRE(FSha256::Compute(Bytes) == Expected[I]);
 	}
 }
+TEST("Save explicitly migrates legacy game payload fixture without changing file or generation")
+{
+	// この機能で宣言する旧ゲームschema fixture。過去の製品バージョン互換とは主張しない。
+	const FPath Fixture = FPath(DXF_SAVE_FIXTURE_ROOT) / FPath("legacy_progress_v1.json");
+	const FString Before = Read(Fixture);
+	const auto Legacy = FSaveCodec::Decode(Before);
+	FSaveDocument Expected = Document();
+	Expected.GameVersion = 2;
+	FSavePayloadMigration Migration;
+	Migration.FromVersion = 1;
+	Migration.ToVersion = 2;
+	Migration.Convert = [](FStringView Bytes)
+	{
+		// coinsだけを持つ既知の旧値を検証し、scoreへの改名を行う。
+		const auto Json = FJsonDocument::Parse(Bytes);
+		const auto Index = Json.Find(0, "coins");
+		if (Json.Size() != 2 || Index < 0 || Json.Get(Index).Kind != EJsonKind::Number)
+		{
+			throw FException("Invalid legacy game payload");
+		}
+		return FString("{\"score\":") + FJsonWriter::Unsigned(FJsonWriter::ParseUnsigned(Json.Get(Index).Text)) + "}";
+	};
+	const auto Migrated = FSaveCodec::Migrate(Legacy, Expected, Migration);
+	REQUIRE(Migrated.GameVersion == 2 && Migrated.Generation == Legacy.Generation);
+	REQUIRE(Migrated.Payload == "{\"score\":7}");
+	REQUIRE(Legacy.Payload == "{\"coins\":7}");
+	REQUIRE(Read(Fixture) == Before);
+	// 新しい専用系列へ明示保存するまで、元保存は上書きしない。
+	FSaveStore Store(NewRoot());
+	REQUIRE(Store.Save("migrated", Migrated) == 1);
+	REQUIRE(Store.Load("migrated").Document->Payload == "{\"score\":7}");
+}
+TEST("Save migration rejects future payload and incompatible identity before conversion")
+{
+	FSaveDocument Source = Document();
+	FSaveDocument Expected = Document();
+	Expected.GameVersion = 2;
+	FSavePayloadMigration Migration;
+	Migration.FromVersion = 1;
+	Migration.ToVersion = 2;
+	Migration.Convert = [](FStringView) -> FString
+	{
+		throw FException("Conversion must not run for incompatible identity");
+	};
+	Source.GameId = "another_game";
+	Reject([&]
+	       {
+		       FSaveCodec::Migrate(Source, Expected, Migration);
+	       },
+	       ESaveError::IncompatibleContent);
+	Source = Document();
+	Source.ContentRevision = "other";
+	Reject([&]
+	       {
+		       FSaveCodec::Migrate(Source, Expected, Migration);
+	       },
+	       ESaveError::IncompatibleContent);
+	Source = Document();
+	Source.GameVersion = 3;
+	Reject([&]
+	       {
+		       FSaveCodec::Migrate(Source, Expected, Migration);
+	       },
+	       ESaveError::UnsupportedVersion);
+	Source = Document();
+	Reject([&]
+	       {
+		       FSaveCodec::Migrate(Source, Expected);
+	       },
+	       ESaveError::UnsupportedVersion);
+}
+TEST("Save migration revalidates output schema syntax and configured byte limit")
+{
+	FSaveDocument Expected = Document();
+	Expected.GameVersion = 2;
+	FSavePayloadMigration Migration;
+	Migration.FromVersion = 1;
+	Migration.ToVersion = 2;
+	Migration.Convert = [](FStringView)
+	{
+		return FString("[]");
+	};
+	Reject([&]
+	       {
+		       FSaveCodec::Migrate(Document(), Expected, Migration);
+	       },
+	       ESaveError::InvalidDocument);
+	Migration.Convert = [](FStringView)
+	{
+		return FString("{\"x\":1,\"x\":2}");
+	};
+	Reject([&]
+	       {
+		       FSaveCodec::Migrate(Document(), Expected, Migration);
+	       },
+	       ESaveError::InvalidDocument);
+	Migration.Convert = [](FStringView)
+	{
+		FString Text;
+		Text.Resize(600);
+		for (size_t I = 0; I < Text.Size(); ++I)
+		{
+			Text[I] = 'a';
+		}
+		return FString("{\"text\":") + FJsonWriter::Quote(Text) + "}";
+	};
+	FSaveLimits Limits;
+	Limits.MaxBytes = 512;
+	Limits.MaxStringBytes = 512;
+	Reject([&]
+	       {
+		       FSaveCodec::Migrate(Document(), Expected, Migration, Limits);
+	       },
+	       ESaveError::InvalidDocument);
+}
 TEST("Save writer sorts decoded keys and preserves array order")
 {
 	REQUIRE(FJsonWriter::Write(FJsonDocument::Parse("{\"z\":[2,1],\"a\":18446744073709551615}")) == "{\"a\":18446744073709551615,\"z\":[2,1]}");
@@ -533,6 +648,64 @@ TEST("Save oversized corrupt face recovers valid bounded face")
 	Write(Store.GetRoot() / FPath("manual.b"), Broken);
 	REQUIRE(Store.Load("manual").State == ESaveLoadState::RecoveredPrevious);
 	REQUIRE(Store.Load("manual").Document->Generation == 1);
+}
+TEST("Save oversized future face refuses downgrade and overwrite")
+{
+	FSaveLimits Limits;
+	Limits.MaxBytes = 512;
+	Limits.MaxStringBytes = 512;
+	FSaveStore Store(NewRoot(), Limits);
+	Store.Save("manual", Document());
+	const FString Protected = Read(Store.GetRoot() / FPath("manual.a"));
+	FString Future("DXFSAVE\n2\n");
+	Future.Resize(900);
+	Write(Store.GetRoot() / FPath("manual.b"), Future);
+	Reject([&]
+	       {
+		       Store.Load("manual");
+	       },
+	       ESaveError::UnsupportedVersion);
+	Reject([&]
+	       {
+		       Store.Save("manual", Document());
+	       },
+	       ESaveError::UnsupportedVersion);
+	REQUIRE(Read(Store.GetRoot() / FPath("manual.a")) == Protected);
+	REQUIRE(Read(Store.GetRoot() / FPath("manual.b")) == Future);
+}
+TEST("Save direct transaction validates byte limits before file access")
+{
+	const FPath Location = NewRoot();
+	FSaveLimits Invalid;
+	Invalid.MaxBytes = TNumericLimits<size_t>::Max();
+	Reject([&]
+	       {
+		       FSaveTransaction::Prepare(Location, "manual", Document(), Invalid);
+	       },
+	       ESaveError::InvalidDocument);
+	REQUIRE(!IsDirectory(Location));
+}
+TEST("File prefix reads only requested bytes while full read rejects excess")
+{
+	FSaveStore Store(NewRoot());
+	const FPath Path = Store.GetRoot() / FPath("prefix-test");
+	Write(Path, "0123456789");
+	TVector<uint8> Bytes;
+	REQUIRE(ReadFilePrefix(Path, Bytes, 3));
+	REQUIRE(Bytes.Size() == 3 && Bytes[0] == '0' && Bytes[2] == '2');
+	bool Failed = false;
+	try
+	{
+		ReadFileBytes(Path, Bytes, 3);
+	}
+	catch (const FFileError& Error)
+	{
+		REQUIRE(Error.GetOperation() == EFileOperation::SizeLimit);
+		Failed = true;
+	}
+	REQUIRE(Failed && Bytes.Size() == 3);
+	REQUIRE(ReadFilePrefix(Path, Bytes, 12) && Bytes.Size() == 10);
+	REQUIRE(ReadFilePrefix(Path, Bytes, 0) && Bytes.IsEmpty());
 }
 #if defined(_WIN32)
 TEST("Save publication sharing violation retains protected face and cannot report canceled")

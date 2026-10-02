@@ -1,20 +1,25 @@
 // SPDX-License-Identifier: NOASSERTION
 #include "Dxf/SaveCodec.h"
 #include "Dxf/SaveError.h"
+#include "Dxf/SaveStorage.h"
 #include "Toolbox/JsonError.h"
 #include "Toolbox/JsonWriter.h"
 namespace Dxf
 {
 using namespace Toolbox;
-namespace
-{
-// 入力と出力の双方で使う有限上限。
-FJsonLimits JsonLimits(FSaveLimits Limits)
+void ValidateSaveLimits(FSaveLimits Limits)
 {
 	if (Limits.MaxBytes == 0 || Limits.MaxBytes > 64 * 1024 * 1024 || Limits.MaxDepth == 0 || Limits.MaxDepth > 64 || Limits.MaxStringBytes == 0 || Limits.MaxStringBytes > Limits.MaxBytes || Limits.MaxValues == 0 || Limits.MaxKeyBytes == 0 || Limits.MaxKeyBytes > Limits.MaxStringBytes)
 	{
 		throw FSaveError(ESaveError::InvalidDocument, "Invalid save limits");
 	}
+}
+namespace
+{
+// 入力と出力の双方で使う有限上限。
+FJsonLimits JsonLimits(FSaveLimits Limits)
+{
+	ValidateSaveLimits(Limits);
 	return {Limits.MaxBytes, Limits.MaxDepth, Limits.MaxStringBytes, Limits.MaxValues};
 }
 // ASCIIの論理キーだけを解決入口へ通す。
@@ -116,39 +121,46 @@ void Validate(const FSaveDocument& Value, FSaveLimits Limits)
 } // namespace
 FString FSaveCodec::Encode(const FSaveDocument& Document, FSaveLimits Limits)
 {
-	// 読解と出力の共通上限。
-	const FJsonLimits Bound = JsonLimits(Limits);
-	Validate(Document, Limits);
-	// ゲームの型付きcodecから受け取った純粋payload。
-	const FJsonDocument Payload = FJsonDocument::Parse(Document.Payload, Bound);
-	if (Payload.Get(0).Kind != EJsonKind::Object)
+	try
 	{
-		throw FSaveError(ESaveError::InvalidDocument, "Save payload must be an object");
+		// 読解と出力の共通上限。
+		const FJsonLimits Bound = JsonLimits(Limits);
+		Validate(Document, Limits);
+		// ゲームの型付きcodecから受け取った純粋payload。
+		const FJsonDocument Payload = FJsonDocument::Parse(Document.Payload, Bound);
+		if (Payload.Get(0).Kind != EJsonKind::Object)
+		{
+			throw FSaveError(ESaveError::InvalidDocument, "Save payload must be an object");
+		}
+		// 固定のschemaだけを生成し、ゲームpayloadを任意fieldへ拡散しない。
+		FString Bytes("{\"format\":");
+		Bytes += FJsonWriter::Unsigned(Document.FormatVersion);
+		Bytes += ",\"kind\":";
+		Bytes += FJsonWriter::Quote(Document.Kind == ESaveDocumentKind::Progress ? "progress" : "settings");
+		Bytes += ",\"gameId\":";
+		Bytes += FJsonWriter::Quote(Document.GameId);
+		Bytes += ",\"gameVersion\":";
+		Bytes += FJsonWriter::Unsigned(Document.GameVersion);
+		Bytes += ",\"contentRevision\":";
+		Bytes += FJsonWriter::Quote(Document.ContentRevision);
+		Bytes += ",\"scene\":";
+		Bytes += FJsonWriter::Quote(Document.SceneKey);
+		Bytes += ",\"dimension\":";
+		Bytes += FJsonWriter::Unsigned(Document.Dimension);
+		Bytes += ",\"checkpoint\":";
+		Bytes += FJsonWriter::Quote(Document.CheckpointKey);
+		Bytes += ",\"generation\":";
+		Bytes += FJsonWriter::Quote(FJsonWriter::Unsigned(Document.Generation));
+		Bytes += ",\"payload\":";
+		Bytes += FJsonWriter::Write(Payload, 0, Limits.MaxBytes);
+		Bytes += '}';
+		// 封筒による深度・バイト増加も同じ制限で検査する。
+		return FJsonWriter::Write(FJsonDocument::Parse(Bytes, Bound), 0, Limits.MaxBytes);
 	}
-	// 固定のschemaだけを生成し、ゲームpayloadを任意fieldへ拡散しない。
-	FString Bytes("{\"format\":");
-	Bytes += FJsonWriter::Unsigned(Document.FormatVersion);
-	Bytes += ",\"kind\":";
-	Bytes += FJsonWriter::Quote(Document.Kind == ESaveDocumentKind::Progress ? "progress" : "settings");
-	Bytes += ",\"gameId\":";
-	Bytes += FJsonWriter::Quote(Document.GameId);
-	Bytes += ",\"gameVersion\":";
-	Bytes += FJsonWriter::Unsigned(Document.GameVersion);
-	Bytes += ",\"contentRevision\":";
-	Bytes += FJsonWriter::Quote(Document.ContentRevision);
-	Bytes += ",\"scene\":";
-	Bytes += FJsonWriter::Quote(Document.SceneKey);
-	Bytes += ",\"dimension\":";
-	Bytes += FJsonWriter::Unsigned(Document.Dimension);
-	Bytes += ",\"checkpoint\":";
-	Bytes += FJsonWriter::Quote(Document.CheckpointKey);
-	Bytes += ",\"generation\":";
-	Bytes += FJsonWriter::Quote(FJsonWriter::Unsigned(Document.Generation));
-	Bytes += ",\"payload\":";
-	Bytes += FJsonWriter::Write(Payload, 0, Limits.MaxBytes);
-	Bytes += '}';
-	// 封筒による深度・バイト増加も同じ制限で検査する。
-	return FJsonWriter::Write(FJsonDocument::Parse(Bytes, Bound), 0, Limits.MaxBytes);
+	catch (const FJsonError& Error)
+	{
+		throw FSaveError(ESaveError::InvalidDocument, Error.What(), Error.GetLine(), Error.GetColumn());
+	}
 }
 FSaveDocument FSaveCodec::Decode(FStringView Bytes, FSaveLimits Limits)
 {
@@ -217,5 +229,30 @@ void FSaveCodec::RequireCompatible(const FSaveDocument& Document, const FSaveDoc
 	{
 		throw FSaveError(ESaveError::IncompatibleContent, "Save identity or content revision mismatch");
 	}
+}
+FSaveDocument FSaveCodec::Migrate(const FSaveDocument& Document, const FSaveDocument& Expected, const FSavePayloadMigration& Migration, FSaveLimits Limits)
+{
+	// 手で作られた値も、入力上限と封筒の意味を先に確認する。
+	FSaveDocument Result = Decode(Encode(Document, Limits), Limits);
+	FSaveDocument Identity = Expected;
+	Identity.GameVersion = Result.GameVersion;
+	RequireCompatible(Result, Identity);
+	if (Result.GameVersion > Expected.GameVersion)
+	{
+		throw FSaveError(ESaveError::UnsupportedVersion, "Future game payload version");
+	}
+	if (Result.GameVersion != Expected.GameVersion)
+	{
+		if (!Migration.Convert || Migration.FromVersion == 0 || Migration.FromVersion != Result.GameVersion || Migration.ToVersion != Expected.GameVersion || Migration.ToVersion <= Migration.FromVersion)
+		{
+			throw FSaveError(ESaveError::UnsupportedVersion, "No explicit game payload migration");
+		}
+		Result.Payload = Migration.Convert(Result.Payload);
+		Result.GameVersion = Migration.ToVersion;
+		// 変換先のUTF-8・JSON・封筒・上限を全て検査する。型の意味はゲームcodecが担当する。
+		Result = Decode(Encode(Result, Limits), Limits);
+	}
+	RequireCompatible(Result, Expected);
+	return Result;
 }
 } // namespace Dxf

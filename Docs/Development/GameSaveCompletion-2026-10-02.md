@@ -19,6 +19,12 @@
 |PackageOnRelease01|同じNative配布経路のRelease|15工程、全終了0。上記と同じ検証範囲|同上|
 |FingerprintDebug01|生バイト指紋追加後の保存／要求／Content群|5/5、Content47・保存33・保存故障3・要求9、既存Content故障群成功。No-STL・差分含め終了0|cc35737bddf0d12b732d2ab2675ed954caf2469c801df205b05f1cadb7df71ea|
 |FingerprintRelease01|同じ指紋差分のRelease、同5群|5/5、全終了0。全群の最終回帰ではない|同上|
+|FingerprintMigrationDebug01|明示ゲーム移行のDebug、同5群|5/5、保存36・要求10、全終了0|7a0eeb88d94129195c8a2d09a6ef3567f2fe3d0e24312bf4ef3ec1a3a6a90538|
+|FingerprintMigrationStorageDebug02|移行・上限ヘッダー・逆完了試験|build終了0、4/5群成功。要求群10/11でB開始待ちが失敗。試験がレーン数をWorker数と誤認|d62abaf830f7c4f98c7f0cb393f6521d90d5e3833d091eda7a9921ec68747871|
+|FingerprintMigrationStorageDebug03|試験のWorker条件を修正|5/5、保存39・故障3・要求11。全終了0|fa1ad148729316a88082dd47e21dc8bb7c8e43a1099cb08e8a2cfc095802b194|
+|FingerprintMigrationStorageDebug04|Workerの実完了数照合・改行統一後|5/5、保存39・故障3・要求11、Content47・Content故障5。全終了0|f15d54f8fc902d831afd7e45ee2354d3885598e9dd6a34788fb499bf47655305|
+|FingerprintMigrationStorageRelease01|同じ差分のRelease、同5群|5/5、No-STL・差分を含め全終了0|同上|
+|PackageMigrationOffRelease01|移行API追加後の再配置Release|12工程、全終了0。保存コアの別プロセスreadが移行を検証し、元slotはゲームバージョン1のまま保持|同上|
 
 CoreDebug03の確保故障探索はencodeの最初の非注入countdown=377、decode=224、Stage=679。注入した失敗と非注入正常終了を分け、未解放件数の差0を確認した。全Lの故障境界を検証した件数ではない。
 
@@ -33,3 +39,7 @@ No-STLは899ファイル・違反0。保存コアの別プロセス検証では�
 配布の工程は既存10工程を保持し、保存コアwriteとreadの2工程を追加した。Native用ConsumerのCRT設定へSaveCoreOnlyも登録した後はソース指紋が変わる。上記集合は変更前の指紋に限定し、L10最終採用集合とは表示しない。実行環境設定の最初の直接cmd呼出しは引用処理で終了1となり、検証器を開始していない。固有batchから既存vcvarsを呼ぶ経路で実行した。これはharness分類で、SDK取得・再構築を行っていない。
 
 mainの`c1b71db3339a7525cd24a729a79ae2de92263b31`へ保存コア／CPU要求をcommitした。続く指紋差分はSHA-256の既知入力と独立Python hashlibの8境界値、2D／3Dの再配置・ディスク変更後の旧値保持、入れ子DAGの重複除外を検証した。原本の定義は変更せず、今回専用のコピーだけを変更した。Sceneの全依存と独立LoadPrefabの依存を保持し、資源ファイルの内容や任意World保存を証明した機能ではない。
+
+指紋差分は`843b7996f108f8fe78877635ae50546c28accdb9`へcommit済み。ゲーム移行は今回用fixtureのcoins→scoreを検証し、将来のゲームバージョン、別Content、移行後の不正JSON・容量超過を拒否する。容量超過面の短いヘッダー検査と公開トランザクションの入口上限検証を追加した。これは製品境界の補強で、全I/O故障地点の試験完了ではない。
+
+逆完了試験の初回失敗は試験期待条件の分類。JobSystemの実行レーン数には所有スレッドが含まれ、2指定ではWorkerは1個だった。3レーンで二つのWorkerを借用し、Aを停止中にBのPrepare完了数1を確認してからAを解放する。Dispatcherの順序を変更せず、AのSupersededとBの採用を照合した。失敗試行は成功試行へ合算しない。

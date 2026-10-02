@@ -459,7 +459,8 @@ FPath ExecutableDirectory()
 #endif
 }
 // OSの一時ディレクトリを取得する。
-FPath TemporaryDirectory(){
+FPath TemporaryDirectory()
+{
 #if defined(_WIN32)
 	// OS呼び出しや変換に使う一時領域。
 	TVector<wchar_t> Buffer(32768);
@@ -533,7 +534,7 @@ bool IsDirectory(const FPath& Path)
 // @param Path 読み取るファイルのパス。
 // @param Out 読み取ったバイト列の格納先。失敗時は変更しない。
 // @param MaxBytes 受け付ける最大バイト数。
-bool ReadFileBytes(const FPath& Path, TVector<uint8>& Out, size_t MaxBytes)
+static bool ReadFileRange(const FPath& Path, TVector<uint8>& Out, size_t MaxBytes, bool Prefix)
 {
 #if defined(_WIN32)
 	// 所有権と共に閉じる読み取りハンドル。
@@ -557,22 +558,28 @@ bool ReadFileBytes(const FPath& Path, TVector<uint8>& Out, size_t MaxBytes)
 	{
 		throw FFileError(EFileOperation::Read, GetLastError(), "Cannot read file size");
 	}
-	if (Size.QuadPart < 0 || static_cast<uint64>(Size.QuadPart) > MaxBytes)
+	if (Size.QuadPart < 0 || (!Prefix && static_cast<uint64>(Size.QuadPart) > MaxBytes))
 	{
 		throw FFileError(EFileOperation::SizeLimit, 0, "File is too large to read");
 	}
 	// 読み取ったバイト列。
-	TVector<uint8> Bytes(static_cast<size_t>(Size.QuadPart));
+	TVector<uint8> Bytes(static_cast<uint64>(Size.QuadPart) > MaxBytes ? MaxBytes : static_cast<size_t>(Size.QuadPart));
 	// 読み取り済みのバイト数。
 	size_t Done = 0;
 	while (Done < Bytes.Size())
 	{
 		// 今回読み取ったバイト数。
 		DWORD Chunk = 0;
-		if (!ReadFile(Guard.Handle, Bytes.Data() + Done, static_cast<DWORD>(Bytes.Size() - Done), &Chunk, nullptr) ||
-		    Chunk == 0)
+		// 一回のOS読取長もDWORDの範囲に収める。
+		const size_t Remaining = Bytes.Size() - Done;
+		const DWORD Requested = static_cast<DWORD>(Remaining > 0x7FFFFFFF ? 0x7FFFFFFF : Remaining);
+		if (!ReadFile(Guard.Handle, Bytes.Data() + Done, Requested, &Chunk, nullptr))
 		{
 			throw FFileError(EFileOperation::Read, GetLastError(), "Cannot read file contents");
+		}
+		if (Chunk == 0)
+		{
+			throw FFileError(EFileOperation::Read, 0, "Unexpected end of file");
 		}
 		Done += Chunk;
 	}
@@ -596,12 +603,12 @@ bool ReadFileBytes(const FPath& Path, TVector<uint8>& Out, size_t MaxBytes)
 	{
 		throw FFileError(EFileOperation::Read, static_cast<uint32>(errno), "Cannot read file size");
 	}
-	if (!S_ISREG(Info.st_mode) || Info.st_size < 0 || static_cast<uint64>(Info.st_size) > MaxBytes)
+	if (!S_ISREG(Info.st_mode) || Info.st_size < 0 || (!Prefix && static_cast<uint64>(Info.st_size) > MaxBytes))
 	{
 		throw FFileError(EFileOperation::SizeLimit, 0, "File is too large to read");
 	}
 	// 読み取ったバイト列。
-	TVector<uint8> Bytes(static_cast<size_t>(Info.st_size));
+	TVector<uint8> Bytes(static_cast<uint64>(Info.st_size) > MaxBytes ? MaxBytes : static_cast<size_t>(Info.st_size));
 	// 読み取り済みのバイト数。
 	size_t Done = 0;
 	while (Done < Bytes.Size())
@@ -621,6 +628,16 @@ bool ReadFileBytes(const FPath& Path, TVector<uint8>& Out, size_t MaxBytes)
 	Out = Toolbox::Move(Bytes);
 	return true;
 #endif
+}
+// 全量読込では上限超過を切り捨て成功にしない。
+bool ReadFileBytes(const FPath& Path, TVector<uint8>& Out, size_t MaxBytes)
+{
+	return ReadFileRange(Path, Out, MaxBytes, false);
+}
+// 限定ヘッダー等を調べる先頭読込。全ファイルの検証とは別に使う。
+bool ReadFilePrefix(const FPath& Path, TVector<uint8>& Out, size_t MaxBytes)
+{
+	return ReadFileRange(Path, Out, MaxBytes, true);
 }
 // ファイルを新規コピーする。既存のコピー先は上書きしない。
 // @param Source 読み取り元のパス。

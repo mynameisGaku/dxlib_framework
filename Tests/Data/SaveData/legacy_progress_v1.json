@@ -1,0 +1,12 @@
+{
+  "format": 1,
+  "kind": "progress",
+  "gameId": "save_test",
+  "gameVersion": 1,
+  "contentRevision": "bundle-v1",
+  "scene": "course/first",
+  "dimension": 2,
+  "checkpoint": "safe/north",
+  "generation": "1",
+  "payload": { "coins": 7 }
+}

@@ -3,6 +3,7 @@
 #define DXF_SAVECODEC_H
 #include "Dxf/SaveDocument.h"
 #include "Dxf/SaveLimits.h"
+#include "Dxf/SavePayloadMigration.h"
 namespace Dxf
 {
 /**
@@ -24,6 +25,12 @@ public:
 	 * 世代・checkpoint・payloadは一致条件にしない。移行後の値を再検証してから呼ぶ。
 	 */
 	static void RequireCompatible(const FSaveDocument& Document, const FSaveDocument& Expected);
+	/**
+	 * @param Document 読込値。@param Expected 信頼する識別と採用バージョン。
+	 * @param Migration 明示された一段階の純粋なゲーム変換。@param Limits 変換後にも適用する上限。
+	 * ゲーム・Content不一致は変換前に拒否する。世代やScene識別を変えず、元ファイルを変更しない。
+	 */
+	static FSaveDocument Migrate(const FSaveDocument& Document, const FSaveDocument& Expected, const FSavePayloadMigration& Migration = {}, FSaveLimits Limits = {});
 };
 } // namespace Dxf
 #endif

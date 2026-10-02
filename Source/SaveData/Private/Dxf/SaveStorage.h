@@ -4,6 +4,8 @@
 #include "Dxf/SaveStore.h"
 namespace Dxf
 {
+// ファイル長の加算やOS操作より前に、公開入口共通の有限上限を確認する。
+void ValidateSaveLimits(FSaveLimits Limits);
 // 登録前に保存領域とslotを検査する共通処理。
 void ValidateSaveLocation(const Toolbox::FPath& Root, Toolbox::FStringView Slot);
 // Windowsのファイル名と一致させるslotの正準表現。他の論理キーは変更しない。

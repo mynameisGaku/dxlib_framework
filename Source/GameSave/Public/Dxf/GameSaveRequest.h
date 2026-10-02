@@ -4,6 +4,7 @@
 #include "Dxf/SaveStore.h"
 #include "Dxf/GameSaveTicket.h"
 #include "Dxf/TaskDispatcher.h"
+#include "Dxf/SavePayloadMigration.h"
 namespace Dxf
 {
 /**
@@ -34,8 +35,9 @@ public:
 	FGameSaveTicket RequestSave(Toolbox::FString Slot, FSaveDocument Captured);
 	/**
 	 * @param Slot 読込系列。@param Expected 信頼するカタログの識別条件。先行読込はSupersededへ確定する。
+	 * @param Migration 任意の純粋なゲーム変換。元保存は変更せず、ゲームとContent識別を先に照合する。
 	 */
-	FGameSaveTicket RequestLoad(Toolbox::FString Slot, FSaveDocument Expected);
+	FGameSaveTicket RequestLoad(Toolbox::FString Slot, FSaveDocument Expected, FSavePayloadMigration Migration = {});
 	/**
 	 * 公開前はtrue、公開済み・公開結果不明ならfalse。Scene移行を巻き戻す操作ではない。
 	 */

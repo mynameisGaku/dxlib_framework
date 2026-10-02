@@ -71,6 +71,27 @@ FFace ReadFace(const FPath& Path, FSaveLimits Limits)
 			throw;
 		}
 		Face.Exists = true;
+		// 上限超過でも短いヘッダーは確認し、未知バージョンを旧面へ戻して上書きしない。
+		TVector<uint8> Prefix;
+		if (ReadFilePrefix(Path, Prefix, 192))
+		{
+			try
+			{
+				size_t Offset = 0;
+				const FStringView Bytes(reinterpret_cast<const char*>(Prefix.Data()), Prefix.Size());
+				if (HeaderLine(Bytes, Offset) == "DXFSAVE" && HeaderInteger(HeaderLine(Bytes, Offset)) != 1)
+				{
+					throw FSaveError(ESaveError::UnsupportedVersion, "Unsupported oversized save face version");
+				}
+			}
+			catch (const FSaveError& HeaderError)
+			{
+				if (HeaderError.GetCode() == ESaveError::UnsupportedVersion)
+				{
+					throw;
+				}
+			}
+		}
 		Face.Reason = "Save face exceeds byte limit";
 		return Face;
 	}
@@ -263,12 +284,7 @@ FSaveStore::FSaveStore(FPath Root, FSaveLimits Limits) : m_Root(Move(Root)), m_L
 {
 	ValidateSaveLocation(m_Root, "root_validation");
 	// 不正な上限は最初の操作より前に拒否する。
-	FSaveDocument Validation;
-	Validation.GameId = "validation";
-	Validation.ContentRevision = "validation";
-	Validation.SceneKey = "validation";
-	Validation.CheckpointKey = "validation";
-	FSaveCodec::Encode(Validation, Limits);
+	ValidateSaveLimits(Limits);
 	m_Root = m_Root.Normalize();
 	EnsureDirectory(m_Root);
 }
@@ -337,5 +353,9 @@ uint64 FSaveStore::Save(FString Slot, FSaveDocument Document) const
 const FPath& FSaveStore::GetRoot() const noexcept
 {
 	return m_Root;
+}
+FSaveLimits FSaveStore::GetLimits() const noexcept
+{
+	return m_Limits;
 }
 } // namespace Dxf

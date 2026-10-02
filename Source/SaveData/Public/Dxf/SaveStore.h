@@ -40,6 +40,10 @@ public:
 	 * 起動時に確定した保存領域を返す。保存文書から変更できない。
 	 */
 	const Toolbox::FPath& GetRoot() const noexcept;
+	/**
+	 * 読込後の純粋移行にも適用する、起動時に確定した上限。
+	 */
+	FSaveLimits GetLimits() const noexcept;
 
 private:
 	/**

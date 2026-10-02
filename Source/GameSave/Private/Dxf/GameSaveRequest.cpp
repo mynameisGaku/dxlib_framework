@@ -17,7 +17,7 @@ bool Pending(EGameSaveRequestState State)
 	return State == EGameSaveRequestState::Pending || State == EGameSaveRequestState::Writing || State == EGameSaveRequestState::Reading || State == EGameSaveRequestState::Prepared;
 }
 // 不変値だけをWorkerへ持ち出し、OSの公開処理を実行しない。
-ETaskPrepare Prepare(const FSaveStore& Store, const FString& Slot, FSaveDocument Document, const TSharedPtr<SavePrivate::FRequestState>& State)
+ETaskPrepare Prepare(const FSaveStore& Store, const FString& Slot, FSaveDocument Document, const FSavePayloadMigration& Migration, const TSharedPtr<SavePrivate::FRequestState>& State)
 {
 	{
 		FScopedLock Lock(State->Mutex);
@@ -47,7 +47,7 @@ ETaskPrepare Prepare(const FSaveStore& Store, const FString& Slot, FSaveDocument
 			{
 				throw FSaveError(ESaveError::InvalidDocument, "Save slot is empty");
 			}
-			FSaveCodec::RequireCompatible(*Loaded.Document, Document);
+			Loaded.Document = FSaveCodec::Migrate(*Loaded.Document, Document, Migration, Store.GetLimits());
 			FScopedLock Lock(State->Mutex);
 			if (State->Status.Load() == static_cast<uint32>(EGameSaveRequestState::Reading))
 			{
@@ -147,7 +147,7 @@ struct FGameSaveRequest::FImpl
 		}
 		return true;
 	}
-	FGameSaveTicket Begin(FString Slot, FSaveDocument Document, bool Save)
+	FGameSaveTicket Begin(FString Slot, FSaveDocument Document, bool Save, FSavePayloadMigration Migration = {})
 	{
 		RequireOwner();
 		if (m_bRetired || m_Sequence == TNumericLimits<uint64>::Max())
@@ -164,9 +164,9 @@ struct FGameSaveRequest::FImpl
 		State->Sequence = m_Sequence + 1;
 		State->Save = Save;
 		FTaskRequest Task;
-		Task.Prepare = [Copy, Slot, Document, State]()
+		Task.Prepare = [Copy, Slot, Document, State, Migration]()
 		{
-			return Prepare(Copy, Slot, Document, State);
+			return Prepare(Copy, Slot, Document, Migration, State);
 		};
 		Task.Commit = [State]()
 		{
@@ -230,9 +230,9 @@ FGameSaveTicket FGameSaveRequest::RequestSave(FString Slot, FSaveDocument Captur
 {
 	return m_pImpl->Begin(Move(Slot), Move(Captured), true);
 }
-FGameSaveTicket FGameSaveRequest::RequestLoad(FString Slot, FSaveDocument Expected)
+FGameSaveTicket FGameSaveRequest::RequestLoad(FString Slot, FSaveDocument Expected, FSavePayloadMigration Migration)
 {
-	return m_pImpl->Begin(Move(Slot), Move(Expected), false);
+	return m_pImpl->Begin(Move(Slot), Move(Expected), false, Move(Migration));
 }
 bool FGameSaveRequest::Cancel()
 {
