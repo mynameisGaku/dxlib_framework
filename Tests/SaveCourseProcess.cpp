@@ -76,7 +76,9 @@ void Run(FStringView Mode, uint32 Dimension, const FPath& Root, const FPath& Pro
 	Tick(0);
 	auto Wait = [&](bool bSettings, EGameSaveRequestState State)
 	{
-		for (uint32 Attempt = 0; Attempt < 10000; ++Attempt)
+		// CPU準備の待機は描画回数で打ち切らず、既存のプロセス制限より短い実時間で管理する。
+		const auto Started = MonotonicNanoseconds();
+		while (MonotonicNanoseconds() - Started < 5000000000ULL)
 		{
 			const auto Ticket = bSettings ? Game->GetSettingsTicket() : Game->GetSaveTicket();
 			if (Ticket.GetState() == State)
@@ -90,7 +92,9 @@ void Run(FStringView Mode, uint32 Dimension, const FPath& Root, const FPath& Pro
 			Tick(0);
 			FThread::Yield();
 		}
-		throw FException("Process request did not reach expected boundary");
+		const auto Ticket = bSettings ? Game->GetSettingsTicket() : Game->GetSaveTicket();
+		Err << "PROCESS_WAIT expected=" << static_cast<uint32>(State) << " actual=" << static_cast<uint32>(Ticket.GetState()) << " elapsedNs=" << MonotonicNanoseconds() - Started << '\n';
+		throw FException("Process request did not reach expected boundary within five seconds");
 	};
 	if (Mode == "write")
 	{

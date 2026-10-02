@@ -62,7 +62,9 @@ void RunSession(uint32 Dimension, bool bAsync)
 	// CPU完了の待機では追加World.Stepを作らない。
 	auto Wait = [&](bool bSettings, EGameSaveRequestState Expected)
 	{
-		for (uint32 Attempt = 0; Attempt < 10000; ++Attempt)
+		// Workerへ移したCPU準備を更新回数ではなく、有限の実時間で待つ。
+		const auto Started = MonotonicNanoseconds();
+		while (MonotonicNanoseconds() - Started < 5000000000ULL)
 		{
 			const auto Ticket = bSettings ? Game->GetSettingsTicket() : Game->GetSaveTicket();
 			if (Ticket.GetState() == Expected)
@@ -76,7 +78,9 @@ void RunSession(uint32 Dimension, bool bAsync)
 			Tick(0);
 			FThread::Yield();
 		}
-		throw FException("Save session request did not reach expected terminal boundary");
+		const auto Ticket = bSettings ? Game->GetSettingsTicket() : Game->GetSaveTicket();
+		Err << "SESSION_WAIT expected=" << static_cast<uint32>(Expected) << " actual=" << static_cast<uint32>(Ticket.GetState()) << " elapsedNs=" << MonotonicNanoseconds() - Started << '\n';
+		throw FException("Save session request did not reach expected terminal boundary within five seconds");
 	};
 	Game->RequestNewGame(Dimension);
 	Tick(0);
