@@ -17,9 +17,13 @@ class TCheckpointResumeRuntime
 {
 public:
 	/**
-	 * @param Saves 保存要求。@param Scenes 切替先。@param Assets 資源所有者。
-	 * @param Catalog 信頼する定義。@param RestoreProgress 純粋なゲーム変換。
-	 * @param CreateScene C++構築フック。@param Limits 有限上限。
+	 * @param Saves 保存要求。
+	 * @param Scenes 切替先。
+	 * @param Assets 資源所有者。
+	 * @param Catalog 信頼する定義。
+	 * @param RestoreProgress 純粋なゲーム変換。
+	 * @param CreateScene C++構築フック。
+	 * @param Limits 有限上限。
 	 */
 	TCheckpointResumeRuntime(FGameSaveRequest& Saves, FSceneNavigator& Scenes, FAssetService& Assets, TCatalog Catalog, Toolbox::TFunction<TDocument(const TDocument&)> RestoreProgress, Toolbox::TFunction<Toolbox::TUniquePtr<TScene>(TPrepared, TDocument)> CreateScene, FCheckpointLimits Limits) : m_Saves(Saves), m_Scenes(Scenes), m_Assets(Assets), m_Catalog(Toolbox::Move(Catalog)), m_RestoreProgress(Toolbox::Move(RestoreProgress)), m_CreateScene(Toolbox::Move(CreateScene)), m_Limits(Limits)
 	{

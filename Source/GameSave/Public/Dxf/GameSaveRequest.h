@@ -14,7 +14,9 @@ class FGameSaveRequest
 {
 public:
 	/**
-	 * @param Store 不変Rootと上限。@param Dispatcher 任意の借用先。@param Parent 自分だけを退役する親Scope。
+	 * @param Store 不変Rootと上限。
+	 * @param Dispatcher 任意の借用先。
+	 * @param Parent 自分だけを退役する親Scope。
 	 */
 	explicit FGameSaveRequest(FSaveStore Store, FTaskDispatcher* Dispatcher = nullptr, FTaskScope Parent = {});
 	/**
@@ -30,11 +32,13 @@ public:
 	 */
 	FGameSaveRequest& operator=(const FGameSaveRequest&) = delete;
 	/**
-	 * @param Slot 保存系列。@param Captured 安全な採取境界で完成した不変値。未公開保存中の次要求はBusy例外。
+	 * @param Slot 保存系列。
+	 * @param Captured 安全な採取境界で完成した不変値。未公開保存中の次要求はBusy例外。
 	 */
 	FGameSaveTicket RequestSave(Toolbox::FString Slot, FSaveDocument Captured);
 	/**
-	 * @param Slot 読込系列。@param Expected 信頼するカタログの識別条件。先行読込はSupersededへ確定する。
+	 * @param Slot 読込系列。
+	 * @param Expected 信頼するカタログの識別条件。先行読込はSupersededへ確定する。
 	 * @param Migration 任意の純粋なゲーム変換。元保存は変更せず、ゲームとContent識別を先に照合する。
 	 */
 	FGameSaveTicket RequestLoad(Toolbox::FString Slot, FSaveDocument Expected, FSavePayloadMigration Migration = {});
@@ -67,7 +71,8 @@ public:
 	 */
 	void MarkResumeCompleted(Toolbox::uint64 Sequence);
 	/**
-	 * @param Sequence 現在の読込番号。@param Reason 準備・初期化・必須Ready前の失敗原因。
+	 * @param Sequence 現在の読込番号。
+	 * @param Reason 準備・初期化・必須Ready前の失敗原因。
 	 * 旧読込値と旧Sceneを破棄せず、再開要求だけを終端へ確定する。
 	 */
 	void MarkResumeFailed(Toolbox::uint64 Sequence, const char* Reason);

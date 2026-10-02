@@ -19,8 +19,11 @@ class FCheckpointResumeRequest3D
 {
 public:
 	/**
-	 * @param Saves 借用する保存要求。@param Scenes 通常の切替要求先。@param Assets 既存資源所有者。
-	 * @param Catalog 信頼する不変Content。@param RestoreProgress 必須の純粋なゲーム進行検証・再開変換。
+	 * @param Saves 借用する保存要求。
+	 * @param Scenes 通常の切替要求先。
+	 * @param Assets 既存資源所有者。
+	 * @param Catalog 信頼する不変Content。
+	 * @param RestoreProgress 必須の純粋なゲーム進行検証・再開変換。
 	 * @param CreateScene 任意のC++構築フック。Preparedと検証済み進行を渡し、未初期化の対応Sceneを返す。
 	 * @param Limits 保存値の上限。依存先はこの窓口より長く生存させ、所有側Task/Commit外で使う。
 	 */

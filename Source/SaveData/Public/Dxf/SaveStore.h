@@ -12,7 +12,8 @@ class FSaveStore
 {
 public:
 	/**
-	 * @param Root 完全修飾した専用領域。不正時はCWDへ切り替えず例外。@param Limits 文書上限。
+	 * @param Root 完全修飾した専用領域。不正時はCWDへ切り替えず例外。
+	 * @param Limits 文書上限。
 	 */
 	explicit FSaveStore(Toolbox::FPath Root, FSaveLimits Limits = {});
 	/**
@@ -29,11 +30,13 @@ public:
 	 */
 	Toolbox::TVector<Toolbox::FString> ListSlots() const;
 	/**
-	 * @param Slot 保存系列。@param Document 世代はStoreが割り当てる。公開前の結果を返す。
+	 * @param Slot 保存系列。
+	 * @param Document 世代はStoreが割り当てる。公開前の結果を返す。
 	 */
 	FSaveTransaction Stage(Toolbox::FString Slot, FSaveDocument Document) const;
 	/**
-	 * @param Slot 保存系列。@param Document 論理値。全工程成功後の世代を返す同期経路。
+	 * @param Slot 保存系列。
+	 * @param Document 論理値。全工程成功後の世代を返す同期経路。
 	 */
 	Toolbox::uint64 Save(Toolbox::FString Slot, FSaveDocument Document) const;
 	/**

@@ -11,7 +11,8 @@ namespace Dxf::UiSample
  */
 Toolbox::TUniquePtr<DScene> MakeTitleScene(Toolbox::TSharedPtr<FUiSampleState> State);
 /**
- * @param b3D 3Dの球か、2Dの円か。 @param State 表示データ。
+ * @param b3D 3Dの球か、2Dの円か。
+ * @param State 表示データ。
  */
 Toolbox::TUniquePtr<DScene> MakePlayScene(bool b3D, Toolbox::TSharedPtr<FUiSampleState> State);
 } // namespace Dxf::UiSample

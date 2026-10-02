@@ -81,7 +81,9 @@ public:
 	TResult<void> DrawTexturedQuad(const FTexturedQuad3D& Quad);
 	/**
 	 * 設定済みの共有JobSystemで生成し、入力順に一括確定する。
-	 * @param Count 入力件数。 @param Generate 専用FGeometryCommand3Dへの生成処理。 @param MinimumBatch 最小分割数。
+	 * @param Count 入力件数。
+	 * @param Generate 専用FGeometryCommand3Dへの生成処理。
+	 * @param MinimumBatch 最小分割数。
 	 */
 	template <typename F> TResult<void> SubmitGenerated(Toolbox::size_t Count, F&& Generate, Toolbox::size_t MinimumBatch = 16)
 	{

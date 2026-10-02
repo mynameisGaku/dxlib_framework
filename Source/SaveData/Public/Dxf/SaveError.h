@@ -12,7 +12,10 @@ class FSaveError : public Toolbox::FException
 {
 public:
 	/**
-	 * @param Code 原因区分。@param Reason 説明。@param Line 入力行。@param Column 入力列。
+	 * @param Code 原因区分。
+	 * @param Reason 説明。
+	 * @param Line 入力行。
+	 * @param Column 入力列。
 	 */
 	FSaveError(ESaveError Code, const char* Reason, Toolbox::uint32 Line = 0, Toolbox::uint32 Column = 0) noexcept : FException(Reason), m_Code(Code), m_Line(Line), m_Column(Column)
 	{

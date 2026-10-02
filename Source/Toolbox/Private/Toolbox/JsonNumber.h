@@ -32,7 +32,9 @@ public:
 	 */
 	f64 Convert(const char* Text) const noexcept;
 	/**
-	 * @param Buffer 出力先。@param Capacity バイト容量。@param Value 有限な数値。
+	 * @param Buffer 出力先。
+	 * @param Capacity バイト容量。
+	 * @param Value 有限な数値。
 	 * 17桁の表現を生成し、出力長を返す。失敗・切捨ては例外。
 	 */
 	int32 Format(char* Buffer, size_t Capacity, f64 Value) const;

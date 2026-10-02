@@ -114,7 +114,9 @@ public:
 	}
 	/**
 	 * 設定済みの共有JobSystemを利用する。未設定は明示的に失敗する。
-	 * @param Count 命令数。 @param Generate 専用命令領域への生成処理。 @param MinimumBatch 最小分割数。
+	 * @param Count 命令数。
+	 * @param Generate 専用命令領域への生成処理。
+	 * @param MinimumBatch 最小分割数。
 	 */
 	template <typename F> TResult<void> SubmitGenerated(Toolbox::size_t Count, F&& Generate, Toolbox::size_t MinimumBatch = 16)
 	{

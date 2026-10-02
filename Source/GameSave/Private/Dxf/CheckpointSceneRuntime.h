@@ -17,7 +17,8 @@ class TCheckpointSceneRuntime
 {
 public:
 	/**
-	 * @param Document 検証済みの再開進行。@param Limits 採取と進行変更の上限。
+	 * @param Document 検証済みの再開進行。
+	 * @param Limits 採取と進行変更の上限。
 	 */
 	TCheckpointSceneRuntime(TDocument Document, FCheckpointLimits Limits) : m_Capture(Document, Limits), m_Identity(Document.Identity), m_Payload(Document.GamePayload), m_Limits(Limits), m_Status(Toolbox::MakeShared<FCheckpointSceneStatus>())
 	{
@@ -82,7 +83,8 @@ public:
 		}
 	}
 	/**
-	 * @param Scene 同一の所有Scene。@param Context 成功した固定更新。
+	 * @param Scene 同一の所有Scene。
+	 * @param Context 成功した固定更新。
 	 */
 	void Complete(TScene& Scene, const FFixedTickContext& Context)
 	{

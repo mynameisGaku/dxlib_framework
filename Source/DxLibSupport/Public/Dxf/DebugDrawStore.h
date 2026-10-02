@@ -170,7 +170,8 @@ public:
 	}
 	/**
 	 * 値を記録する。成功値falseはカテゴリ除外または予算超過で記録しなかったことを示す。
-	 * @param Value 事前に計算した形状。 @param Tag 所有・分類・寿命。
+	 * @param Value 事前に計算した形状。
+	 * @param Tag 所有・分類・寿命。
 	 */
 	TResult<bool> Add(T Value, const FDebugDrawTag& Tag)
 	{
@@ -203,7 +204,9 @@ public:
 	}
 	/**
 	 * 新フレーム開始時に一度だけ呼ぶ。無効引数・重複フレームでは何も変更しない。
-	 * @param Frame 単調増加する描画フレーム。 @param GameDelta ゲーム秒数。 @param RealDelta 実秒数。
+	 * @param Frame 単調増加する描画フレーム。
+	 * @param GameDelta ゲーム秒数。
+	 * @param RealDelta 実秒数。
 	 */
 	bool Advance(Toolbox::uint64 Frame, Toolbox::f64 GameDelta, Toolbox::f64 RealDelta) noexcept
 	{

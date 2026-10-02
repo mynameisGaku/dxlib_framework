@@ -14,7 +14,10 @@ class FSaveTransaction
 {
 public:
 	/**
-	 * @param Root 明示した絶対保存領域。@param Slot 検証する識別子。@param Document 不変値。@param Limits 有限上限。
+	 * @param Root 明示した絶対保存領域。
+	 * @param Slot 検証する識別子。
+	 * @param Document 不変値。
+	 * @param Limits 有限上限。
 	 */
 	static FSaveTransaction Prepare(const Toolbox::FPath& Root, Toolbox::FString Slot, FSaveDocument Document, FSaveLimits Limits = {});
 	/**

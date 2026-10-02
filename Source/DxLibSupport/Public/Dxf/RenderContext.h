@@ -84,7 +84,8 @@ public:
 	}
 	/**
 	 * 描画先の切替成功後に受付時の矩形検査へ寸法を伝える。
-	 * @param Width 現在の描画先の幅。 @param Height 現在の描画先の高さ。
+	 * @param Width 現在の描画先の幅。
+	 * @param Height 現在の描画先の高さ。
 	 */
 	void SetTargetSize_Internal(Toolbox::int32 Width, Toolbox::int32 Height) noexcept
 	{
