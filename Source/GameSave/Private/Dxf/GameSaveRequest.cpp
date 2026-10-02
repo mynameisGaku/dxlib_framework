@@ -272,6 +272,11 @@ bool FGameSaveRequest::Retire() noexcept
 	{
 		FScopedLock Lock(I.m_Current->Mutex);
 		I.m_Current->Transaction.Reset();
+		if (I.m_Current->Status.Load() == static_cast<uint32>(EGameSaveRequestState::TransitionRequested))
+		{
+			SavePrivate::SaveReason(*I.m_Current, "Resume owner retired before required Ready");
+			I.m_Current->Status.Store(static_cast<uint32>(EGameSaveRequestState::Failed));
+		}
 	}
 	I.m_bRetired = true;
 	return true;
@@ -362,5 +367,22 @@ void FGameSaveRequest::MarkResumeCompleted(uint64 Sequence)
 		throw FException("Save resume completion sequence mismatch");
 	}
 	State->Status.Store(static_cast<uint32>(EGameSaveRequestState::Completed));
+}
+void FGameSaveRequest::MarkResumeFailed(uint64 Sequence, const char* Reason)
+{
+	m_pImpl->RequireOwner();
+	const auto State = m_pImpl->m_Current;
+	if (!State || State->Save || Sequence != m_pImpl->m_Accepted || Sequence != State->Sequence)
+	{
+		throw FException("Save resume failure sequence mismatch");
+	}
+	FScopedLock Lock(State->Mutex);
+	const auto Status = static_cast<EGameSaveRequestState>(State->Status.Load());
+	if (Status != EGameSaveRequestState::Prepared && Status != EGameSaveRequestState::TransitionRequested)
+	{
+		throw FException("Save resume failure state mismatch");
+	}
+	SavePrivate::SaveReason(*State, Reason ? Reason : "Checkpoint resume failed");
+	State->Status.Store(static_cast<uint32>(EGameSaveRequestState::Failed));
 }
 } // namespace Dxf

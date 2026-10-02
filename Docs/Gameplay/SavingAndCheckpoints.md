@@ -71,7 +71,7 @@ OS処理の契約は[Known Folder取得](https://learn.microsoft.com/en-us/windo
 
 保存封筒の形式バージョン、ゲームpayloadのバージョン、チェックポイント構造のバージョンは別の値である。現在のチェックポイント構造は `checkpointVersion: 1`。未知項目、重複個体、除去済み個体へのJoint状態、不正な種類別設定、有限上限の超過を拒否する。
 
-この変換だけではSceneの再開は完了しない。`FCheckpointRestore::Build` が許可カタログと照合してCPU再開計画を作り、後続の所有側処理が資源準備、Scene切替、必須Readyの観察を担当する。ゲーム固有の進行検証・初期姿勢レシピと、この所有側接続は実装中である。
+この変換だけではSceneの再開は完了しない。`FCheckpointRestore::Build` が許可カタログと照合してCPU再開計画を作り、後続の所有側処理が資源準備、Scene切替、必須Readyの観察を担当する。ゲーム固有の進行検証・初期姿勢レシピを明示してFCheckpointResumeRequestへ渡し、所有側の準備と通常Navigator要求に接続する。
 
 数値の出力は専用のC localeと17桁の表現を使う。保存世代などの厳密整数には引き続き十進文字列を使い、f64へ変換しない。POSIX側の実行はこのWindows環境では未確認。
 
@@ -91,7 +91,7 @@ CPU計画の生成は旧Scene・保存ファイル・Native資源を変更しな
 
 `DPhysicsScene2D`／`3D::OnPhysicsStepCompleted` は、World.Stepと全PostPhysics予約が成功した後に一回だけ呼ばれる。ゲーム側の最後の反映とJointの成功観察が揃った境界である。固定更新0回、Pause、固定更新／Pre／Postの失敗、SceneのDestroy要求後には呼ばない。`IsAtPhysicsCompletionBoundary()` はこのフックの実行中だけtrueで、例外時にもfalseへ戻る。
 
-`GetCompletedPhysicsStepCount()` はWorldと全PostPhysicsが成功した境界を数える。完了フック自身が失敗した場合も物理は既に進んでおり、この数は巻き戻さない。採取結果を公開できたこととは別の値である。FCheckpointCapture2D／3Dは、この境界内だけでReadyとJoint保留要求を検査し、要求された文書を一度採取する。ゲーム固有の参加者と通常Navigatorへの接続は、引き続き実装中。
+`GetCompletedPhysicsStepCount()` はWorldと全PostPhysicsが成功した境界を数える。完了フック自身が失敗した場合も物理は既に進んでおり、この数は巻き戻さない。採取結果を公開できたこととは別の値である。FCheckpointCapture2D／3Dは、この境界内だけでReadyとJoint保留要求を検査し、要求された文書を一度採取する。ACheckpointScene2D／3Dがこの境界と通常Navigatorへの接続を提供する。ゲーム固有Controllerと既存Sample UIへの適用は実装中。
 
 ## 個体履歴と要求時の採取
 
@@ -104,3 +104,18 @@ CPU計画の生成は旧Scene・保存ファイル・Native資源を変更しな
 Sceneの `OnPhysicsStepCompleted` で、同じ境界のゲームcodecが検証した進行Objectを `CaptureIfRequested` へ渡す。全個体Ready、公開Jointの接続状態、成功観察、`HasPendingRequest()` を確認する。PostPhysicsでDrive等の新要求が出た場合、その要求を反映する次の成功固定更新まで採取を待つ。接続・解除・種類別Drive／Limitは専任Componentの採用済み設定から読み、追加World.Stepを実行しない。採取時の確保やcodec失敗では最後の正常文書を保持し、例外を実行時契約へ伝える。全Bodyのrollbackは行わない。
 
 固定更新0回やPauseでは最後の正常文書を利用できるが、新しい未処理要求をその文書へ混ぜない。要求なしの呼出しはJSON処理や文書複製を行わない。目標操作や開いた扉の初期Poseを選ぶゲームレシピ、入力設定、SampleのSave／Continue UIは追加中である。通常利用のコンパイル・実行例は [外部CheckpointConsumer](../../Tools/PackageConsumer/CheckpointConsumer.cpp) のScene所有・成功境界・退役経路を参照する。
+
+
+## 所有側のロードと再開完了
+
+`FCheckpointResumeRequest2D`／`3D` は、長期所有者が既存 `FGameSaveRequest`、`FSceneNavigator`、`FAssetService` を借用して使う任意の窓口である。許可カタログと、型付き文書から文書を返す明示的な純粋ゲーム検証・再開レシピを渡す。ゲームの鍵や得点の意味を保存コアに埋め込まない。保存の全構成をゲーム変換の前後で再検証する。任意のC++構築フックでは、準備済み値と進行から `ACheckpointScene2D`／`3D` の派生Sceneを作り、通常のComponent／Controllerを追加できる。ファイル内のC++型名を実行しない。
+
+通常更新の `Poll()` は面読込の採用、CPU計画、所有側の資源準備、`Navigator.RequestChange` まで進める。`Navigator.Commit` は呼ばず、既存Application境界が確定する。ファイル読込は既存Dispatcherへ任意で委譲するが、現在のCPU計画生成とNative資源準備は所有側Pollで行い、ブロックし得る。すべての準備がWorker上で完了するAPIとは扱わない。
+
+候補の受付は `TransitionRequested`。Scene有効化後も `PendingPhysics` とし、全Body・Jointの成功観察と一貫した初回採取を確認してから通常Pollが `Completed` にする。0固定更新やPauseでは再開完了にしない。`FCheckpointSceneTicket` はSceneポインタを含まないCPU観察を保持する。初期化失敗・候補置換・終了は `Ended` となり、未完了の読込をFailedへ確定する。完了済みTicketは後続Sceneの終了で書き換えない。
+
+候補の資源準備失敗では旧Sceneを変更せず、候補のOnInitialize失敗では既存Navigatorが旧Sceneを保持する。切替後の固定更新／PrePhysics／World.Step失敗は既存実行時停止であり、旧Worldへ巻き戻さない。公開前取消しと構築フック後の最新照合を行い、取消し済み値をNavigatorへ渡さない。切替要求済みの取消しはfalseで、所有者退役は未完了状態をFailedへ確定するが、受付済みSceneの巻き戻しや破棄は行わない。依存先はこの窓口より長く生存させる。
+
+`ACheckpointScene` は進行をコンストラクターから保持し、初期イベント消費前にゲームControllerへ渡せる。`OnCheckpointStepCompleted` でゲームのPost反映を採取より先に行い、`SetGamePayload` の不正JSONでは旧進行を保持する。目標付きRevolute／Prismaticは型付きhandleを一度解決し、成功観察から既存 `ComputeJointTargetDrive` を使って次の有限Motorを要求する。初期Poseの直接上書きや追加World.Stepを行わない。Readyは目標到達を意味せず、初期構成の利用可能を意味する。
+
+最小のコンパイル・実行例は [CheckpointConsumer](../../Tools/PackageConsumer/CheckpointConsumer.cpp) を参照する。両次元で `RequestLoad` → 通常 `Poll` → 既存Navigator確定 → 成功固定更新 → `Completed` を確認する。保存用RootをContentのRootとは別引数で渡す。この試験は同一プロセスの再開であり、ゲームの別Applicationプロセス再開・Sample UI・入力設定はまだ完成していない。

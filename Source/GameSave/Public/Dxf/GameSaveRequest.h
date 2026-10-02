@@ -67,6 +67,11 @@ public:
 	 */
 	void MarkResumeCompleted(Toolbox::uint64 Sequence);
 	/**
+	 * @param Sequence 現在の読込番号。@param Reason 準備・初期化・必須Ready前の失敗原因。
+	 * 旧読込値と旧Sceneを破棄せず、再開要求だけを終端へ確定する。
+	 */
+	void MarkResumeFailed(Toolbox::uint64 Sequence, const char* Reason);
+	/**
 	 * 自分のScopeだけを退役する。安全な所有側境界以外ではfalse。
 	 */
 	bool Retire() noexcept;

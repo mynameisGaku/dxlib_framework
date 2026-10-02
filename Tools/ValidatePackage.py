@@ -155,7 +155,9 @@ def main() -> int:
         run('consumer-build', ['cmake', '--build', str(work / 'ConsumerBuild'), '--config', args.config, '--parallel', str(args.jobs)])
         consumer_bin = work / 'ConsumerBuild' / args.config if multi_config else work / 'ConsumerBuild'
         suffix = '.exe' if sys.platform == 'win32' else ''
-        run('consumer-run', [str(consumer_bin / ('Consumer' + suffix)), str(consumer.resolve())], timeout=240)
+        checkpoint_root = work / 'Checkpoint SaveRoot 日本語'
+        run('consumer-run', [str(consumer_bin / ('Consumer' + suffix)), str(consumer.resolve()), str(checkpoint_root.resolve())], timeout=240)
+        summary.update(checkpoint_resume_navigator=True, checkpoint_root=str(checkpoint_root.resolve()))
         run('support-only-run', [str(consumer_bin / ('SupportOnly' + suffix))], timeout=240)
         run('physics-only-run', [str(consumer_bin / ('PhysicsOnly' + suffix))], timeout=240)
         run('ui-only-run', [str(consumer_bin / ('UiOnly' + suffix))], timeout=240)

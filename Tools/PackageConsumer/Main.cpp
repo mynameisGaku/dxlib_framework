@@ -174,13 +174,13 @@ int main(int Count, char** Args)
 	FNoAssets Backend;
 	// 同じ外部シーンをNative Applicationでも実行し、上位APIの利用を二重実装しない。
 	Dxf::FAssetService InteractionAssets(Backend, Backend, Backend);
-	if (Count != 2)
+	if (Count != 3)
 	{
 		return 401;
 	}
 	RunContentConsumer(InteractionAssets, Toolbox::FPath(Args[1]));
-	RunCheckpointConsumer(InteractionAssets, Toolbox::FPath(Args[1]));
 	Dxf::FAudioPlayer InteractionAudio(Backend);
+	RunCheckpointConsumer(InteractionAssets, Toolbox::FPath(Args[1]), Toolbox::FPath(Args[2]), InteractionAudio);
 	const Toolbox::int32 InteractionCode = RunInteractionConsumer(InteractionAssets, InteractionAudio);
 	if (InteractionCode != 0)
 	{

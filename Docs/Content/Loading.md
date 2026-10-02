@@ -42,3 +42,10 @@ Retireは対象Scopeだけを退役・待機して入力寿命を保ち、兄弟
 `Tools/ValidateContentData.py --exe <NativeGameplaySmoke.exe> --logs <新規保存先>`は日本語・空白パスへAssets検証用コピーを作ります。同じexeを別CWDでA／B定義から実行し、Worldの個体数・配置・Motor、実画素の差、壊れたCから同一セッション再試行を保存します。原本Assetsを変更せず、exe SHA-256を前後照合します。
 
 `Tools/ValidateContentMutations.py --build <PortableBuild> --logs <新規保存先>`はB-M01〜18を一つずつ適用し、build成功、挙動Red、バイト復元、再compile、Green、指紋一致を記録します。失敗や未検出も残し、compile失敗を検出件数へ含めません。
+
+
+## 論理チェックポイントからの再開
+
+SceneContent自身は初期構成を扱う。任意の `dxf::game_save` を利用する場合は、保存文書と許可カタログから新しい初期構成を作り、既存の資源準備とNavigatorを使ってチェックポイント進行を再開できる。初期構成の再読み込みと進行ロードは別操作である。
+
+`FCheckpointResumeRequest2D`／`3D` は通常更新から切替を要求し、`ACheckpointScene2D`／`3D` の有効化・成功PostPhysics・全必須Readyを確認して完了する。Preparedや切替受付だけを再開成功と表示しない。失敗保証は上表を引き継ぎ、切替後のWorld全体のrollbackは追加しない。詳細と実際の公開利用例は [保存とチェックポイント](../Gameplay/SavingAndCheckpoints.md) を参照する。SampleへのSave／Continue UIと別プロセスのゲーム再開は実装中である。

@@ -282,6 +282,11 @@ target_include_directories(dxf_scene_content PRIVATE Source/SceneContent/Private
 dxf_public_headers(dxf_scene_content SceneContent PUBLIC)
 dxf_warnings(dxf_scene_content)
 add_library(dxf_game_save STATIC
+    Source/GameSave/Private/Dxf/CheckpointSceneTicket.cpp
+    Source/GameSave/Private/Dxf/CheckpointScene2D.cpp
+    Source/GameSave/Private/Dxf/CheckpointScene3D.cpp
+    Source/GameSave/Private/Dxf/CheckpointResumeRequest2D.cpp
+    Source/GameSave/Private/Dxf/CheckpointResumeRequest3D.cpp
     Source/GameSave/Private/Dxf/CheckpointCapture2D.cpp
     Source/GameSave/Private/Dxf/CheckpointCapture3D.cpp
     Source/GameSave/Private/Dxf/CheckpointRestore.cpp
@@ -438,9 +443,10 @@ if(DXF_BUILD_TESTS)
     dxf_warnings(dxf_game_save_tests)
     add_test(NAME GameSaveRequest COMMAND dxf_game_save_tests)
     set_tests_properties(GameSaveRequest PROPERTIES TIMEOUT 60 LABELS "portable;save;async")
-    add_executable(dxf_checkpoint_tests Tests/TestMain.cpp Tests/CheckpointTests.cpp Tests/CheckpointRestoreTests.cpp Tests/CheckpointCaptureTests.cpp)
+    add_executable(dxf_checkpoint_tests Tests/TestMain.cpp Tests/CheckpointTests.cpp Tests/CheckpointRestoreTests.cpp Tests/CheckpointCaptureTests.cpp Tests/CheckpointResumeTests.cpp)
     target_link_libraries(dxf_checkpoint_tests PRIVATE dxf::game_save)
     target_include_directories(dxf_checkpoint_tests PRIVATE Tests)
+    target_compile_definitions(dxf_checkpoint_tests PRIVATE DXF_CHECKPOINT_TEST_ROOT="${CMAKE_CURRENT_BINARY_DIR}/Checkpoint Resume Japanese Space")
     dxf_warnings(dxf_checkpoint_tests)
     add_test(NAME GameCheckpoint COMMAND dxf_checkpoint_tests)
     set_tests_properties(GameCheckpoint PROPERTIES TIMEOUT 60 LABELS "portable;save;checkpoint")
