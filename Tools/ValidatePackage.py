@@ -8,6 +8,7 @@ The consumer sources are in Tools/PackageConsumer and use only the relocated pac
 from __future__ import annotations
 import argparse
 import json
+import hashlib
 import os
 from pathlib import Path
 import shutil
@@ -26,7 +27,7 @@ CONSUMER_SOURCES = ('CMakeLists.txt', 'Main.cpp', 'Support.cpp', 'Physics.cpp', 
                     'FMechanismConsumerResult.h', 'MechanismConsumer.h', 'MechanismConsumer.cpp',
                     'PhysicsMechanism.h', 'PhysicsMechanism.cpp', 'ContentConsumer.h', 'ContentConsumer.cpp',
                     'Data/prefab2d.dxfprefab.json', 'Data/prefab3d.dxfprefab.json', 'Data/scene2d.dxfscene.json', 'Data/scene3d.dxfscene.json',
-                    'ContentNativeConsumer.cpp')
+                    'ContentNativeConsumer.cpp', 'SaveCore.cpp')
 # UI入りの外部のApplicationへ渡す外部スタイル（正しいものと、読めないもの）。
 UI_STYLE = 'dxfui-style 1\nstyle ConsumerButton {\n background = #20a0e0\n}\n'
 UI_BROKEN_STYLE = 'dxfui-style 1\nstyle ConsumerButton {\n background = @missing\n}\n'
@@ -159,6 +160,20 @@ def main() -> int:
         run('physics-only-run', [str(consumer_bin / ('PhysicsOnly' + suffix))], timeout=240)
         run('ui-only-run', [str(consumer_bin / ('UiOnly' + suffix))], timeout=240)
         run('ui-runtime-run', [str(consumer_bin / ('UiRuntime' + suffix))], timeout=240)
+        save_deployed = work / '保存コア 配布 exe'
+        save_deployed.mkdir()
+        save_exe = save_deployed / ('SaveCoreOnly' + suffix)
+        shutil.copyfile(consumer_bin / save_exe.name, save_exe)
+        save_root = work / '専用 SaveRoot 日本語'
+        save_cwd = work / '保存とは無関係 cwd'
+        save_cwd.mkdir()
+        binary_hash = hashlib.sha256(save_exe.read_bytes()).hexdigest()
+        run('save-core-write-process', [str(save_exe), 'write', str(save_root.resolve())], cwd=save_cwd)
+        run('save-core-read-process', [str(save_exe), 'read', str(save_root.resolve())], cwd=save_cwd)
+        if hashlib.sha256(save_exe.read_bytes()).hexdigest() != binary_hash:
+            raise RuntimeError('Save core consumer executable changed between processes')
+        summary.update(save_core_without_upper_layers=True, save_core_separate_processes=True,
+                       save_core_exe_sha256=binary_hash, save_core_root=str(save_root.resolve()))
         summary.update(ui_without_physics_or_runtime=True, ui_scene_adapter=True)
         summary.update(install=True, relocation=True, external_consumer=True, export_paths_relocatable=True,
                        support_without_runtime=True, physics_without_debug_or_support=True,

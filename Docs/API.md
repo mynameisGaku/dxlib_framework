@@ -220,4 +220,10 @@ Gameplayはcppを持つ静的ライブラリです。公開`dxf::gameplay`／`dx
 [Joint](Physics/Joints.md)のRevolute/Hinge、Fixed、Prismaticは2D/3Dの種類別Description/StateとComponentを持ちます。WorldはCreate/Getと共通ID、Gameplayは型付きBody参照・接続要求・目標速度制御を担当します。Physics単独利用にUI/Debug/Nativeは不要です。Motorは有限の速度要求、観察は成功PostPhysics、描画は補間Poseです。
 # Scene／Prefab初期構成（開発途中）
 
-任意リンクの`dxf::scene_content`に、2D／3Dの初期構成の読取・準備・既存Componentによる生成を追加しています。`FSceneContentSource`→`PreparePrefab`／`PrepareScene`→`DPrefabInstance2D/3D`／`DContentScene2D/3D`の経路です。受付とReadyを区別し、型付き公開先から既存Joint要求を使います。入れ子、非同期要求、描画・Sample・配布は未完了です。現在の対応範囲は[Scene定義](Content/SceneDefinitions.md)、再開位置は[継続点](Development/ScenePrefabContinuation.md)を参照してください。
+任意リンクの`dxf::scene_content`は、2D／3Dの初期構成の読取・準備・既存Componentによる生成を提供します。`FSceneContentSource`→`PreparePrefab`／`PrepareScene`→`DPrefabInstance2D/3D`／`DContentScene2D/3D`の経路です。受付とReadyを区別し、型付き公開先から既存Joint要求を使います。入れ子、Scoped非同期要求、描画、既存Sampleへの接続を含む現在の仕様は[Scene定義](Content/SceneDefinitions.md)、Bの採用した検証範囲は[完了記録](Development/ScenePrefabContentCompletion-2026-10-02.md)を参照してください。初期構成とゲーム進行の保存は別の責務です。
+
+## 任意の保存コアと保存要求
+
+`dxf::save_data`は`FSaveDocument`／`FSaveCodec`／`FSaveStore`で、論理値の封筒、厳密な世代、専用SaveRoot、二面保存、回復を提供します。Toolboxだけを利用し、Scene／Physics／Nativeを要求しません。`dxf::game_save`の`FGameSaveRequest`は既存TaskDispatcherを借り、通常更新のPollで保存を公開します。公開結果不明の再確認は`RetryPublication`で明示要求します。
+
+現在は保存コアとCPU値の要求までの実装です。チェックポイント採取、Contentからのゲーム再開、入力設定とSample統合は実装中で、任意Worldの保存を提供するものではありません。[現在の保存契約](Gameplay/SavingAndCheckpoints.md)と[試行記録](Development/GameSaveCompletion-2026-10-02.md)を参照してください。

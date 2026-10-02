@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: NOASSERTION
 #include "Toolbox/Platform.h"
+#include "Toolbox/FileError.h"
 #include <errno.h>
 #if defined(_WIN32)
 #ifndef NOMINMAX
@@ -548,14 +549,17 @@ bool ReadFileBytes(const FPath& Path, TVector<uint8>& Out, size_t MaxBytes)
 		{
 			return false;
 		}
-		throw FException("Cannot open file for reading");
+		throw FFileError(EFileOperation::Read, Error, "Cannot open file for reading");
 	}
 	// ファイル全体のバイト数。
 	LARGE_INTEGER Size{};
-	if (!GetFileSizeEx(Guard.Handle, &Size) || Size.QuadPart < 0 ||
-	    static_cast<uint64>(Size.QuadPart) > MaxBytes)
+	if (!GetFileSizeEx(Guard.Handle, &Size))
 	{
-		throw FException("File is too large to read");
+		throw FFileError(EFileOperation::Read, GetLastError(), "Cannot read file size");
+	}
+	if (Size.QuadPart < 0 || static_cast<uint64>(Size.QuadPart) > MaxBytes)
+	{
+		throw FFileError(EFileOperation::SizeLimit, 0, "File is too large to read");
 	}
 	// 読み取ったバイト列。
 	TVector<uint8> Bytes(static_cast<size_t>(Size.QuadPart));
@@ -568,7 +572,7 @@ bool ReadFileBytes(const FPath& Path, TVector<uint8>& Out, size_t MaxBytes)
 		if (!ReadFile(Guard.Handle, Bytes.Data() + Done, static_cast<DWORD>(Bytes.Size() - Done), &Chunk, nullptr) ||
 		    Chunk == 0)
 		{
-			throw FException("Cannot read file contents");
+			throw FFileError(EFileOperation::Read, GetLastError(), "Cannot read file contents");
 		}
 		Done += Chunk;
 	}
@@ -584,14 +588,17 @@ bool ReadFileBytes(const FPath& Path, TVector<uint8>& Out, size_t MaxBytes)
 		{
 			return false;
 		}
-		throw FException("Cannot open file for reading");
+		throw FFileError(EFileOperation::Read, static_cast<uint32>(errno), "Cannot open file for reading");
 	}
 	// ファイル種別を含む属性情報。
 	struct stat Info{};
-	if (fstat(Guard.Descriptor, &Info) != 0 || !S_ISREG(Info.st_mode) || Info.st_size < 0 ||
-	    static_cast<uint64>(Info.st_size) > MaxBytes)
+	if (fstat(Guard.Descriptor, &Info) != 0)
 	{
-		throw FException("File is too large to read");
+		throw FFileError(EFileOperation::Read, static_cast<uint32>(errno), "Cannot read file size");
+	}
+	if (!S_ISREG(Info.st_mode) || Info.st_size < 0 || static_cast<uint64>(Info.st_size) > MaxBytes)
+	{
+		throw FFileError(EFileOperation::SizeLimit, 0, "File is too large to read");
 	}
 	// 読み取ったバイト列。
 	TVector<uint8> Bytes(static_cast<size_t>(Info.st_size));
@@ -603,7 +610,11 @@ bool ReadFileBytes(const FPath& Path, TVector<uint8>& Out, size_t MaxBytes)
 		const ssize_t Chunk = read(Guard.Descriptor, Bytes.Data() + Done, Bytes.Size() - Done);
 		if (Chunk <= 0)
 		{
-			throw FException("Cannot read file contents");
+			if (Chunk < 0 && errno == EINTR)
+			{
+				continue;
+			}
+			throw FFileError(EFileOperation::Read, Chunk < 0 ? static_cast<uint32>(errno) : 0, "Cannot read file contents");
 		}
 		Done += static_cast<size_t>(Chunk);
 	}

@@ -89,6 +89,12 @@ find_package(Threads REQUIRED)
 
 add_library(dxf_toolbox STATIC
     Source/Toolbox/Private/Toolbox/JsonDocument.cpp
+    Source/Toolbox/Private/Toolbox/JsonWriter.cpp
+    Source/Toolbox/Private/Toolbox/Crc32.cpp
+    Source/Toolbox/Private/Toolbox/FileLock.cpp
+    Source/Toolbox/Private/Toolbox/FileWriter.cpp
+    Source/Toolbox/Private/Toolbox/FilePublication.cpp
+    Source/Toolbox/Private/Toolbox/DirectoryFiles.cpp
     Source/Toolbox/Private/Toolbox/Threading.cpp
     Source/Toolbox/Private/Toolbox/JobSystem.cpp
     Source/Toolbox/Private/Toolbox/Log.cpp
@@ -122,6 +128,9 @@ if(MSVC)
     target_compile_options(dxf_toolbox PUBLIC /utf-8)
 endif()
 target_link_libraries(dxf_toolbox PUBLIC Threads::Threads)
+if(WIN32)
+    target_link_libraries(dxf_toolbox PRIVATE shell32 ole32)
+endif()
 target_include_directories(dxf_toolbox PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Source/Toolbox/Public>" "$<INSTALL_INTERFACE:include>")
 dxf_ide_headers(dxf_toolbox Source/Toolbox)
 dxf_warnings(dxf_toolbox)
@@ -235,6 +244,16 @@ if(DXF_SANITIZERS)
 endif()
 
 add_library(dxlib_framework INTERFACE)
+add_library(dxf_save_data STATIC
+    Source/SaveData/Private/Dxf/SaveCodec.cpp
+    Source/SaveData/Private/Dxf/SaveStore.cpp
+    Source/SaveData/Private/Dxf/SaveTransaction.cpp)
+add_library(dxf::save_data ALIAS dxf_save_data)
+set_target_properties(dxf_save_data PROPERTIES EXPORT_NAME save_data DEBUG_POSTFIX d)
+target_link_libraries(dxf_save_data PUBLIC dxf::toolbox)
+target_include_directories(dxf_save_data PRIVATE Source/SaveData/Private)
+dxf_public_headers(dxf_save_data SaveData PUBLIC)
+dxf_warnings(dxf_save_data)
 add_library(dxf_scene_content STATIC
     Source/SceneContent/Private/Dxf/ContentScene2D.cpp
     Source/SceneContent/Private/Dxf/ContentScene3D.cpp
@@ -259,6 +278,15 @@ target_link_libraries(dxf_scene_content PUBLIC dxf::gameplay)
 target_include_directories(dxf_scene_content PRIVATE Source/SceneContent/Private Source/Gameplay/Private)
 dxf_public_headers(dxf_scene_content SceneContent PUBLIC)
 dxf_warnings(dxf_scene_content)
+add_library(dxf_game_save STATIC
+    Source/GameSave/Private/Dxf/GameSaveRequest.cpp
+    Source/GameSave/Private/Dxf/GameSaveTicket.cpp)
+add_library(dxf::game_save ALIAS dxf_game_save)
+set_target_properties(dxf_game_save PROPERTIES EXPORT_NAME game_save DEBUG_POSTFIX d)
+target_link_libraries(dxf_game_save PUBLIC dxf::save_data dxf::runtime)
+target_include_directories(dxf_game_save PRIVATE Source/GameSave/Private)
+dxf_public_headers(dxf_game_save GameSave PUBLIC)
+dxf_warnings(dxf_game_save)
 add_library(dxf::framework ALIAS dxlib_framework)
 set_target_properties(dxlib_framework PROPERTIES EXPORT_NAME framework)
 target_link_libraries(dxlib_framework INTERFACE dxf::gameplay)
@@ -380,6 +408,27 @@ if(DXF_BUILD_TESTS)
     add_test(NAME SceneContentAllocationFault COMMAND dxf_scene_content_fault_tests)
     set_tests_properties(SceneContentAllocationFault PROPERTIES TIMEOUT 60 LABELS "portable;content;allocation-fault")
     add_test(NAME SceneContent COMMAND dxf_scene_content_tests)
+    add_executable(dxf_save_data_tests Tests/TestMain.cpp Tests/SaveDataTests.cpp)
+    target_link_libraries(dxf_save_data_tests PRIVATE dxf::save_data)
+    target_include_directories(dxf_save_data_tests PRIVATE Tests)
+    target_compile_definitions(dxf_save_data_tests PRIVATE DXF_SAVE_TEST_ROOT="${CMAKE_CURRENT_BINARY_DIR}/SaveData Japanese Space")
+    dxf_warnings(dxf_save_data_tests)
+    add_test(NAME SaveData COMMAND dxf_save_data_tests)
+    set_tests_properties(SaveData PROPERTIES TIMEOUT 60 LABELS "portable;save")
+    add_executable(dxf_save_data_fault_tests Tests/TestMain.cpp Tests/SaveDataFaultTests.cpp Source/Toolbox/Private/Toolbox/Testing/AllocationFault.cpp)
+    target_link_libraries(dxf_save_data_fault_tests PRIVATE dxf::save_data)
+    target_include_directories(dxf_save_data_fault_tests PRIVATE Tests)
+    target_compile_definitions(dxf_save_data_fault_tests PRIVATE DXF_ALLOCATION_FAULT_TEST_EXECUTABLE=1 DXF_SAVE_TEST_ROOT="${CMAKE_CURRENT_BINARY_DIR}/SaveFault Japanese Space")
+    dxf_warnings(dxf_save_data_fault_tests)
+    add_test(NAME SaveDataAllocationFault COMMAND dxf_save_data_fault_tests)
+    set_tests_properties(SaveDataAllocationFault PROPERTIES TIMEOUT 60 LABELS "portable;save;allocation-fault")
+    add_executable(dxf_game_save_tests Tests/TestMain.cpp Tests/GameSaveRequestTests.cpp)
+    target_link_libraries(dxf_game_save_tests PRIVATE dxf::game_save)
+    target_include_directories(dxf_game_save_tests PRIVATE Tests)
+    target_compile_definitions(dxf_game_save_tests PRIVATE DXF_SAVE_TEST_ROOT="${CMAKE_CURRENT_BINARY_DIR}/SaveRequest Japanese Space")
+    dxf_warnings(dxf_game_save_tests)
+    add_test(NAME GameSaveRequest COMMAND dxf_game_save_tests)
+    set_tests_properties(GameSaveRequest PROPERTIES TIMEOUT 60 LABELS "portable;save;async")
     set_tests_properties(SceneContent PROPERTIES TIMEOUT 60 LABELS "portable;content")
     set_tests_properties(Framework PROPERTIES TIMEOUT 60 LABELS "portable")
 
@@ -439,7 +488,7 @@ if(DXF_BUILD_TESTS)
     endif()
 endif()
 
-set(DXF_EXPORT_TARGETS dxlib_framework dxf_toolbox dxf_foundation dxf_ufbx dxf_support dxf_runtime dxf_gameplay dxf_physics dxf_scene_content)
+set(DXF_EXPORT_TARGETS dxlib_framework dxf_toolbox dxf_foundation dxf_ufbx dxf_support dxf_runtime dxf_gameplay dxf_physics dxf_scene_content dxf_save_data dxf_game_save)
 # 任意のUI基盤（dxf::ui・dxf::ui_runtime）。
 include(CMake/UiModule.cmake)
 if(DXF_BUILD_NATIVE)
@@ -612,7 +661,7 @@ if(DXF_INSTALL)
     include(CMakePackageConfigHelpers)
     install(TARGETS ${DXF_EXPORT_TARGETS} EXPORT dxlib_frameworkTargets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-    foreach(Layer Toolbox Foundation DxLibSupport Runtime Gameplay Physics SceneContent Native Ui UiRuntime)
+    foreach(Layer Toolbox Foundation DxLibSupport Runtime Gameplay Physics SceneContent SaveData GameSave Native Ui UiRuntime)
         install(DIRECTORY "Source/${Layer}/Public/" DESTINATION include FILES_MATCHING PATTERN "*.h")
     endforeach()
     set(DXF_CONFIG_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/dxlib_framework")

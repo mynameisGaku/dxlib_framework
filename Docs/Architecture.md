@@ -108,3 +108,7 @@ Physics WorldがJointを所有し、Gameplayの距離Joint Componentは一つの
 ## 任意のSceneContent層
 
 SceneContentはGameplayとSupportを利用する静的ライブラリです。定義はCPUで読解・検証し、Native資源は既存AssetServiceの所有側で準備します。Prefab rootは既存CollectionのObjectで、Body／Jointを別所有しません。既存FrameworkはSceneContentを必須依存にせず、Physics／Toolboxから上位へ逆依存しません。[初期構成](Content/SceneDefinitions.md)・[寿命](Content/Prefabs.md)・[準備境界](Content/Loading.md)を参照してください。
+
+## 任意の保存層
+
+SaveDataはToolboxだけへ依存する静的ライブラリです。文書・codec・SaveRoot・二面の公開と回復を担当し、Scene、物理、Native資源を所有しません。GameSaveの要求窓口は利用側GameInstanceなどが明示所有し、RuntimeのTaskDispatcher／Scopeを借ります。Workerへ持ち出すのは完成したCPU値だけで、通常更新のPollが保存を公開します。Sceneへの再開adapterと安全な境界での進行採取は追加中です。従来Framework／SceneContentから保存層を必須依存にしません。
