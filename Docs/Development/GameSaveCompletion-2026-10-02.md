@@ -153,3 +153,17 @@ Save用の2D／3Dコースと許可カタログ、純粋なゲーム再開レシ
 B-M16の対象Source復元SHA-256は`087f04a6b528699336404ed5892c43acc09fd28d4ea29f466ba3ec50dc9b6d40`。バックアップ・変更時刻・各buildとexe指紋は`Build/GameSave-20261002-30a407/RelatedContentMutationRoot02`へ保存した。一時変異は残っていない。L-M01〜20、Sensorによる進行更新、Sample保存UI、別プロセスのゲームApplication再開、Native、測定・配布4構成は未完了で、ここはL10最終採用集合ではない。
 
 新規の14定義と3つのC++ファイルを既存のCRLFへ揃え、変異復元後に再検証した。PortableSaveCourseRecipeCrLfRelease01は全群37/37・失敗0・skip0、35.73秒、全終了0。SaveCourseRecipeCrLfDebug01はInteractionSample56/56、引数コメント・No-STL・diff検査も終了0。両試行の前後manifestは`26d36c21b2ec76b96040a973f58f4892d6385e6cd6fbe67847b63172dd1a688f`で一致した。改行前の結果と区別し、この実装単位の確認値とする。L10の累積採用回帰は今後の実装が揃った後に行う。
+
+両次元のSample Scene／Controllerを追加した。本体Sensorから鍵取得・得点・解錠を更新し、片側だけを有限Motorで開き、動的荷物を履歴付きで生成する。全PostPhysics後の採取と新Sceneでの取得済み抑止を実Applicationで確認した。KeyboardのK、Mouse Right、Pad4の16番へJumpを変更し、実BodyのImpulseで結果を照合した。0固定更新の押下保持、複数固定更新の単発配送、UI終了の押し続け、Pad切断・フォーカス喪失、既存Playbackと次のPlayの音量適用を含む。接触を起こす配置は試験が明示的にTeleportするもので、製品Controllerは力・Impulseと専任Joint要求だけを使用する。
+
+|試行|結果|manifest|
+|---|---|---|
+|SaveCourseControllerDebug01|build1。テンプレートヘッダーの必要な型includeを補正。旧exe未実行|固有失敗記録を保持|
+|SaveCourseControllerDebug02|build1。試験のOptional比較を、存在するID値の比較へ訂正。旧exe未実行|固有失敗記録を保持|
+|SaveCourseControllerDebug03|build0、56/58。UI消費後の偽の解放で解除待ちが終了する製品不具合を両次元で検出、CTest8|固有失敗記録を保持|
+|SaveCourseControllerDebug04|入力更新後に元Snapshotで抑止する修正後58/58、全終了0|固有記録を参照|
+|SaveCourseControllerDebug05|マウス・Pad・フォーカス・2Viewの代表を追加後58/58、コメント・No-STL・diffも終了0|3c3c5fe03c8075deabeeb3d4271c6e3f176c4598a481ebbf975862c931e04830|
+|PortableSaveCourseControllerRelease01|CRLFを揃えた全群37/37、失敗0・skip0、35.60秒、No-STL981違反0、全終了0、前後同一|55101a8b1b80f4c7f862fbcdd866e2585ca600157efaf75abc7837a729ad1dc2|
+|SaveCourseControllerFrozenDebug01|同じCRLFコードで58/58、コメント・No-STL・diffも終了0、前後manifest同一|同上|
+
+進行を保持するGameInstanceと保存UI、実ファイルへ保存して終了するゲームプロセスA/B、UI倍率、Native画素、Lの変異、測定・配布4構成はまだ実装・検証中である。同一プロセスの新Scene生成を別プロセスの成功へ転用しない。

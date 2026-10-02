@@ -132,4 +132,18 @@ Sceneの `OnPhysicsStepCompleted` で、同じ境界のゲームcodecが検証�
 
 進行の取得済みキーを除去記録へ反映し、プレイヤーを `start`／`north` の安全地点へ配置する。扉の論理開閉は公開bool `open` へ変換し、再開時は停止モードとする。開扉ではleafと固定されたcargoをレール方向へtravelだけ移す。Bodyに取り付けたLocal FrameとColliderは維持するため、Prismaticの観察値は初回の成功固定更新からtravelとなり、Limitは元の `[0, travel]` を保つ。動的荷物の論理記録・生成順・parameterは既存の再開計画が扱う。
 
-[実Application試験](../../Tests/SaveCourseRecipeTests.cpp) では閉扉の対照と片側だけ開いた再開を両次元で比較する。2Dの90度配置、3Dの120度配置、固定荷物、取得済みと未取得の鍵、動的荷物、全4種類の内部Jointを確認する。追加Step・初期化中の音声再生を使わない。この範囲はレシピと本体Applicationの接続であり、Sensorによる進行更新、Save／Continue UI、別プロセスと実画素は引き続き実装中である。
+[実Application試験](../../Tests/SaveCourseRecipeTests.cpp) では閉扉の対照と片側だけ開いた再開を両次元で比較する。2Dの90度配置、3Dの120度配置、固定荷物、取得済みと未取得の鍵、動的荷物、全4種類の内部Jointを確認する。追加Step・初期化中の音声再生を使わない。
+
+## Sampleの進行Controller
+
+`ASaveCourseScene2D`／`3D` は既存のチェックポイントSceneを使い、Collection所有の `TSaveCourseController` へゲーム判断を委譲する。コンストラクターに準備済みScene、レシピを通した文書、準備済み荷物、現在の独立設定を渡す。`GetProgress` は現在のゲーム値で、永続化済みや採取済みという意味ではない。
+
+Controllerは鍵・安全地点の型付きSensor exportを一度だけ解決する。相手の完全Body IDをプレイヤーと照合し、成功PostPhysics後に取得済み集合・得点・解錠を確定して取得物を破棄する。終了済みの同名個体へ追従しない。安全地点のStayだけではrevisionを更新せず、同じ進行を繰り返し採取しない。進行変更時だけ `SetGamePayload` と `RequestCapture` を使い、親Sceneが同じ境界の個体・Joint状態と合わせて採取する。
+
+`RequestDoor(0, true)` は解錠済みdoorAへ有限Motorの目標を渡し、doorBの設定・IDを変更しない。論理的な開閉は成功観察の位置・速度が目標へ到達した後に確定する。`RequestCargo()` は次の通常固定更新で動的な荷物を一個生成し、既存の論理履歴へ記録する。BodyのPose・速度を直接代入しない。
+
+`FSaveCourseInput::Defaults` と `Policy` がゲームのActionと予約キーを提供する。完全な `ApplySettings(Settings, RawSnapshot)` は既存プロファイルの検証・強い失敗保証・解放後有効化を使う。ActionはUI消費の後、物理計画の前に一回更新する。0固定更新の押下を保留し、複数固定更新でも一回だけ消費する。Modal終了の押し続け、フォーカス喪失、Pad切断では保留操作を抑止する。UIで作られた偽の解放で解除待ちを終了しない。
+
+取得の効果音はScene有効化後の通常更新で既存AudioScopeへ再生し、準備・初期化・描画では再生しない。音量は起動中のPlaybackと次のPlayへ元の倍率から適用する。設定値の保存成功とは別である。UI倍率の実適用、SampleのSave／Continue UI、別プロセスと実画素は引き続き実装中。
+
+[Controller試験](../../Tests/SaveCourseControllerTests.cpp) は実Application・World・Sensorで鍵取得、解錠、片側開扉、動的生成、成功境界採取、新Sceneでの二重得点抑止を確認する。入力変更も実BodyのImpulseで検証し、Keyboard／Mouse／Pad、0／複数固定更新、Modal閉鎖、切断・フォーカス喪失を含める。接触を作る試験用配置は試験が明示的にTeleportし、製品Controllerの移動方法とは区別する。同一プロセスのScene再開であり、別プロセス試験の代用にはしない。
