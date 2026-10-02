@@ -56,6 +56,13 @@ void Exercise(uint32 Dimension, TLoad Load)
 	REQUIRE(PreparedBytes.DefinitionStamps[0].Path == "leaf.dxfprefab.json");
 	REQUIRE(PreparedBytes.DefinitionStamps[0].ByteCount == Original.Size());
 	REQUIRE(PreparedBytes.DefinitionStamps[0].Sha256 == FSha256::Compute(Original));
+	// 埋込個体も要求全体の実読込指紋を持ち、チェックポイントが後から再読込しない。
+	for (const auto& Embedded : PreparedBytes.Prefabs)
+	{
+		REQUIRE(Embedded.ContentFingerprint == PreparedBytes.ContentFingerprint);
+		REQUIRE(Embedded.DefinitionStamps.Size() == PreparedBytes.DefinitionStamps.Size());
+		REQUIRE(Embedded.DefinitionStamps[0].Sha256 == FSha256::Compute(Original));
+	}
 	// 準備後のディスク変更を旧定義の指紋へ書き戻さない。
 	REQUIRE(RemoveOwnedFile(First / FPath("leaf.dxfprefab.json")));
 	Write(First / FPath("leaf.dxfprefab.json"), Prefab(Dimension, 2));
@@ -64,6 +71,8 @@ void Exercise(uint32 Dimension, TLoad Load)
 	REQUIRE(PreparedBytes.DefinitionStamps[0].Sha256 == FSha256::Compute(Original));
 	REQUIRE(PreparedBytes.Prefabs[0].Parts[0].Body.Position.X == 0);
 	REQUIRE(Reloaded.Prefabs[0].Parts[0].Body.Position.X == 2);
+	REQUIRE(PreparedBytes.Prefabs[0].ContentFingerprint != Reloaded.Prefabs[0].ContentFingerprint);
+	REQUIRE(PreparedBytes.Prefabs[0].DefinitionStamps[0].Sha256 == FSha256::Compute(Original));
 }
 } // namespace
 TEST("Content 2D fingerprints loaded dependency bytes across relocation and reload")

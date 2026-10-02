@@ -326,6 +326,7 @@ set(DXF_NATIVE_SOURCES
 
 # キャラクター移動のサンプル（2D／3D）のソース。サンプルと実Appの固定入力の確認が共有する。
 set(DXF_GAMEPLAY_SAMPLE_SOURCES
+    Examples/GameplaySample/SaveCourseRecipes.cpp
     Examples/GameplaySample/SaveCourseProgressCodec.cpp
     Examples/GameplaySample/ContentCoursePortal.cpp
     Examples/GameplaySample/ContentCoursePanel.cpp
@@ -353,13 +354,13 @@ set(DXF_GAMEPLAY_SAMPLE_SOURCES
     Examples/GameplaySample/InteractionScene3D.cpp)
 
 # データ定義は開発用の例から実フォルダーで参照する。コンパイルは行わない。
-file(GLOB DXF_CONTENT_SAMPLE_DATA CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/Content/*.json")
+file(GLOB DXF_CONTENT_SAMPLE_DATA CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/Content/*.json" "${CMAKE_CURRENT_SOURCE_DIR}/Assets/SaveCourse/*.json")
 # サンプルのゲーム処理（2D／3D）の正規ライブラリ。サンプルの実行ファイル・実Appの固定入力の確認・CPUの試験が同じものを使う。
 # 通常のソリューション（試験・サンプル・実機試験がOFF）には含めない。
 if(DXF_BUILD_TESTS OR DXF_BUILD_GAMEPLAY_SAMPLE OR DXF_BUILD_NATIVE_SMOKE)
     add_library(dxf_gameplay_sample STATIC ${DXF_GAMEPLAY_SAMPLE_SOURCES})
     target_include_directories(dxf_gameplay_sample PUBLIC Examples/GameplaySample)
-    target_link_libraries(dxf_gameplay_sample PUBLIC dxf::framework dxf::ui_runtime dxf::scene_content dxf::save_data)
+    target_link_libraries(dxf_gameplay_sample PUBLIC dxf::framework dxf::ui_runtime dxf::scene_content dxf::game_save)
     target_compile_features(dxf_gameplay_sample PUBLIC cxx_std_20)
     dxf_ide_headers(dxf_gameplay_sample Examples/GameplaySample)
     target_sources(dxf_gameplay_sample PRIVATE ${DXF_CONTENT_SAMPLE_DATA})
@@ -496,8 +497,8 @@ if(DXF_BUILD_TESTS)
     set_tests_properties(JointComponentFault PROPERTIES TIMEOUT 60 LABELS "portable;gameplay;fault")
 
     # 接触・Trigger・動く床のサンプル（2D／3D）を実Application・SceneNavigator・固定入力で通す。描画・文字は代替のBackend。
-    add_executable(dxf_interaction_sample_tests Tests/TestMain.cpp Tests/InteractionSampleTests.cpp Tests/ContentCourseSampleTests.cpp Tests/SaveCourseProgressTests.cpp)
-    target_compile_definitions(dxf_interaction_sample_tests PRIVATE DXF_CONTENT_SAMPLE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}")
+    add_executable(dxf_interaction_sample_tests Tests/TestMain.cpp Tests/InteractionSampleTests.cpp Tests/ContentCourseSampleTests.cpp Tests/SaveCourseProgressTests.cpp Tests/SaveCourseRecipeTests.cpp)
+    target_compile_definitions(dxf_interaction_sample_tests PRIVATE DXF_CONTENT_SAMPLE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}" DXF_SAVE_COURSE_TEST_ROOT="${CMAKE_CURRENT_BINARY_DIR}/SaveCourseData")
     target_link_libraries(dxf_interaction_sample_tests PRIVATE dxf_gameplay_sample)
     target_include_directories(dxf_interaction_sample_tests PRIVATE Tests)
     dxf_warnings(dxf_interaction_sample_tests)

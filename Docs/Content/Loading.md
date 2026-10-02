@@ -49,3 +49,5 @@ Retireは対象Scopeだけを退役・待機して入力寿命を保ち、兄弟
 SceneContent自身は初期構成を扱う。任意の `dxf::game_save` を利用する場合は、保存文書と許可カタログから新しい初期構成を作り、既存の資源準備とNavigatorを使ってチェックポイント進行を再開できる。初期構成の再読み込みと進行ロードは別操作である。
 
 `FCheckpointResumeRequest2D`／`3D` は通常更新から切替を要求し、`ACheckpointScene2D`／`3D` の有効化・成功PostPhysics・全必須Readyを確認して完了する。Preparedや切替受付だけを再開成功と表示しない。失敗保証は上表を引き継ぎ、切替後のWorld全体のrollbackは追加しない。詳細と実際の公開利用例は [保存とチェックポイント](../Gameplay/SavingAndCheckpoints.md) を参照する。SampleへのSave／Continue UIと別プロセスのゲーム再開は実装中である。
+
+Scene要求から得た埋込Prefabの指紋は、その要求が実際に読んだScene・共有資源宣言・全依存定義のバイト集合を含む。単独 `LoadPrefab2D`／`3D` の依存集合とは区別する。これは保守的な互換性確認で、無関係なScene定義の変更でも同じ要求のPrefab指紋は変わり得る。資源ファイルの全内容の指紋や、後日のディスク再読込結果を意味しない。

@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "kind": "prefab",
+  "dimension": 2,
+  "parts": [
+    {
+      "id": "root",
+      "body": {
+        "type": "Static",
+        "position": [
+          0,
+          0
+        ],
+        "angle": 0
+      },
+      "colliders": [
+        {
+          "shape": "Box",
+          "halfExtents": [
+            8,
+            0.25
+          ],
+          "response": "Solid"
+        }
+      ],
+      "visual": {
+        "kind": "Box",
+        "halfExtents": [
+          8,
+          0.25
+        ],
+        "color": [
+          80,
+          220,
+          130,
+          255
+        ]
+      }
+    }
+  ],
+  "exports": {
+    "body": "root/body"
+  }
+}

@@ -123,3 +123,13 @@ Sceneの `OnPhysicsStepCompleted` で、同じ境界のゲームcodecが検証�
 `ACheckpointScene` は進行をコンストラクターから保持し、初期イベント消費前にゲームControllerへ渡せる。`OnCheckpointStepCompleted` でゲームのPost反映を採取より先に行い、`SetGamePayload` の不正JSONでは旧進行を保持する。目標付きRevolute／Prismaticは型付きhandleを一度解決し、成功観察から既存 `ComputeJointTargetDrive` を使って次の有限Motorを要求する。初期Poseの直接上書きや追加World.Stepを行わない。Readyは目標到達を意味せず、初期構成の利用可能を意味する。
 
 最小のコンパイル・実行例は [CheckpointConsumer](../../Tools/PackageConsumer/CheckpointConsumer.cpp) を参照する。両次元で `RequestLoad` → 通常 `Poll` → 既存Navigator確定 → 成功固定更新 → `Completed` を確認する。保存用RootをContentのRootとは別引数で渡す。この試験は同一プロセスの再開であり、ゲームの別Applicationプロセス再開・Sample UI・入力設定はまだ完成していない。
+
+## Sampleの再開レシピ
+
+[FSaveCourseRecipes](../../Examples/GameplaySample/SaveCourseRecipes.h) は保存用の別コースを `Assets/SaveCourse` から読み、許可カタログと純粋なゲーム進行変換を提供する。従来のContentコースは変更しない。`Load2D`／`Load3D` が捕捉するのは読込済みの型付き値であり、`Restore` やPrefabレシピでファイルを再読込しない。公開値の型・完全な集合・数値範囲を検査し、元定義の指紋と資源表を保持する。
+
+`NewGame(Catalog)` は初期構成から文書を作り、初期開扉の公開値をゲーム進行の開閉・解錠にも反映する。`Restore(Document)` はゲームpayloadとcheckpoint識別が一致することを確認してから独立した候補を返す。`FCheckpointRestore::Build` へ渡し、既存の `PrepareScene` と `ACheckpointScene2D`／`3D` で採用する。カタログと初期進行を手作業で別々に組み立てる必要はない。
+
+進行の取得済みキーを除去記録へ反映し、プレイヤーを `start`／`north` の安全地点へ配置する。扉の論理開閉は公開bool `open` へ変換し、再開時は停止モードとする。開扉ではleafと固定されたcargoをレール方向へtravelだけ移す。Bodyに取り付けたLocal FrameとColliderは維持するため、Prismaticの観察値は初回の成功固定更新からtravelとなり、Limitは元の `[0, travel]` を保つ。動的荷物の論理記録・生成順・parameterは既存の再開計画が扱う。
+
+[実Application試験](../../Tests/SaveCourseRecipeTests.cpp) では閉扉の対照と片側だけ開いた再開を両次元で比較する。2Dの90度配置、3Dの120度配置、固定荷物、取得済みと未取得の鍵、動的荷物、全4種類の内部Jointを確認する。追加Step・初期化中の音声再生を使わない。この範囲はレシピと本体Applicationの接続であり、Sensorによる進行更新、Save／Continue UI、別プロセスと実画素は引き続き実装中である。

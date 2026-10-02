@@ -1,0 +1,113 @@
+{
+  "schema": 1,
+  "kind": "scene",
+  "dimension": 2,
+  "gravity": [
+    0,
+    0
+  ],
+  "prefabs": {
+    "door": "Assets/SaveCourse/door2d.dxfprefab.json",
+    "player": "Assets/SaveCourse/player2d.dxfprefab.json",
+    "key": "Assets/SaveCourse/key2d.dxfprefab.json",
+    "checkpoint": "Assets/SaveCourse/checkpoint2d.dxfprefab.json",
+    "cargo": "Assets/SaveCourse/cargo2d.dxfprefab.json",
+    "floor": "Assets/SaveCourse/floor2d.dxfprefab.json"
+  },
+  "instances": [
+    {
+      "id": "doorA",
+      "prefab": "door",
+      "placement": {
+        "position": [
+          -3,
+          0
+        ],
+        "angle": 1.5707963267948966
+      }
+    },
+    {
+      "id": "doorB",
+      "prefab": "door",
+      "placement": {
+        "position": [
+          3,
+          0
+        ],
+        "angle": 0
+      },
+      "parameters": {
+        "tint": [
+          240,
+          120,
+          60,
+          255
+        ]
+      }
+    },
+    {
+      "id": "player",
+      "prefab": "player",
+      "placement": {
+        "position": [
+          -6,
+          -3
+        ],
+        "angle": 0
+      }
+    },
+    {
+      "id": "northKey",
+      "prefab": "key",
+      "placement": {
+        "position": [
+          -5,
+          2
+        ],
+        "angle": 0
+      }
+    },
+    {
+      "id": "southKey",
+      "prefab": "key",
+      "placement": {
+        "position": [
+          5,
+          2
+        ],
+        "angle": 0
+      }
+    },
+    {
+      "id": "northCheckpoint",
+      "prefab": "checkpoint",
+      "placement": {
+        "position": [
+          0,
+          5
+        ],
+        "angle": 0
+      }
+    },
+    {
+      "id": "floor",
+      "prefab": "floor",
+      "placement": {
+        "position": [
+          0,
+          -4
+        ],
+        "angle": 0
+      }
+    }
+  ],
+  "views": [
+    {
+      "origin": [
+        640,
+        450
+      ],
+      "pixelsPerMeter": 45
+    }
+  ]
+}

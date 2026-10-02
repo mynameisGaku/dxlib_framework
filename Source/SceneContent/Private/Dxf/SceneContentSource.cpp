@@ -616,6 +616,11 @@ FSceneDefinition2D FSceneContentSource::LoadScene2D(Toolbox::FString Path) const
 	ContentPrivate::FFileSession Files(m_ProjectRoot, m_Limits);
 	auto Definition = ContentPrivate::LoadScene<ContentPrivate::FFile2D>(Files, Path, m_Limits);
 	Files.Stamp(Definition);
+	// 埋込Prefabも同じ要求で読んだ不変バイトに結び、後日の再読込を指紋に使わない。
+	for (auto& Prefab : Definition.Prefabs)
+	{
+		Files.Stamp(Prefab);
+	}
 	return Definition;
 }
 FSceneDefinition3D FSceneContentSource::LoadScene3D(Toolbox::FString Path) const
@@ -623,6 +628,11 @@ FSceneDefinition3D FSceneContentSource::LoadScene3D(Toolbox::FString Path) const
 	ContentPrivate::FFileSession Files(m_ProjectRoot, m_Limits);
 	auto Definition = ContentPrivate::LoadScene<ContentPrivate::FFile3D>(Files, Path, m_Limits);
 	Files.Stamp(Definition);
+	// Scene内の共有資源・全依存を含む保守的な指紋。単独Prefab要求の指紋とは区別する。
+	for (auto& Prefab : Definition.Prefabs)
+	{
+		Files.Stamp(Prefab);
+	}
 	return Definition;
 }
 } // namespace Dxf

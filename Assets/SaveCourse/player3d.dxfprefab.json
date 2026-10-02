@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "kind": "prefab",
+  "dimension": 3,
+  "parts": [
+    {
+      "id": "root",
+      "body": {
+        "type": "Dynamic",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "mass": 1,
+        "inertia": [
+          1,
+          1,
+          1
+        ]
+      },
+      "colliders": [
+        {
+          "shape": "Box",
+          "halfExtents": [
+            0.3,
+            0.3,
+            0.3
+          ],
+          "response": "Solid"
+        }
+      ],
+      "visual": {
+        "kind": "Box",
+        "halfExtents": [
+          0.3,
+          0.3,
+          0.3
+        ],
+        "color": [
+          80,
+          220,
+          130,
+          255
+        ]
+      }
+    }
+  ],
+  "exports": {
+    "body": "root/body"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "kind": "prefab",
+  "dimension": 2,
+  "parts": [
+    {
+      "id": "root",
+      "body": {
+        "type": "Static",
+        "position": [
+          0,
+          0
+        ],
+        "angle": 0
+      },
+      "colliders": [
+        {
+          "shape": "Box",
+          "halfExtents": [
+            0.6,
+            0.9
+          ],
+          "response": "Sensor"
+        }
+      ],
+      "visual": {
+        "kind": "Box",
+        "halfExtents": [
+          0.6,
+          0.9
+        ],
+        "color": [
+          80,
+          220,
+          130,
+          255
+        ]
+      }
+    }
+  ],
+  "exports": {
+    "body": "root/body",
+    "sensor": "root/sensor"
+  }
+}
