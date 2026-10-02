@@ -3,6 +3,7 @@
 #include "Dxf/SaveCodec.h"
 #include "Dxf/SaveError.h"
 #include "Dxf/SceneContentValidation.h"
+#include "Dxf/CheckpointParameters.h"
 namespace Dxf
 {
 namespace
@@ -23,49 +24,7 @@ void Compatible(bool Condition, const char* Message)
 		throw FSaveError(ESaveError::IncompatibleContent, Message);
 	}
 }
-bool Same(const FContentParameterValue& A, const FContentParameterValue& B)
-{
-	if (A.Id != B.Id || A.Kind != B.Kind)
-	{
-		return false;
-	}
-	switch (A.Kind)
-	{
-	case EContentParameterKind::Boolean:
-		return A.Boolean == B.Boolean;
-	case EContentParameterKind::Number:
-		return A.Number == B.Number;
-	case EContentParameterKind::Vector2:
-		return A.Vector2.X == B.Vector2.X && A.Vector2.Y == B.Vector2.Y;
-	case EContentParameterKind::Vector3:
-		return A.Vector3.X == B.Vector3.X && A.Vector3.Y == B.Vector3.Y && A.Vector3.Z == B.Vector3.Z;
-	case EContentParameterKind::Color:
-		return A.Color.R == B.Color.R && A.Color.G == B.Color.G && A.Color.B == B.Color.B && A.Color.A == B.Color.A;
-	case EContentParameterKind::Asset:
-		return A.Asset == B.Asset;
-	}
-	return false;
-}
-bool SameParameters(const TVector<FContentParameterValue>& A, const TVector<FContentParameterValue>& B)
-{
-	if (A.Size() != B.Size())
-	{
-		return false;
-	}
-	for (const auto& Value : A)
-	{
-		bool Found = false;
-		for (const auto& Candidate : B)
-		{
-			Found = Found || Same(Value, Candidate);
-		}
-		if (!Found)
-		{
-			return false;
-		}
-	}
-	return true;
-}
+using SavePrivate::SameParameters;
 // 保存には配列位置を持たせず、今回の新Sceneで一度だけ解決する。
 template <typename T>
 size_t FindInstance(const T& Scene, FStringView Key)

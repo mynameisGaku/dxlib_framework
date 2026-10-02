@@ -52,6 +52,10 @@ EJointConnection DFixedJoint2DComponent::GetConnectionState() const noexcept
 	}
 	return m_Connection;
 }
+bool DFixedJoint2DComponent::HasPendingRequest() const noexcept
+{
+	return m_bConnectRequested || m_bDisconnectRequested || m_bSettingsRequested;
+}
 Toolbox::TOptional<FJointId2D> DFixedJoint2DComponent::GetJointId() const noexcept
 {
 	if (!IsConnected_Internal())

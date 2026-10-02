@@ -21,6 +21,10 @@ public:
 	 * @param Id Sceneが宣言したインスタンスID。不在・未初期化・破棄済みは例外。
 	 */
 	TObjectHandle<DPrefabInstance3D> GetPrefab(Toolbox::FStringView Id) const;
+	/**
+	 * このSceneの準備に使った不変定義。実行中のPoseや動的個体一覧とは別。
+	 */
+	const FSceneDefinition3D& GetDefinition() const noexcept;
 
 	/**
 	 * @param First 全画面または左View。

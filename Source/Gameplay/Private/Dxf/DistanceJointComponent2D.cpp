@@ -56,6 +56,10 @@ EDistanceJointConnection DDistanceJoint2DComponent::GetConnectionState() const n
 	}
 	return m_Connection;
 }
+bool DDistanceJoint2DComponent::HasPendingRequest() const noexcept
+{
+	return m_bConnectRequested || m_bDisconnectRequested;
+}
 Toolbox::TOptional<FJointId2D> DDistanceJoint2DComponent::GetJointId() const noexcept
 {
 	if (!IsConnected_Internal())

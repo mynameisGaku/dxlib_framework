@@ -78,6 +78,10 @@ EJointConnection DRevoluteJoint3DComponent::GetConnectionState() const noexcept
 	}
 	return m_Connection;
 }
+bool DRevoluteJoint3DComponent::HasPendingRequest() const noexcept
+{
+	return m_bConnectRequested || m_bDisconnectRequested || m_bSettingsRequested;
+}
 Toolbox::TOptional<FJointId3D> DRevoluteJoint3DComponent::GetJointId() const noexcept
 {
 	if (!IsConnected_Internal())

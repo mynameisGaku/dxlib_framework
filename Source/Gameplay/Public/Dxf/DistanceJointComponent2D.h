@@ -36,6 +36,10 @@ public:
 	 */
 	Toolbox::TOptional<FJointId2D> GetJointId() const noexcept;
 	/**
+	 * 接続・解除・設定変更が次の固定更新に残るか。成功観察とは区別する。
+	 */
+	bool HasPendingRequest() const noexcept;
+	/**
 	 * 最後の成功PostPhysics値。次のStep開始・解除・失効後は空。
 	 */
 	Toolbox::TOptional<FDistanceJointObservation2D> GetObservation() const noexcept;

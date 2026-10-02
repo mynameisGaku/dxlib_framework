@@ -14,7 +14,7 @@ struct FCheckpointCatalog3D
 	/**
 	 * 期待するゲーム・Content・Scene・次元の識別。Payloadは空Object。
 	 */
-	FSaveDocument Identity;
+	FSaveDocument Identity{.Dimension = 3};
 	/**
 	 * 現在信頼する初期Scene。資源所有や実行時IDを持たない。
 	 */

@@ -227,3 +227,5 @@ Gameplayはcppを持つ静的ライブラリです。公開`dxf::gameplay`／`dx
 `dxf::save_data`は`FSaveDocument`／`FSaveCodec`／`FSaveStore`で、論理値の封筒、厳密な世代、専用SaveRoot、二面保存、回復を提供します。Toolboxだけを利用し、Scene／Physics／Nativeを要求しません。`dxf::game_save`の`FGameSaveRequest`は既存TaskDispatcherを借り、通常更新のPollで保存を公開します。公開結果不明の再確認は`RetryPublication`で明示要求します。
 
 `FCheckpointCodec`は2D／3Dの論理個体・進行・4種類のJoint状態を変換し、`FCheckpointRestore::Build`は許可済みカタログから新SceneのCPU計画を生成します。`DPhysicsScene2D/3D::OnPhysicsStepCompleted`は、成功したWorld.Stepと全PostPhysics反映後の採取境界です。採取参加者とNavigator／必須Readyの接続、入力設定とSample統合は実装中で、任意Worldの保存を提供するものではありません。[現在の保存契約](Gameplay/SavingAndCheckpoints.md)と[試行記録](Development/GameSaveCompletion-2026-10-02.md)を参照してください。
+
+チェックポイント採取の任意入口は `FCheckpointCapture2D`／`3D`（`dxf::game_save`）。Sceneが所有し、初期化後の `Bind`、動的 `Spawn`／`Destroy`、`RequestCapture`、成功固定更新後の `CaptureIfRequested`、終了前の `Retire` を使う。最後の正常CPU値と未採取要求を区別し、保留設定や古い世代へ自動追従しない。[採取契約](Gameplay/SavingAndCheckpoints.md)。

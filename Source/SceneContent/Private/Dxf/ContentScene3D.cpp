@@ -27,7 +27,8 @@ FPreparedScene3D PrepareScene(FSceneDefinition3D Definition, FAssetService& Asse
 	return Result;
 }
 DContentScene3D::DContentScene3D(FPreparedScene3D Prepared, Toolbox::TOptional<Toolbox::FFixedStepSettings> Settings)
-    : DPhysicsScene3D(Settings              ? *Settings : Prepared.Definition ? Prepared.Definition->FixedUpdate : Toolbox::FFixedStepSettings{}),
+    : DPhysicsScene3D(Settings ? *Settings : Prepared.Definition ? Prepared.Definition->FixedUpdate
+                                                                 : Toolbox::FFixedStepSettings{}),
       m_Prepared(Toolbox::Move(Prepared))
 {
 	if (!m_Prepared.Definition || m_Prepared.Prefabs.Size() != m_Prepared.Definition->Instances.Size() || m_Prepared.Prefabs.Size() != m_Prepared.Definition->Placements.Size())
@@ -63,6 +64,10 @@ TResult<void> DContentScene3D::OnInitialize(const FInitContext&)
 		m_Connections = Connections.Value().Cast<DGameObject>();
 	}
 	return TResult<void>::Success();
+}
+const FSceneDefinition3D& DContentScene3D::GetDefinition() const noexcept
+{
+	return *m_Prepared.Definition;
 }
 TObjectHandle<DPrefabInstance3D> DContentScene3D::GetPrefab(Toolbox::FStringView Id) const
 {

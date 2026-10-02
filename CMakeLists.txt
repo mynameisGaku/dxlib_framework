@@ -282,6 +282,8 @@ target_include_directories(dxf_scene_content PRIVATE Source/SceneContent/Private
 dxf_public_headers(dxf_scene_content SceneContent PUBLIC)
 dxf_warnings(dxf_scene_content)
 add_library(dxf_game_save STATIC
+    Source/GameSave/Private/Dxf/CheckpointCapture2D.cpp
+    Source/GameSave/Private/Dxf/CheckpointCapture3D.cpp
     Source/GameSave/Private/Dxf/CheckpointRestore.cpp
     Source/GameSave/Private/Dxf/CheckpointCodec.cpp
     Source/GameSave/Private/Dxf/GameSaveRequest.cpp
@@ -436,12 +438,19 @@ if(DXF_BUILD_TESTS)
     dxf_warnings(dxf_game_save_tests)
     add_test(NAME GameSaveRequest COMMAND dxf_game_save_tests)
     set_tests_properties(GameSaveRequest PROPERTIES TIMEOUT 60 LABELS "portable;save;async")
-    add_executable(dxf_checkpoint_tests Tests/TestMain.cpp Tests/CheckpointTests.cpp Tests/CheckpointRestoreTests.cpp)
+    add_executable(dxf_checkpoint_tests Tests/TestMain.cpp Tests/CheckpointTests.cpp Tests/CheckpointRestoreTests.cpp Tests/CheckpointCaptureTests.cpp)
     target_link_libraries(dxf_checkpoint_tests PRIVATE dxf::game_save)
     target_include_directories(dxf_checkpoint_tests PRIVATE Tests)
     dxf_warnings(dxf_checkpoint_tests)
     add_test(NAME GameCheckpoint COMMAND dxf_checkpoint_tests)
     set_tests_properties(GameCheckpoint PROPERTIES TIMEOUT 60 LABELS "portable;save;checkpoint")
+    add_executable(dxf_checkpoint_fault_tests Tests/TestMain.cpp Tests/CheckpointCaptureTests.cpp Source/Toolbox/Private/Toolbox/Testing/AllocationFault.cpp)
+    target_link_libraries(dxf_checkpoint_fault_tests PRIVATE dxf::game_save)
+    target_include_directories(dxf_checkpoint_fault_tests PRIVATE Tests)
+    target_compile_definitions(dxf_checkpoint_fault_tests PRIVATE DXF_ALLOCATION_FAULT_TEST_EXECUTABLE=1 DXF_CHECKPOINT_FAULT_ONLY=1)
+    dxf_warnings(dxf_checkpoint_fault_tests)
+    add_test(NAME GameCheckpointAllocationFault COMMAND dxf_checkpoint_fault_tests)
+    set_tests_properties(GameCheckpointAllocationFault PROPERTIES TIMEOUT 60 LABELS "portable;save;checkpoint;allocation-fault")
     set_tests_properties(SceneContent PROPERTIES TIMEOUT 60 LABELS "portable;content")
     set_tests_properties(Framework PROPERTIES TIMEOUT 60 LABELS "portable")
 

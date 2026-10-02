@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: NOASSERTION
 #include "CheckpointConsumer.h"
 #include "Dxf/CheckpointRestore.h"
+#include "Dxf/CheckpointCapture2D.h"
+#include "Dxf/CheckpointCapture3D.h"
 #include "Dxf/SceneContentSource.h"
 #include "Dxf/ContentScene2D.h"
 #include "Dxf/ContentScene3D.h"
@@ -16,7 +18,39 @@ void Check(bool Condition)
 		throw FException("External checkpoint plan contract failed");
 	}
 }
-template <typename TCatalog, typename TRecipe, typename TDocument, typename TInstance, typename TScene, typename TDefinition, typename TPrefab>
+// 公開フックを使い、Sceneが採取履歴と参加処理の寿命を所有する。
+template <typename TScene, typename TCapture, typename TPrepared, typename TDocument>
+class TConsumerCheckpointScene : public TScene
+{
+public:
+	TConsumerCheckpointScene(TPrepared Prepared, const TDocument& Document) : TScene(Move(Prepared)), Capture(Document), Payload(Document.GamePayload)
+	{
+		Capture.RequestCapture();
+	}
+	// CPU値と世代付き非所有参照。別Worldへコピーしない。
+	TCapture Capture;
+	// 初期イベントの配送前から保持するゲーム進行。
+	FString Payload;
+	// 初回の成功境界でだけ解決する。
+	bool Bound = false;
+
+protected:
+	void OnPhysicsStepCompleted(const FFixedTickContext&) override
+	{
+		if (!Bound)
+		{
+			Capture.Bind(*this);
+			Bound = true;
+		}
+		Capture.CaptureIfRequested(*this, Payload);
+	}
+	void OnDeinitialize() noexcept override
+	{
+		Capture.Retire();
+		TScene::OnDeinitialize();
+	}
+};
+template <typename TCatalog, typename TRecipe, typename TDocument, typename TInstance, typename TScene, typename TCapture, typename TDefinition, typename TPrefab>
 void Test(FAssetService& Assets, TDefinition Definition, TPrefab Prefab, uint32 Dimension)
 {
 	TCatalog Catalog;
@@ -72,7 +106,8 @@ void Test(FAssetService& Assets, TDefinition Definition, TPrefab Prefab, uint32 
 	const auto Plan = FCheckpointRestore::Build(Document, Catalog);
 	Check(Plan.Scene.Instances.Size() == 2 && Plan.Scene.Instances[1] == "cargo");
 	Check(Catalog.Scene.Instances.Size() == 2 && Catalog.Scene.Instances[1] == "right");
-	TScene Scene(PrepareScene(Plan.Scene, Assets));
+	auto Prepared = PrepareScene(Plan.Scene, Assets);
+	TConsumerCheckpointScene<TScene, TCapture, decltype(Prepared), TDocument> Scene(Move(Prepared), Document);
 	struct FShutdown
 	{
 		TScene& Scene;
@@ -87,6 +122,8 @@ void Test(FAssetService& Assets, TDefinition Definition, TPrefab Prefab, uint32 
 	Time.DeltaSeconds = 1.0 / 60.0;
 	Time.UnscaledDeltaSeconds = Time.DeltaSeconds;
 	Check(static_cast<bool>(Scene.Tick_Internal({Input.GetSnapshot(), Time})));
+	Check(Scene.Capture.GetCapturedStep() == 1 && Scene.Capture.GetLastCapture() && Scene.Capture.GetLastCapture()->GamePayload == Document.GamePayload);
+	Check(Scene.Capture.GetLastCapture()->Instances.Size() == 3 && !Scene.Capture.GetLastCapture()->Instances[1].bPresent);
 	const auto Left = Scene.GetPrefab("left");
 	const auto Dynamic = Scene.GetPrefab("cargo");
 	Check(Left.Get()->GetState() == EPrefabInstanceState::Ready && Dynamic.Get()->GetState() == EPrefabInstanceState::Ready);
@@ -108,6 +145,6 @@ void Test(FAssetService& Assets, TDefinition Definition, TPrefab Prefab, uint32 
 void RunCheckpointConsumer(Dxf::FAssetService& Assets, const Toolbox::FPath& Root)
 {
 	Dxf::FSceneContentSource Source(Root);
-	Test<Dxf::FCheckpointCatalog2D, Dxf::FCheckpointPrefabRecipe2D, Dxf::FCheckpointDocument2D, Dxf::FCheckpointInstance2D, Dxf::DContentScene2D>(Assets, Source.LoadScene2D("Data/scene2d.dxfscene.json"), Source.LoadPrefab2D("Data/prefab2d.dxfprefab.json"), 2);
-	Test<Dxf::FCheckpointCatalog3D, Dxf::FCheckpointPrefabRecipe3D, Dxf::FCheckpointDocument3D, Dxf::FCheckpointInstance3D, Dxf::DContentScene3D>(Assets, Source.LoadScene3D("Data/scene3d.dxfscene.json"), Source.LoadPrefab3D("Data/prefab3d.dxfprefab.json"), 3);
+	Test<Dxf::FCheckpointCatalog2D, Dxf::FCheckpointPrefabRecipe2D, Dxf::FCheckpointDocument2D, Dxf::FCheckpointInstance2D, Dxf::DContentScene2D, Dxf::FCheckpointCapture2D>(Assets, Source.LoadScene2D("Data/scene2d.dxfscene.json"), Source.LoadPrefab2D("Data/prefab2d.dxfprefab.json"), 2);
+	Test<Dxf::FCheckpointCatalog3D, Dxf::FCheckpointPrefabRecipe3D, Dxf::FCheckpointDocument3D, Dxf::FCheckpointInstance3D, Dxf::DContentScene3D, Dxf::FCheckpointCapture3D>(Assets, Source.LoadScene3D("Data/scene3d.dxfscene.json"), Source.LoadPrefab3D("Data/prefab3d.dxfprefab.json"), 3);
 }

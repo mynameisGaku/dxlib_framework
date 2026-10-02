@@ -51,6 +51,10 @@ EDistanceJointConnection DDistanceJoint3DComponent::GetConnectionState() const n
 	}
 	return m_Connection;
 }
+bool DDistanceJoint3DComponent::HasPendingRequest() const noexcept
+{
+	return m_bConnectRequested || m_bDisconnectRequested;
+}
 Toolbox::TOptional<FJointId3D> DDistanceJoint3DComponent::GetJointId() const noexcept
 {
 	if (!IsConnected_Internal())

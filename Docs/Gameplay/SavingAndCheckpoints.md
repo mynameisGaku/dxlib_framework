@@ -58,7 +58,7 @@ OS処理の契約は[Known Folder取得](https://learn.microsoft.com/en-us/windo
 
 ## 非同期要求の現在の範囲
 
-呼出し側が`FGameSaveRequest`を所有し、既存Dispatcher／Scopeを任意で借りる。RequestSaveへ渡す文書は、安全な採取境界で既に完成したCPU値である。安全境界の参加者採取は未接続。Workerはencode／temp I/Oまたは面読込／互換性検査だけを行う。Task CommitはCPU結果に印を付け、ファイル公開やNavigator.Commitを実行しない。通常更新のPollが保存を公開し、または読込値を採用する。
+呼出し側が`FGameSaveRequest`を所有し、既存Dispatcher／Scopeを任意で借りる。RequestSaveへ渡す文書は、安全な採取境界で既に完成したCPU値である。Scene所有のFCheckpointCaptureによる要求時採取を追加した。非同期要求とのゲーム側接続は実装中。Workerはencode／temp I/Oまたは面読込／互換性検査だけを行う。Task CommitはCPU結果に印を付け、ファイル公開やNavigator.Commitを実行しない。通常更新のPollが保存を公開し、または読込値を採用する。
 
 状態はPending、Writing／Reading、Prepared、Publishing、Committed、PublicationUnknown、TransitionRequested、Completed、Failed、Canceled、Supersededを区別する。未公開手動保存がある間の次要求はBusy。先行読込は後続でSupersededにし、最後に採用した正常値は新要求の失敗でも残す。Preparedはゲーム再開完了ではない。現在のMarkTransitionRequested／MarkResumeCompletedは上位adapterが実際のNavigator要求と必須Readyを確認して呼ぶ入口で、保存コアの試験だけでScene再開を確認したとは扱わない。
 
@@ -91,4 +91,16 @@ CPU計画の生成は旧Scene・保存ファイル・Native資源を変更しな
 
 `DPhysicsScene2D`／`3D::OnPhysicsStepCompleted` は、World.Stepと全PostPhysics予約が成功した後に一回だけ呼ばれる。ゲーム側の最後の反映とJointの成功観察が揃った境界である。固定更新0回、Pause、固定更新／Pre／Postの失敗、SceneのDestroy要求後には呼ばない。`IsAtPhysicsCompletionBoundary()` はこのフックの実行中だけtrueで、例外時にもfalseへ戻る。
 
-`GetCompletedPhysicsStepCount()` はWorldと全PostPhysicsが成功した境界を数える。完了フック自身が失敗した場合も物理は既に進んでおり、この数は巻き戻さない。採取結果を公開できたこととは別の値である。利用者の未処理要求、保留中個体、ゲーム進行参加者の寿命を検証する採取処理は、引き続き実装中。
+`GetCompletedPhysicsStepCount()` はWorldと全PostPhysicsが成功した境界を数える。完了フック自身が失敗した場合も物理は既に進んでおり、この数は巻き戻さない。採取結果を公開できたこととは別の値である。FCheckpointCapture2D／3Dは、この境界内だけでReadyとJoint保留要求を検査し、要求された文書を一度採取する。ゲーム固有の参加者と通常Navigatorへの接続は、引き続き実装中。
+
+## 個体履歴と要求時の採取
+
+`FCheckpointCapture2D`／`3D` はSceneが所有する小さい採取サービスである。新規ゲームでは許可カタログから初期履歴を作り、再開では検証済み文書を渡す。初期化後に `Bind(Scene)` で個体を一度解決する。保持するhandleは世代付きの非所有参照で、同名の新個体を自動検索し直さない。個体の実体所有は既存Collection、Body／Jointの所有はWorldに残す。Scene終了前に `Retire()` を呼び、後続の採取や再Bindを抑止する。Sceneを越えるcallbackやWorkerへのScene捕捉を保持しない。
+
+`Spawn` は準備済みPrefabと、許可カタログで検証した論理記録から動的個体を受付する。履歴とhandleの必要領域は受付前に確保する。初期化とBody登録は既存Applicationの境界に任せ、Spawn成功をReadyと扱わない。`Destroy` は同じ世代のhandleにだけ破棄要求を送り、除去記録を残す。外部から破棄されて履歴と一致しなくなった個体は採取を待機させる。同じ名前が再利用されても古い参照から追従しない。
+
+`RequestCapture()` は次の成功固定更新へ採取要求をまとめる。引数付きの呼出しは、ゲームが明示した安全なCheckpointキーを設定する。ゲーム・Content・Sceneの識別は変更しない。不正キーは旧要求を保持して拒否する。`HasCaptureRequest()` と `GetLastCapture()` は別の値で、正常文書が残っていても新要求が未採取なら完了と表示しない。
+
+Sceneの `OnPhysicsStepCompleted` で、同じ境界のゲームcodecが検証した進行Objectを `CaptureIfRequested` へ渡す。全個体Ready、公開Jointの接続状態、成功観察、`HasPendingRequest()` を確認する。PostPhysicsでDrive等の新要求が出た場合、その要求を反映する次の成功固定更新まで採取を待つ。接続・解除・種類別Drive／Limitは専任Componentの採用済み設定から読み、追加World.Stepを実行しない。採取時の確保やcodec失敗では最後の正常文書を保持し、例外を実行時契約へ伝える。全Bodyのrollbackは行わない。
+
+固定更新0回やPauseでは最後の正常文書を利用できるが、新しい未処理要求をその文書へ混ぜない。要求なしの呼出しはJSON処理や文書複製を行わない。目標操作や開いた扉の初期Poseを選ぶゲームレシピ、入力設定、SampleのSave／Continue UIは追加中である。通常利用のコンパイル・実行例は [外部CheckpointConsumer](../../Tools/PackageConsumer/CheckpointConsumer.cpp) のScene所有・成功境界・退役経路を参照する。
