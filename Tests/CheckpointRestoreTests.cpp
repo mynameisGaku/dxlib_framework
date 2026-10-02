@@ -352,3 +352,68 @@ TEST("Checkpoint uses smaller caller catalog limit before CPU callbacks")
 	};
 	RejectRestore(Action);
 }
+
+namespace
+{
+// 同じ公開名を持つ別個体へ、駆動値が流用されない独立した対照。
+template <typename TCatalog>
+void IndependentJointSettings(TCatalog Catalog)
+{
+	Catalog.Scene.Connections.Clear();
+	auto Saved = Document(Catalog);
+	for (size_t I = 0; I < Saved.Joints.Size();)
+	{
+		auto& State = Saved.Joints[I];
+		if (State.Instance.IsEmpty())
+		{
+			Saved.Joints.Erase(Saved.Joints.Data() + I);
+			continue;
+		}
+		const bool First = State.Instance == "doorA";
+		State.bConnected = First;
+		if (State.Kind == EJointKind::Distance)
+		{
+			State.DistanceLength = First ? 1.25f : 2.5f;
+		}
+		else if (State.Kind == EJointKind::Revolute)
+		{
+			State.AngularDrive = {true, First ? 0.7f : -0.4f, First ? 17.0f : 9.0f};
+			State.AngularLimits = {true, First ? -0.3f : -0.6f, First ? 0.8f : 1.2f};
+		}
+		else if (State.Kind == EJointKind::Prismatic)
+		{
+			State.LinearDrive = {true, First ? 0.9f : -0.2f, First ? 23.0f : 11.0f};
+			State.LinearLimits = {true, First ? -0.1f : -0.5f, First ? 2.0f : 3.0f};
+		}
+		++I;
+	}
+	const auto Plan = FCheckpointRestore::Build(Saved, Catalog);
+	REQUIRE(Plan.Scene.Instances.Size() == 3);
+	for (size_t I = 0; I < Plan.Scene.Instances.Size(); ++I)
+	{
+		const bool First = Plan.Scene.Instances[I] == "doorA";
+		const auto& Joints = Plan.Scene.Prefabs[I].Joints;
+		REQUIRE(Joints[0].Distance.Length == (First ? 1.25f : 2.5f));
+		REQUIRE(Joints[1].Revolute.Drive.TargetAngularSpeed == (First ? 0.7f : -0.4f));
+		REQUIRE(Joints[1].Revolute.Drive.MaxTorque == (First ? 17.0f : 9.0f));
+		REQUIRE(Joints[1].Revolute.Limits.LowerAngle == (First ? -0.3f : -0.6f));
+		REQUIRE(Joints[1].Revolute.Limits.UpperAngle == (First ? 0.8f : 1.2f));
+		REQUIRE(Joints[3].Prismatic.Drive.TargetSpeed == (First ? 0.9f : -0.2f));
+		REQUIRE(Joints[3].Prismatic.Drive.MaxForce == (First ? 23.0f : 11.0f));
+		REQUIRE(Joints[3].Prismatic.Limits.LowerTranslation == (First ? -0.1f : -0.5f));
+		REQUIRE(Joints[3].Prismatic.Limits.UpperTranslation == (First ? 2.0f : 3.0f));
+		for (const auto& Joint : Joints)
+		{
+			REQUIRE(Joint.bConnect == First);
+		}
+	}
+	// 値変換で、共有する初期定義や他の再開計画を変更しない。
+	REQUIRE(Catalog.Prefabs[0].Definition.Joints[0].Distance.Length == 1);
+	REQUIRE(!Catalog.Prefabs[0].Definition.Joints[3].Prismatic.Drive.bEnabled);
+}
+} // namespace
+TEST("Checkpoint separate instances retain different Joint settings in both dimensions")
+{
+	IndependentJointSettings(Catalog2D());
+	IndependentJointSettings(Catalog3D());
+}

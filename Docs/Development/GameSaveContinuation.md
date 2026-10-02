@@ -1,15 +1,19 @@
-# L作業の継続点
+# L0〜L10 セーブ・ロード・チェックポイント・入力設定の継続点
 
-対象DXF-L-SAVE-4b20f89-20261002-R2、L0〜L10。Bへ戻らない。mainのみ。用語はバージョン、各@paramは別行。保存I/Oの論理commit作成前HEAD aea55d710db8b547d51f297b6040c722adc25798、最後にfetchしたorigin/main 4b20f89a451233bc8c328df98f48a259808a3285。15ローカルcommit、push未実施。開始時利用者差分なし。
+対象 DXF-L-SAVE-4b20f89-20261002-R2。B・Kの再確認へ戻らない。mainのみ、用語はバージョン、各@paramは別行。現在HEAD 9150ad7ca83dacd47d22d8024a9fa1e2742b86ae、最後にfetchしたorigin/main 4b20f89a451233bc8c328df98f48a259808a3285。16ローカルcommit、push未実施。開始時利用者差分なし。全要件と最終回帰が完了するまで通常pushしない。
 
-L0調査済み。L1 codec・明示移行、L2二面保存・回復・排他、L3 Scoped要求を実装（全I/O故障未完了）。L4両次元の成功全Post後の採取、L5許可カタログ・新Scene・4種の内部／個体間Joint・必須Ready完了、L6完全profileと独立設定、L7実Sensor・扉・荷物・New／Continue／Save／Load／Retry・UI・再割当を実装。既存通常NativeGameplaySmokeへ保存／読込の限定入口と四プロセス実行器を追加した。実Application・World・DxLibで保存前／保存時／変更後／Continue後と24画像を両次元で確認した。固定入力で、人手入力・聴感確認ではない。L8部分回帰、L-M01〜06を検出・復元済み、L-M02初回未検出を独立fixtureで補強した。L-M07〜20と上位の追加故障未完了。L9独立installゲームConsumer・測定・最終配布4構成未完了。L10最終全累積・push未実施。
+L0調査済み。L1 codecと明示移行、L2二面保存・回復・排他、L3Scope付き要求、L4両次元の全成功Post後の採取、L5許可Contentと新Scene・4種内部／個体間接続・必須Ready、L6完全profileと独立設定、L7実Sensor・扉・荷物・保存／再開・既存UIを実装。4プロセス実DxLibで両次元の24画像を確認した。固定入力であり、人手入力・聴感確認ではない。L8故障と変異を追加中。L9独立installゲームConsumer・測定・最終4配布、L10全累積・文書・pushは未完了。
 
-このまとまりの未commitはSaveTransactionの小さいprivate I/O分離、Toolboxの全量write分離、SaveIoFaultTestsとCMake登録、SaveDataTestsのchecksum／長さ独立例、現在Docs。正確な一覧はgit status --short。最新正常面の生バイト・世代、所有temp回収、既存temp非変更、公開API失敗でも実バイトから成功判定、PublicationUnknownと明示再確認を検証した。globalフックや公開API追加なし。
+未commitの通常差分はCMakeLists、新CheckpointResumeFaultTests、CheckpointRestoreTestsの個体別設定対照、SaveCourseControllerTestsのゼロ固定更新1／2View、SaveCourseSessionTestsの設定PublicationUnknownと明示再確認、およびこの文書。正確な一覧はgit status --short。一時変異中はその差分も表示されるので通常差分と混同しない。
 
-最新成功：PortableSaveNativeFrozenRelease02／Debug01全38/38・失敗0・skip0、前後manifest 0529e71f36b4a73e2c2f78c902a6d49c91acbe489844e82dc05fc65a20672db4 同一、No-STL991違反0。NativeSaveFrozenReleaseDevice01／DebugDevice01は旧Gameplayと新保存の2/2・失敗0・skip0、build／コメント／No-STL／diff終了0。Nativeは色検査訂正前manifest d9cca20103f7a6b0a7885652677cf0c0a63a6cf8ff0403225b0f3ce59f4f9aa0、後続変更はPortable試験のFColor比較だけ。全群採用とはせず最終で全Nativeを再実行する。ログRoot Build/GameSave-20261002-30a407、詳細とexe指紋はGameSaveCompletion末尾と各Summaryへ記録。
+今回成功：UpperFaultRelease03とUpperFaultDebug05。前後manifest ba2fe4a840f2b97bab7d1865e6e68fe898022d3fefd145e26dab06daecedc48fが同一。対象5/5群、失敗0・skip0。内部Checkpoint29、採取故障3、再開故障2D1／3D1、InteractionSample62。Release131.04秒、Debug753.41秒。No-STL996違反0、コメント／diff／build終了0。2D countdown0〜16876、3D0〜17689で実注入し、各失敗後の正常再要求でReady・終了後保有数一致を確認、最初の未注入16877／17690。以前の8192探索上限と初回共有ログMutex計数誤りの失敗試行は保存済み。旧故障群timeout60は保持し、新再開群は両次元独立各600。
 
-現在実行中プロセスなし。一時変異・復元待ちなし。関連B-M16 Root02のみ検出・復元済み。拒否されたBuild複製は未変更。今回拒否された実行なし。通常pushは全要件完了後。
+L-M01〜06、07〜12／19はbuild0→期待Red→対象生バイト復元→更新時刻前進→実再コンパイル→Green。M02初回未検出は独立fixtureで補強済み。M10-Upper01はbaselineLNK1168で変異未実行・復元済み、限定Upper02で検出。M13-Upper01は実位置の比較で期待Redになったが、診断stderrがケース名に混ざり実行器が拒否、finally復元して62/62Green。失敗試行を最終成功数へ加えない。
 
-最新I/O成功：SaveIoFrozenDebug01／Release01、同一manifest 6d1127f07ed53794f01d1093942d974a279ca1564c3a54b71bacc01a887d2d11、3/3群・保存41／故障8／要求11、No-STL995違反0、全終了0。L-M01〜06は各build0→期待Red→生バイト復元→対象cpp再コンパイル→41/41 Green。L-M02初回未検出は記録を残し、正常JSONの変更とヘッダー長だけの変更で再検出した。各復元hashとログはMutations/各ID-Core01またはL-M02-Strengthened01/Result.json。現在一時変異なし、プロセスなし。
+実行中プロセスなし、一時変異なし。L-M01〜20の全IDで実build0→期待Red→対象生バイト復元→実再コンパイル→Greenを確認した。M13-Upper02／M20-Upper02を採用し、各初回の実行器のログ混在・誤ファイル名による失敗は別記録のまま残す。Resultのbase/restored manifestは全て一致、原本Assets不変。record_upper.pyは一回実行済みで再実行しない。
 
-次の具体的な一手：GameSaveRequestの旧CPU結果採用と取消し済み公開、CheckpointResumeRuntimeの準備失敗時旧Scene保持、CheckpointRestoreの論理参照・個体除去・Joint種類に対しL-M07〜12／19を行う。m_Currentが最新だけを指すため、Sequence比較単独の削除が等価になる場合は、理由を記録し旧Prepared値を後から採用する非等価な変異へ置き換える。個別の生バイト退避とfinally復元、実再コンパイルとGreenを維持する。その後L-M13〜18／20、独立Consumer／配布4構成／測定、最終累積・Docs・通常pushまで継続。
+次の具体的な一手：Tools/ValidateDebugへ新しい再開故障2群の登録必須化と、個別登録timeoutを合計した外側の待機枠を追加する。Build内のCheckpointProcess・NativeCheckpointProcess・CheckpointConsumerDraftの8JSONは未適用の下書き、APIを照合して外部Consumerへ接続する。独立installからCPU／Nativeの4プロセス、4配布、Release5新環境測定、最終累積／ヘッダー／IDE／Python／No-STL／Docs、fetch・通常pushまで継続する。現在の差分は小さい検証済みcommitへ保存する。
+
+最新I/Oまとまりは9150ad7でcommit済み。SaveIoFrozenDebug01／Release01、manifest6d1127f07ed53794f01d1093942d974a279ca1564c3a54b71bacc01a887d2d11、3/3群・保存41／故障8／要求11。公開結果未確定ではslot排他を保持するため、試験はその間Store.Loadせず最新保護面の生バイトを比較する。
+
+全Portable38/38の前回まとまり、Native旧Gameplay＋新保存2/2は過去の中間snapshotであり、今回の追加差分の最終累積採用ではない。独立installConsumer、配布4構成、測定、全Native、正規ValidateDebug、IDE／ヘッダーを今回の最終manifestで実行し直す。SDKなしPC、TSan、Worker内人工例外、人のF5／物理入力／聴感、電源断や全FS耐久性、全D3D／COMリーク証明は実施していない。

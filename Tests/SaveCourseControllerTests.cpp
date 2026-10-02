@@ -114,6 +114,25 @@ void RunController(const TCatalog& Catalog)
 	REQUIRE(Current->GetProgress().bDoorOpen[0] && !Current->GetProgress().bDoorOpen[1]);
 	REQUIRE(*OtherDoor.Get()->GetPrismaticJoint("doorDrive").Get()->GetJointId() == OtherId);
 	REQUIRE(Abs(OtherDoor.Get()->GetPrismaticJoint("doorDrive").Get()->GetObservation()->State.Translation) < .001);
+	// 固定更新0回のFrameでは、表示数を変えてもWorld・進行・採取を進めない。
+	auto Drift = Current->GetPhysicsWorld().GetVelocity(Body);
+	Drift.X = .25f;
+	Drift.Y = .1f;
+	Current->GetPhysicsWorld().SetVelocity(Body, Drift);
+	const auto Position = Current->GetPhysicsWorld().GetPosition(Body);
+	const auto DrawStep = Current->GetCompletedPhysicsStepCount();
+	const auto DrawRevision = Current->GetProgress().Revision;
+	const auto DrawCapture = Current->GetCheckpointCapture().GetCapturedStep();
+	Current->SetViews(Current->GetDefinition().Views[0]);
+	Tick(0);
+	REQUIRE(Current->GetPhysicsWorld().GetPosition(Body).X == Position.X);
+	Current->SetViews(Current->GetDefinition().Views[0], Current->GetDefinition().Views[1]);
+	Tick(0);
+	REQUIRE(Current->GetPhysicsWorld().GetPosition(Body).X == Position.X);
+	REQUIRE(Current->GetCompletedPhysicsStepCount() == DrawStep);
+	REQUIRE(Current->GetProgress().Revision == DrawRevision);
+	REQUIRE(Current->GetCheckpointCapture().GetCapturedStep() == DrawCapture);
+	REQUIRE(Current->GetProgress().SpawnCounter == 1);
 	// JumpをKへ変えて、適用時の押し続けと旧Spaceが実Bodyへ漏れないことを確認する。
 	auto Changed = FSaveCourseInput::Defaults();
 	for (auto& Action : Changed.Input.Actions)

@@ -274,3 +274,42 @@ L-M02の初回は検査を省く製品変異が生き残った。従来の破損
 各検出はbuild0→期待する実挙動Red→生バイト復元→更新時刻前進→対象cppの実再コンパイル→正常41/41を確認した。コンパイル失敗を検出件数へ数えず、一件ずつ行った。各Result.jsonに元ファイルhash、退避パス、期待したケース、exe hash、復元manifestを保持する。保存Rootは登録済みの今回専用試験ディレクトリで、Assetsや実ユーザー保存へ変異を実行していない。L-M07〜20と上位の追加故障は未完了。
 
 整形後の採用manifestは `6d1127f07ed53794f01d1093942d974a279ca1564c3a54b71bacc01a887d2d11`。六つのCore変異の復元manifestは `239d3e367083a4476d176a634679f31dc41965556a863aaff3d6c31a50147781`、差はその後のFileWriter／試験lambdaの宣言分離整形であり、二面選択・codecは変更なし。最終累積をこの限定3群で代用しない。
+
+
+## 上位の故障境界と変異の追加検証
+
+再開準備は旧Sceneを変更しないPoll区間へ確保故障を限定し、各失敗後に同じ保存からの明示再要求を正常に完了させた。共有ログが初回に作るMutexを開始前に初期化し、候補・診断・資源参照の終了後保有数を試行ごとに一致確認した。試験自身の8192という探索上限はpilotの実数より小さかったため、有限32768の上限に修正した。既存の採取故障群のtimeoutは60のまま。新しい再開準備群はpilotの2D16877／3D17690地点を基に次元別の独立実行へ分け、各600秒とした。
+
+|試行|構成|登録した対象の実行／成功／失敗／skip|秒|source manifest|
+|---|---|---|---|---|
+|UpperFaultRelease03|Release|5／5／0／0|131.02|`ba2fe4a840f2b97bab7d1865e6e68fe898022d3fefd145e26dab06daecedc48f`|
+|UpperFaultDebug05|Debug|5／5／0／0|753.41|`ba2fe4a840f2b97bab7d1865e6e68fe898022d3fefd145e26dab06daecedc48f`|
+
+内部ケースはCheckpoint29、旧採取故障3、新再開故障2D1／3D1、InteractionSample62。登録CTest数と合算しない。2D countdown0〜16876、3D0〜17689で実注入、最初の未注入は各16877／17690。write／readやBody rollbackを同じ注入区間へ含めていない。
+
+設定PublicationUnknownの間は旧正常面の生バイトを保持し、現在設定を使い続けてもDirtyを残す。明示再確認でgeneration2を確定後にDirtyを解除した。未確定要求はスロット排他を保持するため、その間の通常Store.Loadを試験で呼ばず保護面を読み取って比較した。ゼロ固定更新の1／2Viewで実Body位置・成功Step・採取Step・進行revision・生成数が変わらないことも追加した。
+
+|検出ID|試行|復元|
+|---|---|---|
+|L-M07|L-M07-Upper01|対象生バイトとmanifest一致、更新時刻前進、実再コンパイル、Green|
+|L-M08|L-M08-Upper01|対象生バイトとmanifest一致、更新時刻前進、実再コンパイル、Green|
+|L-M09|L-M09-Upper01|対象生バイトとmanifest一致、更新時刻前進、実再コンパイル、Green|
+|L-M10|L-M10-Upper02|対象生バイトとmanifest一致、更新時刻前進、実再コンパイル、Green|
+|L-M11|L-M11-Upper01|対象生バイトとmanifest一致、更新時刻前進、実再コンパイル、Green|
+|L-M12|L-M12-Upper01|対象生バイトとmanifest一致、更新時刻前進、実再コンパイル、Green|
+|L-M13|L-M13-Upper02|対象生バイトとmanifest一致、更新時刻前進、実再コンパイル、Green|
+|L-M14|L-M14-Upper01|対象生バイトとmanifest一致、更新時刻前進、実再コンパイル、Green|
+|L-M15|L-M15-Upper01|対象生バイトとmanifest一致、更新時刻前進、実再コンパイル、Green|
+|L-M16|L-M16-Upper01|対象生バイトとmanifest一致、更新時刻前進、実再コンパイル、Green|
+|L-M17|L-M17-Upper01|対象生バイトとmanifest一致、更新時刻前進、実再コンパイル、Green|
+|L-M18|L-M18-Upper01|対象生バイトとmanifest一致、更新時刻前進、実再コンパイル、Green|
+|L-M19|L-M19-Upper01|対象生バイトとmanifest一致、更新時刻前進、実再コンパイル、Green|
+|L-M20|L-M20-Upper02|対象生バイトとmanifest一致、更新時刻前進、実再コンパイル、Green|
+
+M07は最新番号比較だけの削除がm_Current所有により等価となるため、旧CPU結果を保持して後続結果の採用後へ上書きする非等価な変異を使用し、遅延Aを検出した。M18は退役した採取参加者が要求を受付ける変異であり、解放済みポインタを意図的に参照する試験ではない。M20は別プロセス実行器が新規にコピーしたAssetsだけへ故障化した保存を書き、原本Assetsの指紋不変を別途確認する。
+
+途中失敗：UpperFaultDebug01は試験が存在しない再試行名を呼んだcompile失敗。Debug02は探索上限と公開前Stageより早いロック、Debug03は未確定要求の排他中にStore.Loadを呼んだ試験期待誤り（新再開故障は未実行）、Debug04はpilotの上限不足。Release01／02は初回共有ログMutexを候補の残留へ誤計数した試験境界。M10-Upper01はLNK1168でbaselinebuild失敗、変異未実行・復元Green。限定したUpper02で実build0→Red→復元Greenを実行した。元の失敗試行を成功数へ足さない。
+
+ログと対象別hashは `Build/GameSave-20261002-30a407/UpperFault*` と `Mutations/*/Result.json`。今回のまとまりは累積最終全群・外部installゲーム再開・四配布・測定・pushの完了を意味しない。
+
+M13-Upper01は実Body比較のRedを検出したが、診断の標準エラーがケース名の途中へ混ざり実行器の文字一致が失敗した。正確に復元して62/62へ戻した後、ログの混在を処理したUpper02で再確認した。M20-Upper01は誤保存先に実在するautosave.aをmanual1.aと取り違えた実行器の検査失敗。原本Assetsは不変で復元Green、Upper02で新しいコピー内のautosave.aの存在と専用Root読込の失敗を照合した。これらの初回失敗を検出成功件数へ加算しない。

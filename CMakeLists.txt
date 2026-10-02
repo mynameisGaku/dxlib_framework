@@ -489,6 +489,18 @@ if(DXF_BUILD_TESTS)
     dxf_warnings(dxf_checkpoint_fault_tests)
     add_test(NAME GameCheckpointAllocationFault COMMAND dxf_checkpoint_fault_tests)
     set_tests_properties(GameCheckpointAllocationFault PROPERTIES TIMEOUT 60 LABELS "portable;save;checkpoint;allocation-fault")
+    # pilotで再開一回の確保が2D16877／3D17690件。全探索を既存採取故障群と次元別に分離する。
+    # 旧群のtimeoutは変えず、各注入後の正常再開まで含む新しい全探索へ有限の実行時間を与える。
+    foreach(_dxf_dimension 2 3)
+        set(_dxf_resume_fault_target dxf_checkpoint_resume_fault_${_dxf_dimension}d_tests)
+        add_executable(${_dxf_resume_fault_target} Tests/TestMain.cpp Tests/CheckpointResumeFaultTests.cpp Source/Toolbox/Private/Toolbox/Testing/AllocationFault.cpp)
+        target_link_libraries(${_dxf_resume_fault_target} PRIVATE dxf::game_save)
+        target_include_directories(${_dxf_resume_fault_target} PRIVATE Tests)
+        target_compile_definitions(${_dxf_resume_fault_target} PRIVATE DXF_ALLOCATION_FAULT_TEST_EXECUTABLE=1 DXF_CHECKPOINT_RESUME_FAULT_DIMENSION=${_dxf_dimension} DXF_CHECKPOINT_TEST_ROOT="${CMAKE_CURRENT_BINARY_DIR}/Checkpoint Resume Fault Japanese Space")
+        dxf_warnings(${_dxf_resume_fault_target})
+        add_test(NAME GameCheckpointResumeAllocationFault${_dxf_dimension}D COMMAND ${_dxf_resume_fault_target})
+        set_tests_properties(GameCheckpointResumeAllocationFault${_dxf_dimension}D PROPERTIES TIMEOUT 600 LABELS "portable;save;checkpoint;allocation-fault")
+    endforeach()
     set_tests_properties(SceneContent PROPERTIES TIMEOUT 60 LABELS "portable;content")
     set_tests_properties(Framework PROPERTIES TIMEOUT 60 LABELS "portable")
 

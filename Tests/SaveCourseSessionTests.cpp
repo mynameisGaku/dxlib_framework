@@ -9,6 +9,7 @@
 #include "Dxf/SaveStore.h"
 #include "Toolbox/Thread.h"
 #include "Toolbox/JsonWriter.h"
+#include "Toolbox/FileLock.h"
 using namespace Dxf;
 using namespace Dxf::GameplaySample;
 using namespace Toolbox;
@@ -168,6 +169,44 @@ void RunSession(uint32 Dimension, bool bAsync)
 	REQUIRE(Game->GetSettings().Volume == .35f && Game->GetSettings().UiScale == 1.5f);
 	Tick();
 	REQUIRE(Store.Load("autosave").Document->Generation == 1);
+#if defined(_WIN32)
+	// 設定は有効に適用しても、公開を確認するまでは保存済みへ変えない。
+	TVector<uint8> ProtectedBytes;
+	REQUIRE(ReadFileBytes(Root / FPath("settings.a"), ProtectedBytes, 8 * 1024 * 1024));
+	const FString Protected(reinterpret_cast<const char*>(ProtectedBytes.Data()), ProtectedBytes.Size());
+	auto Unsaved = Changed;
+	Unsaved.Volume = .6f;
+	Game->RequestSettings(Unsaved);
+	Game->RequestSettingsSave();
+	Tick(0);
+	if (bAsync)
+	{
+		App.GetTaskDispatcher().WaitForPrepares();
+		App.GetTaskDispatcher().PumpCommits();
+	}
+	REQUIRE(Game->GetSettingsTicket().GetState() == EGameSaveRequestState::Prepared);
+	{
+		// Stageの読取・write完了後、公開先だけを排他にして読戻しを失敗させる。
+		FFileLock LockedDestination(Root / FPath("settings.b"));
+		Wait(true, EGameSaveRequestState::PublicationUnknown);
+		REQUIRE(Game->GetSettings().Volume == .6f && Game->IsSettingsDirty());
+		REQUIRE(!Game->GetSettingsTicket().GetReason().IsEmpty());
+	}
+	// 結果不明のTransactionはスロット排他を保持する。保護面だけを直接比較する。
+	TVector<uint8> RetainedBytes;
+	REQUIRE(ReadFileBytes(Root / FPath("settings.a"), RetainedBytes, 8 * 1024 * 1024));
+	REQUIRE(FString(reinterpret_cast<const char*>(RetainedBytes.Data()), RetainedBytes.Size()) == Protected);
+	Tick(0);
+	REQUIRE(Game->GetSettingsTicket().GetState() == EGameSaveRequestState::PublicationUnknown);
+	REQUIRE(Game->IsSettingsDirty());
+	Game->RequestPublicationRetry(true);
+	Tick(0);
+	Wait(true, EGameSaveRequestState::Committed);
+	Tick(0);
+	REQUIRE(!Game->IsSettingsDirty());
+	REQUIRE(Store.Load("settings").Document->Generation == 2);
+	REQUIRE(FUserSettingsCodec::Decode(*Store.Load("settings").Document, FSaveCourseInput::Policy(), "dxfGameplaySave").Volume == .6f);
+#endif
 	if (!bAsync)
 	{
 		// 候補Sceneの構築と採用の間に設定を変更しても、最新の操作へ切り替える。
