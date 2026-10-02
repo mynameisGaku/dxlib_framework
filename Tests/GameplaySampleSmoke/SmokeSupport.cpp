@@ -42,8 +42,8 @@ void Check(bool bOk, const char* Message)
 		throw Toolbox::FException(Message);
 	}
 }
-FSmokeApp::FSmokeApp(FDxLibBackends& Backends, const char* ProjectRoot)
-    : m_App(Services_Internal(Backends, m_Input), Settings_Internal(ProjectRoot))
+FSmokeApp::FSmokeApp(FDxLibBackends& Backends, const char* ProjectRoot, Toolbox::TUniquePtr<DGameInstance> Game)
+    : m_App(Services_Internal(Backends, m_Input), Settings_Internal(ProjectRoot), Toolbox::Move(Game))
 {
 }
 void FSmokeApp::Start()
@@ -58,7 +58,7 @@ void FSmokeApp::Start()
 }
 FApplication& FSmokeApp::Application() noexcept
 {
-    return m_App;
+	return m_App;
 }
 void FSmokeApp::Step()
 {

@@ -166,6 +166,12 @@ void RunUi(uint32 Dimension)
 	if constexpr (IsSame<TScene, ASaveCourseScene3D>)
 	{
 		REQUIRE(Renderer.Views.Size() == 2);
+		REQUIRE(Renderer.Views[0].Eye == Current->GetDefinition().Views[0].Eye);
+		REQUIRE(Renderer.Views[1].Eye == Current->GetDefinition().Views[0].Eye);
+		REQUIRE(Renderer.Views[1].AmbientColor.R == Renderer.Views[0].AmbientColor.R);
+		REQUIRE(Renderer.Views[1].AmbientColor.G == Renderer.Views[0].AmbientColor.G);
+		REQUIRE(Renderer.Views[1].AmbientColor.B == Renderer.Views[0].AmbientColor.B);
+		REQUIRE(Renderer.Views[1].AmbientColor.A == Renderer.Views[0].AmbientColor.A);
 	}
 	Click("Save（選択したスロット）");
 	Tick(0);

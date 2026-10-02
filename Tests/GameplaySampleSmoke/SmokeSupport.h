@@ -43,8 +43,9 @@ public:
 	 * 実行時の窓口と設定からApplicationを作る（窓口はこのオブジェクトより長く生存すること）。
 	 * @param Backends ネイティブの窓口。
 	 * @param ProjectRoot アセットの起点。
+	 * @param Game 任意の長期ゲーム所有者。Applicationへ所有権を渡す。
 	 */
-	FSmokeApp(FDxLibBackends& Backends, const char* ProjectRoot);
+	FSmokeApp(FDxLibBackends& Backends, const char* ProjectRoot, Toolbox::TUniquePtr<DGameInstance> Game = {});
 	/**
 	 * 2Dのサンプルから始め、基準のStepまで進める。
 	 */

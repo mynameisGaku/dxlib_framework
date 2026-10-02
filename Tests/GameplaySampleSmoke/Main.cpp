@@ -9,6 +9,7 @@
 #include "InteractionSmoke.h"
 #include "MechanismSmoke.h"
 #include "ContentSmoke.h"
+#include "SaveCourseSmoke.h"
 // Windowsの文字種マクロとToolboxの同名関数を分離する。
 #ifdef CreateDirectory
 #undef CreateDirectory
@@ -17,7 +18,7 @@ Toolbox::int32 wmain(Toolbox::int32 Count, wchar_t** Args)
 {
 	using namespace Dxf;
 	using namespace Dxf::GameplaySmoke;
-	if (Count != 3 && Count != 4)
+	if (Count != 3 && Count != 4 && Count != 6)
 	{
 		Toolbox::Err << "Usage: NativeGameplaySmoke <ProjectRoot> <output directory>\n";
 		return 2;
@@ -25,20 +26,28 @@ Toolbox::int32 wmain(Toolbox::int32 Count, wchar_t** Args)
 	try
 	{
 		// OSの引数はUTF-16。既存変換でUTF-8へ揃え、日本語Rootを保持する。
-        const auto Root = Toolbox::FromWide(Args[1]);
-        const auto Selection = Count == 4 ? Toolbox::FromWide(Args[3]) : Toolbox::FString();
-        // ネイティブ窓口はApplicationより長く生存する。
+		const auto Root = Toolbox::FromWide(Args[1]);
+		const auto Selection = Count >= 4 ? Toolbox::FromWide(Args[3]) : Toolbox::FString();
+		// ネイティブ窓口はApplicationより長く生存する。
 		FDxLibBackends Backends;
 		const Toolbox::FPath Output(Args[2]);
 		Check(Toolbox::IsDirectory(Output) || Toolbox::CreateDirectory(Output), "output directory failed");
+		if (Count == 6)
+		{
+			Check(Selection == "--save-write" || Selection == "--save-read", "Unknown save process mode");
+			const auto Dimension = Toolbox::FromWide(Args[4]);
+			Check(Dimension == "2" || Dimension == "3", "Unknown save dimension");
+			RunSaveCourseSmoke(Backends, Root.CStr(), Output, Toolbox::FPath(Args[5]), Dimension == "2" ? 2 : 3, Selection == "--save-read");
+			return 0;
+		}
 		if (Count == 4)
 		{
 			if (strcmp(Selection.CStr(), "--content-only") == 0)
-            {
-                RunContentSmoke(Backends, Root.CStr(), Output);
-                return 0;
-            }
-            if (strcmp(Selection.CStr(), "--mechanism-only") == 0)
+			{
+				RunContentSmoke(Backends, Root.CStr(), Output);
+				return 0;
+			}
+			if (strcmp(Selection.CStr(), "--mechanism-only") == 0)
 			{
 				RunMechanismSmoke(Backends, Root.CStr(), Output);
 				return 0;
@@ -85,7 +94,7 @@ Toolbox::int32 wmain(Toolbox::int32 Count, wchar_t** Args)
 		RunInteractionSmoke(Backends, Root.CStr(), Output);
 		RunJointSmoke(Backends, Root.CStr(), Output);
 		RunMechanismSmoke(Backends, Root.CStr(), Output);
-        RunContentSmoke(Backends, Root.CStr(), Output);
+		RunContentSmoke(Backends, Root.CStr(), Output);
 		{
 			// 終了後の再起動: 新しいApplicationで開始し、歩いて終了できる。
 			FSmokeApp App(Backends, Root.CStr());

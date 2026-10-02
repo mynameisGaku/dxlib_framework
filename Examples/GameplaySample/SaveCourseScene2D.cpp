@@ -90,6 +90,9 @@ const FInputSnapshot* ASaveCourseScene2D::RouteInput_Internal(const FTickContext
 		m_bSplit = m_pPanel->IsSplit();
 		auto First = GetDefinition().Views[0];
 		auto Second = GetDefinition().Views[1];
+		// コースの横幅16mと両端20画素を確保し、分割・奇数幅でも荷物まで表示する。
+		const auto ViewWidth = m_bSplit ? m_Width / 2 : m_Width;
+		First.PixelsPerMeter = Toolbox::Min(First.PixelsPerMeter, Toolbox::Max(1.0f, static_cast<Toolbox::f32>(ViewWidth - 40) / 16));
 		First.Origin = {static_cast<Toolbox::f32>(m_Width) / (m_bSplit ? 4 : 2), static_cast<Toolbox::f32>(m_Height) * .65f};
 		First.bClip = m_bSplit;
 		First.ClipRect = {0, 0, m_bSplit ? m_Width / 2 : m_Width, m_Height};

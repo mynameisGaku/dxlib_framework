@@ -89,7 +89,8 @@ const FInputSnapshot* ASaveCourseScene3D::RouteInput_Internal(const FTickContext
 		m_Height = m_pPanel->GetHeight();
 		m_bSplit = m_pPanel->IsSplit();
 		auto First = GetDefinition().Views[0];
-		auto Second = GetDefinition().Views[1];
+		// 一画面の定義では同じカメラを両Viewportへ使い、未設定の既定カメラを混ぜない。
+		auto Second = GetDefinition().ViewCount == 2 ? GetDefinition().Views[1] : First;
 		First.bViewport = m_bSplit;
 		First.Viewport = {0, 0, m_bSplit ? m_Width / 2 : m_Width, m_Height};
 		Second.bViewport = true;

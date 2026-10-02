@@ -610,6 +610,7 @@ if(DXF_BUILD_NATIVE_SMOKE)
             "$<TARGET_FILE_DIR:NativeModelSmoke>")
     # キャラクター移動のサンプル（2D／3D）を入力だけ固定して実Applicationで確認する。通常のソリューションには含めない。
     add_executable(NativeGameplaySmoke
+        Tests/GameplaySampleSmoke/SaveCourseSmoke.cpp
         Tests/GameplaySampleSmoke/ContentSmoke.cpp
         Tests/GameplaySampleSmoke/MechanismSmoke.cpp
         Tests/GameplaySampleSmoke/Main.cpp
@@ -637,6 +638,12 @@ if(DXF_BUILD_NATIVE_SMOKE)
         add_test(NAME NativeGameplayDeviceSmoke COMMAND NativeGameplaySmoke "${CMAKE_CURRENT_SOURCE_DIR}"
             "${CMAKE_CURRENT_BINARY_DIR}/gameplay-smoke-$<CONFIG>")
         set_tests_properties(NativeGameplayDeviceSmoke PROPERTIES TIMEOUT 120 LABELS "real-sdk;device;application")
+        if(Python3_Interpreter_FOUND)
+            add_test(NAME NativeSaveCourseProcesses COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/Tools/VerifyNativeSaveProcesses.py"
+                --probe "$<TARGET_FILE:NativeGameplaySmoke>" --source "${CMAKE_CURRENT_SOURCE_DIR}"
+                --logs "${CMAKE_CURRENT_BINARY_DIR}/NativeSaveCourseProcesses/$<CONFIG>")
+            set_tests_properties(NativeSaveCourseProcesses PROPERTIES TIMEOUT 120 LABELS "real-sdk;device;application;save;checkpoint;process")
+        endif()
         add_test(NAME NativeDeviceSmoke COMMAND NativeSmoke)
         set_tests_properties(NativeDeviceSmoke PROPERTIES TIMEOUT 60 LABELS "real-sdk;device"
             WORKING_DIRECTORY "$<TARGET_FILE_DIR:NativeSmoke>")

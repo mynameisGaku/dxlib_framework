@@ -217,3 +217,28 @@ FrozenRelease01の再配置exe SHA-256は`3608c0cb4eda64412fff40b8ffb441409392e3
 最初のUiFrozen両構成の前後manifestは`496a59cb56cb0340edf1ce23dc17c095a37681bfd4a6adff19d41a64b690dd9a`。EntryDebug03は`acda8de36817f450db8b85d4397934a3c04e274ea443f63c3f86c50b69981a04`。どちらも後続編集前の限定採用で、L10の最終集合ではない。EntryDebug03では旧相互作用Sceneの実メニューから空のContinueをクリックし、旧Scene保持と失敗の文字表示後、New Gameをクリックして両次元のReadyへ進む。Drawに記録した位置を使うCPU Backend試験であり、人手・Native画素の証明とは区別する。
 
 UI入口・Scroll独立回帰を追加した後の採用はPortableSaveCourseUiEntryFrozenRelease02とPortableSaveCourseUiEntryFrozenDebug01。両構成全38/38・失敗0・skip0、build／No-STL／diff終了0、No-STL989ファイル・違反0。前後manifest `b44e4345af55ebad03fdb705315a21f1b2b3745ef3210bcda0aa049ca0da0d4d` は同一。NativeUiEntryBuildDebug01も同じコードで通常GameplaySample Debugの構成・build終了0。これはGUIのビルド確認で、まだNative保存・再開画素の成功ではない。新しいScroll試験は子Buttonへの方向移動とWheelスクロールを独立して照合し、フォーカス可能な従来Scrollの操作も既存全群で保持した。
+
+## Nativeの保存・別プロセス再開（L7／L8部分）
+
+既存NativeGameplaySmokeに限定保存／読込入口を追加し、通常Gameplayコースの回帰を保持した。各次元でプロセスAが初期状態から鍵一件・得点10・doorA開扉・動的荷物一個・north checkpointを保存し、その後は鍵二件・得点20・荷物二個・doorA閉扉／doorB開扉へ変える。別プロセスBはmanual1から保存時の進行へ戻り、取得物を復活させず、初回正常StepでdoorAのTranslation=2を確認する。別系列の設定K／音量0.35／UI倍率1.5を読み、Space無効とKの実Body跳躍を比較した。
+
+表示は扉二個、鍵二個、動的荷物、2D画像／3Dモデルの独立領域を一回のGPU読戻しで確認する。保存前／保存時／変更後／Continue後×一画面／二画面／1001×501の24画像を保存する。元Assetsとexeの指紋を前後で照合した。固定Snapshotによる実Application・World・DxLib試験で、人手操作・聴感・SDKなしPC・install Consumerの証拠とは区別する。
+
+|試行|結果・分類|
+|---|---|
+|NativeSavePilotDebug01|2D-writeの保存後の奇数幅分割で荷物の投影位置が画面外。製品表示の縮尺をコース幅に合わせて修正。閾値を緩めず、失敗画像を保持|
+|NativeSavePilotDebug02|2D-write／read成功、3D-writeのbefore-split右側でdoorA画素0。ViewCount=1なのに未使用の二番目のカメラを使う製品不具合。二画面で明示された一カメラを共用へ修正|
+|NativeSavePilotDebug03|四プロセス全終了0、24画像。前後manifest 799683fb9eb7b3bab0fb0101650602d9b7ef17d12f760f80e1ccb487a1e17297。試験登録・実行器の後続変更前の限定結果|
+|NativeSaveFrozenRelease01／Debug01|NativeGameplaySmokeのbuild、コメント、No-STL、diff全終了0。991ファイル・違反0|
+|NativeSaveFrozenReleaseDevice01|従来NativeGameplayDeviceSmokeと新NativeSaveCourseProcesses、2/2・失敗0・skip0、32.23秒。実行器の欠落画像／exe改変／子プロセス失敗／原Assets改変拒否の5試験も成功|
+|NativeSaveFrozenDebugDevice01|同2/2・失敗0・skip0。JUnit、詳細ログ、登録一覧を保存|
+|PortableSaveNativeFrozenRelease01|build1。新しい試験がFColorの未定義==を使った誤り。成分別比較へ訂正、古いexe未実行|
+|PortableSaveNativeFrozenRelease02|全38/38・失敗0・skip0、38.21秒。build／No-STL／diff全終了0|
+
+Native両構成の登録後manifestはd9cca20103f7a6b0a7885652677cf0c0a63a6cf8ff0403225b0f3ce59f4f9aa0。後続の変更はPortableのカメラ試験の色比較だけで、製品・Native実行入口のバイトは変えていない。これらは途中の限定採用で、L10最終全群とは数えない。
+
+Debugの同一exe SHA-256 `8a91b4404d2f04fd8bda8cd6366d9cbfb5218b0b7f83abedf0232c5c7cd4ca7e`。SaveRoot親と画像は `Build/GameSave-20261002-30a407/Native/NativeSaveCourseProcesses/Debug/20261002T092549Z-f0064dd1`、別CWDはその中の `無関係 作業場所`。実行した四つのcommand・開始終了UTC・exit・前後manifestをSummaryへ保存し、原本Assetsは変更なし。
+
+Releaseの同一exe SHA-256 `cb6e6b7261e82336b6c94c33763eedd7f3aea7bd78840fdd1b1afc1386f27b49`。SaveRoot親と画像は `Build/GameSave-20261002-30a407/Native/NativeSaveCourseProcesses/Release/20261002T092449Z-6d5c0d89`、別CWDはその中の `無関係 作業場所`。実行した四つのcommand・開始終了UTC・exit・前後manifestをSummaryへ保存し、原本Assetsは変更なし。
+
+Portableのカメラ成分検査の訂正後の同一manifest `0529e71f36b4a73e2c2f78c902a6d49c91acbe489844e82dc05fc65a20672db4` では PortableSaveNativeFrozenRelease02:38/38、38秒、PortableSaveNativeFrozenDebug01:38/38、215秒。両構成build／No-STL／diff全終了0、skip0。新しい保存の実描画追加に対して、旧全Portable群を保持した。最終累積・故障・変異・測定・最終配布4構成は引き続き未完了。
