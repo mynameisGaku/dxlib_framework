@@ -19,6 +19,14 @@ struct FSceneDefinition2D
 	 */
 	Toolbox::FString Path;
 	/**
+	 * 準備に使用したSceneと全Prefab依存を識別する不変の指紋。
+	 */
+	Toolbox::FString ContentFingerprint;
+	/**
+	 * 読込済み定義の論理パス・長さ・SHA-256。資源内容は対象外。
+	 */
+	Toolbox::TVector<FContentDefinitionStamp> DefinitionStamps;
+	/**
 	 * CPU読込で確定したProjectRoot。CWDへ切り替えない。
 	 */
 	Toolbox::FString ProjectRoot;

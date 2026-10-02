@@ -17,6 +17,8 @@
 |Python01|通常のTools試験|71件中64成功・7skip、終了0。IDE未指定のskipを成功へ加算しない|同上|
 |PackageOnDebug01|既存ソースSDKのNative配布・実device・保存コア|15工程、全終了0。既存Content2D/3DとUIの画素確認。保存からのゲーム再開は未実装|c39286f3a98ac6a2c23852423d97146445fc775ad9187bf75dc25c10b236b69f|
 |PackageOnRelease01|同じNative配布経路のRelease|15工程、全終了0。上記と同じ検証範囲|同上|
+|FingerprintDebug01|生バイト指紋追加後の保存／要求／Content群|5/5、Content47・保存33・保存故障3・要求9、既存Content故障群成功。No-STL・差分含め終了0|cc35737bddf0d12b732d2ab2675ed954caf2469c801df205b05f1cadb7df71ea|
+|FingerprintRelease01|同じ指紋差分のRelease、同5群|5/5、全終了0。全群の最終回帰ではない|同上|
 
 CoreDebug03の確保故障探索はencodeの最初の非注入countdown=377、decode=224、Stage=679。注入した失敗と非注入正常終了を分け、未解放件数の差0を確認した。全Lの故障境界を検証した件数ではない。
 
@@ -29,3 +31,5 @@ PortableDebug01の中断はharness分類。最初の保存コア用の全体90�
 No-STLは899ファイル・違反0。保存コアの別プロセス検証では、専用Root `C:/dxfc/l30a407-off-debug/run-4bq7r042/専用 SaveRoot 日本語` と `C:/dxfc/l30a407-off-release/run-9xx9kboc/専用 SaveRoot 日本語` を使用した。各write/readは新プロセス、別CWDで、同じexeの指紋を前後照合した。Debugは`7194a95e1c7740ddf4ab168d60a41e7fd4faa60a6a41b8332e6805fd2980dccc`、Releaseは`d3861a32c47f05eb90ad207229d6e9c3004c013d302727c84d4efe2704f88303`。ゲームのApplication／Worldのチェックポイント再開を確認した試験ではない。
 
 配布の工程は既存10工程を保持し、保存コアwriteとreadの2工程を追加した。Native用ConsumerのCRT設定へSaveCoreOnlyも登録した後はソース指紋が変わる。上記集合は変更前の指紋に限定し、L10最終採用集合とは表示しない。実行環境設定の最初の直接cmd呼出しは引用処理で終了1となり、検証器を開始していない。固有batchから既存vcvarsを呼ぶ経路で実行した。これはharness分類で、SDK取得・再構築を行っていない。
+
+mainの`c1b71db3339a7525cd24a729a79ae2de92263b31`へ保存コア／CPU要求をcommitした。続く指紋差分はSHA-256の既知入力と独立Python hashlibの8境界値、2D／3Dの再配置・ディスク変更後の旧値保持、入れ子DAGの重複除外を検証した。原本の定義は変更せず、今回専用のコピーだけを変更した。Sceneの全依存と独立LoadPrefabの依存を保持し、資源ファイルの内容や任意World保存を証明した機能ではない。

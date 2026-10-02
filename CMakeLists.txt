@@ -91,6 +91,7 @@ add_library(dxf_toolbox STATIC
     Source/Toolbox/Private/Toolbox/JsonDocument.cpp
     Source/Toolbox/Private/Toolbox/JsonWriter.cpp
     Source/Toolbox/Private/Toolbox/Crc32.cpp
+    Source/Toolbox/Private/Toolbox/Sha256.cpp
     Source/Toolbox/Private/Toolbox/FileLock.cpp
     Source/Toolbox/Private/Toolbox/FileWriter.cpp
     Source/Toolbox/Private/Toolbox/FilePublication.cpp
@@ -395,10 +396,11 @@ if(DXF_BUILD_TESTS)
     dxf_ide_headers(dxf_tests Tests/Support Examples/Sandbox Examples/Starter/Source)
     dxf_warnings(dxf_tests)
     add_test(NAME Framework COMMAND dxf_tests)
-    add_executable(dxf_scene_content_tests Tests/TestMain.cpp Tests/SceneContentTests.cpp Tests/SceneContentRequestTests.cpp Tests/SceneContentRenderingTests.cpp)
+    add_executable(dxf_scene_content_tests Tests/TestMain.cpp Tests/SceneContentTests.cpp Tests/SceneContentRequestTests.cpp Tests/SceneContentRenderingTests.cpp Tests/ContentFingerprintTests.cpp)
     target_link_libraries(dxf_scene_content_tests PRIVATE dxf::scene_content)
     target_include_directories(dxf_scene_content_tests PRIVATE Tests)
     target_compile_definitions(dxf_scene_content_tests PRIVATE DXF_CONTENT_TEST_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/Tests/Data/SceneContent")
+    target_compile_definitions(dxf_scene_content_tests PRIVATE DXF_CONTENT_STAMP_TEST_ROOT="${CMAKE_CURRENT_BINARY_DIR}/ContentStamp Japanese Space")
     dxf_warnings(dxf_scene_content_tests)
     add_executable(dxf_scene_content_fault_tests Tests/TestMain.cpp Tests/SceneContentFaultTests.cpp Source/Toolbox/Private/Toolbox/Testing/AllocationFault.cpp)
     target_link_libraries(dxf_scene_content_fault_tests PRIVATE dxf::scene_content)

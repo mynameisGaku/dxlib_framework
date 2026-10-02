@@ -5,6 +5,9 @@
 #include "Dxf/ContentViews.h"
 #include "Toolbox/ProjectPaths.h"
 #include "Toolbox/JsonError.h"
+#include "Toolbox/Sha256.h"
+#include "Toolbox/JsonWriter.h"
+#include "Toolbox/Algorithm.h"
 namespace Dxf::ContentPrivate
 {
 // キャッシュは一要求内だけで保持する。同一ファイルの別個体を同じ実体へ結びつけない。
@@ -66,8 +69,42 @@ public:
 		}
 		m_TotalBytes += Bytes.Size();
 		Toolbox::FString Text(reinterpret_cast<const char*>(Bytes.Data()), Bytes.Size());
-		m_Files.PushBack({Absolute.ToUtf8(), Text});
+		// 同じRootの再配置では変わらない論理パスを、実バイトと同時に固定する。
+		const auto AbsoluteText = Absolute.Normalize().ToUtf8();
+		auto RelativeStart = m_Resolver.GetRoot().ToUtf8().Size();
+		while (RelativeStart < AbsoluteText.Size() && (AbsoluteText[RelativeStart] == '/' || AbsoluteText[RelativeStart] == '\\'))
+		{
+			++RelativeStart;
+		}
+		FContentDefinitionStamp Stamp;
+		Stamp.Path = AbsoluteText.Substr(RelativeStart);
+		Stamp.ByteCount = static_cast<Toolbox::uint64>(Text.Size());
+		Stamp.Sha256 = Toolbox::FSha256::Compute(Text);
+		m_Files.PushBack({Absolute.ToUtf8(), Text, Toolbox::Move(Stamp)});
 		return Text;
+	}
+	// 一要求が使った不変バイトだけから、辞書順の依存指紋を作る。
+	template <typename T>
+	void Stamp(T& Definition) const
+	{
+		for (const auto& File : m_Files)
+		{
+			Definition.DefinitionStamps.PushBack(File.Stamp);
+		}
+		if (Definition.DefinitionStamps.Size() > 1)
+		{
+			Toolbox::Sort(Definition.DefinitionStamps.begin(), Definition.DefinitionStamps.end(), [](const auto& A, const auto& B)
+			              {
+				              return A.Path < B.Path;
+			              });
+		}
+		// Pathの長さも区切りへ含め、連結が同じになる別依存集合を作らない。
+		Toolbox::FString Bytes("dxf-content-fingerprint-1\n");
+		for (const auto& Value : Definition.DefinitionStamps)
+		{
+			Bytes += Toolbox::FJsonWriter::Unsigned(Value.Path.Size()) + "\n" + Value.Path + "\n" + Toolbox::FJsonWriter::Unsigned(Value.ByteCount) + "\n" + Value.Sha256 + "\n";
+		}
+		Definition.ContentFingerprint = Toolbox::FSha256::Compute(Bytes);
 	}
 
 	Toolbox::TVector<FContentAssetDefinition> SharedAssets;
@@ -109,6 +146,7 @@ private:
 	{
 		Toolbox::FString Absolute;
 		Toolbox::FString Text;
+		FContentDefinitionStamp Stamp;
 	};
 	Toolbox::FAssetPathResolver m_Resolver;
 	FSceneContentLimits m_Limits;
@@ -562,21 +600,29 @@ FSceneContentSource::FSceneContentSource(Toolbox::FPath Root, FSceneContentLimit
 FPrefabDefinition2D FSceneContentSource::LoadPrefab2D(Toolbox::FString Path, const Toolbox::TVector<FContentParameterValue>& Overrides) const
 {
 	ContentPrivate::FFileSession Files(m_ProjectRoot, m_Limits);
-	return ContentPrivate::LoadPrefab<ContentPrivate::FFile2D>(Files, Path, Overrides, m_Limits);
+	auto Definition = ContentPrivate::LoadPrefab<ContentPrivate::FFile2D>(Files, Path, Overrides, m_Limits);
+	Files.Stamp(Definition);
+	return Definition;
 }
 FPrefabDefinition3D FSceneContentSource::LoadPrefab3D(Toolbox::FString Path, const Toolbox::TVector<FContentParameterValue>& Overrides) const
 {
 	ContentPrivate::FFileSession Files(m_ProjectRoot, m_Limits);
-	return ContentPrivate::LoadPrefab<ContentPrivate::FFile3D>(Files, Path, Overrides, m_Limits);
+	auto Definition = ContentPrivate::LoadPrefab<ContentPrivate::FFile3D>(Files, Path, Overrides, m_Limits);
+	Files.Stamp(Definition);
+	return Definition;
 }
 FSceneDefinition2D FSceneContentSource::LoadScene2D(Toolbox::FString Path) const
 {
 	ContentPrivate::FFileSession Files(m_ProjectRoot, m_Limits);
-	return ContentPrivate::LoadScene<ContentPrivate::FFile2D>(Files, Path, m_Limits);
+	auto Definition = ContentPrivate::LoadScene<ContentPrivate::FFile2D>(Files, Path, m_Limits);
+	Files.Stamp(Definition);
+	return Definition;
 }
 FSceneDefinition3D FSceneContentSource::LoadScene3D(Toolbox::FString Path) const
 {
 	ContentPrivate::FFileSession Files(m_ProjectRoot, m_Limits);
-	return ContentPrivate::LoadScene<ContentPrivate::FFile3D>(Files, Path, m_Limits);
+	auto Definition = ContentPrivate::LoadScene<ContentPrivate::FFile3D>(Files, Path, m_Limits);
+	Files.Stamp(Definition);
+	return Definition;
 }
 } // namespace Dxf

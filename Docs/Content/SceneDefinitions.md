@@ -2,6 +2,10 @@
 
 `dxf::scene_content`は任意リンクの静的ライブラリです。UTF-8 JSONを検証し、既存Gameplay Componentへ初期構成を渡します。実行状態の保存、世代IDの復元、任意C++型の生成、スクリプト、編集GUIは提供しません。Contentを使わないFramework／PhysicsOnly／SupportOnlyの利用方法は変わりません。
 
+ファイルを使う`FSceneContentSource`は、実際に読み込んだScene／Prefabと依存定義の生バイトから`DefinitionStamps`と`ContentFingerprint`を保持します。各記録はProjectRoot相対の正規化パス、BOMを含むバイト数、SHA-256です。重複ファイルを除き、パス順の長さ付き表から全体の指紋を作ります。再配置した同じ定義バイトは同じ指紋になり、準備後のディスク変更は旧定義へ反映しません。Sceneの内側のPrefabはScene全体の依存記録で識別し、独立した`LoadPrefab`の返却値は自身の依存記録を持ちます。文字列だけの`ParsePrefab`はファイル由来と主張せず、指紋は空です。
+
+指紋は定義の互換性確認用で、資源ファイルの全内容、署名、改ざん防止を保証しません。アセットbundleのrevisionは別途ゲームが指定します。SHA-256の計算は[NIST FIPS 180-4](https://csrc.nist.gov/pubs/fips/180-4/upd1/final)に従い、既知入力と独立した参照値で検算します。
+
 ## 形式・単位
 
 JSON文法は[RFC 8259](https://www.rfc-editor.org/rfc/rfc8259.html)を基準にします。重複キー拒否、有限数値、未知項目拒否と資源上限はContent形式の追加制約です。

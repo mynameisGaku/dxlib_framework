@@ -6,6 +6,7 @@
 #include "Dxf/ContentAssetDefinition.h"
 #include "Dxf/ContentExportDefinition.h"
 #include "Dxf/ContentParameterValue.h"
+#include "Dxf/ContentDefinitionStamp.h"
 #include "Toolbox/JsonDocument.h"
 #include "Toolbox/SharedPtr.h"
 namespace Dxf
@@ -19,6 +20,14 @@ struct FPrefabDefinition2D
 	 * 診断用の定義パス。
 	 */
 	Toolbox::FString Path;
+	/**
+	 * ファイル準備に使った全依存の指紋。文字列だけのParseでは空。
+	 */
+	Toolbox::FString ContentFingerprint;
+	/**
+	 * 重複読込を除いた不変の定義バイト記録。資源の内容とは別。
+	 */
+	Toolbox::TVector<FContentDefinitionStamp> DefinitionStamps;
 	/**
 	 * 展開したPrefab root数。空の子でも指数的展開を制限する。
 	 */
