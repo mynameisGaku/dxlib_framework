@@ -48,4 +48,4 @@ Mapの `Update` は新しいSnapshotごとに一回。採取の `Poll`、描画V
 
 Volumeは元の再生音量へ一度だけ掛け、既存Playbackへの `SetVolume` と次回PlayのOptionsへ反映する。UiScaleは既存表示先のOptionsへ渡し、描画とhit testを同じ座標変換にする。SampleのControllerが既存Playbackを更新し、Scene所有のUIが表示先のUserScaleを更新する。設定を適用したことと保存公開の成功を区別し、書込失敗を保存済み表示にしない。
 
-現在の確認範囲は [L作業の試行記録](../Development/GameSaveCompletion-2026-10-02.md)。別プロセスConsumerでは値の永続化と実Action操作を確認した。SampleのCPU実ApplicationではPlayback呼出しと、1001×501・倍率1.5で実描画位置をクリックするUI・実Body操作を確認した。いずれも実DxLib画素・人の入力・聴感の確認結果ではない。
+現在の確認範囲は [L作業の試行記録](../Development/GameSaveCompletion-2026-10-02.md)。別プロセスConsumerでは値の永続化と実Action操作を確認した。SampleのCPU実ApplicationではPlayback呼出しと、1001×501・倍率1.5で描画位置をクリックするUI・実Body操作を確認した。別の実DxLib試験では、Continue後の倍率1.5のButton背景を読戻し、固定Snapshotの実クリックとSlider操作を両次元で確認する。CPUの描画境界試験とNative画素試験を分け、人の物理入力・聴感を確認した結果とは扱わない。

@@ -4,7 +4,7 @@ New Gameの初期文書は`FCheckpointRestore::MakeInitial`へ信頼するカタ
 
 GameplaySampleの`FSaveCourseProgress`／`FSaveCourseProgressCodec`は、保存コアへゲームのルールを入れずに、鍵・得点・チェックポイント・doorA／doorBの解錠と開扉・生成カウンター・進行revisionを検証する。score・spawnCounter・revisionは厳密な十進文字列とし、配列順を変えても扉の論理キーは取り違えない。未解錠の開扉、不明なキー、重複取得を拒否する。実Sensor通知、純粋な再開レシピ、既存Sampleの保存UIへ接続している。
 
-L0〜L10の実装を進めている。任意リンクの`dxf::save_data`は保存コア、`dxf::game_save`はCPU保存／読込要求と型付きチェックポイント・再開計画、通常Navigatorへの要求と必須Readyの完了管理を提供する。`dxf::input_profiles`は完全割当と独立した設定文書を扱う。GameplaySampleのContinue・設定画面と、別Applicationプロセスの両次元再開を接続した。Native画素、全I/O故障、変異、測定・最終配布は引き続き検証中である。初期構成を読み込むBの成果と、今回の論理進行保存を別の機能として扱う。
+任意リンクの`dxf::save_data`は保存コア、`dxf::game_save`はCPU保存／読込要求と型付きチェックポイント・再開計画、通常Navigatorへの要求と必須Readyの完了管理を提供する。`dxf::input_profiles`は完全割当と独立した設定文書を扱う。GameplaySampleのContinue・設定画面と、別Applicationプロセスの両次元再開を接続した。試行ごとの採用範囲、途中失敗、測定・配布・最終累積の状態は[今回の記録](../Development/GameSaveCompletion-2026-10-02.md)を参照する。初期構成を読み込むBの成果と、今回の論理進行保存を別の機能として扱う。
 
 ## 保存する値
 
@@ -62,7 +62,7 @@ OS処理の契約は[Known Folder取得](https://learn.microsoft.com/en-us/windo
 
 ## 非同期要求の現在の範囲
 
-呼出し側が`FGameSaveRequest`を所有し、既存Dispatcher／Scopeを任意で借りる。RequestSaveへ渡す文書は、安全な採取境界で既に完成したCPU値である。Scene所有のFCheckpointCaptureによる要求時採取を追加した。Sampleの長期GameInstanceが成功境界の採取値を非同期要求へ渡す。Workerはencode／temp I/Oまたは面読込／互換性検査だけを行う。Task CommitはCPU結果に印を付け、ファイル公開やNavigator.Commitを実行しない。通常更新のPollが保存を公開し、または読込値を採用する。
+呼出し側が`FGameSaveRequest`を所有し、既存Dispatcher／Scopeを任意で借りる。RequestSaveへ渡す文書は、安全な採取境界で既に完成したCPU値である。Scene所有のFCheckpointCaptureが要求時に採取し、Sampleの長期GameInstanceが成功境界の採取値を非同期要求へ渡す。Workerはencode／temp I/O、または面読込／互換性検査と明示した純粋な`PrepareValues`を行う。チェックポイントadapterは不変カタログと文書を渡し、decode、論理再開計画、ゲームの純粋な再開変換をWorkerで処理する。Scene／ComponentやNative資源を捕捉しない。Task CommitはCPU結果に印を付け、ファイル公開やNavigator.Commitを実行しない。通常更新のPollが保存を公開し、またはCPU計画から所有側の資源準備・候補Scene生成を行う。
 
 状態はPending、Writing／Reading、Prepared、Publishing、Committed、PublicationUnknown、TransitionRequested、Completed、Failed、Canceled、Supersededを区別する。未公開手動保存がある間の次要求はBusy。先行読込は後続でSupersededにし、最後に採用した正常値は新要求の失敗でも残す。Preparedはゲーム再開完了ではない。現在のMarkTransitionRequested／MarkResumeCompletedは上位adapterが実際のNavigator要求と必須Readyを確認して呼ぶ入口で、保存コアの試験だけでScene再開を確認したとは扱わない。
 
@@ -178,7 +178,7 @@ Keyboard／Mouse／4Padの再割当は既存採取と完全プロファイル検
 
 保存コースの2D縮尺は定義値を上限とし、表示先の幅に16mのコースと40画素の余白が収まる値を使う。3Dで定義が一つのカメラを持つ場合は、分割した両表示先でそのカメラを使う。二つのカメラが明示された定義では各カメラを使う。いずれも物理座標・Step回数を変えない。
 
-この試験は実Application・World・AssetService・DxLibと固定Snapshotによる確認で、人の物理入力、聴感、SDKなしPC、電源断の検証ではない。installの公開targetだけを使う外部ゲームConsumerの確認は別工程である。
+この試験は実Application・World・AssetService・DxLibと固定Snapshotによる確認で、人の物理入力、聴感、SDKなしPC、電源断の検証ではない。固定入力のNative保存コースは同期要求を使い、既存DispatcherによるWorker処理・取消し・逆完了はCPUの実Applicationと要求試験で別に確認する。installの公開targetだけを使う外部ゲームConsumerの確認も別工程である。
 
 保存I/Oの故障検査は[専用試験](../../Tests/SaveIoFaultTests.cpp)を参照する。新規一時ファイルのwrite／flush／close／読戻し、公開前後のOS失敗、公開済みか確認できない状態の明示再確認を分ける。正常な最新面の全生バイトを保護し、失敗時に所有していない既存tempを削除しない。checksumは正常なJSONの値が変わった場合も検査し、JSON構文だけで完全性を代用しない。
 
